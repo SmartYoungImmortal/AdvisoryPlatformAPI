@@ -26,10 +26,19 @@ export default tseslint.config(
   },
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+  {
+    // Jest's `expect(mock.method).toHaveBeenCalledWith(...)` always reads a method
+    // reference without calling it, which is exactly what this rule flags — a false
+    // positive on every mocked dependency, not a real unbound-`this` risk in tests.
+    files: ['**/*.spec.ts', '**/*.integration-spec.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
     },
   },
 );

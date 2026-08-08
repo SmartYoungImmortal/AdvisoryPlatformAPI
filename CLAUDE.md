@@ -12,20 +12,21 @@ Omise**. Everything self-hosted except Omise.
 
 ## Where the docs are
 
-**Project documentation lives in Taj's Obsidian vault, not in this repo.** Sharing with the team
-happens through the Drive รวม folder. Do not create a `docs/` folder here.
+**All project docs live in this repo, under `docs/`.** `docs/README.md` is the index.
 
 | Doc | Path |
 |---|---|
-| API spec — endpoints, roles, field-level access | `C:\Tajdang\Obsidian Vault\src\Areas\KMITL\Advisory API spec.md` |
-| Sprint plan | `…\src\Areas\KMITL\Advisory sprint plan.md` |
-| Frontend contract | `…\src\Areas\KMITL\Advisory frontend contract.md` |
-| Proposal (ข้อเสนอโครงงาน) | `…\src\Areas\KMITL\Advisory proposal.md` |
-| Meeting notes | `…\src\Areas\KMITL\Meeting *-2569.md` |
+| API spec — endpoints, roles, field-level access | `docs/api-spec.md` |
+| Sprint plan | `docs/sprint-plan.md` |
+| Frontend contract | `docs/frontend-contract.md` |
+| Proposal (ข้อเสนอโครงงาน) | `docs/proposal.md` |
+| Meeting notes | `docs/meetings/` |
+| Data model — 28-table ER + design rationale | `docs/ER.mermaid` + `docs/ER.README.md` |
 
-**The data model is the exception — the repo is authoritative:**
-`AdvisoryPlatform-Docs/ER.mermaid` + `ER.README.md`. The vault's `Advisory ER.md` is a
-convenience copy for reading on a phone; if they disagree, the repo wins.
+`docs/ER.mermaid` and `docs/ER.README.md` are mirrored from the `AdvisoryPlatform-Docs` repo, which
+stays the canonical source for the data model specifically — everything else in `docs/` is
+canonical here. `docs/README.md` tracks what was copied from where and when; re-copy by hand if a
+source changes upstream.
 
 **Read the ER and the API spec before adding a table or an endpoint.**
 
