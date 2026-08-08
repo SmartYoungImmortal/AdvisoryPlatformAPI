@@ -37,6 +37,13 @@ async function bootstrap(): Promise<void> {
 
   const config = app.get<ConfigService<Env, true>>(ConfigService);
 
+  // `credentials` is not optional here: the session is a cookie, so without it the browser
+  // drops the cookie on every cross-origin call and every /api/v1/* request reads as a 401.
+  app.enableCors({
+    origin: config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
+    credentials: true,
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

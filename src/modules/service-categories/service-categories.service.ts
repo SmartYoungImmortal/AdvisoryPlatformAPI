@@ -7,6 +7,7 @@ import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
 import { ServiceCategoryResponseDto } from './dtos/service-category-response.dto';
 import { UpdateServiceCategoryDto } from './dtos/update-service-category.dto';
+import { SERVICE_CATEGORY_MESSAGES } from './service-categories.constants';
 import { ServiceCategoriesRepository } from './service-categories.repository';
 
 @Injectable()
@@ -37,7 +38,7 @@ export class ServiceCategoriesService {
     const category = await this.serviceCategoriesRepository.findById(id);
 
     if (!category) {
-      throw new NotFoundException('Service category not found');
+      throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);
     }
 
     return new ServiceCategoryResponseDto(category);
@@ -57,7 +58,7 @@ export class ServiceCategoriesService {
     const category = await this.serviceCategoriesRepository.updateById(id, dto);
 
     if (!category) {
-      throw new NotFoundException('Service category not found');
+      throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);
     }
 
     return new ServiceCategoryResponseDto(category);
@@ -67,7 +68,7 @@ export class ServiceCategoriesService {
     const category = await this.serviceCategoriesRepository.deleteById(id);
 
     if (!category) {
-      throw new NotFoundException('Service category not found');
+      throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);
     }
   }
 }

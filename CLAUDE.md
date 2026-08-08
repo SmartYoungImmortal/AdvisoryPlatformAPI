@@ -274,6 +274,41 @@ Two rules that kill it:
    error); the string passed to `@ApiGetOne(Dto, 'Skill')` and friends is what a misspell would slip
    past silently.
 
+   > **Open question (2026-08-08).** Taj doesn't like this pattern. It stays until there's a
+   > replacement that keeps the typo-safety — deriving the name from the DTO class is the obvious
+   > candidate. Don't drop it from new controllers while it's still live in the old ones; that's
+   > inconsistency, not a fix. When it's resolved, the entity name belongs in the module's
+   > `*.constants.ts` next to the messages, not back in the controller.
+
+---
+
+## User-facing message strings
+
+**A message the user can see is a constant, never a literal at the throw site.** The same string
+was appearing three times per service (`'Service category not found'` ×3), so a reworded message
+meant three edits and a missed one meant two endpoints disagreeing about the same failure.
+
+`common/constants/crud-messages.ts` derives the four CRUD messages from the entity noun, so the
+noun is written once per module:
+
+```ts
+// modules/skills/skills.constants.ts
+export const SKILL_MESSAGES = crudMessages('Skill');
+
+// service — the rule
+throw new NotFoundException(SKILL_MESSAGES.notFound);
+
+// controller — the envelope's `message`
+@ResponseMessage(SKILL_MESSAGES.created)
+```
+
+It returns template-literal types rather than `string`, so `SKILL_MESSAGES.notfound` is a compile
+error instead of an `undefined` that reaches the wire.
+
+**A module with messages beyond the four adds them to its own `*.constants.ts`** — don't grow
+`crudMessages` with per-module concerns, and don't create one shared repo-wide messages file
+(that couples unrelated modules and turns every message edit into a merge conflict).
+
 ---
 
 ## better-auth
@@ -291,6 +326,17 @@ better-auth owns authentication. We own authorization.
 - **Email/password only.** No social login in Project 1.
 - **The domain user IS better-auth's user table.** `fullName`, `avatarKey`, `timezone` and `status`
   are declared as `user.additionalFields`. There is no second users table and no sync hook.
+- **`TRUSTED_ORIGINS` feeds both better-auth and CORS.** The frontend is a separate repo on its own
+  origin, and the session is a cookie — so better-auth needs the origin in `trustedOrigins` (it 403s
+  any `callbackURL` / `redirectTo` / `origin` outside the list) *and* Express needs it in
+  `enableCors({ credentials: true })` (without `credentials` the browser drops the cookie and every
+  `/api/v1/*` call reads as a 401). One env var, comma-separated, so the two can't drift into a
+  login that fails for reasons that look unrelated.
+
+**Not configured yet, deliberately:** rate limiting (better-auth's default `memory` storage doesn't
+survive a restart or span instances — revisit if this ever runs more than one container),
+`useSecureCookies` (confirm when the TLS-terminating proxy exists — better-auth must see the request
+as HTTPS), and `sendResetPassword`. None of these block the frontend; all of them block production.
 
 ### The UUID step — schema is hand-maintained, not CLI-generated
 

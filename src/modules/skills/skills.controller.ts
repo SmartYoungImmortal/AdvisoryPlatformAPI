@@ -27,6 +27,7 @@ import { CreateSkillDto } from './dtos/create-skill.dto';
 import { SkillQueryDto } from './dtos/skill-query.dto';
 import { SkillResponseDto } from './dtos/skill-response.dto';
 import { UpdateSkillDto } from './dtos/update-skill.dto';
+import { SKILL_MESSAGES } from './skills.constants';
 import { SkillsService } from './skills.service';
 
 // The one place this controller's entity name is spelled out — every @ApiXxx call below
@@ -58,7 +59,7 @@ export class SkillsController {
 
   @Roles(Role.Admin)
   @Post()
-  @ResponseMessage('Skill created')
+  @ResponseMessage(SKILL_MESSAGES.created)
   @ApiCreate(SkillResponseDto, ENTITY_NAME)
   create(@Body() dto: CreateSkillDto): Promise<SkillResponseDto> {
     return this.skillsService.create(dto);
@@ -66,7 +67,7 @@ export class SkillsController {
 
   @Roles(Role.Admin)
   @Patch(':id')
-  @ResponseMessage('Skill updated')
+  @ResponseMessage(SKILL_MESSAGES.updated)
   @ApiUpdate(SkillResponseDto, ENTITY_NAME)
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -78,7 +79,7 @@ export class SkillsController {
   @Roles(Role.Admin)
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Skill deleted')
+  @ResponseMessage(SKILL_MESSAGES.deleted)
   @ApiDelete(ENTITY_NAME)
   delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.skillsService.delete(id);

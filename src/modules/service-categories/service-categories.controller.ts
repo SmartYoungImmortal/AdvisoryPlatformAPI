@@ -27,6 +27,7 @@ import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
 import { ServiceCategoryResponseDto } from './dtos/service-category-response.dto';
 import { UpdateServiceCategoryDto } from './dtos/update-service-category.dto';
+import { SERVICE_CATEGORY_MESSAGES } from './service-categories.constants';
 import { ServiceCategoriesService } from './service-categories.service';
 
 // The one place this controller's entity name is spelled out — see skills.controller.ts.
@@ -60,7 +61,7 @@ export class ServiceCategoriesController {
 
   @Roles(Role.Admin)
   @Post()
-  @ResponseMessage('Service category created')
+  @ResponseMessage(SERVICE_CATEGORY_MESSAGES.created)
   @ApiCreate(ServiceCategoryResponseDto, ENTITY_NAME)
   create(
     @Body() dto: CreateServiceCategoryDto,
@@ -70,7 +71,7 @@ export class ServiceCategoriesController {
 
   @Roles(Role.Admin)
   @Patch(':id')
-  @ResponseMessage('Service category updated')
+  @ResponseMessage(SERVICE_CATEGORY_MESSAGES.updated)
   @ApiUpdate(ServiceCategoryResponseDto, ENTITY_NAME)
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -82,7 +83,7 @@ export class ServiceCategoriesController {
   @Roles(Role.Admin)
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Service category deleted')
+  @ResponseMessage(SERVICE_CATEGORY_MESSAGES.deleted)
   @ApiDelete(ENTITY_NAME)
   delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.serviceCategoriesService.delete(id);

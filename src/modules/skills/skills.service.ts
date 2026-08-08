@@ -7,6 +7,7 @@ import { CreateSkillDto } from './dtos/create-skill.dto';
 import { SkillQueryDto } from './dtos/skill-query.dto';
 import { SkillResponseDto } from './dtos/skill-response.dto';
 import { UpdateSkillDto } from './dtos/update-skill.dto';
+import { SKILL_MESSAGES } from './skills.constants';
 import { SkillsRepository } from './skills.repository';
 
 @Injectable()
@@ -35,7 +36,7 @@ export class SkillsService {
     const skill = await this.skillsRepository.findById(id);
 
     if (!skill) {
-      throw new NotFoundException('Skill not found');
+      throw new NotFoundException(SKILL_MESSAGES.notFound);
     }
 
     return new SkillResponseDto(skill);
@@ -50,7 +51,7 @@ export class SkillsService {
     const skill = await this.skillsRepository.updateById(id, dto);
 
     if (!skill) {
-      throw new NotFoundException('Skill not found');
+      throw new NotFoundException(SKILL_MESSAGES.notFound);
     }
 
     return new SkillResponseDto(skill);
@@ -60,7 +61,7 @@ export class SkillsService {
     const skill = await this.skillsRepository.deleteById(id);
 
     if (!skill) {
-      throw new NotFoundException('Skill not found');
+      throw new NotFoundException(SKILL_MESSAGES.notFound);
     }
   }
 }

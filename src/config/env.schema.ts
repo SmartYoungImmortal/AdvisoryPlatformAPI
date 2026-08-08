@@ -6,6 +6,18 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.url(),
   BETTER_AUTH_SECRET: z.string().min(32),
+  BETTER_AUTH_URL: z.url(),
+  // One list, two consumers: better-auth rejects any callbackURL/redirectTo/origin outside it
+  // with 403, and CORS refuses the browser preflight. They must agree, so they read the same var.
+  TRUSTED_ORIGINS: z
+    .string()
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.url()).nonempty()),
 });
 
 export type Env = z.infer<typeof envSchema>;

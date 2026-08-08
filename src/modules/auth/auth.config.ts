@@ -23,6 +23,8 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
   return betterAuth({
     database: drizzleAdapter(db, { provider: 'pg', schema }),
     secret: config.get(ENV_KEYS.BETTER_AUTH_SECRET, { infer: true }),
+    baseURL: config.get(ENV_KEYS.BETTER_AUTH_URL, { infer: true }),
+    trustedOrigins: config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
     emailAndPassword: {
       enabled: true,
     },
