@@ -34,6 +34,21 @@ describe('TransformInterceptor', () => {
       });
   });
 
+  it('coerces undefined data (e.g. a void DELETE handler) to null, not a dropped key', (done) => {
+    const reflector = {
+      get: jest.fn().mockReturnValue(undefined),
+    } as unknown as Reflector;
+    const interceptor = new TransformInterceptor(reflector);
+
+    interceptor
+      .intercept(createContext(), createCallHandler(undefined))
+      .subscribe((result) => {
+        expect(result.data).toBeNull();
+        expect(JSON.stringify(result)).toContain('"data":null');
+        done();
+      });
+  });
+
   it('uses the message set via @ResponseMessage instead of the default', (done) => {
     const reflector = {
       get: jest.fn().mockReturnValue('Booking created'),

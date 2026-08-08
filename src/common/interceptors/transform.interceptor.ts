@@ -38,7 +38,10 @@ export class TransformInterceptor<T> implements NestInterceptor<
       map((data) => ({
         statusCode: response.statusCode,
         message,
-        data,
+        // `undefined` (e.g. a void DELETE handler) must become `null`, not vanish —
+        // JSON.stringify drops undefined-valued keys, which would break the envelope's
+        // "every response has the same three keys" contract.
+        data: (data ?? null) as T,
       })),
     );
   }

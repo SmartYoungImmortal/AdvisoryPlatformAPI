@@ -1,8 +1,10 @@
-import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { pgTable, uuid, text, integer } from 'drizzle-orm/pg-core';
 import { eq } from 'drizzle-orm';
 import { EntityRepository } from './entity.repository';
+import { DrizzleDB } from '../../database/database.module';
+import * as schema from '../../database/schema';
 
 const widgets = pgTable('_test_widgets', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -11,19 +13,19 @@ const widgets = pgTable('_test_widgets', {
 });
 
 class WidgetRepository extends EntityRepository<typeof widgets> {
-  constructor(db: NodePgDatabase) {
+  constructor(db: DrizzleDB) {
     super(db, widgets);
   }
 }
 
 describe('EntityRepository (integration)', () => {
   let pool: Pool;
-  let db: NodePgDatabase;
+  let db: DrizzleDB;
   let repo: WidgetRepository;
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    db = drizzle(pool);
+    db = drizzle(pool, { schema });
     repo = new WidgetRepository(db);
 
     await db.execute(`
@@ -86,6 +88,20 @@ describe('EntityRepository (integration)', () => {
 
     expect(deleted?.id).toBe(created.id);
     expect(await repo.findById(created.id)).toBeUndefined();
+  });
+
+  it('findMany paginates via limit/offset', async () => {
+    await repo.createMany([
+      { name: 'Widget A', stock: 5 },
+      { name: 'Widget B', stock: 0 },
+      { name: 'Widget C', stock: 2 },
+    ]);
+
+    const firstPage = await repo.findMany(undefined, { limit: 2, offset: 0 });
+    const secondPage = await repo.findMany(undefined, { limit: 2, offset: 2 });
+
+    expect(firstPage).toHaveLength(2);
+    expect(secondPage).toHaveLength(1);
   });
 
   it('counts rows, optionally filtered', async () => {

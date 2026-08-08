@@ -36,9 +36,23 @@ export abstract class EntityRepository<TTable extends TableWithId> {
     return row as InferSelectModel<TTable> | undefined;
   }
 
-  async findMany(where?: SQL): Promise<InferSelectModel<TTable>[]> {
-    const query = this.db.select().from(this.queryTable);
-    const rows = where ? await query.where(where) : await query;
+  async findMany(
+    where?: SQL,
+    options?: { limit?: number; offset?: number },
+  ): Promise<InferSelectModel<TTable>[]> {
+    let query = this.db.select().from(this.queryTable).$dynamic();
+
+    if (where) {
+      query = query.where(where);
+    }
+    if (options?.limit !== undefined) {
+      query = query.limit(options.limit);
+    }
+    if (options?.offset !== undefined) {
+      query = query.offset(options.offset);
+    }
+
+    const rows = await query;
     return rows as InferSelectModel<TTable>[];
   }
 

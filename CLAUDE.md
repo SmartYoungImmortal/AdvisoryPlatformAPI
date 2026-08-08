@@ -22,6 +22,8 @@ Omise**. Everything self-hosted except Omise.
 | Proposal (ข้อเสนอโครงงาน) | `docs/proposal.md` |
 | Meeting notes | `docs/meetings/` |
 | Data model — 28-table ER + design rationale | `docs/ER.mermaid` + `docs/ER.README.md` |
+| Dev log — what changed and why, session by session | `docs/dev-log.md` |
+| Handoff — current-state snapshot: what's built, how to run it, what's next | `docs/HANDOFF.md` |
 
 `docs/ER.mermaid` and `docs/ER.README.md` are mirrored from the `AdvisoryPlatform-Docs` repo, which
 stays the canonical source for the data model specifically — everything else in `docs/` is
@@ -183,7 +185,16 @@ silently produces a different shape.
 
 `EntityRepository<T extends PgTable>` in `common/repositories/` provides typed
 `findOne / findMany / findById / create / createMany / updateWhere / updateById / deleteWhere /
-deleteById / count`. Every module repository extends it and adds its own named queries.
+deleteById / count`. `findMany(where?, { limit?, offset? })` is how a list endpoint paginates —
+don't add a second, module-specific paginated-fetch method. Every module repository extends it and
+adds its own named queries.
+
+**Not every table qualifies.** `EntityRepository<T>` requires `T` to have an `id` column
+(`TableWithId`). Tables whose PK is a FK to another table — `advisorProfiles.userId`,
+`advisorIdentity.advisorId`, `adminProfiles.userId`, `serviceReviews.appointmentId`, all on
+`docs/ER.README.md`'s no-surrogate-id list — don't have one. Their repository is a plain
+`@Injectable()` class with its own `findByXxxId`, not an `EntityRepository` subclass. See
+`AdvisorsRepository`.
 
 ```ts
 @Injectable()
@@ -252,6 +263,16 @@ Two rules that kill it:
 2. **A controller injects one service.** If a handler needs a user, an exam and a question before it
    can act, that orchestration belongs in the service. A controller with four injected services is
    the smell.
+3. **The Swagger lock icon is automatic, not hand-added.** `@ApiCreate` / `@ApiUpdate` / `@ApiDelete`
+   always carry `@ApiCookieAuth(SESSION_COOKIE_NAME)`; `@ApiGetOne` / `@ApiGetPaginated` default to
+   it too and only drop it when called with `{ public: true }`. This mirrors `SessionGuard`'s own
+   fail-closed default — a route is protected unless it says otherwise, in the docs as much as at
+   runtime. Never add `@ApiCookieAuth` by hand; if a route needs it, one of these five is missing
+   instead.
+4. **One `ENTITY_NAME` constant per controller**, not the name string repeated at every call site —
+   see `skills.controller.ts`. The DTO class itself doesn't need this (a typo there is a compile
+   error); the string passed to `@ApiGetOne(Dto, 'Skill')` and friends is what a misspell would slip
+   past silently.
 
 ---
 
@@ -271,18 +292,36 @@ better-auth owns authentication. We own authorization.
 - **The domain user IS better-auth's user table.** `fullName`, `avatarKey`, `timezone` and `status`
   are declared as `user.additionalFields`. There is no second users table and no sync hook.
 
-### The UUID step — read before running `auth generate`
+### The UUID step — schema is hand-maintained, not CLI-generated
 
-better-auth's Drizzle adapter emits `text('id')`. We use `uuid`, because the proposal defends UUID
-PKs in writing and every one of the 28 ER tables uses them.
+better-auth's Drizzle adapter emits `text('id')` by default. We use `uuid`, because the proposal
+defends UUID PKs in writing and every one of the 28 ER tables uses them.
 
-After regenerating the auth schema:
+**`@better-auth/cli`'s published version trails the installed `better-auth` core** (checked
+2026-08-08: cli `1.4.21` vs core `1.6.26`). Rather than risk `auth generate` emitting a schema shape
+the newer core doesn't actually use, `database/schema/auth.ts`'s `user` / `session` / `account` /
+`verification` tables are hand-written to match the core package's own canonical schemas —
+`@better-auth/core`'s `userSchema`, `sessionSchema`, `accountSchema`, `verificationSchema` (read
+those for the field list, don't guess) — with the uuid shape baked in from the start rather than
+patched after the fact:
 
-1. `advanced.database.generateId` must be `() => crypto.randomUUID()`.
-2. Hand-edit the generated file: `text('id')` → `uuid('id').primaryKey().defaultRandom()`, and every
-   `text('user_id')` → `uuid('user_id')`.
+1. `advanced.database.generateId` is `() => crypto.randomUUID()`, set in `auth.config.ts`.
+2. Every id column is `uuid('id').primaryKey().defaultRandom()`; every `user_id` FK is `uuid(...)`.
 
-**`auth generate` overwrites this file.** Re-apply the edit every time, and diff before committing.
+**If `@better-auth/cli` ever catches up to a matching version**, re-check this section before
+switching back to generate-then-edit — confirm the generated shape still matches what's hand-written
+here before trusting it.
+
+**`additionalFields[key].fieldName`, if set, names the Drizzle schema's JS property key — not the
+physical DB column**, despite the type's own doc comment saying "the name of the field on the
+database". Confirmed by reading `@better-auth/drizzle-adapter`'s resolution code
+(`getFieldName` → indexes straight into the passed-in Drizzle schema object), not the type comment.
+Getting this backwards fails silently at the first read/write, not at compile time.
+
+**`SESSION_COOKIE_NAME`** (`modules/auth/auth.constants.ts`) is the one place the actual cookie name
+is spelled out. `main.ts`'s Swagger `addCookieAuth(...)` and `api-docs.decorator.ts`'s
+`@ApiCookieAuth(...)` both import it, so the registered scheme and the per-route tag can't drift
+apart into a lock icon that points at nothing.
 
 No passport, no JWT strategies, no hand-rolled refresh rotation. better-auth's session table is the
 source of truth; issuing our own tokens alongside it would create a second one.
@@ -346,3 +385,7 @@ answer to "how did you prove it" cannot be "we mocked the database that would ha
 - Checkpoint commit before anything large or destructive.
 - Write one sample before generating thirty of anything.
 - Thai and English mix in prose is fine. Code, identifiers and API messages stay English.
+- **When a session establishes a real convention or a non-obvious decision, update this file in
+  the same session** — not as a separate follow-up task. A convention that lives only in one
+  session's context is invisible to the next one. Add a `docs/dev-log.md` entry too if the session
+  shipped something worth a future session knowing happened (not every session needs one).

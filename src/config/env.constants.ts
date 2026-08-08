@@ -10,4 +10,5 @@ export const ENV_KEYS = {
   NODE_ENV: 'NODE_ENV',
   PORT: 'PORT',
   DATABASE_URL: 'DATABASE_URL',
+  BETTER_AUTH_SECRET: 'BETTER_AUTH_SECRET',
 } as const satisfies Record<keyof Env, keyof Env>;
