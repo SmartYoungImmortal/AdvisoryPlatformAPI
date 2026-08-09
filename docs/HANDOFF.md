@@ -5,8 +5,8 @@ conventions, see `CLAUDE.md` — read that before changing anything, not this fi
 
 ## State of the working tree
 
-**There is uncommitted work on top of the last commit.** `629b17d` (committed 2026-08-08 08:25,
-by Taj) captured the foundation up through the ER-derived Drizzle schema and docs/. Everything
+**There is uncommitted work on top of the last commit.** `629b17d` (committed 2026-08-08 08:25)
+captured the foundation up through the ER-derived Drizzle schema and docs/. Everything
 below from "better-auth" onward — the whole auth module, `advisors`/`skills`/`service-categories`,
 the Swagger lock-icon wiring, the `EntityRepository` pagination fix, the `TransformInterceptor`
 `data: null` fix, and the `CLAUDE.md`/`docs/dev-log.md` updates describing them — is sitting in the
@@ -15,7 +15,7 @@ this machine; commit it before pushing or switching branches.
 
 ## What's built and working
 
-**S2 (Foundation + Auth), per `docs/sprint-plan.md` — done and proven live, not just compiled:**
+**S2 (Foundation + Auth) — done and proven live, not just compiled:**
 
 - Docker Compose Postgres, typed env config (`zod`), the `DRIZZLE` client, and the full 31-table
   schema (28 ER tables + better-auth's `user`/`session`/`account`/`verification`) — migrated and
@@ -76,7 +76,7 @@ npm run test:integration  # real Postgres — 7 passing
   has a `TODO(S5)` comment, not the constraint itself. This is intentional, not a gap someone missed.
 - **No admin-promotion endpoint.** The only way to create an admin right now is a manual `INSERT`.
 
-## Next up, per `docs/sprint-plan.md`
+## Next up
 
 **S3 · User Module**: onboarding (role selection), PDPA consent before signup, user profile API,
 advisor profile, RBAC route guard (the pieces exist — `SessionGuard`, `@Roles` — this is applying

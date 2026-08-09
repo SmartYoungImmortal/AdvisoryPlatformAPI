@@ -1,7 +1,7 @@
 # AdvisoryPlatformAPI — NestJS backend for the Advisory Platform
 
-KMITL final project (Project 1, 2569). This repo is the **API**. Taj owns it alone —
-`AdvisoryPlatform/` (Next.js) is the frontend and belongs to Copper, Nam, Phak.
+KMITL final project (Project 1, 2569). This repo is the **API**, owned by the backend track alone.
+`AdvisoryPlatform/` (Next.js) is the frontend and is owned by the frontend track.
 
 **Read the API as serving the frontend.** The team decided *"Backend ทําตามที่ ux/ui frontend
 ขึ้นไปก่อน"* — the UI leads, the API follows. When an endpoint's shape is ambiguous, look at what
@@ -12,23 +12,21 @@ Omise**. Everything self-hosted except Omise.
 
 ## Where the docs are
 
-**All project docs live in this repo, under `docs/`.** `docs/README.md` is the index.
+**`docs/` holds what this repo needs to build against, and nothing else.**
 
 | Doc | Path |
 |---|---|
 | API spec — endpoints, roles, field-level access | `docs/api-spec.md` |
-| Sprint plan | `docs/sprint-plan.md` |
-| Frontend contract | `docs/frontend-contract.md` |
-| Proposal (ข้อเสนอโครงงาน) | `docs/proposal.md` |
-| Meeting notes | `docs/meetings/` |
 | Data model — 28-table ER + design rationale | `docs/ER.mermaid` + `docs/ER.README.md` |
 | Dev log — what changed and why, session by session | `docs/dev-log.md` |
 | Handoff — current-state snapshot: what's built, how to run it, what's next | `docs/HANDOFF.md` |
 
 `docs/ER.mermaid` and `docs/ER.README.md` are mirrored from the `AdvisoryPlatform-Docs` repo, which
-stays the canonical source for the data model specifically — everything else in `docs/` is
-canonical here. `docs/README.md` tracks what was copied from where and when; re-copy by hand if a
-source changes upstream.
+stays the canonical source for the data model. `dev-log.md` and `HANDOFF.md` are native here.
+
+**Planning material is deliberately not in this repo** — the proposal, sprint plan, frontend
+contract and meeting notes live in the owner's own notes and are not mirrored in. If a build
+decision depends on one of them, ask rather than assuming this repo knows.
 
 **Read the ER and the API spec before adding a table or an endpoint.**
 
@@ -274,7 +272,7 @@ Two rules that kill it:
    error); the string passed to `@ApiGetOne(Dto, 'Skill')` and friends is what a misspell would slip
    past silently.
 
-   > **Open question (2026-08-08).** Taj doesn't like this pattern. It stays until there's a
+   > **Open question (2026-08-08).** This pattern is disputed in this repo. It stays until there's a
    > replacement that keeps the typo-safety — deriving the name from the DTO class is the obvious
    > candidate. Don't drop it from new controllers while it's still live in the old ones; that's
    > inconsistency, not a fix. When it's resolved, the entity name belongs in the module's
@@ -424,7 +422,7 @@ answer to "how did you prove it" cannot be "we mocked the database that would ha
 
 ---
 
-## Working with Taj on this repo
+## How work gets done in this repo
 
 - Recommend, don't survey. Pick one and say why.
 - Grill before building anything structural.
