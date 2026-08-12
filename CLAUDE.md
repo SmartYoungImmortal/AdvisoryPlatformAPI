@@ -12,6 +12,10 @@ Omise**. Everything self-hosted except Omise.
 
 ## Where the docs are
 
+> **Current planning note (2026-08-10):** the repository now carries a rebaselined delivery
+> baseline at `docs/SPRINT-PLAN.md`. It supersedes the statement below that sprint planning is not
+> mirrored here. `AGENTS.md` is the active agent working guide.
+
 **`docs/` holds what this repo needs to build against, and nothing else.**
 
 | Doc | Path |

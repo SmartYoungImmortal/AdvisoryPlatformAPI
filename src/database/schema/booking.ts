@@ -40,11 +40,12 @@ export const serviceTimeslots = pgTable('service_timeslots', {
     .defaultNow(),
   modifiedAt: timestamp('modified_at', { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
   // TODO(S5): add a Postgres EXCLUDE USING gist constraint on
   // (serviceId, tstzrange(startTime, endTime)) so no-overlap is enforced by the
   // database, not the application — Success Criterion #1, added via raw SQL migration
-  // when the booking module lands (see docs/sprint-plan.md, S5).
+  // when the booking module lands (see docs/SPRINT-PLAN.md, S5).
 });
 
 export const serviceAppointments = pgTable('service_appointments', {
@@ -63,7 +64,8 @@ export const serviceAppointments = pgTable('service_appointments', {
     .defaultNow(),
   modifiedAt: timestamp('modified_at', { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const serviceReviews = pgTable('service_reviews', {
@@ -78,5 +80,6 @@ export const serviceReviews = pgTable('service_reviews', {
     .defaultNow(),
   modifiedAt: timestamp('modified_at', { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });

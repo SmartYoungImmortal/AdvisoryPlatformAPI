@@ -4,7 +4,8 @@
 before the other ~11 modules are written. Do not treat the module list at the bottom as done.
 
 Data model: [`ER.mermaid`](./ER.mermaid) · rationale: [`ER.README.md`](./ER.README.md)
-Conventions the implementation must follow: `CLAUDE.md`
+Implementation conventions: [`../AGENTS.md`](../AGENTS.md) · delivery baseline:
+[`SPRINT-PLAN.md`](./SPRINT-PLAN.md)
 
 ---
 
@@ -48,20 +49,104 @@ marked `Public`. Auth is opt-out, so a forgotten decorator fails closed.
 
 ---
 
-## 2. Roles
+## 2. Authentication API
+
+Authentication is served directly by Better Auth under `/api/auth/*`. These endpoints intentionally
+return Better Auth's response bodies, cookies, and error shapes rather than the Nest response
+envelope used by `/api/v1/*`.
+
+All browser requests must use credentials so the HttpOnly session cookie is stored and returned.
+`status` and `avatarKey` are server-owned fields and are rejected as signup input.
+
+| Endpoint | Purpose | Required JSON body | Success |
+|---|---|---|---|
+| `POST /api/auth/sign-up/email` | Create an Advisee account and session | `name`, `fullName`, `email`, `password`, `timezone` | `200`; returns `user` and sets the session cookie |
+| `POST /api/auth/sign-in/email` | Create a session for an existing account | `email`, `password` | `200`; returns `user` and sets the session cookie |
+| `GET /api/auth/get-session` | Read the current session | none | `200`; returns `{ session, user }` or `null` |
+| `POST /api/auth/sign-out` | End the current session | none | `200`; returns `{ success: true }` and clears the cookie |
+
+`name` maps to the platform display name. `fullName` is the legal name and must never be included in
+public advisor responses. A newly registered user is always an Advisee; Advisor access is gained
+only through `POST /api/v1/advisors/me`.
+
+### Signup — copy this body
+
+`POST /api/auth/sign-up/email`
+
+```json
+{
+  "name": "Somchai P.",
+  "fullName": "Somchai Prasert",
+  "email": "somchai@example.com",
+  "password": "use-a-long-unique-password",
+  "timezone": "Asia/Bangkok"
+}
+```
+
+`name`, `fullName`, `email`, `password`, and `timezone` are all required. Do **not** send `status`,
+`avatarKey`, `id`, or a role: the server creates an `ACTIVE` Advisee account. On success, Better
+Auth returns a raw body containing `user` and sets the HttpOnly session cookie.
+
+```bash
+curl -i -X POST http://localhost:3000/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Somchai P.","fullName":"Somchai Prasert","email":"somchai@example.com","password":"use-a-long-unique-password","timezone":"Asia/Bangkok"}'
+```
+
+### Sign in — copy this body
+
+`POST /api/auth/sign-in/email`
+
+```json
+{
+  "email": "somchai@example.com",
+  "password": "use-a-long-unique-password"
+}
+```
+
+Optional: `rememberMe` (`true` by default) and `callbackURL`. Sign-in sets the session cookie.
+
+```bash
+curl -i -c cookies.txt -X POST http://localhost:3000/api/auth/sign-in/email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"somchai@example.com","password":"use-a-long-unique-password"}'
+```
+
+### Use the session cookie
+
+There is no request body for `GET /api/auth/get-session`, `POST /api/auth/sign-out`, or protected
+`/api/v1/*` requests. Send the cookie received from signup/sign-in.
+
+```bash
+# Current user session
+curl -b cookies.txt http://localhost:3000/api/auth/get-session
+
+# Upgrade an Advisee to Advisor — this is a normal Nest API and uses the response envelope
+curl -b cookies.txt -X POST http://localhost:3000/api/v1/advisors/me \
+  -H "Content-Type: application/json" \
+  -d '{"headline":"Operations advisor","bio":"Helping teams improve."}'
+
+# End the session
+curl -b cookies.txt -X POST http://localhost:3000/api/auth/sign-out
+```
+
+For browser clients, use `credentials: 'include'` with `fetch`, or `withCredentials: true` with
+Axios; otherwise the browser discards or withholds the session cookie.
+
+## 3. Roles
 
 | Role | Who | How you get it |
 |---|---|---|
 | `Guest` | no session | default |
 | `Advisee` | any signed-up user | **default on signup** |
-| `Advisor` | advisee who completed advisor onboarding | self-promotion, then admin verification |
+| `Advisor` | advisee who explicitly upgraded to advisor | creates an advisor profile; verification is a separate trust process |
 | `Admin` | platform staff | seeded, never self-service |
 
 An Advisor **is** an Advisee — the roles stack. An advisor can book other advisors.
 
 ---
 
-## 3. Field-level access rules
+## 4. Field-level access rules
 
 These bind every endpoint. They are enforced by **choosing a different response DTO per audience**,
 never by conditional fields inside one DTO — a conditional field is how data leaks.
@@ -91,7 +176,7 @@ the stored value. It exists to be matched and to prevent duplicate accounts, not
 
 ---
 
-## 4. Access matrix — all resources
+## 5. Access matrix — all resources
 
 Written now so the remaining modules have a target to hit.
 
@@ -119,7 +204,7 @@ Written now so the remaining modules have a target to hit.
 
 ---
 
-## 5. Module: Advisors
+## 6. Module: Advisors
 
 ### `GET /api/v1/advisors` — `Public`
 
@@ -160,14 +245,20 @@ Paginated. Reviewer identified by `displayName` only. Includes `advisorReply` wh
 
 ### `POST /api/v1/advisors/me` — `Advisee`
 
-Promote self to advisor. Creates `ADVISOR_PROFILES` for the current user. Idempotent.
+Upgrade self to advisor. Every new account starts as an Advisee; there is no role selector or
+onboarding wizard. This creates `ADVISOR_PROFILES` for the current user. Identity and skill
+verification are separate from receiving the Advisor role.
 
 Body: `headline`, `bio`.
-`409` if already an advisor.
+`409` if already an advisor. This means the request is **not** idempotent; the endpoint wording and
+its implementation must remain aligned on this policy.
 
 ### `GET /api/v1/advisors/me` — `Advisor`
 
-Own profile, with everything the public view hides **except** `nationalId`: identity verification
+Own profile response only. It has a dedicated allowlist and is not reused for public discovery or
+admin lists, which each receive their own response DTO.
+
+Eventually includes everything the public view hides **except** `nationalId`: identity verification
 status, own documents, per-skill proof levels, unpublished services.
 
 Deliberately excludes `penaltyPoints` — an advisor who can see their score will optimise against
@@ -236,7 +327,7 @@ touch any other skill.
 
 ---
 
-## 6. Not yet written
+## 7. Not yet written
 
 auth · users · categories & skills · services · timeslots · screening · booking · payments &
 payouts · refunds · chat & files · notifications · trust & safety · admin console

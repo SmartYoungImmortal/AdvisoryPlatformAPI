@@ -3,6 +3,16 @@
 Snapshot as of 2026-08-08. For the history of how it got here, see `docs/dev-log.md`. For repo
 conventions, see `CLAUDE.md` — read that before changing anything, not this file.
 
+> **2026-08-11 update:** auth now has a written contract in `docs/api-spec.md` and a passing real
+> database e2e suite. The global guard rejects suspended/deleted accounts, and Advisor status is
+> created only through `POST /api/v1/advisors/me`. See `docs/dev-log.md` for the complete change.
+> A GitHub Actions workflow now runs build, lint, unit, integration, and e2e verification; it does
+> not yet enforce the project's 80% aggregate coverage target.
+
+> **2026-08-10 correction:** this snapshot's uncommitted-work claim is historical. `git status` was
+> clean before the 2026-08-10 documentation update; use `git status` rather than this snapshot for
+> current state. `AGENTS.md` is the active working guide.
+
 ## State of the working tree
 
 **There is uncommitted work on top of the last commit.** `629b17d` (committed 2026-08-08 08:25)
@@ -77,6 +87,10 @@ npm run test:integration  # real Postgres — 7 passing
 - **No admin-promotion endpoint.** The only way to create an admin right now is a manual `INSERT`.
 
 ## Next up
+
+> **Superseded planning note (2026-08-10):** the legacy S3 text below is replaced by
+> [`SPRINT-PLAN.md`](./SPRINT-PLAN.md). Signup creates an Advisee only; there is no role-selection
+> or onboarding wizard. Advisor status is obtained through the explicit Advisee-to-Advisor upgrade.
 
 **S3 · User Module**: onboarding (role selection), PDPA consent before signup, user profile API,
 advisor profile, RBAC route guard (the pieces exist — `SessionGuard`, `@Roles` — this is applying

@@ -40,7 +40,8 @@ export const advisorProfiles = pgTable('advisor_profiles', {
     .defaultNow(),
   modifiedAt: timestamp('modified_at', { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const advisorIdentity = pgTable('advisor_identity', {
@@ -71,7 +72,8 @@ export const skills = pgTable('skills', {
     .defaultNow(),
   modifiedAt: timestamp('modified_at', { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const advisorSkills = pgTable(

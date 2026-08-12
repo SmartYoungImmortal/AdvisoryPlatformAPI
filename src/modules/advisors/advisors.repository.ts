@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { InferSelectModel, eq } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
 import { advisorProfiles } from '../../database/schema';
+import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
+
+type AdvisorProfile = InferSelectModel<typeof advisorProfiles>;
 
 /**
  * Not an `EntityRepository` — `advisorProfiles`'s PK is `userId` (a 1:1 extension of
@@ -12,12 +15,24 @@ import { advisorProfiles } from '../../database/schema';
 export class AdvisorsRepository {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-  async findByUserId(userId: string) {
+  async findByUserId(userId: string): Promise<AdvisorProfile | undefined> {
     const [advisor] = await this.db
       .select()
       .from(advisorProfiles)
       .where(eq(advisorProfiles.userId, userId))
       .limit(1);
+    return advisor;
+  }
+
+  async createIfAbsent(
+    userId: string,
+    dto: CreateAdvisorProfileDto,
+  ): Promise<AdvisorProfile | undefined> {
+    const [advisor] = await this.db
+      .insert(advisorProfiles)
+      .values({ userId, ...dto })
+      .onConflictDoNothing()
+      .returning();
     return advisor;
   }
 }

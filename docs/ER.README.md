@@ -113,6 +113,10 @@ constraint above.
 
 ### Proof of expertise has two axes, not one ladder
 
+**Current product decision (2026-08-10):** registration creates an Advisee only. The historic
+reference to an onboarding wizard below is superseded: a user explicitly upgrades to Advisor first,
+then identity and skill verification remain separate trust checks.
+
 Identity and skill are different claims and are verified separately — which is already how the UX
 onboarding wizard is split (Stage 2 identification, Stage 3 skills + proof of skill).
 

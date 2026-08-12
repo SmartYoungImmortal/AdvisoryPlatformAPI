@@ -44,6 +44,10 @@ export class SessionGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
+    if (authSession.user.status !== 'ACTIVE') {
+      throw new ForbiddenException();
+    }
+
     request.user = authSession.user;
     request.session = authSession.session;
 

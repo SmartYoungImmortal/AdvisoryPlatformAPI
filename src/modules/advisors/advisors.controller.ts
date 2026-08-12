@@ -1,25 +1,41 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { ApiConflictResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreate,
+  ApiGetOne,
+} from '../../common/decorators/api-docs.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ApiGetOne } from '../../common/decorators/api-docs.decorator';
+import { ResponseMessage } from '../../common/decorators/response-message.decorator';
+import { Role, Roles } from '../../common/decorators/roles.decorator';
 import type { SessionUser } from '../auth/auth.config';
-import { AdvisorMeResponseDto } from './dtos/advisor-me-response.dto';
+import { ADVISOR_MESSAGES } from './advisors.constants';
+import { AdvisorOwnProfileResponseDto } from './dtos/advisor-own-profile-response.dto';
+import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
 import { AdvisorsService } from './advisors.service';
 
-/**
- * S2 proof-of-foundation stub: just enough to show session guard + envelope + DB +
- * migration are wired end to end (docs/sprint-plan.md, S2 exit criteria). The real
- * Advisors module — search, public profile, onboarding, identity/skill verification —
- * lands in S3/S4.
- */
 @ApiTags('Advisors')
 @Controller('api/v1/advisors')
 export class AdvisorsController {
   constructor(private readonly advisorsService: AdvisorsService) {}
 
+  @Roles(Role.Advisee)
+  @Post('me')
+  @ResponseMessage(ADVISOR_MESSAGES.created)
+  @ApiCreate(AdvisorOwnProfileResponseDto, 'Advisor profile')
+  @ApiConflictResponse({ description: ADVISOR_MESSAGES.alreadyExists })
+  upgrade(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: CreateAdvisorProfileDto,
+  ): Promise<AdvisorOwnProfileResponseDto> {
+    return this.advisorsService.upgrade(user, dto);
+  }
+
+  @Roles(Role.Advisor)
   @Get('me')
-  @ApiGetOne(AdvisorMeResponseDto, 'Current advisor status')
-  getMe(@CurrentUser() user: SessionUser): Promise<AdvisorMeResponseDto> {
+  @ApiGetOne(AdvisorOwnProfileResponseDto, 'Advisor profile')
+  getMe(
+    @CurrentUser() user: SessionUser,
+  ): Promise<AdvisorOwnProfileResponseDto> {
     return this.advisorsService.getMe(user);
   }
 }

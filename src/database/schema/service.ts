@@ -42,7 +42,8 @@ export const services = pgTable('services', {
     .defaultNow(),
   modifiedAt: timestamp('modified_at', { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const serviceImages = pgTable(

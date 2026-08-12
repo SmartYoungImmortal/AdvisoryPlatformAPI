@@ -46,7 +46,8 @@ export const serviceInvoices = pgTable('service_invoices', {
     .defaultNow(),
   modifiedAt: timestamp('modified_at', { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const payouts = pgTable('payouts', {

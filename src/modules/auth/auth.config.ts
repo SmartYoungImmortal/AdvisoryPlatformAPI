@@ -46,6 +46,7 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
         avatarKey: {
           type: 'string',
           required: false,
+          input: false,
         },
         timezone: {
           type: 'string',
@@ -55,6 +56,7 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
           type: 'string',
           required: true,
           defaultValue: 'ACTIVE',
+          input: false,
         },
       },
     },

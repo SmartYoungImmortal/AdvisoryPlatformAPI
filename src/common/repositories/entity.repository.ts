@@ -2,6 +2,7 @@ import {
   InferInsertModel,
   InferSelectModel,
   SQL,
+  asc,
   count,
   eq,
 } from 'drizzle-orm';
@@ -40,7 +41,11 @@ export abstract class EntityRepository<TTable extends TableWithId> {
     where?: SQL,
     options?: { limit?: number; offset?: number },
   ): Promise<InferSelectModel<TTable>[]> {
-    let query = this.db.select().from(this.queryTable).$dynamic();
+    let query = this.db
+      .select()
+      .from(this.queryTable)
+      .orderBy(asc(this.table.id))
+      .$dynamic();
 
     if (where) {
       query = query.where(where);
