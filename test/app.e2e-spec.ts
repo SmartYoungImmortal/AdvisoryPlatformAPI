@@ -5,6 +5,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
 import { configureApp } from '@/app.factory';
 import { AppModule } from '@/app.module';
+import { MinioStorageService } from '@/common/storage/minio-storage.service';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
@@ -21,10 +22,12 @@ import {
   user,
   verification,
 } from '@/database/schema';
+import { MinioStorageStub } from './stubs/minio-storage.stub';
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
   let db: DrizzleDB;
+  let storage: MinioStorageStub;
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
   const createdServiceIds: string[] = [];
@@ -38,9 +41,13 @@ describe('authentication and authorization (e2e)', () => {
   }
 
   beforeAll(async () => {
+    storage = new MinioStorageStub();
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(MinioStorageService)
+      .useValue(storage)
+      .compile();
 
     app = moduleFixture.createNestApplication<NestExpressApplication>({
       bodyParser: false,
@@ -51,6 +58,7 @@ describe('authentication and authorization (e2e)', () => {
   });
 
   afterEach(async () => {
+    storage.clear();
     await Promise.all(
       createdServiceIds
         .splice(0)
@@ -169,12 +177,21 @@ describe('authentication and authorization (e2e)', () => {
       .expect(201);
     const firstAvatar = object(object(uploaded.body).data);
     const firstKey = firstAvatar.avatarKey;
+    if (typeof firstKey !== 'string') {
+      throw new Error('Avatar upload response did not include an object key');
+    }
     expect(firstKey).toEqual(
       expect.stringMatching(new RegExp(`^avatars/${userId}/`)),
     );
+    expect(storage.getObject(firstKey)).toEqual({
+      key: firstKey,
+      body: Buffer.from('first png'),
+      contentType: 'image/png',
+    });
 
     const access = await agent.get('/api/v1/users/me/avatar').expect(200);
-    expect(object(object(access.body).data)).toMatchObject({
+    expect(object(object(access.body).data)).toEqual({
+      url: `https://storage.example.test/${encodeURIComponent(firstKey)}?expires=300`,
       expiresInSeconds: 300,
     });
 
@@ -186,8 +203,19 @@ describe('authentication and authorization (e2e)', () => {
       })
       .expect(201);
     const replacementKey = object(object(replacement.body).data).avatarKey;
+    if (typeof replacementKey !== 'string') {
+      throw new Error(
+        'Avatar replacement response did not include an object key',
+      );
+    }
     expect(replacementKey).toEqual(expect.stringMatching(/\.webp$/));
     expect(replacementKey).not.toBe(firstKey);
+    expect(storage.hasObject(firstKey)).toBe(false);
+    expect(storage.getObject(replacementKey)).toEqual({
+      key: replacementKey,
+      body: Buffer.from('second webp'),
+      contentType: 'image/webp',
+    });
 
     await agent
       .delete('/api/v1/users/me/avatar')
@@ -197,6 +225,7 @@ describe('authentication and authorization (e2e)', () => {
           data: { avatarKey: replacementKey },
         });
       });
+    expect(storage.hasObject(replacementKey)).toBe(false);
     await agent.get('/api/v1/users/me/avatar').expect(404);
 
     await agent
@@ -233,6 +262,18 @@ describe('authentication and authorization (e2e)', () => {
 
   it('anonymizes an account and immediately revokes authentication', async () => {
     const { agent, email, userId } = await signUp();
+    const avatar = await agent
+      .post('/api/v1/users/me/avatar')
+      .attach('file', Buffer.from('avatar to delete'), {
+        filename: 'avatar.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+    const avatarKey = object(object(avatar.body).data).avatarKey;
+    if (typeof avatarKey !== 'string') {
+      throw new Error('Avatar upload response did not include an object key');
+    }
+    expect(storage.hasObject(avatarKey)).toBe(true);
     await agent
       .post('/api/v1/advisors/me')
       .send({ headline: 'Personal headline', bio: 'Personal biography' })
@@ -302,6 +343,7 @@ describe('authentication and authorization (e2e)', () => {
       });
 
     await agent.get('/api/v1/users/me').expect(401);
+    expect(storage.hasObject(avatarKey)).toBe(false);
 
     const [deletedUser] = await db
       .select()

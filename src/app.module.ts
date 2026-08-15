@@ -6,6 +6,7 @@ import { SkillsModule } from './modules/skills/skills.module';
 import { ServiceCategoriesModule } from './modules/service-categories/service-categories.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from '@thallesp/nestjs-better-auth';
     SkillsModule,
     ServiceCategoriesModule,
     UsersModule,
+    ChatModule,
   ],
 })
 export class AppModule {}

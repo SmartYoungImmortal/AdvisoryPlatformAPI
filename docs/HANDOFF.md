@@ -7,6 +7,8 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
 
 - NestJS runtime configuration, response envelope, validation filter, Swagger helpers that derive
   resource labels from response DTO names by default, and typed environment validation.
+- Typed `CompositeKeyStore` composition for mechanical junction-table operations while feature
+  repositories retain named authorization, transaction, join, and invariant-aware queries.
 - Cross-directory imports use the `@/` alias; same-folder feature imports remain relative with
   `./`. Nest build and all Jest configurations resolve the alias consistently.
 - Drizzle/Postgres connection lifecycle and the canonical 31-table schema, with forward migrations.
@@ -24,8 +26,12 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
   credential/session revocation, avatar cleanup, and Advisor-service unpublishing. Successful
   deletes return an allowlisted representation of the removed resource.
 - Public-read/Admin-write Skills and Service Categories sample modules.
-- Unit, Postgres integration, and cookie-preserving auth e2e suites. CI merges their coverage and
-  enforces at least 80% for aggregate statements, branches, functions, and lines.
+- Session-authenticated Socket.IO chat at namespace `/chat`, with member-only joins, persistent
+  message broadcasts, cursor-paginated HTTP history, room unread counts, and monotonic read markers.
+- Unit, Postgres integration, and cookie-preserving auth e2e suites. E2e tests keep the application,
+  authentication, and database real while replacing the external MinIO boundary with an in-memory
+  storage stub. CI merges all coverage and enforces at least 80% for aggregate statements, branches,
+  functions, and lines.
 
 The schema also enforces foundational data rules for nonnegative satang, positive durations,
 trial-window consistency, 1–5 review stars, valid timeslot ranges, file size, and one invoice per
@@ -65,6 +71,9 @@ npm run test:cov
 - The database exclusion constraint preventing overlapping timeslots remains scheduled with the
   booking module; do not replace it with only an application-level check.
 - Admin provisioning is operational/seeded; there is deliberately no self-promotion endpoint.
+- Appointment and accepted-trial modules are not implemented, so production chat-room provisioning
+  is not wired yet. Chat deliberately exposes no arbitrary room or membership creation endpoint;
+  the upstream workflow must create the room, its two memberships, and its source link atomically.
 
 ## Next work
 

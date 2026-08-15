@@ -9,6 +9,7 @@ import type { Env } from './config/env.schema';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ValidationException } from './common/utils/validation.exception';
+import { TrustedOriginsIoAdapter } from './common/websocket/trusted-origins-io.adapter';
 
 /** Applies every runtime HTTP behavior that endpoint tests must exercise. */
 export function configureApp(app: NestExpressApplication): void {
@@ -30,10 +31,12 @@ export function configureApp(app: NestExpressApplication): void {
   );
 
   const config = app.get<ConfigService<Env, true>>(ConfigService);
+  const trustedOrigins = config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true });
   app.enableCors({
-    origin: config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
+    origin: trustedOrigins,
     credentials: true,
   });
+  app.useWebSocketAdapter(new TrustedOriginsIoAdapter(app, trustedOrigins));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

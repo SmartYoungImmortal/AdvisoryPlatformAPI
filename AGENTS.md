@@ -42,7 +42,10 @@ about a particular client implementation.
   Drizzle queries. A service must not import `drizzle-orm`.
 - Do not introduce `shared/` or a generic `BaseCrudService`.
 - Extend `EntityRepository` only for tables with an `id` column. For FK-primary-key tables,
-  write a small plain repository with named queries.
+  write a small plain repository with named queries. That repository may compose
+  `CompositeKeyStore` for exact-key predicates and mechanical find/exists/create/delete operations;
+  never expose the store to services or move authorization, joins, transactions, or relationship
+  rules into it.
 
 ## HTTP contract
 
@@ -54,8 +57,11 @@ about a particular client implementation.
 - A successful `DELETE` returns the deleted resource through its response DTO in `data`; do not
   discard the repository's returned row or use `data: null`. Subresource deletes return a focused
   allowlisted DTO for the value that was removed.
-- List routes use `OffsetPaginationDto` and return
-  `{ items, total, page, limit, totalPages }`; maximum `limit` is 100.
+- Ordinary list routes use `OffsetPaginationDto` and return
+  `{ items, total, page, limit, totalPages }`. Append-heavy feeds such as chat messages use
+  `CursorPaginationDto` and return `{ items, limit, nextCursor, hasMore }`; clients must treat the
+  cursor as opaque. Calendar availability uses a bounded date range rather than a third pagination
+  type. The maximum `limit` is 100 for both pagination styles.
 - User-facing messages come from the module's `*.constants.ts`; reuse `crudMessages()` for
   ordinary CRUD text.
 - Use the composed Swagger decorators (`ApiGetOne`, `ApiGetPaginated`, `ApiCreate`,
