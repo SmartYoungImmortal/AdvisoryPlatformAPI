@@ -14,7 +14,8 @@ Implementation conventions: [`../AGENTS.md`](../AGENTS.md) · delivery baseline:
 
 **Base paths.** `/api/auth/*` belongs to better-auth. Everything else is `/api/v1/*`.
 
-**Every response has the same envelope.** The frontend unwraps `data` unconditionally.
+**Every non-auth response has the same envelope.** API consumers read successful payloads from
+`data`; list payloads use `data.items` rather than a bare array.
 
 ```jsonc
 // success
@@ -138,7 +139,7 @@ curl -b cookies.txt -X POST http://localhost:3000/api/auth/sign-out
 For browser clients, use `credentials: 'include'` with `fetch`, or `withCredentials: true` with
 Axios; otherwise the browser discards or withholds the session cookie.
 
-### Testing without a frontend
+### Testing the API
 
 Use Postman (or curl) for the complete auth flow: sign in and let its cookie jar retain
 `better-auth.session_token`, then call protected `/api/v1/*` routes in the same client. Swagger
@@ -241,14 +242,33 @@ fields remain behind `/api/v1/advisors/me`; they are not conditionally added to 
 
 Updates the authenticated owner's base profile. Body fields are optional: `displayName`, `fullName`,
 and `timezone`. Email, verification state, account status, roles, and `avatarKey` are not accepted.
-Avatar uploads remain deferred until the MinIO upload path exists.
+
+### `POST /api/v1/users/me/avatar` — `Advisee`
+
+Uploads or replaces the authenticated owner's avatar using `multipart/form-data` with one required
+`file` field. Only JPEG, PNG, and WebP files up to 5 MiB are accepted. The API generates the private
+MinIO object key and returns `{ "avatarKey": "avatars/<user-id>/<uuid>.webp" }` in the standard
+success envelope. Clients cannot provide or choose object keys.
+
+### `GET /api/v1/users/me/avatar` — `Advisee`
+
+Returns a fresh private download URL for the authenticated owner's current avatar:
+
+```json
+{ "statusCode": 200, "message": "Success", "data": {
+  "url": "http://localhost:9000/advisory-platform/...signed-query...",
+  "expiresInSeconds": 300
+} }
+```
+
+The URL is deliberately transient and must not be stored. Requests without an avatar return `404`.
 
 ### `DELETE /api/v1/users/me/avatar` — `Advisee`
 
 Clears the authenticated owner's `avatarKey`. This operation is idempotent from the client's
-perspective and returns the removed `{ avatarKey }` in the standard success envelope. Uploading a
-replacement avatar is intentionally unavailable until the MinIO object-upload path can validate
-ownership, file type, and size; clients cannot submit arbitrary storage keys.
+perspective and returns the removed `{ avatarKey }` in the standard success envelope. The API then
+best-effort removes the corresponding private MinIO object; a cleanup failure does not restore the
+database reference.
 
 ### `DELETE /api/v1/users/me` — `Advisee`
 

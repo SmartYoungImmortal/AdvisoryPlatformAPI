@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { MulterError } from 'multer';
 import {
   FieldError,
   ValidationException,
@@ -33,6 +34,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message: exception.message,
         data: null,
         errors: exception.fieldErrors,
+      } satisfies ErrorEnvelope);
+      return;
+    }
+
+    if (exception instanceof MulterError) {
+      const status =
+        exception.code === 'LIMIT_FILE_SIZE'
+          ? HttpStatus.PAYLOAD_TOO_LARGE
+          : HttpStatus.BAD_REQUEST;
+      response.status(status).json({
+        statusCode: status,
+        message:
+          exception.code === 'LIMIT_FILE_SIZE'
+            ? 'Uploaded file is too large'
+            : 'Invalid file upload',
+        data: null,
       } satisfies ErrorEnvelope);
       return;
     }

@@ -1,8 +1,9 @@
 # AdvisoryPlatformAPI — working guide
 
-NestJS API for KMITL's Advisory Platform. This repository serves the separately owned
-`AdvisoryPlatform/` Next.js frontend: when an endpoint's shape is unclear, follow the
-frontend's actual needs. Do not invent product behaviour.
+NestJS API for KMITL's Advisory Platform. This repository owns the backend HTTP, WebSocket,
+authentication, persistence, and external-service integration contracts. When an endpoint's shape
+is unclear, resolve it in `docs/api-spec.md` from documented product and security requirements. Do
+not invent product behaviour.
 
 ## Read before changing architecture
 
@@ -13,7 +14,8 @@ frontend's actual needs. Do not invent product behaviour.
 - `docs/SPRINT-PLAN.md` — active delivery baseline; its dates remain provisional until confirmed.
 - `docs/dev-log.md` — decisions that were made during prior sessions.
 
-The frontend contract is not mirrored here. Ask before making a decision that depends on it.
+This repository is API-only. Do not add client application code or make undocumented assumptions
+about a particular client implementation.
 
 ## Architecture and invariants
 

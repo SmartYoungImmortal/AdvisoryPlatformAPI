@@ -6,9 +6,15 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { memoryStorage } from 'multer';
 import {
+  ApiCreate,
   ApiGetOne,
   ApiDelete,
   ApiUpdate,
@@ -19,7 +25,9 @@ import { Role, Roles } from '@/common/decorators/roles.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
 import { UserAvatarResponseDto } from './dtos/user-avatar-response.dto';
+import { UserAvatarUrlResponseDto } from './dtos/user-avatar-url-response.dto';
 import { UserOwnProfileResponseDto } from './dtos/user-own-profile-response.dto';
+import { MAX_AVATAR_BYTES } from './avatar.constants';
 import { USER_MESSAGES } from './users.constants';
 import { UsersService } from './users.service';
 
@@ -46,6 +54,40 @@ export class UsersController {
     @Body() dto: UpdateUserProfileDto,
   ): Promise<UserOwnProfileResponseDto> {
     return this.usersService.updateMe(currentUser.id, dto);
+  }
+
+  @Roles(Role.Advisee)
+  @Post('me/avatar')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_AVATAR_BYTES, files: 1 },
+    }),
+  )
+  @ResponseMessage(USER_MESSAGES.avatarUploaded)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiCreate(UserAvatarResponseDto, { name: 'Avatar' })
+  uploadAvatar(
+    @CurrentUser() currentUser: SessionUser,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<UserAvatarResponseDto> {
+    return this.usersService.uploadAvatar(currentUser.id, file);
+  }
+
+  @Roles(Role.Advisee)
+  @Get('me/avatar')
+  @ApiGetOne(UserAvatarUrlResponseDto, { name: 'Avatar URL' })
+  getAvatarUrl(
+    @CurrentUser() currentUser: SessionUser,
+  ): Promise<UserAvatarUrlResponseDto> {
+    return this.usersService.getAvatarUrl(currentUser.id);
   }
 
   @Roles(Role.Advisee)

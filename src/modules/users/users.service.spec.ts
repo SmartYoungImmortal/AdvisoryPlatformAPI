@@ -1,7 +1,13 @@
-import { NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import { Role } from '@/common/decorators/roles.decorator';
 import type { RoleResolver } from '@/common/authorization/role-resolver.service';
+import type { MinioStorageService } from '@/common/storage/minio-storage.service';
 import type { user } from '@/database/schema';
 import type { UsersRepository } from './users.repository';
 import { UsersService } from './users.service';
@@ -30,10 +36,20 @@ describe('UsersService', () => {
   let repository: jest.Mocked<
     Pick<
       UsersRepository,
-      'findById' | 'updateById' | 'removeAvatar' | 'anonymizeById'
+      | 'findById'
+      | 'updateById'
+      | 'removeAvatar'
+      | 'replaceAvatar'
+      | 'anonymizeById'
     >
   >;
   let roleResolver: jest.Mocked<Pick<RoleResolver, 'resolve'>>;
+  let storage: jest.Mocked<
+    Pick<
+      MinioStorageService,
+      'putObject' | 'removeObject' | 'createDownloadUrl'
+    >
+  >;
   let service: UsersService;
 
   beforeEach(() => {
@@ -41,12 +57,19 @@ describe('UsersService', () => {
       findById: jest.fn(),
       updateById: jest.fn(),
       removeAvatar: jest.fn(),
+      replaceAvatar: jest.fn(),
       anonymizeById: jest.fn(),
     };
     roleResolver = { resolve: jest.fn() };
+    storage = {
+      putObject: jest.fn(),
+      removeObject: jest.fn(),
+      createDownloadUrl: jest.fn(),
+    };
     service = new UsersService(
       repository as unknown as UsersRepository,
       roleResolver as unknown as RoleResolver,
+      storage as unknown as MinioStorageService,
     );
   });
 
@@ -115,6 +138,7 @@ describe('UsersService', () => {
       avatarKey: `avatars/${userId}.webp`,
     });
     expect(repository.removeAvatar).toHaveBeenCalledWith(userId);
+    expect(storage.removeObject).toHaveBeenCalledWith(`avatars/${userId}.webp`);
   });
 
   it('throws when removing an avatar for a missing user', async () => {
@@ -126,7 +150,10 @@ describe('UsersService', () => {
   });
 
   it('anonymizes and deletes the current account', async () => {
-    repository.anonymizeById.mockResolvedValue(profile());
+    repository.anonymizeById.mockResolvedValue({
+      ...profile(),
+      avatarKey: `avatars/${userId}.webp`,
+    });
     roleResolver.resolve.mockResolvedValue([Role.Advisee, Role.Advisor]);
 
     await expect(service.deleteMe(userId)).resolves.toEqual(
@@ -137,6 +164,7 @@ describe('UsersService', () => {
       }),
     );
     expect(repository.anonymizeById).toHaveBeenCalledWith(userId);
+    expect(storage.removeObject).toHaveBeenCalledWith(`avatars/${userId}.webp`);
   });
 
   it('throws when deleting a missing account', async () => {
@@ -144,5 +172,158 @@ describe('UsersService', () => {
     roleResolver.resolve.mockResolvedValue([Role.Advisee]);
 
     await expect(service.deleteMe(userId)).rejects.toThrow(NotFoundException);
+  });
+
+  it('uploads a validated avatar and removes the replaced object', async () => {
+    repository.replaceAvatar.mockResolvedValue({
+      avatarKey: `avatars/${userId}/old.png`,
+    });
+    storage.putObject.mockResolvedValue(undefined);
+    storage.removeObject.mockResolvedValue(undefined);
+
+    const result = await service.uploadAvatar(userId, {
+      buffer: Buffer.from('png-content'),
+      mimetype: 'image/png',
+      size: 11,
+    });
+
+    expect(result.avatarKey).toMatch(
+      new RegExp(`^avatars/${userId}/[0-9a-f-]+\\.png$`),
+    );
+    expect(storage.putObject).toHaveBeenCalledWith({
+      key: result.avatarKey,
+      body: Buffer.from('png-content'),
+      contentType: 'image/png',
+    });
+    expect(repository.replaceAvatar).toHaveBeenCalledWith(
+      userId,
+      result.avatarKey,
+    );
+    expect(storage.removeObject).toHaveBeenCalledWith(
+      `avatars/${userId}/old.png`,
+    );
+  });
+
+  it('rejects an unsupported avatar type before uploading', async () => {
+    await expect(
+      service.uploadAvatar(userId, {
+        buffer: Buffer.from('not-an-image'),
+        mimetype: 'text/plain',
+        size: 12,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(storage.putObject).not.toHaveBeenCalled();
+  });
+
+  it('requires a non-empty avatar within the size limit', async () => {
+    await expect(service.uploadAvatar(userId, undefined)).rejects.toThrow(
+      BadRequestException,
+    );
+    await expect(
+      service.uploadAvatar(userId, {
+        buffer: Buffer.alloc(0),
+        mimetype: 'image/png',
+        size: 0,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.uploadAvatar(userId, {
+        buffer: Buffer.alloc(1),
+        mimetype: 'image/png',
+        size: 5 * 1024 * 1024 + 1,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(storage.putObject).not.toHaveBeenCalled();
+  });
+
+  it('maps an unavailable storage service to 503', async () => {
+    storage.putObject.mockRejectedValue(new Error('connection refused'));
+
+    await expect(
+      service.uploadAvatar(userId, {
+        buffer: Buffer.from('png-content'),
+        mimetype: 'image/png',
+        size: 11,
+      }),
+    ).rejects.toThrow(ServiceUnavailableException);
+  });
+
+  it('returns a short-lived avatar URL for the owner', async () => {
+    repository.findById.mockResolvedValue({
+      ...profile(),
+      avatarKey: `avatars/${userId}/current.webp`,
+    });
+    storage.createDownloadUrl.mockResolvedValue('http://minio.test/signed');
+
+    await expect(service.getAvatarUrl(userId)).resolves.toEqual({
+      url: 'http://minio.test/signed',
+      expiresInSeconds: 300,
+    });
+    expect(storage.createDownloadUrl).toHaveBeenCalledWith(
+      `avatars/${userId}/current.webp`,
+      300,
+    );
+  });
+
+  it('does not create an avatar URL for a missing profile or avatar', async () => {
+    repository.findById.mockResolvedValueOnce(undefined);
+    await expect(service.getAvatarUrl(userId)).rejects.toThrow(
+      NotFoundException,
+    );
+
+    repository.findById.mockResolvedValueOnce(profile());
+    await expect(service.getAvatarUrl(userId)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(storage.createDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  it('maps an unavailable avatar URL service to 503', async () => {
+    repository.findById.mockResolvedValue({
+      ...profile(),
+      avatarKey: `avatars/${userId}/current.webp`,
+    });
+    storage.createDownloadUrl.mockRejectedValue(
+      new Error('connection refused'),
+    );
+
+    await expect(service.getAvatarUrl(userId)).rejects.toThrow(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('cleans up a newly stored avatar if replacing its database key fails', async () => {
+    const databaseError = new Error('database unavailable');
+    repository.replaceAvatar.mockRejectedValue(databaseError);
+    storage.removeObject.mockResolvedValue(undefined);
+
+    await expect(
+      service.uploadAvatar(userId, {
+        buffer: Buffer.from('png-content'),
+        mimetype: 'image/png',
+        size: 11,
+      }),
+    ).rejects.toThrow(databaseError);
+    expect(storage.removeObject).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`^avatars/${userId}/`)),
+    );
+  });
+
+  it('keeps a successful record deletion when object cleanup fails', async () => {
+    repository.removeAvatar.mockResolvedValue({
+      avatarKey: `avatars/${userId}/stale.webp`,
+    });
+    storage.removeObject.mockRejectedValue(new Error('storage unavailable'));
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+
+    await expect(service.removeAvatar(userId)).resolves.toEqual({
+      avatarKey: `avatars/${userId}/stale.webp`,
+    });
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('stale.webp'),
+      expect.any(String),
+    );
   });
 });

@@ -17,8 +17,9 @@ top-level `%%` comments — putting these notes in the diagram file breaks rende
   `SERVICE_IMAGES`, `PDPA_CONSENTS`, `ADVISOR_IDENTITY`, and `SERVICE_REVIEWS`
   (whose PK is its FK). Tables that *are* basic entities keep a uuid — that is what the
   rule permits, and the distinction is the point of it.
-- **Files.** Anything stored in MinIO is referenced by `objectKey`, never by URL —
-  presigned URLs expire, so a stored URL rots.
+- **Files.** Anything stored in the private MinIO bucket is referenced by `objectKey`, never by URL
+  — presigned URLs expire, so a stored URL rots. Avatar URLs are generated owner-only on demand and
+  expire after five minutes.
 - **Checks.** Postgres rejects negative monetary/penalty values, invalid duration and time ranges,
   review stars outside 1–5, and file sizes outside 1 byte–50 MiB. These are database guarantees,
   not validation rules that can be bypassed by another writer.

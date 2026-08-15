@@ -45,6 +45,31 @@ export class UsersRepository extends EntityRepository<typeof user> {
     });
   }
 
+  replaceAvatar(
+    userId: string,
+    avatarKey: string,
+  ): Promise<Pick<User, 'avatarKey'> | undefined> {
+    return this.database.transaction(async (tx) => {
+      const [profile] = await tx
+        .select({ avatarKey: user.avatarKey })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1)
+        .for('update');
+
+      if (!profile) {
+        return undefined;
+      }
+
+      await tx
+        .update(user)
+        .set({ avatarKey, updatedAt: new Date() })
+        .where(eq(user.id, userId));
+
+      return profile;
+    });
+  }
+
   /**
    * Erases direct account/profile data while retaining the pseudonymous user row required by
    * appointments, invoices, reports, and chat evidence. The transaction also revokes every login

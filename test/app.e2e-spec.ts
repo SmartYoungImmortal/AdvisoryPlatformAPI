@@ -157,6 +157,57 @@ describe('authentication and authorization (e2e)', () => {
       .expect(400);
   });
 
+  it('uploads, reads, replaces, and removes the authenticated avatar', async () => {
+    const { agent, userId } = await signUp();
+
+    const uploaded = await agent
+      .post('/api/v1/users/me/avatar')
+      .attach('file', Buffer.from('first png'), {
+        filename: 'avatar.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+    const firstAvatar = object(object(uploaded.body).data);
+    const firstKey = firstAvatar.avatarKey;
+    expect(firstKey).toEqual(
+      expect.stringMatching(new RegExp(`^avatars/${userId}/`)),
+    );
+
+    const access = await agent.get('/api/v1/users/me/avatar').expect(200);
+    expect(object(object(access.body).data)).toMatchObject({
+      expiresInSeconds: 300,
+    });
+
+    const replacement = await agent
+      .post('/api/v1/users/me/avatar')
+      .attach('file', Buffer.from('second webp'), {
+        filename: 'avatar.webp',
+        contentType: 'image/webp',
+      })
+      .expect(201);
+    const replacementKey = object(object(replacement.body).data).avatarKey;
+    expect(replacementKey).toEqual(expect.stringMatching(/\.webp$/));
+    expect(replacementKey).not.toBe(firstKey);
+
+    await agent
+      .delete('/api/v1/users/me/avatar')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          data: { avatarKey: replacementKey },
+        });
+      });
+    await agent.get('/api/v1/users/me/avatar').expect(404);
+
+    await agent
+      .post('/api/v1/users/me/avatar')
+      .attach('file', Buffer.from('not an image'), {
+        filename: 'avatar.txt',
+        contentType: 'text/plain',
+      })
+      .expect(400);
+  });
+
   it('removes an avatar without accepting a client-provided object key', async () => {
     const { agent, userId } = await signUp();
     await db

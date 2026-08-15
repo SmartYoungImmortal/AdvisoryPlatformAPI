@@ -28,6 +28,12 @@ jobs:
       BETTER_AUTH_SECRET: ci-only-secret-that-is-longer-than-thirty-two-characters
       BETTER_AUTH_URL: http://localhost:3000
       TRUSTED_ORIGINS: http://localhost:3001
+      MINIO_ENDPOINT: localhost
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: false
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: advisory-platform
 
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +42,13 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: >-
+          docker run -d --name minio
+          -e MINIO_ROOT_USER=minioadmin
+          -e MINIO_ROOT_PASSWORD=minioadmin
+          -p 9000:9000
+          minio/minio:latest server /data
+      - run: curl --retry 10 --retry-connrefused --retry-delay 1 http://localhost:9000/minio/health/live
       - run: npm run db:migrate
       - run: npm run build
       - run: npm run lint
