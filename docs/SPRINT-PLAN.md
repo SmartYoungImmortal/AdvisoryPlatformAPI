@@ -1,6 +1,6 @@
 # Advisory Platform — Sprint Plan (Project 1)
 
-**Updated:** 2026-08-12
+**Updated:** 2026-08-15
 **Status:** authoritative delivery plan. The old [`sprint.md`](./sprint.md) filename is retained
 only as a redirect so existing editor tabs and links keep working.
 
@@ -109,11 +109,11 @@ Advisee deliberately upgrades to Advisor.
 **Delivered:** version-pinned auth documentation; cookie-preserving e2e coverage; suspended/deleted
 account denial; explicit Advisor upgrade; 409 for repeat upgrade; and CI verification.
 
-**Only remaining work if the frontend contract confirms it:**
+**Remaining work if the frontend contract confirms it:**
 
 | Area | Work |
 |---|---|
-| Profile | Own-profile read/update and avatar behavior, with separate allowlisted response DTOs. |
+| Profile | Base and Advisor own-profile read/update are delivered with separate allowlisted DTOs; avatar behavior remains deferred until its MinIO path exists. |
 | PDPA | Account deletion/anonymization design and implementation consistent with the ER model. |
 | Advisor profile | Add only the fields needed for S4 public discovery and advisor-owned services. |
 | Tests | Cover each new controller boundary; do not reintroduce role selection or onboarding. |

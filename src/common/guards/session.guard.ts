@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Request } from 'express';
 import type { Auth } from '../../modules/auth/auth.config';
-import { AUTH } from '../../modules/auth/auth.constants';
+import { AUTH, AUTH_GUARD_MESSAGES } from '../../modules/auth/auth.constants';
 import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
 import { adminProfiles, advisorProfiles } from '../../database/schema';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -41,11 +41,15 @@ export class SessionGuard implements CanActivate {
     });
 
     if (!authSession) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException(
+        AUTH_GUARD_MESSAGES.authenticationRequired,
+      );
     }
 
     if (authSession.user.status !== 'ACTIVE') {
-      throw new ForbiddenException();
+      throw new ForbiddenException(
+        AUTH_GUARD_MESSAGES.inactiveAccount(authSession.user.status),
+      );
     }
 
     request.user = authSession.user;
@@ -65,7 +69,9 @@ export class SessionGuard implements CanActivate {
       );
 
       if (!hasRequiredRole) {
-        throw new ForbiddenException();
+        throw new ForbiddenException(
+          AUTH_GUARD_MESSAGES.requiredRoles(requiredRoles),
+        );
       }
     }
 

@@ -75,16 +75,22 @@ describe('SessionGuard', () => {
   it('rejects a protected route without a session', async () => {
     getSession.mockResolvedValue(null);
 
-    await expect(guard.canActivate(context())).rejects.toThrow(
-      UnauthorizedException,
+    const result = guard.canActivate(context());
+
+    await expect(result).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(result).rejects.toThrow(
+      'Authentication required. Please sign in to continue.',
     );
   });
 
   it('rejects a suspended account before resolving roles', async () => {
     getSession.mockResolvedValue(session('SUSPENDED'));
 
-    await expect(guard.canActivate(context())).rejects.toThrow(
-      ForbiddenException,
+    const result = guard.canActivate(context());
+
+    await expect(result).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(result).rejects.toThrow(
+      'Account must be ACTIVE. Current status: SUSPENDED.',
     );
     expect(select).not.toHaveBeenCalled();
   });
@@ -123,8 +129,22 @@ describe('SessionGuard', () => {
       from: () => ({ where: () => ({ limit }) }),
     });
 
+    const result = guard.canActivate(context());
+
+    await expect(result).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(result).rejects.toThrow('Required role: ADMIN.');
+  });
+
+  it('lists every accepted role when a route allows alternatives', async () => {
+    requiredRoles = [Role.Advisor, Role.Admin];
+    getSession.mockResolvedValue(session('ACTIVE'));
+    const limit = jest.fn().mockResolvedValue([]);
+    select.mockReturnValue({
+      from: () => ({ where: () => ({ limit }) }),
+    });
+
     await expect(guard.canActivate(context())).rejects.toThrow(
-      ForbiddenException,
+      'Required roles: ADVISOR or ADMIN.',
     );
   });
 });

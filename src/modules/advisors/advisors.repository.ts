@@ -3,6 +3,7 @@ import { InferSelectModel, eq } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
 import { advisorProfiles } from '../../database/schema';
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
+import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 
 type AdvisorProfile = InferSelectModel<typeof advisorProfiles>;
 
@@ -32,6 +33,18 @@ export class AdvisorsRepository {
       .insert(advisorProfiles)
       .values({ userId, ...dto })
       .onConflictDoNothing()
+      .returning();
+    return advisor;
+  }
+
+  async updateByUserId(
+    userId: string,
+    dto: UpdateAdvisorProfileDto,
+  ): Promise<AdvisorProfile | undefined> {
+    const [advisor] = await this.db
+      .update(advisorProfiles)
+      .set({ ...dto, modifiedAt: new Date() })
+      .where(eq(advisorProfiles.userId, userId))
       .returning();
     return advisor;
   }

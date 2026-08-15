@@ -34,7 +34,10 @@ function profile(): AdvisorProfile {
 
 describe('AdvisorsService', () => {
   let repository: jest.Mocked<
-    Pick<AdvisorsRepository, 'findByUserId' | 'createIfAbsent'>
+    Pick<
+      AdvisorsRepository,
+      'findByUserId' | 'createIfAbsent' | 'updateByUserId'
+    >
   >;
   let service: AdvisorsService;
 
@@ -42,6 +45,7 @@ describe('AdvisorsService', () => {
     repository = {
       findByUserId: jest.fn(),
       createIfAbsent: jest.fn(),
+      updateByUserId: jest.fn(),
     };
     service = new AdvisorsService(repository as unknown as AdvisorsRepository);
   });
@@ -83,5 +87,29 @@ describe('AdvisorsService', () => {
     await expect(service.upgrade(user, { headline: 'Again' })).rejects.toThrow(
       ConflictException,
     );
+  });
+
+  it('updates the owner-only advisor profile', async () => {
+    repository.updateByUserId.mockResolvedValue({
+      ...profile(),
+      headline: 'Updated advisor',
+    });
+
+    const result = await service.updateMe(user, {
+      headline: 'Updated advisor',
+    });
+
+    expect(repository.updateByUserId).toHaveBeenCalledWith(user.id, {
+      headline: 'Updated advisor',
+    });
+    expect(result.headline).toBe('Updated advisor');
+  });
+
+  it('throws when updating a missing advisor profile', async () => {
+    repository.updateByUserId.mockResolvedValue(undefined);
+
+    await expect(
+      service.updateMe(user, { headline: 'Missing' }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

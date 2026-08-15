@@ -1,5 +1,14 @@
 export const AUTH = Symbol('AUTH');
 
+export const AUTH_GUARD_MESSAGES = {
+  authenticationRequired:
+    'Authentication required. Please sign in to continue.',
+  inactiveAccount: (status: string) =>
+    `Account must be ACTIVE. Current status: ${status}.`,
+  requiredRoles: (roles: readonly string[]) =>
+    `Required role${roles.length === 1 ? '' : 's'}: ${roles.join(' or ')}.`,
+} as const;
+
 /**
  * better-auth's default session cookie name. Used both to register the Swagger cookie
  * security scheme (main.ts) and to tag protected routes with it (api-docs.decorator.ts)

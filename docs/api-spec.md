@@ -1,7 +1,8 @@
 # Advisory Platform — API Specification
 
-**Status: SAMPLE.** Only the Advisors module is specified. It is here so the format can be agreed
-before the other ~11 modules are written. Do not treat the module list at the bottom as done.
+**Status: SAMPLE.** Authentication, own-user profiles, and the Advisors module are specified. This
+document establishes the format for the remaining modules; do not treat the list at the bottom as
+done.
 
 Data model: [`ER.mermaid`](./ER.mermaid) · rationale: [`ER.README.md`](./ER.README.md)
 Implementation conventions: [`../AGENTS.md`](../AGENTS.md) · delivery baseline:
@@ -212,7 +213,35 @@ Written now so the remaining modules have a target to hit.
 
 ---
 
-## 6. Module: Advisors
+## 6. Module: Users
+
+### `GET /api/v1/users/me` — `Advisee`
+
+Returns the authenticated account owner's allowlisted base profile. Every signed-in account is an
+Advisee, so this is the stable profile entry point for Advisees, Advisors, and Admins.
+
+```jsonc
+{ "statusCode": 200, "message": "Success",
+  "data": {
+    "id": "3f1c...", "displayName": "Somchai P.", "email": "owner@example.com",
+    "emailVerified": false, "fullName": "Somchai Prasert", "avatarKey": null,
+    "timezone": "Asia/Bangkok", "roles": ["ADVISEE", "ADVISOR"],
+    "createdAt": "2026-08-01T09:00:00.000Z", "updatedAt": "2026-08-15T09:00:00.000Z"
+  } }
+```
+
+Roles are additive and returned in the stable order `ADVISEE`, `ADVISOR`, `ADMIN`. Advisor-specific
+fields remain behind `/api/v1/advisors/me`; they are not conditionally added to this DTO.
+
+### `PATCH /api/v1/users/me` — `Advisee`
+
+Updates the authenticated owner's base profile. Body fields are optional: `displayName`, `fullName`,
+and `timezone`. Email, verification state, account status, roles, and `avatarKey` are not accepted.
+Avatar writes remain deferred until the MinIO upload path exists.
+
+---
+
+## 7. Module: Advisors
 
 ### `GET /api/v1/advisors` — `Public`
 
@@ -335,9 +364,9 @@ touch any other skill.
 
 ---
 
-## 7. Not yet written
+## 8. Not yet written
 
-auth · users · categories & skills · services · timeslots · screening · booking · payments &
+categories & skills · services · timeslots · screening · booking · payments &
 payouts · refunds · chat & files · notifications · trust & safety · admin console
 
 Booking is next — it is the one with the concurrency guarantee, the state machine and the payment

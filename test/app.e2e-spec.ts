@@ -99,6 +99,41 @@ describe('authentication and authorization (e2e)', () => {
       .expect(({ body }) => {
         expect(body).toMatchObject({ statusCode: 401, data: null });
       });
+
+    await request(app.getHttpServer()).get('/api/v1/users/me').expect(401);
+  });
+
+  it('reads and updates the authenticated Advisee profile', async () => {
+    const { agent, email } = await signUp();
+
+    const profile = await agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(profile.body).data)).toMatchObject({
+      email,
+      displayName: 'E2E User',
+      fullName: 'E2E Test User',
+      timezone: 'Asia/Bangkok',
+      roles: ['ADVISEE'],
+    });
+
+    const updated = await agent
+      .patch('/api/v1/users/me')
+      .send({
+        displayName: '  Updated User  ',
+        fullName: '  Updated Test User  ',
+        timezone: 'UTC',
+      })
+      .expect(200);
+    expect(object(object(updated.body).data)).toMatchObject({
+      displayName: 'Updated User',
+      fullName: 'Updated Test User',
+      timezone: 'UTC',
+      roles: ['ADVISEE'],
+    });
+
+    await agent
+      .patch('/api/v1/users/me')
+      .send({ email: 'not-allowed@example.test' })
+      .expect(400);
   });
 
   it('creates an Advisee session, upgrades once, and then permits the Advisor route', async () => {
@@ -118,6 +153,20 @@ describe('authentication and authorization (e2e)', () => {
     const profile = await agent.get('/api/v1/advisors/me').expect(200);
     expect(object(object(profile.body).data)).toMatchObject({
       headline: 'Operations advisor',
+    });
+
+    const roles = await agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(roles.body).data)).toMatchObject({
+      roles: ['ADVISEE', 'ADVISOR'],
+    });
+
+    const updated = await agent
+      .patch('/api/v1/advisors/me')
+      .send({ headline: 'Updated operations advisor' })
+      .expect(200);
+    expect(object(object(updated.body).data)).toMatchObject({
+      headline: 'Updated operations advisor',
+      bio: 'Helping teams improve.',
     });
 
     await agent
@@ -155,6 +204,10 @@ describe('authentication and authorization (e2e)', () => {
       .expect(403);
 
     await db.insert(adminProfiles).values({ userId });
+    const adminProfile = await agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(adminProfile.body).data)).toMatchObject({
+      roles: ['ADVISEE', 'ADMIN'],
+    });
     await agent.post('/api/v1/skills').send({ name: '   ' }).expect(400);
     const created = await agent
       .post('/api/v1/skills')

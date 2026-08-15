@@ -4,6 +4,17 @@ A running record of what changed and why, session by session — for picking thi
 not a user-facing release log (that's a different document, if this project ever needs one).
 Newest first. One entry per session with anything worth remembering; skip trivial sessions.
 
+## 2026-08-15 — completed the S3 own-profile API path
+
+- Added owner-only `GET/PATCH /api/v1/users/me` as the stable base-profile path for every signed-in
+  account. The response allowlists private owner fields and returns additive `ADVISEE`, `ADVISOR`,
+  and `ADMIN` memberships so clients do not need to probe role-protected endpoints.
+- Added the specified `PATCH /api/v1/advisors/me` path for Advisor headline/bio updates while
+  retaining the separate Advisor-owner response DTO.
+- Kept email, status, role, and avatar-key mutation out of the general profile DTO. Avatar writes
+  remain tied to the later MinIO integration, and PDPA deletion still requires its documented
+  anonymization design rather than an unsafe generic delete.
+
 ## 2026-08-12 — removed unusable Swagger cookie authorization
 
 - Removed Swagger's `better-auth.session_token` Authorize popup. Browser JavaScript cannot set the

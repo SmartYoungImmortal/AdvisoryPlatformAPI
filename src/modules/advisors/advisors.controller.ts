@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { ApiConflictResponse, ApiTags } from '@nestjs/swagger';
 import {
   ApiCreate,
   ApiGetOne,
+  ApiUpdate,
 } from '../../common/decorators/api-docs.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
@@ -11,6 +12,7 @@ import type { SessionUser } from '../auth/auth.config';
 import { ADVISOR_MESSAGES } from './advisors.constants';
 import { AdvisorOwnProfileResponseDto } from './dtos/advisor-own-profile-response.dto';
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
+import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 import { AdvisorsService } from './advisors.service';
 
 @ApiTags('Advisors')
@@ -37,5 +39,16 @@ export class AdvisorsController {
     @CurrentUser() user: SessionUser,
   ): Promise<AdvisorOwnProfileResponseDto> {
     return this.advisorsService.getMe(user);
+  }
+
+  @Roles(Role.Advisor)
+  @Patch('me')
+  @ResponseMessage(ADVISOR_MESSAGES.updated)
+  @ApiUpdate(AdvisorOwnProfileResponseDto, 'Advisor profile')
+  updateMe(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: UpdateAdvisorProfileDto,
+  ): Promise<AdvisorOwnProfileResponseDto> {
+    return this.advisorsService.updateMe(user, dto);
   }
 }
