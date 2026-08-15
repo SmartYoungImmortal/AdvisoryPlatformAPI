@@ -12,11 +12,11 @@ import {
   ApiGetOne,
   ApiDelete,
   ApiUpdate,
-} from '../../common/decorators/api-docs.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ResponseMessage } from '../../common/decorators/response-message.decorator';
-import { Role, Roles } from '../../common/decorators/roles.decorator';
-import type { SessionUser } from '../auth/auth.config';
+} from '@/common/decorators/api-docs.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { Role, Roles } from '@/common/decorators/roles.decorator';
+import type { SessionUser } from '@/modules/auth/auth.config';
 import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
 import { UserAvatarResponseDto } from './dtos/user-avatar-response.dto';
 import { UserOwnProfileResponseDto } from './dtos/user-own-profile-response.dto';

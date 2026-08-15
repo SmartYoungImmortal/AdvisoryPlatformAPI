@@ -5,10 +5,10 @@ import {
 } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import type { RoleResolver } from '../authorization/role-resolver.service';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { Role } from '../decorators/roles.decorator';
-import type { Auth } from '../../modules/auth/auth.config';
+import type { RoleResolver } from '@/common/authorization/role-resolver.service';
+import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
+import { Role } from '@/common/decorators/roles.decorator';
+import type { Auth } from '@/modules/auth/auth.config';
 
 jest.mock('better-auth/node', () => ({
   fromNodeHeaders: jest.fn(() => new Headers()),

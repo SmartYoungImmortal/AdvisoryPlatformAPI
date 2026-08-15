@@ -1,10 +1,10 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import type { ConfigService } from '@nestjs/config';
-import type { DrizzleDB } from '../../database/database.module';
-import * as schema from '../../database/schema';
-import { ENV_KEYS } from '../../config/env.constants';
-import type { Env } from '../../config/env.schema';
+import type { DrizzleDB } from '@/database/database.module';
+import * as schema from '@/database/schema';
+import { ENV_KEYS } from '@/config/env.constants';
+import type { Env } from '@/config/env.schema';
 
 /**
  * better-auth owns the `user` table's base fields (id, email, emailVerified, name, image,

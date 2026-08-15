@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { Trim } from '../../../common/decorators/trim.decorator';
+import { Trim } from '@/common/decorators/trim.decorator';
 
 export class UpdateUserProfileDto {
   @ApiPropertyOptional()

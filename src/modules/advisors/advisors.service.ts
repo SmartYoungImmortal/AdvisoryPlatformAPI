@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { SessionUser } from '../auth/auth.config';
+import type { SessionUser } from '@/modules/auth/auth.config';
 import { ADVISOR_MESSAGES } from './advisors.constants';
 import { AdvisorOwnProfileResponseDto } from './dtos/advisor-own-profile-response.dto';
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';

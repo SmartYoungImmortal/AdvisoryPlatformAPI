@@ -1,7 +1,7 @@
 import type { ArgumentsHost, ValidationError } from '@nestjs/common';
 import { HttpStatus, Logger, NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
-import { ValidationException } from '../utils/validation.exception';
+import { ValidationException } from '@/common/utils/validation.exception';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 
 describe('AllExceptionsFilter', () => {

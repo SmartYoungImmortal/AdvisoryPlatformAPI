@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { SessionUser } from '../../auth/auth.config';
+import type { SessionUser } from '@/modules/auth/auth.config';
 import type { InferSelectModel } from 'drizzle-orm';
-import type { advisorProfiles } from '../../../database/schema';
+import type { advisorProfiles } from '@/database/schema';
 
 type AdvisorProfile = InferSelectModel<typeof advisorProfiles>;
 

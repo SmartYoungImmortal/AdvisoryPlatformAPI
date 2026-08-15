@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InferSelectModel, eq } from 'drizzle-orm';
-import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
-import { advisorProfiles } from '../../database/schema';
+import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
+import { advisorProfiles } from '@/database/schema';
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
 import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 

@@ -33,6 +33,9 @@ The frontend contract is not mirrored here. Ask before making a decision that de
 - `src/database/schema/` is central because the schema is one connected FK graph.
 - Each feature lives in `src/modules/<feature>/` with controller, service, repository,
   module, DTOs, and focused tests.
+- Use the `@/` alias for imports that cross directories or feature boundaries (for example,
+  `@/database/schema`). Keep `./` relative imports for files inside the same feature or folder.
+  Do not introduce new `../` imports.
 - Controllers route, authorize, and document; services own business rules; repositories own
   Drizzle queries. A service must not import `drizzle-orm`.
 - Do not introduce `shared/` or a generic `BaseCrudService`.

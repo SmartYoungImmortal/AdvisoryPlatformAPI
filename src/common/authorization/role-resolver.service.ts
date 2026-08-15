@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Role } from '../decorators/roles.decorator';
+import { Role } from '@/common/decorators/roles.decorator';
 import { RoleRepository } from './role.repository';
 
 @Injectable()

@@ -18,11 +18,11 @@ import {
   ApiGetOne,
   ApiGetPaginated,
   ApiUpdate,
-} from '../../common/decorators/api-docs.decorator';
-import { Public } from '../../common/decorators/public.decorator';
-import { ResponseMessage } from '../../common/decorators/response-message.decorator';
-import { Role, Roles } from '../../common/decorators/roles.decorator';
-import { PaginatedResult } from '../../common/pagination/offset-pagination.dto';
+} from '@/common/decorators/api-docs.decorator';
+import { Public } from '@/common/decorators/public.decorator';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { Role, Roles } from '@/common/decorators/roles.decorator';
+import { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
 import { ServiceCategoryResponseDto } from './dtos/service-category-response.dto';

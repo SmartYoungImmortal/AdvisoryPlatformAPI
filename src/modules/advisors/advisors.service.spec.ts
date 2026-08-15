@@ -1,7 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
-import type { advisorProfiles } from '../../database/schema';
-import type { SessionUser } from '../auth/auth.config';
+import type { advisorProfiles } from '@/database/schema';
+import type { SessionUser } from '@/modules/auth/auth.config';
 import type { AdvisorsRepository } from './advisors.repository';
 import { AdvisorsService } from './advisors.service';
 

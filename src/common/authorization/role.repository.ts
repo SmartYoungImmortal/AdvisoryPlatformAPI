@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
-import { adminProfiles, advisorProfiles } from '../../database/schema';
+import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
+import { adminProfiles, advisorProfiles } from '@/database/schema';
 
 export interface RoleMembership {
   isAdvisor: boolean;

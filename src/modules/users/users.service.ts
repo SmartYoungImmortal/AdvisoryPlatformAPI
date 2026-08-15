@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { RoleResolver } from '../../common/authorization/role-resolver.service';
+import { RoleResolver } from '@/common/authorization/role-resolver.service';
 import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
 import { UserAvatarResponseDto } from './dtos/user-avatar-response.dto';
 import { UserOwnProfileResponseDto } from './dtos/user-own-profile-response.dto';

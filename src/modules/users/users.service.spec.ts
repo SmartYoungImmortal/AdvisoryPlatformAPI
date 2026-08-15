@@ -1,8 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
-import { Role } from '../../common/decorators/roles.decorator';
-import type { RoleResolver } from '../../common/authorization/role-resolver.service';
-import type { user } from '../../database/schema';
+import { Role } from '@/common/decorators/roles.decorator';
+import type { RoleResolver } from '@/common/authorization/role-resolver.service';
+import type { user } from '@/database/schema';
 import type { UsersRepository } from './users.repository';
 import { UsersService } from './users.service';
 

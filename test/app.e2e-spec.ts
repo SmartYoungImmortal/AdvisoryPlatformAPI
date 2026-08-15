@@ -3,9 +3,9 @@ import { Test } from '@nestjs/testing';
 import { eq } from 'drizzle-orm';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
-import { configureApp } from '../src/app.factory';
-import { AppModule } from '../src/app.module';
-import { DRIZZLE, type DrizzleDB } from '../src/database/database.module';
+import { configureApp } from '@/app.factory';
+import { AppModule } from '@/app.module';
+import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
   adminProfiles,
@@ -20,7 +20,7 @@ import {
   skills,
   user,
   verification,
-} from '../src/database/schema';
+} from '@/database/schema';
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;

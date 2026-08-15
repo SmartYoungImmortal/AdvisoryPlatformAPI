@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
-import type { serviceCategories } from '../../database/schema';
+import type { serviceCategories } from '@/database/schema';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
 import type { ServiceCategoriesRepository } from './service-categories.repository';
 import { ServiceCategoriesService } from './service-categories.service';

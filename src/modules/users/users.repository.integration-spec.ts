@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import type { DrizzleDB } from '../../database/database.module';
-import * as schema from '../../database/schema';
+import type { DrizzleDB } from '@/database/database.module';
+import * as schema from '@/database/schema';
 import { UsersRepository } from './users.repository';
 
 describe('UsersRepository (integration)', () => {

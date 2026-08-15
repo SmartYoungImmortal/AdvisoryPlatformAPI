@@ -1,4 +1,4 @@
-import { Role } from '../decorators/roles.decorator';
+import { Role } from '@/common/decorators/roles.decorator';
 import type { RoleRepository } from './role.repository';
 import { RoleResolver } from './role-resolver.service';
 

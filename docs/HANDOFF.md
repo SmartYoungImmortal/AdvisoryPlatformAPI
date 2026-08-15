@@ -7,6 +7,8 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
 
 - NestJS runtime configuration, response envelope, validation filter, Swagger helpers that derive
   resource labels from response DTO names by default, and typed environment validation.
+- Cross-directory imports use the `@/` alias; same-folder feature imports remain relative with
+  `./`. Nest build and all Jest configurations resolve the alias consistently.
 - Drizzle/Postgres connection lifecycle and the canonical 31-table schema, with forward migrations.
 - Better Auth at `/api/auth/*`, using raw request bodies and cookie sessions.
 - A fail-closed global `SessionGuard`: public routes require `@Public()`, inactive accounts receive

@@ -7,7 +7,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { FieldError, ValidationException } from '../utils/validation.exception';
+import {
+  FieldError,
+  ValidationException,
+} from '@/common/utils/validation.exception';
 
 interface ErrorEnvelope {
   statusCode: number;

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq, type InferSelectModel } from 'drizzle-orm';
-import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
+import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
   advisorIdentity,
@@ -12,8 +12,8 @@ import {
   skillProofDocuments,
   user,
   verification,
-} from '../../database/schema';
-import { EntityRepository } from '../../common/repositories/entity.repository';
+} from '@/database/schema';
+import { EntityRepository } from '@/common/repositories/entity.repository';
 
 type User = InferSelectModel<typeof user>;
 

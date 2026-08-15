@@ -6,6 +6,9 @@ Newest first. One entry per session with anything worth remembering; skip trivia
 
 ## 2026-08-15 — completed the S3 own-profile API path
 
+- Standardized imports on `@/` for cross-directory and cross-feature dependencies while retaining
+  `./` inside a feature. Added matching TypeScript and Jest resolution; Nest's compiler rewrites
+  aliases to relative paths in emitted JavaScript, so production does not need a runtime loader.
 - Standardized successful `DELETE` responses across all current modules: services now map the row
   returned by deletion through a response DTO instead of discarding it, and `ApiDelete` derives its
   documentation from that DTO. This is the required convention for future modules as well.

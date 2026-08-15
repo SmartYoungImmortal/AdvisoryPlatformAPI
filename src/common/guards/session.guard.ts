@@ -9,11 +9,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Request } from 'express';
-import { RoleResolver } from '../authorization/role-resolver.service';
-import type { Auth } from '../../modules/auth/auth.config';
-import { AUTH, AUTH_GUARD_MESSAGES } from '../../modules/auth/auth.constants';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { ROLES_KEY, Role } from '../decorators/roles.decorator';
+import { RoleResolver } from '@/common/authorization/role-resolver.service';
+import type { Auth } from '@/modules/auth/auth.config';
+import { AUTH, AUTH_GUARD_MESSAGES } from '@/modules/auth/auth.constants';
+import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
+import { ROLES_KEY, Role } from '@/common/decorators/roles.decorator';
 
 @Injectable()
 export class SessionGuard implements CanActivate {

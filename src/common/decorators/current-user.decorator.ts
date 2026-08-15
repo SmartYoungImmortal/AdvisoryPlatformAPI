@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { createParamDecorator } from '@nestjs/common';
 import type { Request } from 'express';
-import type { SessionUser } from '../../modules/auth/auth.config';
+import type { SessionUser } from '@/modules/auth/auth.config';
 
 /**
  * How a handler gets the authenticated user. Never read `req.user` by hand.

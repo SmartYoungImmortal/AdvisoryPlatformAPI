@@ -18,11 +18,11 @@ import {
   ApiGetOne,
   ApiGetPaginated,
   ApiUpdate,
-} from '../../common/decorators/api-docs.decorator';
-import { Public } from '../../common/decorators/public.decorator';
-import { ResponseMessage } from '../../common/decorators/response-message.decorator';
-import { Role, Roles } from '../../common/decorators/roles.decorator';
-import { PaginatedResult } from '../../common/pagination/offset-pagination.dto';
+} from '@/common/decorators/api-docs.decorator';
+import { Public } from '@/common/decorators/public.decorator';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { Role, Roles } from '@/common/decorators/roles.decorator';
+import { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import { CreateSkillDto } from './dtos/create-skill.dto';
 import { SkillQueryDto } from './dtos/skill-query.dto';
 import { SkillResponseDto } from './dtos/skill-response.dto';

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   PaginatedResult,
   paginate,
-} from '../../common/pagination/offset-pagination.dto';
+} from '@/common/pagination/offset-pagination.dto';
 import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
 import { ServiceCategoryResponseDto } from './dtos/service-category-response.dto';
