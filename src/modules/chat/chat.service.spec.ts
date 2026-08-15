@@ -1,9 +1,10 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
+import { encodeKeysetCursor } from '@/common/pagination/cursor-pagination.dto';
 import type { chatMembers, chatMessages } from '@/database/schema';
 import type { ChatRepository } from './chat.repository';
 import { ChatService } from './chat.service';
-import { ChatQueryDto } from './dtos/chat-query.dto';
+import { ChatMessageQueryDto, ChatQueryDto } from './dtos/chat-query.dto';
 
 type ChatMember = InferSelectModel<typeof chatMembers>;
 type ChatMessage = InferSelectModel<typeof chatMessages>;
@@ -40,7 +41,6 @@ describe('ChatService', () => {
       | 'findRoomsForMember'
       | 'countRoomsForMember'
       | 'findMessages'
-      | 'countMessages'
       | 'createMessageForMember'
       | 'markReadThroughMessage'
     >
@@ -52,7 +52,6 @@ describe('ChatService', () => {
       findRoomsForMember: jest.fn(),
       countRoomsForMember: jest.fn(),
       findMessages: jest.fn(),
-      countMessages: jest.fn(),
       createMessageForMember: jest.fn(),
       markReadThroughMessage: jest.fn(),
     };
@@ -81,24 +80,48 @@ describe('ChatService', () => {
     });
   });
 
-  it('returns deterministic paginated room history to a member', async () => {
-    const query = Object.assign(new ChatQueryDto(), { page: 2, limit: 10 });
+  it('returns deterministic cursor-paginated room history to a member', async () => {
+    const cursorMessage = message();
+    const query = Object.assign(new ChatMessageQueryDto(), {
+      cursor: encodeKeysetCursor(cursorMessage),
+      limit: 1,
+    });
     repository.findMembership.mockResolvedValue(membership());
-    repository.findMessages.mockResolvedValue([message()]);
-    repository.countMessages.mockResolvedValue(11);
+    repository.findMessages.mockResolvedValue([
+      message(),
+      { ...message(), id: '44444444-4444-4444-8444-444444444444' },
+    ]);
 
     const result = await service.findMessages(memberId, roomId, query);
 
-    expect(repository.findMessages).toHaveBeenCalledWith(roomId, 10, 10);
+    expect(repository.findMessages).toHaveBeenCalledWith(roomId, 2, {
+      createdAt: cursorMessage.createdAt,
+      id: cursorMessage.id,
+    });
     expect(result.items[0]).toEqual(expect.objectContaining({ id: messageId }));
-    expect(result.totalPages).toBe(2);
+    expect(result).toEqual(
+      expect.objectContaining({ limit: 1, hasMore: true }),
+    );
+    expect(result.nextCursor).toBeTruthy();
+  });
+
+  it('rejects an invalid message cursor before querying history', async () => {
+    repository.findMembership.mockResolvedValue(membership());
+    const query = Object.assign(new ChatMessageQueryDto(), {
+      cursor: 'invalid',
+    });
+
+    await expect(service.findMessages(memberId, roomId, query)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(repository.findMessages).not.toHaveBeenCalled();
   });
 
   it('hides a room probe from a non-member behind not found', async () => {
     repository.findMembership.mockResolvedValue(undefined);
 
     await expect(
-      service.findMessages(memberId, roomId, new ChatQueryDto()),
+      service.findMessages(memberId, roomId, new ChatMessageQueryDto()),
     ).rejects.toThrow(NotFoundException);
     expect(repository.findMessages).not.toHaveBeenCalled();
   });

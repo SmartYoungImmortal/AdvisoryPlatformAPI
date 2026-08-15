@@ -27,7 +27,7 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
   deletes return an allowlisted representation of the removed resource.
 - Public-read/Admin-write Skills and Service Categories sample modules.
 - Session-authenticated Socket.IO chat at namespace `/chat`, with member-only joins, persistent
-  message broadcasts, deterministic HTTP history, room unread counts, and monotonic read markers.
+  message broadcasts, cursor-paginated HTTP history, room unread counts, and monotonic read markers.
 - Unit, Postgres integration, and cookie-preserving auth e2e suites. E2e tests keep the application,
   authentication, and database real while replacing the external MinIO boundary with an in-memory
   storage stub. CI merges all coverage and enforces at least 80% for aggregate statements, branches,

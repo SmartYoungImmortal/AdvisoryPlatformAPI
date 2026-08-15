@@ -25,6 +25,10 @@ Implementation conventions: [`../AGENTS.md`](../AGENTS.md) · delivery baseline:
 { "statusCode": 200, "message": "Success",
   "data": { "items": [...], "total": 128, "page": 1, "limit": 20, "totalPages": 7 } }
 
+// cursor-paginated feed - pass nextCursor back unchanged to continue
+{ "statusCode": 200, "message": "Success",
+  "data": { "items": [...], "limit": 20, "nextCursor": "opaque", "hasMore": true } }
+
 // failure
 { "statusCode": 409, "message": "Timeslot already booked", "data": null }
 
@@ -464,15 +468,18 @@ exists.
 - `GET /api/v1/chat/rooms?page=1&limit=20` lists only the current user's rooms, newest room first.
   Each item is `{ id, isAnonymous, lastReadAt, unreadCount, createdAt }`. `unreadCount` counts only
   messages from other members strictly after this member's read marker.
-- `GET /api/v1/chat/rooms/:chatRoomId/messages?page=1&limit=20` returns member-only history,
-  newest message first. Ties are ordered by UUID so pagination is deterministic. Each message is
-  `{ id, chatRoomId, senderUserId, message, createdAt }`.
+- `GET /api/v1/chat/rooms/:chatRoomId/messages?limit=20&cursor=<opaque>` returns member-only
+  history, newest message first. Omit `cursor` for the first page, then pass `nextCursor` back
+  unchanged while `hasMore` is true. Ties are ordered by UUID so pagination remains stable when
+  new messages arrive. Each message is `{ id, chatRoomId, senderUserId, message, createdAt }`.
+  Malformed cursors return `400`. Message history does not calculate a total count.
 - `PATCH /api/v1/chat/rooms/:chatRoomId/read` accepts `{ "messageId": "uuid" }` and returns
   `{ chatRoomId, memberUserId, messageId, lastReadAt }`. The message must belong to that room.
   Markers only move forward: a delayed request for an older message cannot make later messages
   unread again.
 
-All lists use the standard offset-pagination envelope and the repository-wide maximum `limit` of 100.
+Room listing uses the standard offset-pagination envelope. Message history uses the cursor envelope
+`{ items, limit, nextCursor, hasMore }`. Both retain the repository-wide maximum `limit` of 100.
 
 ### Socket.IO
 

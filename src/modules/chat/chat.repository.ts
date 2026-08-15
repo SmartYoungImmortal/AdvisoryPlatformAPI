@@ -6,12 +6,14 @@ import {
   eq,
   gt,
   isNull,
+  lt,
   ne,
   or,
   sql,
   type InferSelectModel,
   type SQL,
 } from 'drizzle-orm';
+import type { KeysetCursor } from '@/common/pagination/cursor-pagination.dto';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import { chatMembers, chatMessages, chatRooms, user } from '@/database/schema';
 import { CompositeKeyStore } from '@/common/repositories/composite-key.store';
@@ -117,23 +119,27 @@ export class ChatRepository {
   findMessages(
     chatRoomId: string,
     limit: number,
-    offset: number,
+    cursor?: KeysetCursor,
   ): Promise<ChatMessage[]> {
     return this.db
       .select()
       .from(chatMessages)
-      .where(eq(chatMessages.chatRoomId, chatRoomId))
+      .where(
+        and(
+          eq(chatMessages.chatRoomId, chatRoomId),
+          cursor
+            ? or(
+                lt(chatMessages.createdAt, cursor.createdAt),
+                and(
+                  eq(chatMessages.createdAt, cursor.createdAt),
+                  lt(chatMessages.id, cursor.id),
+                ),
+              )
+            : undefined,
+        ),
+      )
       .orderBy(desc(chatMessages.createdAt), desc(chatMessages.id))
-      .limit(limit)
-      .offset(offset);
-  }
-
-  async countMessages(chatRoomId: string): Promise<number> {
-    const [row] = await this.db
-      .select({ value: count() })
-      .from(chatMessages)
-      .where(eq(chatMessages.chatRoomId, chatRoomId));
-    return row?.value ?? 0;
+      .limit(limit);
   }
 
   createMessageForMember(

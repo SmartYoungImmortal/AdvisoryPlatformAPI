@@ -81,15 +81,33 @@ describe('ChatRepository (integration)', () => {
       expect.objectContaining({ id: roomId, unreadCount: 1 }),
     );
     await expect(repository.countRoomsForMember(firstUserId)).resolves.toBe(1);
-    const history = await repository.findMessages(roomId, 100, 0);
-    await expect(repository.countMessages(roomId)).resolves.toBe(
-      history.length,
-    );
+    const history = await repository.findMessages(roomId, 100);
     expect(history).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ chatRoomId: roomId, message: 'unread' }),
       ]),
     );
+  });
+
+  it('continues message history strictly after the compound cursor', async () => {
+    const newest = await repository.createMessageForMember(
+      roomId,
+      secondUserId,
+      'cursor-newest',
+    );
+    if (!newest) {
+      throw new Error('Expected a member message to be created');
+    }
+
+    const firstPage = await repository.findMessages(roomId, 2);
+    const cursor = firstPage.at(-1);
+    if (!cursor) {
+      throw new Error('Expected cursor history');
+    }
+    const secondPage = await repository.findMessages(roomId, 100, cursor);
+    const firstPageIds = new Set(firstPage.map(({ id }) => id));
+
+    expect(secondPage.some(({ id }) => firstPageIds.has(id))).toBe(false);
   });
 
   it('keeps read markers monotonic when an older marker arrives late', async () => {

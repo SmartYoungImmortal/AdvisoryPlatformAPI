@@ -1,4 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  decodeKeysetCursor,
+  encodeKeysetCursor,
+  type CursorPaginatedResult,
+} from '@/common/pagination/cursor-pagination.dto';
 import {
   paginate,
   type PaginatedResult,
@@ -6,7 +15,7 @@ import {
 import { CHAT_MESSAGES } from './chat.constants';
 import { ChatRepository } from './chat.repository';
 import { ChatMessageResponseDto } from './dtos/chat-message-response.dto';
-import { ChatQueryDto } from './dtos/chat-query.dto';
+import { ChatMessageQueryDto, ChatQueryDto } from './dtos/chat-query.dto';
 import { ChatReadResponseDto } from './dtos/chat-read-response.dto';
 import { ChatRoomResponseDto } from './dtos/chat-room-response.dto';
 
@@ -37,19 +46,32 @@ export class ChatService {
   async findMessages(
     memberUserId: string,
     chatRoomId: string,
-    query: ChatQueryDto,
-  ): Promise<PaginatedResult<ChatMessageResponseDto>> {
+    query: ChatMessageQueryDto,
+  ): Promise<CursorPaginatedResult<ChatMessageResponseDto>> {
     await this.assertMember(chatRoomId, memberUserId);
-    const [messages, total] = await Promise.all([
-      this.chatRepository.findMessages(chatRoomId, query.limit, query.offset),
-      this.chatRepository.countMessages(chatRoomId),
-    ]);
+    const cursor = query.cursor ? decodeKeysetCursor(query.cursor) : undefined;
+    if (query.cursor && !cursor) {
+      throw new BadRequestException(CHAT_MESSAGES.invalidCursor);
+    }
 
-    return paginate(
-      messages.map((message) => new ChatMessageResponseDto(message)),
-      total,
-      query,
+    const messages = await this.chatRepository.findMessages(
+      chatRoomId,
+      query.limit + 1,
+      cursor,
     );
+    const hasMore = messages.length > query.limit;
+    const page = messages.slice(0, query.limit);
+    const last = page.at(-1);
+
+    return {
+      items: page.map((message) => new ChatMessageResponseDto(message)),
+      limit: query.limit,
+      hasMore,
+      nextCursor:
+        hasMore && last
+          ? encodeKeysetCursor({ createdAt: last.createdAt, id: last.id })
+          : null,
+    };
   }
 
   async sendMessage(

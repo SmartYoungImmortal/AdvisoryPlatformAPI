@@ -39,6 +39,12 @@ export class ApiPaginatedDataDto {
   @ApiProperty() totalPages!: number;
 }
 
+export class ApiCursorPaginatedDataDto {
+  @ApiProperty() limit!: number;
+  @ApiProperty({ nullable: true, type: String }) nextCursor!: string | null;
+  @ApiProperty() hasMore!: boolean;
+}
+
 function envelopeSchema(model: Type): ResponseSchema {
   return {
     allOf: [
@@ -57,6 +63,31 @@ function paginatedEnvelopeSchema(model: Type): ResponseSchema {
           data: {
             allOf: [
               { $ref: getSchemaPath(ApiPaginatedDataDto) },
+              {
+                properties: {
+                  items: {
+                    type: 'array',
+                    items: { $ref: getSchemaPath(model) },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ],
+  };
+}
+
+function cursorPaginatedEnvelopeSchema(model: Type): ResponseSchema {
+  return {
+    allOf: [
+      { $ref: getSchemaPath(ApiEnvelopeDto) },
+      {
+        properties: {
+          data: {
+            allOf: [
+              { $ref: getSchemaPath(ApiCursorPaginatedDataDto) },
               {
                 properties: {
                   items: {
@@ -158,6 +189,22 @@ export function ApiGetPaginated(
     ApiOkResponse({
       description: `Paginated list of ${name}`,
       schema: paginatedEnvelopeSchema(model),
+    }),
+    ...authDecorators(options.public),
+  );
+}
+
+export function ApiGetCursorPaginated(
+  model: Type,
+  options: ApiReadOptions = {},
+): MethodDecorator {
+  const name = modelName(model, options.name);
+
+  return applyDecorators(
+    ApiExtraModels(ApiEnvelopeDto, ApiCursorPaginatedDataDto, model),
+    ApiOkResponse({
+      description: `Cursor-paginated list of ${name}`,
+      schema: cursorPaginatedEnvelopeSchema(model),
     }),
     ...authDecorators(options.public),
   );

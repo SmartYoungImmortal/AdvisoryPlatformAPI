@@ -26,6 +26,26 @@ import { MinioStorageStub } from './stubs/minio-storage.stub';
 
 type ClientSocket = Socket<ChatServerToClientEvents, ChatClientToServerEvents>;
 
+interface CursorPageData {
+  nextCursor: string | null;
+  [key: string]: unknown;
+}
+
+function readCursorPageData(body: unknown): CursorPageData {
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    !('data' in body) ||
+    typeof body.data !== 'object' ||
+    body.data === null ||
+    !('nextCursor' in body.data) ||
+    (body.data.nextCursor !== null && typeof body.data.nextCursor !== 'string')
+  ) {
+    throw new Error('Expected a cursor-paginated response');
+  }
+  return body.data;
+}
+
 describe('chat sockets (e2e)', () => {
   let app: NestExpressApplication;
   let db: DrizzleDB;
@@ -131,6 +151,63 @@ describe('chat sockets (e2e)', () => {
       message: 'Socket authentication required',
       data: { statusCode: 401 },
     });
+  });
+
+  it('continues HTTP message history with an opaque cursor', async () => {
+    const first = await signUp();
+    const second = await signUp();
+    const roomId = crypto.randomUUID();
+    roomIds.push(roomId);
+    await db.insert(chatRooms).values({ id: roomId });
+    await db.insert(chatMembers).values([
+      { chatRoomId: roomId, memberUserId: first.userId },
+      { chatRoomId: roomId, memberUserId: second.userId },
+    ]);
+    const messageIds = [
+      crypto.randomUUID(),
+      crypto.randomUUID(),
+      crypto.randomUUID(),
+    ];
+    await db.insert(chatMessages).values(
+      messageIds.map((id, index) => ({
+        id,
+        chatRoomId: roomId,
+        senderUserId: second.userId,
+        message: `history-${index}`,
+        createdAt: new Date(`2026-08-15T00:0${index}:00.000Z`),
+      })),
+    );
+
+    const firstPage = await request(baseUrl)
+      .get(`/api/v1/chat/rooms/${roomId}/messages?limit=2`)
+      .set('Cookie', first.cookie)
+      .expect(200);
+
+    const firstPageData = readCursorPageData(firstPage.body as unknown);
+    expect(firstPageData).toMatchObject({
+      limit: 2,
+      hasMore: true,
+      items: [{ id: messageIds[2] }, { id: messageIds[1] }],
+    });
+    expect(typeof firstPageData.nextCursor).toBe('string');
+
+    const secondPage = await request(baseUrl)
+      .get(`/api/v1/chat/rooms/${roomId}/messages`)
+      .query({ limit: 2, cursor: firstPageData.nextCursor })
+      .set('Cookie', first.cookie)
+      .expect(200);
+
+    expect(readCursorPageData(secondPage.body as unknown)).toMatchObject({
+      limit: 2,
+      hasMore: false,
+      nextCursor: null,
+      items: [{ id: messageIds[0] }],
+    });
+
+    await request(baseUrl)
+      .get(`/api/v1/chat/rooms/${roomId}/messages?cursor=invalid`)
+      .set('Cookie', first.cookie)
+      .expect(400);
   });
 
   it('persists and broadcasts member messages, then advances read state', async () => {

@@ -10,6 +10,7 @@ export const CHAT_EVENTS = {
 export const CHAT_MESSAGES = {
   roomNotFound: 'Chat room not found',
   messageNotFound: 'Chat message not found',
+  invalidCursor: 'Invalid chat message cursor',
   messagesFound: 'Chat messages found',
   roomsFound: 'Chat rooms found',
   readUpdated: 'Chat read state updated',

@@ -9,17 +9,19 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
+  ApiGetCursorPaginated,
   ApiGetPaginated,
   ApiUpdate,
 } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import type { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
+import type { CursorPaginatedResult } from '@/common/pagination/cursor-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { CHAT_MESSAGES } from './chat.constants';
 import { ChatService } from './chat.service';
 import { ChatMessageResponseDto } from './dtos/chat-message-response.dto';
-import { ChatQueryDto } from './dtos/chat-query.dto';
+import { ChatMessageQueryDto, ChatQueryDto } from './dtos/chat-query.dto';
 import { MarkChatReadDto } from './dtos/mark-chat-read.dto';
 import { ChatReadResponseDto } from './dtos/chat-read-response.dto';
 import { ChatRoomResponseDto } from './dtos/chat-room-response.dto';
@@ -41,12 +43,12 @@ export class ChatController {
 
   @Get(':chatRoomId/messages')
   @ResponseMessage(CHAT_MESSAGES.messagesFound)
-  @ApiGetPaginated(ChatMessageResponseDto)
+  @ApiGetCursorPaginated(ChatMessageResponseDto)
   findMessages(
     @CurrentUser() user: SessionUser,
     @Param('chatRoomId', ParseUUIDPipe) chatRoomId: string,
-    @Query() query: ChatQueryDto,
-  ): Promise<PaginatedResult<ChatMessageResponseDto>> {
+    @Query() query: ChatMessageQueryDto,
+  ): Promise<CursorPaginatedResult<ChatMessageResponseDto>> {
     return this.chatService.findMessages(user.id, chatRoomId, query);
   }
 
