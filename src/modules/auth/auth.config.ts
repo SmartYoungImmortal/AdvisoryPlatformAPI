@@ -13,33 +13,43 @@ import {
   userAc,
 } from 'better-auth/plugins/admin/access';
 
-const statement = {
+const statements = {
   ...defaultStatements,
-  advisor: ['createSelf', 'updateSelf', 'read'],
-  advisorService: ['createSelf', 'update', 'delete', 'read'],
+  profile: ['read', 'updateSelf', 'deleteSelf'],
+  advisor: ['createSelf', 'read', 'updateSelf'],
+  advisorService: ['createSelf', 'read', 'update', 'delete'],
   skills: ['create', 'read', 'update', 'delete'],
 } as const;
 
-const ac = createAccessControl(statement);
+const ac = createAccessControl(statements);
 const adminStatements = {
   ...adminAc.statements,
-  skills: ['read', 'create', 'update', 'delete'],
+  profile: ['read', 'updateSelf', 'deleteSelf'],
+  skills: ['create', 'read', 'update', 'delete'],
 } as const;
 const advisorStatements = {
   ...userAc.statements,
-  advisor: ['createSelf', 'updateSelf'],
-  advisorService: ['createSelf', 'update', 'delete'],
+  profile: ['read', 'updateSelf', 'deleteSelf'],
+  advisor: ['createSelf', 'read', 'updateSelf'],
+  advisorService: ['createSelf', 'read', 'update', 'delete'],
   skills: ['read', 'create'],
 } as const;
 const adviseeStatements = {
   ...userAc.statements,
+  profile: ['read', 'updateSelf', 'deleteSelf'],
   advisor: ['createSelf', 'read'],
   advisorService: ['read'],
   skills: ['read'],
 } as const;
-const admin = ac.newRole(adminStatements);
-const advisor = ac.newRole(advisorStatements);
-const advisee = ac.newRole(adviseeStatements);
+const adminRole = ac.newRole(adminStatements);
+const advisorRole = ac.newRole(advisorStatements);
+const adviseeRole = ac.newRole(adviseeStatements);
+
+export const appRoles = {
+  admin: adminRole,
+  advisor: advisorRole,
+  advisee: adviseeRole,
+};
 
 /**
  * better-auth owns the `user` table's base fields (id, email, emailVerified, name, image,
@@ -98,11 +108,7 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
     plugins: [
       adminPlugin({
         ac,
-        roles: {
-          admin,
-          advisor,
-          advisee,
-        },
+        roles: appRoles,
         defaultRole: 'advisee',
       }),
     ],
@@ -110,6 +116,14 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
 }
 
 export type Auth = ReturnType<typeof createAuth>;
-export type AuthRoles = keyof typeof advisorStatements;
+export type AuthRoles = keyof typeof appRoles;
 export type AuthSession = Auth['$Infer']['Session'];
 export type SessionUser = AuthSession['user'];
+export type AuthStatements = {
+  [Resource in keyof typeof statements]?: Array<
+    (typeof statements)[Resource][number]
+  >;
+};
+export interface MemberHasPermissionOptions {
+  permissions: AuthStatements;
+}
