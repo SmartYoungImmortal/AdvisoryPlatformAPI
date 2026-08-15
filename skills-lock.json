@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "debug": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/debug/SKILL.md",
+      "computedHash": "e53d22a8af6ca09037aa6c38ed2e49909fe3886888b11371998aed806289362d"
+    },
+    "develop": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/develop/SKILL.md",
+      "computedHash": "27ed71b6a9c37a9ba212de5e7b75e0508afa54557561db8127e477260c62dec2"
+    },
+    "test": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/test/SKILL.md",
+      "computedHash": "1bb665096a5a1bd7e99c80a66c0f472ced2fc5c0e03b76b6a36bd272f19c725a"
+    }
+  }
+}

@@ -1,0 +1,346 @@
+erDiagram
+
+    USERS {
+        uuid userId pk
+        varchar email
+        %% legal name. NEVER exposed across users — admin only.
+        varchar fullName
+        %% what other users see. UNIQUE.
+        varchar displayName
+        varchar avatarObjectKey
+        varchar timezone
+        %% enum: ACTIVE, SUSPENDED, DELETED
+        enum status
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    PDPA_CONSENTS {
+        uuid userId fk,pk
+        varchar policyVersion pk
+        datetimetz consentedAt
+    }
+
+    ADVISOR_PROFILES {
+        uuid userId fk,pk
+        varchar headline
+        text bio
+        int penaltyPoints
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    ADVISOR_IDENTITY {
+        uuid advisorId fk,pk
+        %% AES at rest, key from env. NEVER stored or logged in plaintext.
+        bytea nationalIdEncrypted
+        %% UNIQUE. Stops two accounts claiming one national ID.
+        varchar nationalIdHash
+        varchar documentObjectKey
+        %% enum: NONE, SUBMITTED, VERIFIED, REJECTED
+        enum verificationStatus
+        uuid verifiedByAdminId fk
+        text rejectionReason
+        datetimetz submittedAt
+        datetimetz verifiedAt
+    }
+
+    ADMIN_PROFILES {
+        uuid userId fk,pk
+        datetimetz createdAt
+    }
+
+    SKILL_PROOF_DOCUMENTS {
+        uuid documentId pk
+        uuid advisorId fk
+        uuid skillId fk
+        varchar objectKey
+        varchar originalFileName
+        %% enum: PENDING, APPROVED, REJECTED
+        enum reviewStatus
+        uuid reviewedByAdminId fk
+        text rejectionReason
+        datetimetz createdAt
+        datetimetz reviewedAt
+    }
+
+
+    SKILLS {
+        uuid skillId pk
+        varchar name
+        text description
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    ADVISOR_SKILLS {
+        uuid advisorId fk,pk
+        uuid skillId fk,pk
+        %% enum: SELF_DECLARED, DOCUMENT_SUBMITTED, ADMIN_VERIFIED
+        enum proofLevel
+        datetimetz createdAt
+    }
+
+    SERVICE_CATEGORIES {
+        uuid categoryId pk
+        varchar name
+        text description
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    SERVICES {
+        uuid serviceId pk
+        uuid advisorId fk
+        uuid categoryId fk
+        varchar name
+        text description
+        int priceSatang
+        int durationMinutes
+        bool isPublished
+        %% Independent switches. Booking does NOT require either.
+        bool screeningRequired
+        bool trialEnabled
+        %% null unless trialEnabled
+        int trialDurationMinutes
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    SERVICE_IMAGES {
+        uuid serviceId fk,pk
+        int carouselIndex pk
+        varchar objectKey
+        datetimetz createdAt
+    }
+
+
+    SERVICE_SCREENING_QUESTIONS {
+        uuid questionId pk
+        uuid serviceId fk
+        text question
+        int displayOrder
+        datetimetz createdAt
+    }
+
+    SCREENING_REQUESTS {
+        uuid screeningRequestId pk
+        %% UNIQUE (adviseeId, serviceId) — one trial per advisee per service
+        uuid serviceId fk
+        uuid adviseeId fk
+        %% enum: PENDING, ACCEPTED, DECLINED
+        enum status
+        text decisionReason
+        %% trial fields are null unless the service has trialEnabled
+        uuid chatRoomId fk
+        datetimetz trialStartedAt
+        datetimetz trialExpiresAt
+        datetimetz createdAt
+        datetimetz decidedAt
+    }
+
+    SCREENING_ANSWERS {
+        uuid screeningRequestId fk,pk
+        uuid questionId fk,pk
+        text answer
+        datetimetz createdAt
+    }
+
+
+    SERVICE_TIMESLOTS {
+        uuid timeslotId pk
+        uuid serviceId fk
+        datetimetz startTime
+        datetimetz endTime
+        %% enum: OPEN, BLOCKED  (booked-ness is derived from SERVICE_APPOINTMENTS)
+        enum status
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    SERVICE_APPOINTMENTS {
+        uuid appointmentId pk
+        uuid timeslotId fk
+        uuid adviseeId fk
+        uuid chatRoomId fk
+        varchar jitsiRoomName
+        %% enum: PENDING_PAYMENT, BOOKED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
+        enum state
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    SERVICE_REVIEWS {
+        uuid appointmentId fk,pk
+        int stars
+        text comment
+        text advisorReply
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+
+    SERVICE_INVOICES {
+        uuid invoiceId pk
+        uuid appointmentId fk
+        int amountSatang
+        int platformFeeSatang
+        varchar providerChargeId
+        %% enum: PENDING, HELD_IN_ESCROW, RELEASED, REFUNDED, FAILED
+        enum status
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    PAYOUTS {
+        uuid payoutId pk
+        uuid advisorId fk
+        int amountSatang
+        varchar providerTransferId
+        %% enum: PENDING, PAID, FAILED
+        enum status
+        datetimetz createdAt
+        datetimetz paidAt
+    }
+
+    PAYOUT_INVOICES {
+        uuid payoutId fk,pk
+        uuid invoiceId fk,pk
+    }
+
+    REFUND_CASES {
+        uuid refundCaseId pk
+        uuid invoiceId fk
+        uuid requestedByUserId fk
+        uuid reviewedByAdminId fk
+        text reason
+        %% enum: OPEN, APPROVED, REJECTED
+        enum status
+        datetimetz createdAt
+        datetimetz resolvedAt
+    }
+
+
+    CHAT_ROOMS {
+        uuid chatRoomId pk
+        bool isAnonymous
+        datetimetz createdAt
+    }
+
+    CHAT_MEMBERS {
+        uuid chatRoomId fk,pk
+        uuid memberUserId fk,pk
+        datetimetz lastReadAt
+        datetimetz createdAt
+    }
+
+    CHAT_MESSAGES {
+        uuid messageId pk
+        uuid chatRoomId fk
+        uuid senderUserId fk
+        text message
+        datetimetz createdAt
+    }
+
+    CHAT_FILES {
+        uuid fileId pk
+        uuid chatRoomId fk
+        uuid senderUserId fk
+        varchar objectKey
+        varchar originalFileName
+        varchar mimeType
+        int fileSizeBytes
+        datetimetz expiryDate
+        datetimetz createdAt
+    }
+
+
+    OFF_PLATFORM_FLAGS {
+        uuid flagId pk
+        uuid messageId fk
+        varchar matchedPattern
+        %% enum: PENDING_REVIEW, CONFIRMED, DISMISSED
+        enum status
+        uuid reviewedByAdminId fk
+        int penaltyPointsApplied
+        datetimetz createdAt
+        datetimetz reviewedAt
+    }
+
+    USER_REPORTS {
+        uuid reportId pk
+        uuid reporterUserId fk
+        uuid reportedUserId fk
+        uuid chatRoomId fk
+        text reason
+        %% enum: OPEN, ACTIONED, DISMISSED
+        enum status
+        uuid reviewedByAdminId fk
+        datetimetz createdAt
+        datetimetz resolvedAt
+    }
+
+    NOTIFICATIONS {
+        uuid notificationId pk
+        uuid ownerId fk
+        %% enum: BOOKING_CONFIRMED, PAYMENT_SUCCEEDED, SESSION_REMINDER,
+        %%       NEW_MESSAGE, SCREENING_DECIDED, VERIFICATION_DECIDED, POLICY_WARNING
+        enum type
+        varchar title
+        text content
+        bool isRead
+        datetimetz createdAt
+    }
+
+
+    USERS ||--o| ADVISOR_PROFILES : "is an"
+    USERS ||--o| ADMIN_PROFILES : "is an"
+    USERS ||--o{ PDPA_CONSENTS : "consented to"
+
+    ADVISOR_PROFILES ||--o| ADVISOR_IDENTITY : "proves identity with"
+    ADMIN_PROFILES ||--o{ ADVISOR_IDENTITY : "verifies"
+
+    ADVISOR_PROFILES ||--o{ ADVISOR_SKILLS : "has"
+    SKILLS ||--o{ ADVISOR_SKILLS : "described by"
+    ADVISOR_SKILLS ||--o{ SKILL_PROOF_DOCUMENTS : "evidenced by"
+    ADMIN_PROFILES ||--o{ SKILL_PROOF_DOCUMENTS : "reviews"
+
+    ADVISOR_PROFILES ||--o{ SERVICES : "provides"
+    SERVICE_CATEGORIES ||--o{ SERVICES : "classifies"
+    SERVICES ||--o{ SERVICE_IMAGES : "shown by"
+    SERVICES ||--o{ SERVICE_TIMESLOTS : "available at"
+    SERVICES ||--o{ SERVICE_SCREENING_QUESTIONS : "asks"
+
+    SERVICES ||--o{ SCREENING_REQUESTS : "screened by"
+    USERS ||--o{ SCREENING_REQUESTS : "requests"
+    SCREENING_REQUESTS ||--o{ SCREENING_ANSWERS : "contains"
+    SERVICE_SCREENING_QUESTIONS ||--o{ SCREENING_ANSWERS : "answered by"
+    CHAT_ROOMS ||--o| SCREENING_REQUESTS : "hosts trial for"
+
+    SERVICE_TIMESLOTS ||--o| SERVICE_APPOINTMENTS : "booked as"
+    USERS ||--o{ SERVICE_APPOINTMENTS : "books"
+    CHAT_ROOMS ||--o| SERVICE_APPOINTMENTS : "hosts"
+    SERVICE_APPOINTMENTS ||--o| SERVICE_REVIEWS : "reviewed by"
+
+    SERVICE_APPOINTMENTS ||--o| SERVICE_INVOICES : "paid by"
+    SERVICE_INVOICES ||--o{ PAYOUT_INVOICES : "settled by"
+    PAYOUTS ||--o{ PAYOUT_INVOICES : "settles"
+    ADVISOR_PROFILES ||--o{ PAYOUTS : "receives"
+    SERVICE_INVOICES ||--o{ REFUND_CASES : "disputed by"
+    USERS ||--o{ REFUND_CASES : "raises"
+    ADMIN_PROFILES ||--o{ REFUND_CASES : "resolves"
+
+    CHAT_ROOMS ||--o{ CHAT_MEMBERS : "accessible by"
+    USERS ||--o{ CHAT_MEMBERS : "joins"
+    CHAT_ROOMS ||--o{ CHAT_MESSAGES : "sent in"
+    USERS ||--o{ CHAT_MESSAGES : "writes"
+    CHAT_ROOMS ||--o{ CHAT_FILES : "sent in"
+    USERS ||--o{ CHAT_FILES : "uploads"
+
+    CHAT_MESSAGES ||--o| OFF_PLATFORM_FLAGS : "flagged as"
+    ADMIN_PROFILES ||--o{ OFF_PLATFORM_FLAGS : "adjudicates"
+    USERS ||--o{ USER_REPORTS : "files"
+    CHAT_ROOMS ||--o{ USER_REPORTS : "evidenced by"
+    ADMIN_PROFILES ||--o{ USER_REPORTS : "handles"
+
+    USERS ||--o{ NOTIFICATIONS : "notified by"
