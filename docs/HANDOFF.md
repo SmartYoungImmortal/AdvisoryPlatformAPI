@@ -5,16 +5,19 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
 
 ## What works
 
-- NestJS runtime configuration, response envelope, validation filter, Swagger helpers, and typed
-  environment validation.
+- NestJS runtime configuration, response envelope, validation filter, Swagger helpers that derive
+  resource labels from response DTO names by default, and typed environment validation.
 - Drizzle/Postgres connection lifecycle and the canonical 31-table schema, with forward migrations.
 - Better Auth at `/api/auth/*`, using raw request bodies and cookie sessions.
 - A fail-closed global `SessionGuard`: public routes require `@Public()`, inactive accounts receive
-  403, and Advisor/Admin roles are derived from profile rows.
+  403, and one shared role resolver derives additive Advisor/Admin membership from profile rows for
+  both authorization and user-profile responses.
 - Written and copy-pasteable auth requests in [`api-spec.md`](./api-spec.md).
 - Atomic `POST /api/v1/advisors/me` Advisee-to-Advisor upgrade and owner-only `GET /api/v1/advisors/me`.
 - Owner-only `GET/PATCH /api/v1/users/me` for every authenticated account, including additive role
   membership, plus `PATCH /api/v1/advisors/me` for Advisor headline/bio updates.
+- Owner-only avatar removal and atomic PDPA account anonymization at `DELETE /api/v1/users/me`,
+  including immediate credential/session revocation and Advisor-service unpublishing.
 - Public-read/Admin-write Skills and Service Categories sample modules.
 - Unit, Postgres integration, and cookie-preserving auth e2e suites. CI merges their coverage and
   enforces at least 80% for aggregate statements, branches, functions, and lines.
@@ -49,9 +52,9 @@ npm run test:cov
 
 - The separately owned frontend contract is not mirrored here. Confirm it before designing
   frontend-dependent profile or discovery shapes.
-- Avatar upload/removal, PDPA deletion, public advisor discovery, and Admin advisor listing are not
-  implemented. Avatar work depends on the MinIO integration; the remaining views require
-  audience-specific response DTOs.
+- Avatar upload, public advisor discovery, and Admin advisor listing are not implemented. Avatar
+  upload depends on the MinIO integration; the remaining views require audience-specific response
+  DTOs.
 - The database exclusion constraint preventing overlapping timeslots remains scheduled with the
   booking module; do not replace it with only an application-level check.
 - Admin provisioning is operational/seeded; there is deliberately no self-promotion endpoint.

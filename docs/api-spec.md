@@ -237,7 +237,30 @@ fields remain behind `/api/v1/advisors/me`; they are not conditionally added to 
 
 Updates the authenticated owner's base profile. Body fields are optional: `displayName`, `fullName`,
 and `timezone`. Email, verification state, account status, roles, and `avatarKey` are not accepted.
-Avatar writes remain deferred until the MinIO upload path exists.
+Avatar uploads remain deferred until the MinIO upload path exists.
+
+### `DELETE /api/v1/users/me/avatar` — `Advisee`
+
+Clears the authenticated owner's `avatarKey`. This operation is idempotent from the client's
+perspective and returns the standard success envelope with `data: null`. Uploading a replacement
+avatar is intentionally unavailable until the MinIO object-upload path can validate ownership,
+file type, and size; clients cannot submit arbitrary storage keys.
+
+### `DELETE /api/v1/users/me` — `Advisee`
+
+Permanently closes the authenticated account and returns the standard success envelope with
+`data: null`. The operation is atomic:
+
+- all sessions and authentication accounts are deleted immediately;
+- the user row is marked `DELETED` and direct identity fields are replaced with non-identifying
+  values so FK-bound appointments, invoices, reports, and chat evidence remain valid;
+- avatar references, Advisor identity submissions, claimed skills/proof metadata, notifications,
+  and email verification records are erased;
+- any Advisor profile is anonymized and its services are unpublished.
+
+Consent and transactional/evidence records remain attached only to the pseudonymous internal UUID
+where retention is necessary. A subsequent request with the old session receives `401`. The former
+email address is no longer retained on the account and may be used for a new signup.
 
 ---
 

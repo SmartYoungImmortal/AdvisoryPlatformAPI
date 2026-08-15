@@ -152,8 +152,10 @@ sync.
 
 `PDPA_CONSENTS` is keyed `(userId, policyVersion)` so re-consent to a new policy version
 is a new row and the history is preserved — which is the point of a consent record.
-Right-to-be-forgotten is served by `USERS.status = DELETED` plus hard deletion of
-personal columns; the diagram does not model the deletion procedure itself.
+Right-to-be-forgotten is served by the atomic `DELETE /api/v1/users/me` procedure: it sets
+`USERS.status = DELETED`, replaces required identity columns with non-identifying values, revokes
+sessions/accounts, erases verification/profile proof data, and unpublishes Advisor services.
+FK-bound transaction and safety evidence keeps only the pseudonymous internal UUID.
 
 ## Known gaps, deliberately left out
 

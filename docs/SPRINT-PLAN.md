@@ -109,14 +109,14 @@ Advisee deliberately upgrades to Advisor.
 **Delivered:** version-pinned auth documentation; cookie-preserving e2e coverage; suspended/deleted
 account denial; explicit Advisor upgrade; 409 for repeat upgrade; and CI verification.
 
-**Remaining work if the frontend contract confirms it:**
+**Delivered account scope:**
 
 | Area | Work |
 |---|---|
-| Profile | Base and Advisor own-profile read/update are delivered with separate allowlisted DTOs; avatar behavior remains deferred until its MinIO path exists. |
-| PDPA | Account deletion/anonymization design and implementation consistent with the ER model. |
-| Advisor profile | Add only the fields needed for S4 public discovery and advisor-owned services. |
-| Tests | Cover each new controller boundary; do not reintroduce role selection or onboarding. |
+| Profile | Base and Advisor own-profile read/update use separate allowlisted DTOs. Avatar reads/removal are defined; upload remains an S8 MinIO dependency. |
+| PDPA | Atomic account deletion revokes authentication, erases direct identity/proof data, anonymizes the retained FK anchor, and unpublishes Advisor services. |
+| Advisor profile | `headline` and `bio` are available for S4 public discovery and advisor-owned services; no speculative fields were added. |
+| Tests | Controller boundaries, role changes, profile updates, avatar removal, anonymization, and immediate session revocation have database-backed coverage. |
 
 **Exit criteria:** no registration path selects a role; repeat upgrade remains a documented `409`
 policy; all account work uses the real application middleware and passes build, lint, relevant unit,

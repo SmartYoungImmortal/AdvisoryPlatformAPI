@@ -11,9 +11,19 @@ Newest first. One entry per session with anything worth remembering; skip trivia
   and `ADMIN` memberships so clients do not need to probe role-protected endpoints.
 - Added the specified `PATCH /api/v1/advisors/me` path for Advisor headline/bio updates while
   retaining the separate Advisor-owner response DTO.
-- Kept email, status, role, and avatar-key mutation out of the general profile DTO. Avatar writes
-  remain tied to the later MinIO integration, and PDPA deletion still requires its documented
-  anonymization design rather than an unsafe generic delete.
+- Kept email, status, role, and avatar-key mutation out of the general profile DTO. Validated avatar
+  upload remains tied to the later MinIO integration.
+- Completed that anonymization design as an atomic owner-only delete: revoke sessions/accounts,
+  erase identity/skill-proof and notification data, replace required identity fields, retain the
+  pseudonymous FK anchor, anonymize the Advisor extension, and unpublish owned services.
+- Added owner-controlled avatar removal while continuing to reject client-provided object keys;
+  validated avatar upload remains coupled to the later MinIO integration.
+- Removed repeated Swagger resource labels where a response DTO already supplies the name. The
+  composed decorators now derive readable labels from `*ResponseDto` by default and accept a
+  `{ name }` override only when the audience-specific DTO name is not the desired wording.
+- Centralized additive role lookup and stable ordering in one shared `RoleResolver`, used by both
+  `SessionGuard` and the Users own-profile path; its focused repository is now the sole owner of the
+  Advisor/Admin membership query.
 
 ## 2026-08-12 — removed unusable Swagger cookie authorization
 

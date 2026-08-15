@@ -1,7 +1,16 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Patch,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
   ApiGetOne,
+  ApiDelete,
   ApiUpdate,
 } from '../../common/decorators/api-docs.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -20,7 +29,7 @@ export class UsersController {
 
   @Roles(Role.Advisee)
   @Get('me')
-  @ApiGetOne(UserOwnProfileResponseDto, 'User profile')
+  @ApiGetOne(UserOwnProfileResponseDto, { name: 'User profile' })
   getMe(
     @CurrentUser() currentUser: SessionUser,
   ): Promise<UserOwnProfileResponseDto> {
@@ -30,11 +39,29 @@ export class UsersController {
   @Roles(Role.Advisee)
   @Patch('me')
   @ResponseMessage(USER_MESSAGES.updated)
-  @ApiUpdate(UserOwnProfileResponseDto, 'User profile')
+  @ApiUpdate(UserOwnProfileResponseDto, { name: 'User profile' })
   updateMe(
     @CurrentUser() currentUser: SessionUser,
     @Body() dto: UpdateUserProfileDto,
   ): Promise<UserOwnProfileResponseDto> {
     return this.usersService.updateMe(currentUser.id, dto);
+  }
+
+  @Roles(Role.Advisee)
+  @Delete('me/avatar')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage(USER_MESSAGES.avatarRemoved)
+  @ApiDelete('Avatar')
+  removeAvatar(@CurrentUser() currentUser: SessionUser): Promise<void> {
+    return this.usersService.removeAvatar(currentUser.id);
+  }
+
+  @Roles(Role.Advisee)
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage(USER_MESSAGES.deleted)
+  @ApiDelete('Account')
+  deleteMe(@CurrentUser() currentUser: SessionUser): Promise<void> {
+    return this.usersService.deleteMe(currentUser.id);
   }
 }

@@ -1,13 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
-import { adminProfiles, advisorProfiles, user } from '../../database/schema';
+import {
+  account,
+  advisorIdentity,
+  advisorProfiles,
+  advisorSkills,
+  notifications,
+  services,
+  session,
+  skillProofDocuments,
+  user,
+  verification,
+} from '../../database/schema';
 import { EntityRepository } from '../../common/repositories/entity.repository';
-
-export interface RoleMembership {
-  isAdvisor: boolean;
-  isAdmin: boolean;
-}
 
 @Injectable()
 export class UsersRepository extends EntityRepository<typeof user> {
@@ -15,23 +21,74 @@ export class UsersRepository extends EntityRepository<typeof user> {
     super(database, user);
   }
 
-  async findRoleMembership(userId: string): Promise<RoleMembership> {
-    const [advisor, admin] = await Promise.all([
-      this.database
-        .select({ userId: advisorProfiles.userId })
-        .from(advisorProfiles)
-        .where(eq(advisorProfiles.userId, userId))
-        .limit(1),
-      this.database
-        .select({ userId: adminProfiles.userId })
-        .from(adminProfiles)
-        .where(eq(adminProfiles.userId, userId))
-        .limit(1),
-    ]);
+  async removeAvatar(userId: string): Promise<boolean> {
+    const [profile] = await this.database
+      .update(user)
+      .set({ avatarKey: null, updatedAt: new Date() })
+      .where(eq(user.id, userId))
+      .returning({ id: user.id });
+    return profile !== undefined;
+  }
 
-    return {
-      isAdvisor: advisor.length > 0,
-      isAdmin: admin.length > 0,
-    };
+  /**
+   * Erases direct account/profile data while retaining the pseudonymous user row required by
+   * appointments, invoices, reports, and chat evidence. The transaction also revokes every login
+   * credential and session, so a completed deletion cannot leave an authenticated account behind.
+   */
+  anonymizeById(userId: string): Promise<boolean> {
+    return this.database.transaction(async (tx) => {
+      const [profile] = await tx
+        .select({ email: user.email })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1);
+
+      if (!profile) {
+        return false;
+      }
+
+      const now = new Date();
+
+      await tx.delete(session).where(eq(session.userId, userId));
+      await tx.delete(account).where(eq(account.userId, userId));
+      await tx
+        .delete(verification)
+        .where(eq(verification.identifier, profile.email));
+      await tx
+        .delete(skillProofDocuments)
+        .where(eq(skillProofDocuments.advisorId, userId));
+      await tx.delete(advisorSkills).where(eq(advisorSkills.advisorId, userId));
+      await tx
+        .delete(advisorIdentity)
+        .where(eq(advisorIdentity.advisorId, userId));
+      await tx.delete(notifications).where(eq(notifications.ownerId, userId));
+
+      await tx
+        .update(services)
+        .set({ isPublished: false, modifiedAt: now })
+        .where(eq(services.advisorId, userId));
+      await tx
+        .update(advisorProfiles)
+        .set({ headline: 'Deleted advisor', bio: null, modifiedAt: now })
+        .where(eq(advisorProfiles.userId, userId));
+
+      const [deletedProfile] = await tx
+        .update(user)
+        .set({
+          email: `${userId}@deleted.invalid`,
+          emailVerified: false,
+          displayName: 'Deleted User',
+          image: null,
+          fullName: 'Deleted User',
+          avatarKey: null,
+          timezone: 'UTC',
+          status: 'DELETED',
+          updatedAt: now,
+        })
+        .where(eq(user.id, userId))
+        .returning({ id: user.id });
+
+      return deletedProfile !== undefined;
+    });
   }
 }

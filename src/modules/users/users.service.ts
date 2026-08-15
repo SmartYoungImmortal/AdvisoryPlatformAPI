@@ -1,28 +1,28 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Role } from '../../common/decorators/roles.decorator';
+import { RoleResolver } from '../../common/authorization/role-resolver.service';
 import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
 import { UserOwnProfileResponseDto } from './dtos/user-own-profile-response.dto';
 import { USER_MESSAGES } from './users.constants';
-import { UsersRepository, type RoleMembership } from './users.repository';
+import { UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly roleResolver: RoleResolver,
+  ) {}
 
   async getMe(userId: string): Promise<UserOwnProfileResponseDto> {
-    const [profile, membership] = await Promise.all([
+    const [profile, roles] = await Promise.all([
       this.usersRepository.findById(userId),
-      this.usersRepository.findRoleMembership(userId),
+      this.roleResolver.resolve(userId),
     ]);
 
     if (!profile) {
       throw new NotFoundException(USER_MESSAGES.notFound);
     }
 
-    return new UserOwnProfileResponseDto(
-      profile,
-      this.resolveRoles(membership),
-    );
+    return new UserOwnProfileResponseDto(profile, roles);
   }
 
   async updateMe(
@@ -38,21 +38,21 @@ export class UsersService {
       throw new NotFoundException(USER_MESSAGES.notFound);
     }
 
-    const membership = await this.usersRepository.findRoleMembership(userId);
-    return new UserOwnProfileResponseDto(
-      profile,
-      this.resolveRoles(membership),
-    );
+    const roles = await this.roleResolver.resolve(userId);
+    return new UserOwnProfileResponseDto(profile, roles);
   }
 
-  private resolveRoles(membership: RoleMembership): Role[] {
-    const roles = [Role.Advisee];
-    if (membership.isAdvisor) {
-      roles.push(Role.Advisor);
+  async removeAvatar(userId: string): Promise<void> {
+    const removed = await this.usersRepository.removeAvatar(userId);
+    if (!removed) {
+      throw new NotFoundException(USER_MESSAGES.notFound);
     }
-    if (membership.isAdmin) {
-      roles.push(Role.Admin);
+  }
+
+  async deleteMe(userId: string): Promise<void> {
+    const deleted = await this.usersRepository.anonymizeById(userId);
+    if (!deleted) {
+      throw new NotFoundException(USER_MESSAGES.notFound);
     }
-    return roles;
   }
 }

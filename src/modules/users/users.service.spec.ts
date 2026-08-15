@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import { Role } from '../../common/decorators/roles.decorator';
+import type { RoleResolver } from '../../common/authorization/role-resolver.service';
 import type { user } from '../../database/schema';
 import type { UsersRepository } from './users.repository';
 import { UsersService } from './users.service';
@@ -27,25 +28,35 @@ function profile(): User {
 
 describe('UsersService', () => {
   let repository: jest.Mocked<
-    Pick<UsersRepository, 'findById' | 'findRoleMembership' | 'updateById'>
+    Pick<
+      UsersRepository,
+      'findById' | 'updateById' | 'removeAvatar' | 'anonymizeById'
+    >
   >;
+  let roleResolver: jest.Mocked<Pick<RoleResolver, 'resolve'>>;
   let service: UsersService;
 
   beforeEach(() => {
     repository = {
       findById: jest.fn(),
-      findRoleMembership: jest.fn(),
       updateById: jest.fn(),
+      removeAvatar: jest.fn(),
+      anonymizeById: jest.fn(),
     };
-    service = new UsersService(repository as unknown as UsersRepository);
+    roleResolver = { resolve: jest.fn() };
+    service = new UsersService(
+      repository as unknown as UsersRepository,
+      roleResolver as unknown as RoleResolver,
+    );
   });
 
   it('returns an allowlisted own profile with additive roles', async () => {
     repository.findById.mockResolvedValue(profile());
-    repository.findRoleMembership.mockResolvedValue({
-      isAdvisor: true,
-      isAdmin: true,
-    });
+    roleResolver.resolve.mockResolvedValue([
+      Role.Advisee,
+      Role.Advisor,
+      Role.Admin,
+    ]);
 
     const result = await service.getMe(userId);
 
@@ -66,10 +77,7 @@ describe('UsersService', () => {
       ...profile(),
       displayName: 'Updated',
     });
-    repository.findRoleMembership.mockResolvedValue({
-      isAdvisor: false,
-      isAdmin: false,
-    });
+    roleResolver.resolve.mockResolvedValue([Role.Advisee]);
 
     const result = await service.updateMe(userId, { displayName: 'Updated' });
 
@@ -84,10 +92,7 @@ describe('UsersService', () => {
 
   it('throws when the user profile cannot be found', async () => {
     repository.findById.mockResolvedValue(undefined);
-    repository.findRoleMembership.mockResolvedValue({
-      isAdvisor: false,
-      isAdmin: false,
-    });
+    roleResolver.resolve.mockResolvedValue([Role.Advisee]);
 
     await expect(service.getMe(userId)).rejects.toThrow(NotFoundException);
   });
@@ -98,6 +103,34 @@ describe('UsersService', () => {
     await expect(
       service.updateMe(userId, { displayName: 'Missing' }),
     ).rejects.toThrow(NotFoundException);
-    expect(repository.findRoleMembership).not.toHaveBeenCalled();
+    expect(roleResolver.resolve).not.toHaveBeenCalled();
+  });
+
+  it('removes the current user avatar', async () => {
+    repository.removeAvatar.mockResolvedValue(true);
+
+    await expect(service.removeAvatar(userId)).resolves.toBeUndefined();
+    expect(repository.removeAvatar).toHaveBeenCalledWith(userId);
+  });
+
+  it('throws when removing an avatar for a missing user', async () => {
+    repository.removeAvatar.mockResolvedValue(false);
+
+    await expect(service.removeAvatar(userId)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('anonymizes and deletes the current account', async () => {
+    repository.anonymizeById.mockResolvedValue(true);
+
+    await expect(service.deleteMe(userId)).resolves.toBeUndefined();
+    expect(repository.anonymizeById).toHaveBeenCalledWith(userId);
+  });
+
+  it('throws when deleting a missing account', async () => {
+    repository.anonymizeById.mockResolvedValue(false);
+
+    await expect(service.deleteMe(userId)).rejects.toThrow(NotFoundException);
   });
 });

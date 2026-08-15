@@ -9,10 +9,17 @@ import { DRIZZLE, type DrizzleDB } from '../src/database/database.module';
 import {
   account,
   adminProfiles,
+  advisorIdentity,
   advisorProfiles,
+  advisorSkills,
+  notifications,
+  serviceCategories,
+  services,
   session,
+  skillProofDocuments,
   skills,
   user,
+  verification,
 } from '../src/database/schema';
 
 describe('authentication and authorization (e2e)', () => {
@@ -20,6 +27,8 @@ describe('authentication and authorization (e2e)', () => {
   let db: DrizzleDB;
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
+  const createdServiceIds: string[] = [];
+  const createdCategoryIds: string[] = [];
 
   function object(value: unknown): Record<string, unknown> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -42,6 +51,18 @@ describe('authentication and authorization (e2e)', () => {
   });
 
   afterEach(async () => {
+    await Promise.all(
+      createdServiceIds
+        .splice(0)
+        .map((id) => db.delete(services).where(eq(services.id, id))),
+    );
+    await Promise.all(
+      createdCategoryIds
+        .splice(0)
+        .map((id) =>
+          db.delete(serviceCategories).where(eq(serviceCategories.id, id)),
+        ),
+    );
     await Promise.all(
       createdSkillIds
         .splice(0)
@@ -134,6 +155,145 @@ describe('authentication and authorization (e2e)', () => {
       .patch('/api/v1/users/me')
       .send({ email: 'not-allowed@example.test' })
       .expect(400);
+  });
+
+  it('removes an avatar without accepting a client-provided object key', async () => {
+    const { agent, userId } = await signUp();
+    await db
+      .update(user)
+      .set({ avatarKey: `avatars/${userId}.webp` })
+      .where(eq(user.id, userId));
+
+    await agent
+      .delete('/api/v1/users/me/avatar')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          message: 'Avatar removed',
+          data: null,
+        });
+      });
+
+    const profile = await agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(profile.body).data)).toMatchObject({
+      avatarKey: null,
+    });
+  });
+
+  it('anonymizes an account and immediately revokes authentication', async () => {
+    const { agent, email, userId } = await signUp();
+    await agent
+      .post('/api/v1/advisors/me')
+      .send({ headline: 'Personal headline', bio: 'Personal biography' })
+      .expect(201);
+
+    const [skill] = await db
+      .insert(skills)
+      .values({ name: `Deletion skill ${crypto.randomUUID()}` })
+      .returning({ id: skills.id });
+    createdSkillIds.push(skill.id);
+    await db
+      .insert(advisorSkills)
+      .values({ advisorId: userId, skillId: skill.id });
+    await db.insert(skillProofDocuments).values({
+      advisorId: userId,
+      skillId: skill.id,
+      objectKey: `proofs/${userId}.pdf`,
+      originalFileName: 'personal-proof.pdf',
+    });
+    await db.insert(advisorIdentity).values({
+      advisorId: userId,
+      nationalIdHash: crypto.randomUUID(),
+      verificationStatus: 'SUBMITTED',
+    });
+    await db.insert(notifications).values({
+      ownerId: userId,
+      type: 'POLICY_WARNING',
+      title: 'Private notification',
+    });
+    await db.insert(verification).values({
+      identifier: email,
+      value: crypto.randomUUID(),
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const [category] = await db
+      .insert(serviceCategories)
+      .values({ name: `Deletion category ${crypto.randomUUID()}` })
+      .returning({ id: serviceCategories.id });
+    createdCategoryIds.push(category.id);
+    const [service] = await db
+      .insert(services)
+      .values({
+        advisorId: userId,
+        categoryId: category.id,
+        name: 'Published personal service',
+        priceSatang: 10000,
+        durationMinutes: 30,
+        isPublished: true,
+      })
+      .returning({ id: services.id });
+    createdServiceIds.push(service.id);
+
+    await agent
+      .delete('/api/v1/users/me')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          message: 'Account deleted',
+          data: null,
+        });
+      });
+
+    await agent.get('/api/v1/users/me').expect(401);
+
+    const [deletedUser] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, userId));
+    expect(deletedUser).toMatchObject({
+      email: `${userId}@deleted.invalid`,
+      emailVerified: false,
+      displayName: 'Deleted User',
+      fullName: 'Deleted User',
+      avatarKey: null,
+      timezone: 'UTC',
+      status: 'DELETED',
+    });
+
+    const [deletedAdvisor] = await db
+      .select()
+      .from(advisorProfiles)
+      .where(eq(advisorProfiles.userId, userId));
+    expect(deletedAdvisor).toMatchObject({
+      headline: 'Deleted advisor',
+      bio: null,
+    });
+
+    const [unpublishedService] = await db
+      .select({ isPublished: services.isPublished })
+      .from(services)
+      .where(eq(services.id, service.id));
+    expect(unpublishedService?.isPublished).toBe(false);
+
+    const erasedRows = await Promise.all([
+      db.select().from(account).where(eq(account.userId, userId)),
+      db.select().from(session).where(eq(session.userId, userId)),
+      db
+        .select()
+        .from(advisorIdentity)
+        .where(eq(advisorIdentity.advisorId, userId)),
+      db
+        .select()
+        .from(advisorSkills)
+        .where(eq(advisorSkills.advisorId, userId)),
+      db
+        .select()
+        .from(skillProofDocuments)
+        .where(eq(skillProofDocuments.advisorId, userId)),
+      db.select().from(notifications).where(eq(notifications.ownerId, userId)),
+      db.select().from(verification).where(eq(verification.identifier, email)),
+    ]);
+    expect(erasedRows.every((rows) => rows.length === 0)).toBe(true);
   });
 
   it('creates an Advisee session, upgrades once, and then permits the Advisor route', async () => {
