@@ -4,6 +4,18 @@ A running record of what changed and why, session by session — for picking thi
 not a user-facing release log (that's a different document, if this project ever needs one).
 Newest first. One entry per session with anything worth remembering; skip trivial sessions.
 
+## 2026-08-15 — added cursor pagination for chat history
+
+- Added `CursorPaginationDto` alongside the existing offset pagination. Ordinary searchable and
+  management lists retain page totals; append-heavy feeds return `{ items, limit, nextCursor,
+hasMore }`, and calendar availability remains date-range bounded.
+- Changed member-only chat message history to an opaque `(createdAt, id)` keyset cursor. The query
+  uses the existing room/history index, remains stable when new messages arrive, fetches one extra
+  row to derive `hasMore`, and no longer runs a full message-count query.
+- Kept chat room listing on offset pagination because its documented ordering is fixed by room
+  creation time. If that contract later changes to mutable last-activity ordering, reassess it for
+  cursor pagination.
+
 ## 2026-08-15 — extracted typed composite-key mechanics
 
 - Added a composition-based `CompositeKeyStore` for junction-table exact-key predicates and

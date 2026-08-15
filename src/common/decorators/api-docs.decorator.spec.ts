@@ -11,6 +11,7 @@ import { ApiProperty, DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import {
   ApiCreate,
   ApiDelete,
+  ApiGetCursorPaginated,
   ApiGetOne,
   ApiGetPaginated,
 } from './api-docs.decorator';
@@ -21,6 +22,10 @@ class DummyResponseDto {
 
 @Controller('dummies')
 class DummyController {
+  @Get('feed')
+  @ApiGetCursorPaginated(DummyResponseDto)
+  findFeed(): void {}
+
   @Get(':id')
   @ApiGetOne(DummyResponseDto)
   findOne(): void {}
@@ -64,6 +69,15 @@ describe('api-docs decorators', () => {
 
     expect(document.components?.schemas?.DummyResponseDto).toBeDefined();
     expect(document.components?.schemas?.ApiEnvelopeDto).toBeDefined();
+    expect(
+      document.components?.schemas?.ApiCursorPaginatedDataDto,
+    ).toBeDefined();
+
+    expect(
+      document.paths['/dummies/feed']?.get?.responses?.['200'],
+    ).toMatchObject({
+      description: 'Cursor-paginated list of Dummy',
+    });
 
     const getOne = document.paths['/dummies/{id}']?.get?.responses?.['200'];
     expect(getOne).toMatchObject({ description: 'Dummy found' });
