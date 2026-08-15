@@ -22,20 +22,20 @@ const statement = {
 
 const ac = createAccessControl(statement);
 const adminStatements = {
-  skills: ['read', 'create', 'update', 'delete'],
   ...adminAc.statements,
+  skills: ['read', 'create', 'update', 'delete'],
 } as const;
 const advisorStatements = {
+  ...userAc.statements,
   advisor: ['createSelf', 'updateSelf'],
   advisorService: ['createSelf', 'update', 'delete'],
   skills: ['read', 'create'],
-  ...userAc.statements,
 } as const;
 const adviseeStatements = {
+  ...userAc.statements,
   advisor: ['createSelf', 'read'],
   advisorService: ['read'],
   skills: ['read'],
-  ...userAc.statements,
 } as const;
 const admin = ac.newRole(adminStatements);
 const advisor = ac.newRole(advisorStatements);
