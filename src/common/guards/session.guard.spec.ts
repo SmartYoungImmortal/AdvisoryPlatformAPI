@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import type { DrizzleDB } from '../../database/database.module';
+import type { RoleResolver } from '../authorization/role-resolver.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { Role } from '../decorators/roles.decorator';
 import type { Auth } from '../../modules/auth/auth.config';
@@ -25,7 +25,7 @@ describe('SessionGuard', () => {
   const userId = '11111111-1111-4111-8111-111111111111';
   let request: Partial<Request>;
   let getSession: jest.Mock;
-  let select: jest.Mock;
+  let resolveRoles: jest.Mock;
   let requiredRoles: Role[] | undefined;
   let isPublic: boolean;
   let guard: SessionGuard;
@@ -48,7 +48,7 @@ describe('SessionGuard', () => {
   beforeEach(() => {
     request = { headers: {} };
     getSession = jest.fn();
-    select = jest.fn();
+    resolveRoles = jest.fn();
     requiredRoles = undefined;
     isPublic = false;
 
@@ -60,7 +60,7 @@ describe('SessionGuard', () => {
 
     guard = new SessionGuard(
       { api: { getSession } } as unknown as Auth,
-      { select } as unknown as DrizzleDB,
+      { resolve: resolveRoles } as unknown as RoleResolver,
       reflector,
     );
   });
@@ -92,7 +92,7 @@ describe('SessionGuard', () => {
     await expect(result).rejects.toThrow(
       'Account must be ACTIVE. Current status: SUSPENDED.',
     );
-    expect(select).not.toHaveBeenCalled();
+    expect(resolveRoles).not.toHaveBeenCalled();
   });
 
   it('accepts the implicit Advisee role without database role lookups', async () => {
@@ -101,7 +101,7 @@ describe('SessionGuard', () => {
     getSession.mockResolvedValue(activeSession);
 
     await expect(guard.canActivate(context())).resolves.toBe(true);
-    expect(select).not.toHaveBeenCalled();
+    expect(resolveRoles).not.toHaveBeenCalled();
     expect(request.user).toBe(activeSession.user);
     expect(request.session).toBe(activeSession.session);
   });
@@ -109,25 +109,16 @@ describe('SessionGuard', () => {
   it('derives Advisor and Admin roles from profile rows', async () => {
     requiredRoles = [Role.Advisor];
     getSession.mockResolvedValue(session('ACTIVE'));
-    const limit = jest
-      .fn()
-      .mockResolvedValueOnce([{ userId }])
-      .mockResolvedValueOnce([]);
-    select.mockReturnValue({
-      from: () => ({ where: () => ({ limit }) }),
-    });
+    resolveRoles.mockResolvedValue([Role.Advisee, Role.Advisor]);
 
     await expect(guard.canActivate(context())).resolves.toBe(true);
-    expect(select).toHaveBeenCalledTimes(2);
+    expect(resolveRoles).toHaveBeenCalledWith(userId);
   });
 
   it('rejects an active user who lacks the required derived role', async () => {
     requiredRoles = [Role.Admin];
     getSession.mockResolvedValue(session('ACTIVE'));
-    const limit = jest.fn().mockResolvedValue([]);
-    select.mockReturnValue({
-      from: () => ({ where: () => ({ limit }) }),
-    });
+    resolveRoles.mockResolvedValue([Role.Advisee]);
 
     const result = guard.canActivate(context());
 
@@ -138,10 +129,7 @@ describe('SessionGuard', () => {
   it('lists every accepted role when a route allows alternatives', async () => {
     requiredRoles = [Role.Advisor, Role.Admin];
     getSession.mockResolvedValue(session('ACTIVE'));
-    const limit = jest.fn().mockResolvedValue([]);
-    select.mockReturnValue({
-      from: () => ({ where: () => ({ limit }) }),
-    });
+    resolveRoles.mockResolvedValue([Role.Advisee]);
 
     await expect(guard.canActivate(context())).rejects.toThrow(
       'Required roles: ADVISOR or ADMIN.',
