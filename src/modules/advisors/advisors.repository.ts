@@ -29,16 +29,20 @@ export class AdvisorsRepository {
     userId: string,
     dto: CreateAdvisorProfileDto,
   ): Promise<AdvisorProfile | undefined> {
-    const [advisor] = await this.db
-      .insert(advisorProfiles)
-      .values({ userId, ...dto })
-      .onConflictDoNothing()
-      .returning();
+    const advisor = await this.db.transaction(async (tx) => {
+      const [advisor] = await tx
+        .insert(advisorProfiles)
+        .values({ userId, ...dto })
+        .onConflictDoNothing()
+        .returning();
 
-    await this.db
-      .update(userSchema)
-      .set({ role: 'advisor' })
-      .where(eq(userSchema.id, userId));
+      await tx
+        .update(userSchema)
+        .set({ role: 'advisor' })
+        .where(eq(userSchema.id, userId));
+
+      return advisor;
+    });
 
     return advisor;
   }
