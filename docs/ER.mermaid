@@ -163,7 +163,7 @@ erDiagram
         uuid timeslotId fk
         uuid adviseeId fk
         uuid chatRoomId fk
-        varchar jitsiRoomName
+        varchar jitsiRoomName uk
         %% enum: PENDING_PAYMENT, BOOKED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
         enum state
         datetimetz createdAt

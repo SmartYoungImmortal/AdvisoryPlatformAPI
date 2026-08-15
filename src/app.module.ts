@@ -7,6 +7,7 @@ import { SkillsModule } from './modules/skills/skills.module';
 import { ServiceCategoriesModule } from './modules/service-categories/service-categories.module';
 import { UsersModule } from './modules/users/users.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { VideoModule } from './modules/video/video.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ChatModule } from './modules/chat/chat.module';
     ServiceCategoriesModule,
     UsersModule,
     ChatModule,
+    VideoModule,
   ],
 })
 export class AppModule {}

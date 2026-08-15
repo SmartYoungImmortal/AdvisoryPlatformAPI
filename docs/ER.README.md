@@ -55,6 +55,18 @@ The no-overlap guarantee is a **database-level exclusion constraint** on
 `(serviceId, tstzrange(startTime, endTime))`, not an application-layer check. This is the
 project's first Success Criterion and it must survive concurrent requests.
 
+### Video access is appointment-bound
+
+`SERVICE_APPOINTMENTS.jitsiRoomName` is unique and opaque. It is not derived from an appointment,
+user, or service ID, so a room name does not disclose or make another consultation guessable. The
+API grants a short-lived, room-scoped Jitsi JWT only after independently authorizing the current
+Better Auth user as the appointment's Advisee or Advisor and checking the appointment state and
+timeslot window. Better Auth and Jitsi use separate secrets and tokens.
+
+The eventual booking workflow should provision this value with the appointment. Until that module
+exists, the video-access endpoint uses a conditional database update to assign it lazily; concurrent
+first requests still converge on the same stored room.
+
 ### Escrow and payouts are modelled in Project 1
 
 `SERVICE_INVOICES.status` runs `PENDING → HELD_IN_ESCROW → RELEASED | REFUNDED | FAILED`,

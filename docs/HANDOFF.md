@@ -28,6 +28,10 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
 - Public-read/Admin-write Skills and Service Categories sample modules.
 - Session-authenticated Socket.IO chat at namespace `/chat`, with member-only joins, persistent
   message broadcasts, deterministic HTTP history, room unread counts, and monotonic read markers.
+- Appointment-bound Jitsi access at `GET /api/v1/appointments/:appointmentId/video-access`.
+  Better Auth participants receive unique-room, short-lived Jitsi JWTs only for `BOOKED` or
+  `IN_PROGRESS` appointments during the configured meeting window; all other probes return the
+  same 404.
 - Unit, Postgres integration, and cookie-preserving auth e2e suites. E2e tests keep the application,
   authentication, and database real while replacing the external MinIO boundary with an in-memory
   storage stub. CI merges all coverage and enforces at least 80% for aggregate statements, branches,
@@ -50,7 +54,9 @@ Swagger is at `http://localhost:3000/api/docs`. Better Auth is not shown there; 
 of [`api-spec.md`](./api-spec.md). Swagger intentionally does not offer a pasteable session-token
 field: use Postman's cookie jar for API-only testing, or establish a real browser session first.
 The local MinIO console is at `http://localhost:9001`; its development-only credentials are in
-`.env.example`.
+`.env.example`. Jitsi is a separate self-hosted deployment: set the four `JITSI_*` API variables
+from `.env.example`, configure the Jitsi Docker stack for JWT auth with matching app credentials,
+and keep guest/empty-token access disabled.
 
 ```bash
 npm run build
@@ -74,6 +80,11 @@ npm run test:cov
 - Appointment and accepted-trial modules are not implemented, so production chat-room provisioning
   is not wired yet. Chat deliberately exposes no arbitrary room or membership creation endpoint;
   the upstream workflow must create the room, its two memberships, and its source link atomically.
+- The booking module is also expected to provision each appointment's opaque Jitsi room name.
+  Video access currently assigns it lazily and atomically on the first authorized in-window request,
+  so the endpoint works without exposing a public room-creation operation.
+- The API issues and verifies the structure of Jitsi JWTs, but call-quality and public-network
+  validation still require a deployed Jitsi host with DNS, trusted TLS, and WebRTC ports configured.
 
 ## Next work
 

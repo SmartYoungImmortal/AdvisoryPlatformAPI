@@ -68,7 +68,7 @@ export const serviceAppointments = pgTable('service_appointments', {
     .notNull()
     .references(() => user.id),
   chatRoomId: uuid('chat_room_id').references(() => chatRooms.id),
-  jitsiRoomName: varchar('jitsi_room_name'),
+  jitsiRoomName: varchar('jitsi_room_name').unique(),
   state: appointmentStateEnum('state').notNull().default('PENDING_PAYMENT'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()

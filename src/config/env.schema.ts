@@ -28,6 +28,22 @@ export const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string().min(3).default('minioadmin'),
   MINIO_SECRET_KEY: z.string().min(8).default('minioadmin'),
   MINIO_BUCKET: z.string().trim().min(3).max(63).default('advisory-platform'),
+  JITSI_DOMAIN: z
+    .string()
+    .trim()
+    .min(1)
+    .refine(
+      (value) => !value.includes('://') && !value.includes('/'),
+      'JITSI_DOMAIN must be a hostname, not a URL',
+    ),
+  JITSI_APP_ID: z.string().trim().min(1),
+  JITSI_APP_SECRET: z.string().min(32),
+  JITSI_ACCESS_BUFFER_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(60)
+    .default(15),
 });
 
 export type Env = z.infer<typeof envSchema>;

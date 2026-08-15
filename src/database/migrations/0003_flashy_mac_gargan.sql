@@ -1,0 +1,1 @@
+ALTER TABLE "service_appointments" ADD CONSTRAINT "service_appointments_jitsi_room_name_unique" UNIQUE("jitsi_room_name");

@@ -4,6 +4,21 @@ A running record of what changed and why, session by session — for picking thi
 not a user-facing release log (that's a different document, if this project ever needs one).
 Newest first. One entry per session with anything worth remembering; skip trivial sessions.
 
+## 2026-08-15 — implemented appointment-bound Jitsi access
+
+- Selected a separately deployed, self-hosted Jitsi Meet instance with JWT-only participant access.
+  Better Auth continues to authenticate the API; the API issues a distinct HS256 Jitsi JWT scoped
+  to one opaque room, one user identity, and the appointment access window.
+- Added `GET /api/v1/appointments/:appointmentId/video-access` for the appointment Advisee and
+  owning Advisor. Only `BOOKED` and `IN_PROGRESS` appointments are eligible from 15 minutes before
+  through 15 minutes after the timeslot (deployment-configurable from 0–60 minutes). Every denied
+  appointment/state/time/participant probe returns the same 404 without room details.
+- Made Jitsi room names unique and unpredictable. Because booking is not implemented yet, the first
+  valid access request assigns a missing name with a conditional database update; concurrent first
+  requests converge on the persisted value.
+- Added unit coverage for state/time policy, real-Postgres participant and concurrent-room tests,
+  and cookie-preserving e2e coverage that verifies the room-scoped JWT signature and claims.
+
 ## 2026-08-15 — extracted typed composite-key mechanics
 
 - Added a composition-based `CompositeKeyStore` for junction-table exact-key predicates and

@@ -30,9 +30,9 @@ Verified against the registered Nest modules, controllers, tests, migrations, `H
 
 | Classification                                         | Issue IDs                                                  | Verification result                                                                                                                 |
 | ------------------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Completed — do not create                              | AP-001, AP-024, AP-026, AP-027                             | The avatar baseline and authenticated member-only chat core are delivered with documentation and tests.                           |
+| Completed — do not create                              | AP-001, AP-024, AP-026, AP-027, AP-031, AP-032             | The avatar, authenticated chat core, and appointment-bound Jitsi access are delivered with documentation and tests.                |
 | Partially prepared — remaining issue scope is not done | AP-002, AP-009, AP-046, AP-051, AP-062                     | These have some contract, schema, CORS, or documentation foundations, but each issue's stated final deliverable remains incomplete. |
-| Not implemented                                        | AP-003–AP-008, AP-010–AP-023, AP-025, AP-028–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed module/workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature. |
+| Not implemented                                        | AP-003–AP-008, AP-010–AP-023, AP-025, AP-028–AP-030, AP-033–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed module/workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature. |
 | Recurring                                              | AP-068                                                     | Create one issue for each future sprint; prior governance activity does not complete future copies.                                 |
 
 This audit prevents completed work from being created again and distinguishes reusable foundations
@@ -475,7 +475,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 3
 - **Dependencies:** AP-009
 - **Target:** API repository and external integration decision
-- **Status:** Proposed
+- **Status:** Completed and locally verified; the selected self-hosted deployment is documented.
 
 ### AP-032 — Implement appointment-bound video room access
 
@@ -487,7 +487,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 8
 - **Dependencies:** AP-013, AP-031
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Completed and locally verified; production appointment provisioning remains blocked on AP-013.
 
 ### AP-033 — Implement member-authorized chat file upload and download
 

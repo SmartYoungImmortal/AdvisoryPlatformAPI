@@ -502,7 +502,57 @@ treated as durable acknowledgement.
 
 ---
 
-## 9. Not yet written
+## 9. Module: Video
+
+The platform uses a separately deployed, self-hosted Jitsi Meet instance with JWT authentication.
+Better Auth remains the API identity system: the client sends its HttpOnly session cookie only to
+this API, and the API exchanges a valid appointment authorization for a short-lived Jitsi JWT. The
+Better Auth session token and `BETTER_AUTH_SECRET` are never sent to or reused by Jitsi.
+
+The Jitsi deployment must use the same application ID and secret as this API, require JWTs for all
+participants, and reject empty/anonymous tokens (`ENABLE_AUTH=1`, `AUTH_TYPE=jwt`,
+`JWT_ALLOW_EMPTY=0`, and `ENABLE_GUESTS=0` in the official Docker deployment). Jitsi is operated as
+separate internet-facing infrastructure because it also needs its own DNS, trusted TLS certificate,
+and WebRTC network ports; it is not embedded in the API's local Postgres/MinIO Compose stack.
+
+### `GET /api/v1/appointments/:appointmentId/video-access` — appointment participant
+
+Requires an `ACTIVE` Better Auth cookie session. Returns join information only when all of these are
+true:
+
+- the current user is the appointment's Advisee or the Advisor who owns its service;
+- the appointment state is `BOOKED` or `IN_PROGRESS`; and
+- the request is made from 15 minutes before the timeslot starts until, but not including, 15
+  minutes after it ends. The buffer is deployment-configurable through
+  `JITSI_ACCESS_BUFFER_MINUTES`, with a validated range of 0–60 and a default of 15.
+
+Unknown appointments, non-participants, unpaid/cancelled/completed/no-show appointments, early
+requests, and expired requests all return the same `404 Video access not found`. The response never
+reveals whether the appointment or room exists.
+
+```jsonc
+{
+  "statusCode": 200,
+  "message": "Video access granted",
+  "data": {
+    "roomName": "appointment-3da56ef177474b33a426753e313f79e8",
+    "domain": "meet.example.com",
+    "token": "<short-lived-room-scoped-jitsi-jwt>",
+    "expiresAt": "2026-08-15T11:15:00.000Z",
+  },
+}
+```
+
+The JWT is HS256-signed with `JITSI_APP_SECRET`, restricted to the returned room, identifies the
+current user by internal UUID and display name, and expires at the end of the allowed window. It
+contains neither the user's Better Auth session nor their legal name. Room names are unique and
+unpredictable. Until booking provisioning exists, the API assigns one atomically on the first valid
+access request; the future booking workflow may assign it earlier, and this endpoint will reuse it.
+The response carries `Cache-Control: no-store` because the JWT is a temporary credential.
+
+---
+
+## 10. Not yet written
 
 categories & skills · services · timeslots · screening · booking · payments &
 payouts · refunds · chat files · notifications · trust & safety · admin console
