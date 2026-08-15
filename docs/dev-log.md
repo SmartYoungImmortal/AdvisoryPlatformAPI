@@ -4,6 +4,14 @@ A running record of what changed and why, session by session — for picking thi
 not a user-facing release log (that's a different document, if this project ever needs one).
 Newest first. One entry per session with anything worth remembering; skip trivial sessions.
 
+## 2026-08-15 — isolated external storage in e2e tests
+
+- Replaced the live MinIO dependency in the e2e application with a reusable in-memory storage stub.
+  The suite still runs the real Nest HTTP stack, Better Auth cookie sessions, and PostgreSQL.
+- Strengthened avatar e2e assertions to verify stored content metadata, replacement cleanup,
+  explicit removal, signed-URL parameters, and account-deletion cleanup through the storage
+  boundary.
+
 ## 2026-08-15 — made the repository API-only
 
 - Removed the separately owned client application as a source of contract authority. The API

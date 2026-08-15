@@ -24,8 +24,10 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
   credential/session revocation, avatar cleanup, and Advisor-service unpublishing. Successful
   deletes return an allowlisted representation of the removed resource.
 - Public-read/Admin-write Skills and Service Categories sample modules.
-- Unit, Postgres integration, and cookie-preserving auth e2e suites. CI merges their coverage and
-  enforces at least 80% for aggregate statements, branches, functions, and lines.
+- Unit, Postgres integration, and cookie-preserving auth e2e suites. E2e tests keep the application,
+  authentication, and database real while replacing the external MinIO boundary with an in-memory
+  storage stub. CI merges all coverage and enforces at least 80% for aggregate statements, branches,
+  functions, and lines.
 
 The schema also enforces foundational data rules for nonnegative satang, positive durations,
 trial-window consistency, 1–5 review stars, valid timeslot ranges, file size, and one invoice per

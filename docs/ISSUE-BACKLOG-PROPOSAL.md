@@ -2,15 +2,15 @@
 
 **Prepared:** 2026-08-15  
 **Status:** Draft for team verification; no GitHub issues have been created from this file.  
-**Scope:** Remaining Project 1 API and course-delivery work for `AdvisoryPlatformAPI` from the
-current S3 carry-over through S14.
+**Scope:** Remaining Project 1 API and course-delivery work for `AdvisoryPlatformAPI` from S4
+through S14, with AP-001 retained only as a completed dependency reference.
 
 ## 1. How to review this proposal
 
 This backlog is derived from the implemented modules, the canonical ER model, the API access
-matrix, the handoff, and the active sprint plan. S1, S2, and the completed portion of S3 are not
-proposed as new issues because that work is already delivered. AP-001 represents the unfinished
-avatar/MinIO work currently visible in the working tree.
+matrix, the handoff, and the active sprint plan. S1 through S3 are delivered and must not be created
+as new issues. AP-001 remains in this document only because later storage issues refer to it as a
+completed prerequisite.
 
 Before creating GitHub issues, the team should verify:
 
@@ -22,6 +22,21 @@ Before creating GitHub issues, the team should verify:
 
 No issue below authorizes behavior outside the documented product scope. Unspecified behavior must
 be resolved in the API contract rather than invented during implementation.
+
+### Current implementation audit
+
+Verified against the registered Nest modules, controllers, tests, migrations, `HANDOFF.md`, and
+`SPRINT-PLAN.md` on 2026-08-15:
+
+| Classification                                         | Issue IDs                                                  | Verification result                                                                                                                 |
+| ------------------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Completed — do not create                              | AP-001                                                     | Private MinIO avatar upload/read/replace/delete, cleanup, CI configuration, documentation, and tests are delivered.                 |
+| Partially prepared — remaining issue scope is not done | AP-002, AP-009, AP-046, AP-051, AP-062                     | These have some contract, schema, CORS, or documentation foundations, but each issue's stated final deliverable remains incomplete. |
+| Not implemented                                        | AP-003–AP-008, AP-010–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed module/workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature.        |
+| Recurring                                              | AP-068                                                     | Create one issue for each future sprint; prior governance activity does not complete future copies.                                 |
+
+This audit prevents AP-001 from being created and distinguishes reusable foundations from finished
+features. Re-run it immediately before writing issues to GitHub in case the working tree changes.
 
 ## 2. Planning conventions
 
@@ -57,22 +72,21 @@ documentation.
 only on code already recorded as complete in `docs/HANDOFF.md`. References such as `AP-012` are
 blocking issue dependencies, not merely related work.
 
-## 3. Proposed issues
+## 3. Issue inventory
 
-## S3 carry-over — account files
+## Completed reference — do not create
 
 ### AP-001 — Complete secure avatar upload and retrieval with MinIO
 
-- **Description:** Finish the in-progress owner-only avatar flow: validate JPEG/PNG/WebP files up to
-  5 MB, store opaque object keys, return short-lived download URLs, safely replace/delete old
-  objects, and keep account deletion cleanup consistent. Add MinIO-backed unit/integration/e2e
-  coverage, CI configuration, API documentation, and handoff/dev-log updates.
+- **Description:** Implemented the owner-only avatar flow with JPEG/PNG/WebP MIME and 5 MiB size
+  validation, opaque MinIO object keys, five-minute download URLs, safe replacement/deletion,
+  account-deletion cleanup, CI configuration, API documentation, and unit/e2e coverage.
 - **Priority:** P1
-- **Sprint:** S3 carry-over
+- **Sprint:** S3
 - **Story points:** 5
 - **Dependencies:** Delivered user profile, storage schema, and session authorization baseline
 - **Target:** API repository
-- **Status:** In progress in the current working tree; verify and finish rather than reimplement.
+- **Status:** Completed and locally verified; do not create a GitHub issue.
 
 ## S4 — advisor discovery and service management
 
@@ -81,12 +95,17 @@ blocking issue dependencies, not merely related work.
 - **Description:** Define discovery, advisor-detail, service, filter, pagination, and public-avatar
   request/response behavior from the documented product, privacy, and access rules. Record the
   contract and any unresolved product decisions in `docs/api-spec.md` before implementation begins.
+- **Inputs needed:** Provide the frontend repository/path or its discovery screens, TypeScript
+  types, API client calls, and expected empty/error states. The team must confirm service route
+  layout, list-card/detail fields, public avatar delivery, filters/default ordering, owned-service
+  create/update fields, and publish/unpublish behavior. Advisor list/detail shapes are already
+  drafted; service and public-avatar behavior are not final.
 - **Priority:** P0
 - **Sprint:** S4
 - **Story points:** 3
 - **Dependencies:** None
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially complete; the existing Advisor draft is usable, but the service and public-avatar contract still require confirmation.
 
 ### AP-003 — Implement advisor-owned claimed-skill replacement
 
@@ -152,10 +171,12 @@ blocking issue dependencies, not merely related work.
 
 ### AP-008 — Prove discovery authorization, ranking, and response performance
 
-- **Description:** Add database-backed tests for public/owner/Admin response separation, filters,
-  pagination, ranking stability, hidden advisors, and ownership failures. Measure representative
-  discovery/search requests against the under-three-second quality requirement and retain the
-  dataset, command, environment, and result as evidence.
+- **Description:** This issue does not build another endpoint. After AP-005 through AP-007 are
+  implemented, add database-backed tests for guest access, public-versus-owner DTO separation,
+  filters, pagination, deterministic ranking, hidden/inactive Advisors, and service ownership
+  failures. Then seed a representative dataset, measure discovery/search against the under-three-
+  second quality requirement, and retain the command, environment, dataset size, and result as
+  evidence.
 - **Priority:** P1
 - **Sprint:** S4
 - **Story points:** 5
@@ -175,7 +196,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 3
 - **Dependencies:** AP-002, AP-004
 - **Target:** API repository and API documentation
-- **Status:** Proposed
+- **Status:** Partially prepared; schema enums and ER rationale exist, but HTTP transitions and actor behavior are not finalized.
 
 ### AP-010 — Implement advisor-owned timeslot management
 
@@ -639,7 +660,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 3
 - **Dependencies:** Delivered authentication baseline and production environment decisions
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; credentialed CORS and trusted-origin configuration exist, but production-like verification and deployment evidence do not.
 
 ## S10 — feature freeze and integration
 
@@ -701,7 +722,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 5
 - **Dependencies:** AP-050
 - **Target:** API repository and course deliverable
-- **Status:** Proposed
+- **Status:** Partially prepared; the current API specification and handoff cover delivered modules, but future module contracts and UAT scripts do not exist.
 
 ## S11 — functional, load, and security testing
 
@@ -841,7 +862,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 5
 - **Dependencies:** AP-060, AP-061
 - **Target:** API repository and course deliverable
-- **Status:** Proposed
+- **Status:** Partially prepared; the canonical ER documentation exists, but final implementation reconciliation and the remaining diagrams are not complete.
 
 ### AP-063 — Validate and execute the UAT-to-production release
 
@@ -928,21 +949,21 @@ The totals below are planning signals, not a promise that points equal the sprin
 hours. They intentionally expose the heaviest sprints so the team can split work across four people
 or move P2/P3 scope before GitHub issue creation.
 
-| Sprint        |      Issues | One-time points | Main gate                                                                      |
-| ------------- | ----------: | --------------: | ------------------------------------------------------------------------------ |
-| S3 carry-over |           1 |               5 | Secure avatar/MinIO work completed and verified                                |
-| S4            |           7 |              39 | Public discovery and owned services follow the documented API contract         |
-| S5            |           7 |              40 | Database-enforced no-overlap booking and progress report #2                    |
-| S6            |           8 |              50 | Idempotent payment lifecycle and optional screening                            |
-| S7            |           7 |              39 | Participant-only realtime chat and notifications                               |
-| S8            |           8 |              47 | Authorized video/files plus 30% report draft                                   |
-| S9            |           8 |              48 | Evidence-preserving trust/safety and Admin operations                          |
-| S10           |           5 |              34 | Feature freeze with two proven end-to-end paths                                |
-| S11           |           5 |              34 | Functional/load/security results and 60% report draft                          |
-| S12           |           3 |              16 | Measured role-based UAT and approved fix list                                  |
-| S13           |           5 |              29 | Necessary fixes, traceability, and validated release                           |
-| S14           |           3 |              18 | Final report, presentation, and demo contingency                               |
-| Standing      | 1 recurring |    2 per sprint | Governance and evidence remain current                                         |
+| Sprint       |      Issues | One-time points | Main gate                                                              |
+| ------------ | ----------: | --------------: | ---------------------------------------------------------------------- |
+| S3 delivered |  0 proposed |     0 remaining | AP-001 is complete and retained only as a dependency reference         |
+| S4           |           7 |              39 | Public discovery and owned services follow the documented API contract |
+| S5           |           7 |              40 | Database-enforced no-overlap booking and progress report #2            |
+| S6           |           8 |              50 | Idempotent payment lifecycle and optional screening                    |
+| S7           |           7 |              39 | Participant-only realtime chat and notifications                       |
+| S8           |           8 |              47 | Authorized video/files plus 30% report draft                           |
+| S9           |           8 |              48 | Evidence-preserving trust/safety and Admin operations                  |
+| S10          |           5 |              34 | Feature freeze with two proven end-to-end paths                        |
+| S11          |           5 |              34 | Functional/load/security results and 60% report draft                  |
+| S12          |           3 |              16 | Measured role-based UAT and approved fix list                          |
+| S13          |           5 |              29 | Necessary fixes, traceability, and validated release                   |
+| S14          |           3 |              18 | Final report, presentation, and demo contingency                       |
+| Standing     | 1 recurring |    2 per sprint | Governance and evidence remain current                                 |
 
 S6, S8, and S9 are capacity risks. Recommended first adjustments are to move AP-022, AP-034, and
 AP-046 within their dependency windows or drop AP-064; do not defer AP-011, AP-020, AP-024, AP-035,
@@ -975,10 +996,11 @@ They may be collected in a separate Project 2 backlog after the Project 1 issues
 
 ## 7. Recommendation for GitHub issue creation
 
-After approval, create milestones `S3 Carry-over` and `S4` through `S14`, plus labels for priority,
-story points, target repository, and type. Create only the next ready sprint in the first batch,
-then preview later batches before writing them to GitHub. Preserve the AP identifiers in issue
-bodies so dependencies can be replaced with actual GitHub issue links after creation.
+After approval, create milestones `S4` through `S14`, plus labels for priority, story points, target
+repository, and type. Create only the next ready sprint in the first batch, then preview later
+batches before writing them to GitHub. Preserve the AP identifiers in issue bodies so proposed
+dependencies can be replaced with actual GitHub issue links. References to completed AP-001 should
+instead be written as a delivered storage prerequisite, because AP-001 will not have a GitHub issue.
 
 Suggested labels:
 
