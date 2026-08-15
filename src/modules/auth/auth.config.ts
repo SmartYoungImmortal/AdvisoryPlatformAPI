@@ -5,6 +5,41 @@ import type { DrizzleDB } from '@/database/database.module';
 import * as schema from '@/database/schema';
 import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
+import { admin as adminPlugin } from 'better-auth/plugins';
+import { createAccessControl } from 'better-auth/plugins/access';
+import {
+  adminAc,
+  defaultStatements,
+  userAc,
+} from 'better-auth/plugins/admin/access';
+
+const statement = {
+  ...defaultStatements,
+  advisor: ['createSelf', 'updateSelf', 'read'],
+  advisorService: ['createSelf', 'update', 'delete', 'read'],
+  skills: ['create', 'read', 'update', 'delete'],
+} as const;
+
+const ac = createAccessControl(statement);
+const adminStatements = {
+  skills: ['read', 'create', 'update', 'delete'],
+  ...adminAc.statements,
+} as const;
+const advisorStatements = {
+  advisor: ['createSelf', 'updateSelf'],
+  advisorService: ['createSelf', 'update', 'delete'],
+  skills: ['read', 'create'],
+  ...userAc.statements,
+} as const;
+const adviseeStatements = {
+  advisor: ['createSelf', 'read'],
+  advisorService: ['read'],
+  skills: ['read'],
+  ...userAc.statements,
+} as const;
+const admin = ac.newRole(adminStatements);
+const advisor = ac.newRole(advisorStatements);
+const advisee = ac.newRole(adviseeStatements);
 
 /**
  * better-auth owns the `user` table's base fields (id, email, emailVerified, name, image,
@@ -60,9 +95,21 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
         },
       },
     },
+    plugins: [
+      adminPlugin({
+        ac,
+        roles: {
+          admin,
+          advisor,
+          advisee,
+        },
+        defaultRole: 'advisee',
+      }),
+    ],
   });
 }
 
 export type Auth = ReturnType<typeof createAuth>;
+export type AuthRoles = keyof typeof advisorStatements;
 export type AuthSession = Auth['$Infer']['Session'];
 export type SessionUser = AuthSession['user'];

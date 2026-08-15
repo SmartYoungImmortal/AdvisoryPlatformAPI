@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,10 +10,17 @@ import { AdvisorOwnProfileResponseDto } from './dtos/advisor-own-profile-respons
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
 import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 import { AdvisorsRepository } from './advisors.repository';
+import { Auth } from '@/modules/auth/auth.config';
+import { AuthService } from '@thallesp/nestjs-better-auth';
+import type { Request as ExpressRequest } from 'express';
+import { fromNodeHeaders } from 'better-auth/node';
 
 @Injectable()
 export class AdvisorsService {
-  constructor(private readonly advisorsRepository: AdvisorsRepository) {}
+  constructor(
+    private readonly advisorsRepository: AdvisorsRepository,
+    @Inject(AuthService) private authService: AuthService<Auth>,
+  ) {}
 
   async getMe(user: SessionUser): Promise<AdvisorOwnProfileResponseDto> {
     const advisor = await this.advisorsRepository.findByUserId(user.id);
@@ -25,11 +33,13 @@ export class AdvisorsService {
   async upgrade(
     user: SessionUser,
     dto: CreateAdvisorProfileDto,
+    req: ExpressRequest,
   ): Promise<AdvisorOwnProfileResponseDto> {
     const advisor = await this.advisorsRepository.createIfAbsent(user.id, dto);
     if (!advisor) {
       throw new ConflictException(ADVISOR_MESSAGES.alreadyExists);
     }
+
     return new AdvisorOwnProfileResponseDto(user, advisor);
   }
 

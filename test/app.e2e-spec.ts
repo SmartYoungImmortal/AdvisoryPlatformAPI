@@ -421,6 +421,7 @@ describe('authentication and authorization (e2e)', () => {
       .expect(403);
 
     await db.insert(adminProfiles).values({ userId });
+    await db.update(user).set({ role: 'admin' }).where(eq(user.id, userId));
     const adminProfile = await agent.get('/api/v1/users/me').expect(200);
     expect(object(object(adminProfile.body).data)).toMatchObject({
       roles: ['ADVISEE', 'ADMIN'],

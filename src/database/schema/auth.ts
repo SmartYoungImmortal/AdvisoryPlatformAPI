@@ -44,6 +44,10 @@ export const user = pgTable('user', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
+  role: text('role'),
+  banned: boolean('banned'),
+  banReason: text('ban_reason'),
+  banExpires: timestamp('ban_expires', { precision: 6, withTimezone: true }),
 });
 
 export const session = pgTable(
@@ -63,6 +67,7 @@ export const session = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
+    impersonatedBy: text('impersonated_by'),
   },
   (table) => [index('session_user_id_idx').on(table.userId)],
 );
