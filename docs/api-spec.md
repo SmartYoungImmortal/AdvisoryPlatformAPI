@@ -37,13 +37,13 @@ marked `Public`. Auth is opt-out, so a forgotten decorator fails closed.
 **Money** is always an integer in satang. **Timestamps** are ISO 8601 with offset.
 **IDs** are uuid v4.
 
-**Errors that apply everywhere** and are therefore not repeated per endpoint:
+**Common errors, when applicable:**
 
 | Code | When |
 |---|---|
 | 401 | No session, or expired |
 | 403 | Session valid, role or ownership insufficient |
-| 422 | Path param is not a valid uuid |
+| 400 | Request validation fails, including an invalid UUID path parameter |
 | 429 | Rate limit |
 | 500 | Unhandled |
 
@@ -132,6 +132,14 @@ curl -b cookies.txt -X POST http://localhost:3000/api/auth/sign-out
 
 For browser clients, use `credentials: 'include'` with `fetch`, or `withCredentials: true` with
 Axios; otherwise the browser discards or withholds the session cookie.
+
+### Testing without a frontend
+
+Use Postman (or curl) for the complete auth flow: sign in and let its cookie jar retain
+`better-auth.session_token`, then call protected `/api/v1/*` routes in the same client. Swagger
+documents those routes and can execute them only after the browser already holds a valid session
+cookie for `localhost:3000`. It deliberately has no **Authorize** value field: a browser cannot
+safely paste an HttpOnly cookie into Swagger's JavaScript request.
 
 ## 3. Roles
 

@@ -1,17 +1,17 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { ConfigService } from '@nestjs/config';
-import { DrizzleDB } from '../../database/database.module';
+import type { ConfigService } from '@nestjs/config';
+import type { DrizzleDB } from '../../database/database.module';
 import * as schema from '../../database/schema';
 import { ENV_KEYS } from '../../config/env.constants';
-import { Env } from '../../config/env.schema';
+import type { Env } from '../../config/env.schema';
 
 /**
  * better-auth owns the `user` table's base fields (id, email, emailVerified, name, image,
  * createdAt, updatedAt). `fields.name` repoints better-auth's base "name" concept at our
  * `displayName` Drizzle property (the ER's "what everyone else sees" field) instead of
  * adding a redundant column. `image` is left unused in favor of a separate `avatarKey`
- * additionalField, matching CLAUDE.md's documented four (fullName, avatarKey, timezone,
+ * additionalField, matching the domain schema's four (fullName, avatarKey, timezone,
  * status) and this repo's `objectKey`-style naming for MinIO references.
  *
  * Note: `additionalFields[key].fieldName`, if set, must name the *Drizzle schema property*

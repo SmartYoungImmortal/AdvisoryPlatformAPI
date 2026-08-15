@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { pgTable, uuid, text, integer } from 'drizzle-orm/pg-core';
 import { eq } from 'drizzle-orm';
 import { EntityRepository } from './entity.repository';
-import { DrizzleDB } from '../../database/database.module';
+import type { DrizzleDB } from '../../database/database.module';
 import * as schema from '../../database/schema';
 
 const widgets = pgTable('_test_widgets', {

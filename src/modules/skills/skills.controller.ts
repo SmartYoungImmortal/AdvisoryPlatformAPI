@@ -30,12 +30,8 @@ import { UpdateSkillDto } from './dtos/update-skill.dto';
 import { SKILL_MESSAGES } from './skills.constants';
 import { SkillsService } from './skills.service';
 
-// The one place this controller's entity name is spelled out — every @ApiXxx call below
-// references it, so a typo here is a compile-time-visible rename, not a silently wrong
-// Swagger description on one endpoint.
 const ENTITY_NAME = 'Skill';
 
-/** Pure CRUD, per CLAUDE.md's "no BaseCrudService" note — skills is one of the two modules that actually is. */
 @ApiTags('Skills')
 @Controller('api/v1/skills')
 export class SkillsController {

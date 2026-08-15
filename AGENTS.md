@@ -76,8 +76,8 @@ The frontend contract is not mirrored here. Ask before making a decision that de
 - Run `npm run build`, `npm run lint`, and the relevant test suites before handoff.
 - Unit tests are under `src/**/*.spec.ts`; database integration tests use
   `npm run test:integration`; e2e tests use `npm run test:e2e`.
-- Coverage of at least 80% is a project requirement, but there is currently no CI gate and
-  coverage is not aggregated across unit and integration suites. Treat this as unfinished work.
+- `npm run test:cov` merges unit, integration, and e2e coverage. CI requires at least 80% for all
+  four aggregate metrics; the command needs the test Postgres database.
 - The working tree may contain intentional uncommitted work. Inspect `git status` and preserve
   unrelated changes.
 - Record substantive implementation decisions in `docs/dev-log.md` and update
@@ -94,5 +94,4 @@ auth or authorization changes:
 - Keep coverage for signup/session, 401, Advisor upgrade, 403/allowed roles, and suspended-account
   denial against a real database.
 
-The aggregate 80% coverage gate and CI workflow remain unfinished; do not claim either exists until
-they are implemented and enforced.
+Keep the aggregate coverage gate green when auth or authorization behavior changes.

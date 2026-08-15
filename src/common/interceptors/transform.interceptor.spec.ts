@@ -1,5 +1,5 @@
-import { CallHandler, ExecutionContext } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import type { CallHandler, ExecutionContext } from '@nestjs/common';
+import type { Reflector } from '@nestjs/core';
 import { of } from 'rxjs';
 import { RESPONSE_MESSAGE_KEY } from '../decorators/response-message.decorator';
 import { TransformInterceptor } from './transform.interceptor';

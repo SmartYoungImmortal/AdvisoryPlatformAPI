@@ -4,6 +4,43 @@ A running record of what changed and why, session by session — for picking thi
 not a user-facing release log (that's a different document, if this project ever needs one).
 Newest first. One entry per session with anything worth remembering; skip trivial sessions.
 
+## 2026-08-12 — removed unusable Swagger cookie authorization
+
+- Removed Swagger's `better-auth.session_token` Authorize popup. Browser JavaScript cannot set the
+  `Cookie` header directly, so the popup falsely implied that a copied Better Auth HttpOnly session
+  could authenticate Swagger requests. Public operations are visibly marked instead; protected
+  route documentation explains the usable Postman/browser-session workflows.
+
+## 2026-08-12 — repository quality pass
+
+- Removed the Nest starter root controller/service/test and replaced the generic starter README
+  with project-specific setup, verification, and documentation links.
+- Collapsed the duplicated 329-line Claude guide into a compatibility pointer to `AGENTS.md`, and
+  rewrote `docs/HANDOFF.md` as a current snapshot instead of retaining contradictory old snapshots.
+- Enabled full TypeScript strict mode and promoted unsafe/floating-promise lint warnings to errors.
+  `npm run lint` is now non-mutating; `npm run lint:fix` is the explicit write command.
+- Hardened input DTOs so required names/headlines are trimmed and cannot be blank. Removed the
+  unusable `Guest` authorization enum and skipped profile lookups when the implicit Advisee role
+  already grants access.
+- Fixed Swagger accuracy: public routes no longer inherit global 401/403/422 claims, protected
+  composed decorators document cookie/auth failures, and DELETE documents its `data: null` envelope.
+- Added Better Auth lookup indexes and canonical account/session delete cascades. Added database
+  checks for monetary values, durations, trial windows, timeslots, review stars, upload size, and
+  penalty values; enforced one invoice per appointment; and added `modifiedAt` to categories.
+- Added focused SessionGuard and AdvisorsService unit tests, full signup/session/signout/signin e2e
+  coverage, blank-input rejection, and stronger Swagger composition assertions.
+- Added a real aggregate Istanbul report across unit, integration, and e2e runs. CI now rejects any
+  aggregate statements, branches, functions, or lines metric below 80%.
+
+## 2026-08-12 — consolidated the sprint documentation
+
+- Merged the detailed historical `docs/sprint.md` content and the rebaselined `docs/SPRINT-PLAN.md`
+  decisions into one authoritative `docs/SPRINT-PLAN.md`. `docs/sprint.md` is now a compatibility
+  redirect only, preventing two active plans from drifting.
+- The merged plan retains the detailed WBS, course deliverables, evidence, risks, and Project 2
+  boundary while using the current Advisee-first model, S1–S3 delivery state, provisional-calendar
+  caveat, S10 feature-freeze rule, and CI/coverage-gate reality.
+
 ## 2026-08-11 — authorization baseline hardened and proven
 
 - Added an explicit Better Auth endpoint contract to `docs/api-spec.md`. Auth responses are now

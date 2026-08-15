@@ -1,15 +1,16 @@
-import { Type, applyDecorators } from '@nestjs/common';
+import { applyDecorators, type Type } from '@nestjs/common';
 import {
-  ApiCookieAuth,
   ApiCreatedResponse,
   ApiExtraModels,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
+  ApiOperation,
   ApiProperty,
-  ApiResponseOptions,
+  ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { SESSION_COOKIE_NAME } from '../../modules/auth/auth.constants';
+import type { ApiResponseOptions } from '@nestjs/swagger';
 
 // `SchemaObject` itself isn't re-exported from the package root (see
 // @nestjs/swagger/dist/interfaces/index.d.ts), so the schema shape is inferred
@@ -24,6 +25,11 @@ type ResponseSchema = Extract<
 export class ApiEnvelopeDto {
   @ApiProperty() statusCode!: number;
   @ApiProperty() message!: string;
+}
+
+export class ApiNullDataEnvelopeDto extends ApiEnvelopeDto {
+  @ApiProperty({ type: () => Object, nullable: true, example: null })
+  data!: null;
 }
 
 export class ApiPaginatedDataDto {
@@ -78,7 +84,24 @@ export interface ApiReadOptions {
 
 /** `[]` on a public route, `[ApiCookieAuth(...)]` otherwise — the one place that decides it. */
 function authDecorators(isPublic: boolean | undefined): MethodDecorator[] {
-  return isPublic ? [] : [ApiCookieAuth(SESSION_COOKIE_NAME)];
+  return isPublic
+    ? [
+        ApiOperation({
+          summary: 'Public — no authentication required',
+        }),
+      ]
+    : [
+        ApiExtraModels(ApiNullDataEnvelopeDto),
+        ApiUnauthorizedResponse({
+          description:
+            'No valid session. This API uses a Better Auth HttpOnly session cookie; Swagger cannot accept a pasted session value. Use Postman or establish the browser session before executing this endpoint in Swagger.',
+          type: ApiNullDataEnvelopeDto,
+        }),
+        ApiForbiddenResponse({
+          description: 'Session valid but role or ownership is not permitted',
+          type: ApiNullDataEnvelopeDto,
+        }),
+      ];
 }
 
 export function ApiGetOne(
@@ -87,12 +110,15 @@ export function ApiGetOne(
   options: ApiReadOptions = {},
 ): MethodDecorator {
   return applyDecorators(
-    ApiExtraModels(ApiEnvelopeDto, model),
+    ApiExtraModels(ApiEnvelopeDto, ApiNullDataEnvelopeDto, model),
     ApiOkResponse({
       description: `${name} found`,
       schema: envelopeSchema(model),
     }),
-    ApiNotFoundResponse({ description: `${name} not found` }),
+    ApiNotFoundResponse({
+      description: `${name} not found`,
+      type: ApiNullDataEnvelopeDto,
+    }),
     ...authDecorators(options.public),
   );
 }
@@ -114,12 +140,12 @@ export function ApiGetPaginated(
 
 export function ApiCreate(model: Type, name: string): MethodDecorator {
   return applyDecorators(
-    ApiExtraModels(ApiEnvelopeDto, model),
+    ApiExtraModels(ApiEnvelopeDto, ApiNullDataEnvelopeDto, model),
     ApiCreatedResponse({
       description: `${name} created`,
       schema: envelopeSchema(model),
     }),
-    ApiCookieAuth(SESSION_COOKIE_NAME),
+    ...authDecorators(false),
   );
 }
 
@@ -130,15 +156,25 @@ export function ApiUpdate(model: Type, name: string): MethodDecorator {
       description: `${name} updated`,
       schema: envelopeSchema(model),
     }),
-    ApiNotFoundResponse({ description: `${name} not found` }),
-    ApiCookieAuth(SESSION_COOKIE_NAME),
+    ApiNotFoundResponse({
+      description: `${name} not found`,
+      type: ApiNullDataEnvelopeDto,
+    }),
+    ...authDecorators(false),
   );
 }
 
 export function ApiDelete(name: string): MethodDecorator {
   return applyDecorators(
-    ApiOkResponse({ description: `${name} deleted` }),
-    ApiNotFoundResponse({ description: `${name} not found` }),
-    ApiCookieAuth(SESSION_COOKIE_NAME),
+    ApiExtraModels(ApiNullDataEnvelopeDto),
+    ApiOkResponse({
+      description: `${name} deleted`,
+      type: ApiNullDataEnvelopeDto,
+    }),
+    ApiNotFoundResponse({
+      description: `${name} not found`,
+      type: ApiNullDataEnvelopeDto,
+    }),
+    ...authDecorators(false),
   );
 }

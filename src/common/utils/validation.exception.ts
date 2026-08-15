@@ -1,4 +1,5 @@
-import { BadRequestException, ValidationError } from '@nestjs/common';
+import type { ValidationError } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 
 export interface FieldError {
   property: string;

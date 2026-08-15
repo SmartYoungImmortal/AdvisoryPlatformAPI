@@ -1,7 +1,7 @@
-import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { eq } from 'drizzle-orm';
-import { NestExpressApplication } from '@nestjs/platform-express';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
 import { configureApp } from '../src/app.factory';
 import { AppModule } from '../src/app.module';
@@ -16,7 +16,7 @@ import {
 } from '../src/database/schema';
 
 describe('authentication and authorization (e2e)', () => {
-  let app: INestApplication<NestExpressApplication>;
+  let app: NestExpressApplication;
   let db: DrizzleDB;
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
@@ -65,11 +65,12 @@ describe('authentication and authorization (e2e)', () => {
   async function signUp() {
     const agent = request.agent(app.getHttpServer());
     const email = `e2e-${crypto.randomUUID()}@example.test`;
+    const password = 'E2e-test-password-123!';
     const response = await agent.post('/api/auth/sign-up/email').send({
       name: 'E2E User',
       fullName: 'E2E Test User',
       email,
-      password: 'E2e-test-password-123!',
+      password,
       timezone: 'Asia/Bangkok',
       status: 'SUSPENDED',
     });
@@ -88,7 +89,7 @@ describe('authentication and authorization (e2e)', () => {
       .from(user)
       .where(eq(user.id, userId));
     expect(createdUser?.status).toBe('ACTIVE');
-    return { agent, userId };
+    return { agent, email, password, userId };
   }
 
   it('rejects a protected route without a session', async () => {
@@ -125,6 +126,26 @@ describe('authentication and authorization (e2e)', () => {
       .expect(409);
   });
 
+  it('supports session lookup, sign-out, and sign-in with the same cookie agent', async () => {
+    const { agent, email, password } = await signUp();
+
+    const currentSession = await agent.get('/api/auth/get-session').expect(200);
+    expect(object(currentSession.body)).toHaveProperty('user');
+
+    await agent.post('/api/auth/sign-out').expect(200);
+    await agent.get('/api/v1/advisors/me').expect(401);
+
+    await agent
+      .post('/api/auth/sign-in/email')
+      .send({ email, password })
+      .expect(200);
+    await agent.get('/api/auth/get-session').expect(200);
+    await agent
+      .post('/api/v1/advisors/me')
+      .send({ headline: 'Back' })
+      .expect(201);
+  });
+
   it('enforces admin-only writes and revokes access when an account is suspended', async () => {
     const { agent, userId } = await signUp();
 
@@ -134,6 +155,7 @@ describe('authentication and authorization (e2e)', () => {
       .expect(403);
 
     await db.insert(adminProfiles).values({ userId });
+    await agent.post('/api/v1/skills').send({ name: '   ' }).expect(400);
     const created = await agent
       .post('/api/v1/skills')
       .send({ name: `E2E ${crypto.randomUUID()}` })

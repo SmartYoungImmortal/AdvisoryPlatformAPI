@@ -1,8 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
-import { InferSelectModel } from 'drizzle-orm';
-import { serviceCategories } from '../../database/schema';
+import type { InferSelectModel } from 'drizzle-orm';
+import type { serviceCategories } from '../../database/schema';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
-import { ServiceCategoriesRepository } from './service-categories.repository';
+import type { ServiceCategoriesRepository } from './service-categories.repository';
 import { ServiceCategoriesService } from './service-categories.service';
 
 type ServiceCategory = InferSelectModel<typeof serviceCategories>;
@@ -15,6 +15,7 @@ function makeCategory(
     name: 'Marketing',
     description: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
+    modifiedAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
   };
 }

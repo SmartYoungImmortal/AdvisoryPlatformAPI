@@ -1,129 +1,249 @@
-# Advisory Platform — Rebaselined Sprint Plan
+# Advisory Platform — Sprint Plan (Project 1)
 
-**Rebaselined:** 2026-08-10  
-**Status:** active planning baseline; dates inherited from `SprintPlan(1).md` must be confirmed
-against the course calendar before they are treated as commitments.
+**Updated:** 2026-08-12
+**Status:** authoritative delivery plan. The old [`sprint.md`](./sprint.md) filename is retained
+only as a redirect so existing editor tabs and links keep working.
 
-This replaces the historical, personal `SprintPlan(1).md` for work in this repository. It keeps the
-original dependency order and course-deliverable intent, but uses the repository as the source of
-truth for completed work and known risks.
+> The dates are inherited from the original Project 1 schedule and remain provisional until the
+> team confirms them with the course calendar. The order, scope boundaries, and delivery gates below
+> are active now. Repository facts and API rules take precedence over historical task wording.
 
-## Product decisions that now govern the plan
+## 1. Planning rules and current facts
 
-1. Every email/password signup creates an **Advisee**. There is no role-selection or onboarding
-   flow at registration.
-2. An Advisee becomes an **Advisor** only through the explicit, authenticated advisor-upgrade flow
-   (`POST /api/v1/advisors/me` in the API contract). Creating `advisor_profiles` grants the Advisor
-   role; identity and skill verification are separate trust checks, not a role-selection step.
-3. Admin is never self-service. It remains a seeded/operational role.
-4. AI features remain out of Project 1. Off-platform detection is rule-based.
-5. A feature is not complete merely because it compiles: its endpoint contract and appropriate
-   controller-level tests must exist.
+| Topic | Active rule |
+|---|---|
+| Sprint cadence | One week, Saturday–Friday; Saturday afternoon is review and planning for the next sprint. |
+| Capacity | Plan about 30 feature-hours per sprint for the four-person team; reserve about 10 hours for meetings, reporting, and bugs. |
+| Task tracking | One task in this plan equals one GitHub issue and focused `feature/*` branch. |
+| Branching | `main ← UAT ← develop ← feature/*`. |
+| Account model | Signup creates an Advisee only. Advisor access is the explicit authenticated upgrade; Admin is never self-service. |
+| Quality | CI verifies build/lint and requires at least 80% across merged unit, integration, and e2e statements, branches, functions, and lines. |
+| API contract | Confirm the separately owned frontend contract before inventing profile or onboarding behaviour. |
+| AI | All AI work is Project 2. Project 1 uses rule-based ordering and detection only. |
 
-## Reality check on the inherited plan
+### Delivered before the remaining S3 work
 
-| Area | Original expectation | Actual repository state on 2026-08-10 | Planning consequence |
+- S1/S2 foundation: Postgres/Drizzle schema, Better Auth, global `SessionGuard`, role decorators,
+  response envelope, and Swagger-ready skills/service-category examples.
+- Auth baseline: written Better Auth contract, cookie-preserving e2e coverage for signup/session,
+  401, Advisor upgrade, role allow/deny, and suspended-account denial.
+- Delivery automation: GitHub Actions runs build/lint and an aggregate unit, integration, and auth
+  e2e coverage command with an enforced 80% threshold for all four metrics.
+
+## 2. Timeline and course deliverables
+
+| Sprint | Provisional window | Course deliverable | Phase |
 |---|---|---|---|
-| S1/S2 foundation | Setup, auth, CI, 80% gate | Schema, better-auth, global guard, response envelope, and example CRUD modules exist. No CI workflow or coverage gate exists. | Treat foundation code as built, but keep quality automation unfinished. |
-| Auth testing | Unit/integration coverage in S2/S3 | No auth controller tests; e2e test runner currently cannot load Better Auth's ESM module. | Finish the test harness before relying on auth for every later module. |
-| Auth documentation | Login/register usable by frontend | `/api/auth/*` is intentionally excluded from Swagger and absent from the written API spec. | Publish a version-pinned auth contract now. |
-| S3 account flow | Role selection + onboarding | Product decision supersedes this. | Build Advisee-first profile and explicit Advisor upgrade only. |
+| S1 | 25–31 Jul | — | Setup / POC — delivered baseline |
+| S2 | 1–7 Aug | Progress report #1 (7 Aug) | Foundation — delivered baseline |
+| S3 | 8–14 Aug | — | Account and authorization baseline |
+| S4 | 15–21 Aug | — | Advisor discovery and services |
+| S5 | 22–28 Aug | Progress report #2 (28 Aug) | Booking |
+| S6 | 29 Aug–4 Sep | — | Screening and payment |
+| S7 | 5–11 Sep | — | Chat and notifications |
+| S8 | 12–18 Sep | Progress report #3 + 30% report draft (18 Sep) | Video and files |
+| S9 | 19–25 Sep | — | Trust & safety, admin, PWA |
+| S10 | 26 Sep–2 Oct | — | Feature freeze / integration |
+| S11 | 3–9 Oct | Progress report #4 + 60% report draft (9 Oct) | Functional, load, security test |
+| S12 | 10–16 Oct | — | UAT |
+| S13 | 17–23 Oct | — | Fixes and traceability documents |
+| S14 | 24–30 Oct | Report and presentation due (30 Oct) | Report and slides |
+| — | 31 Oct–9 Nov | Presentation examination | Rehearsal and Q&A |
 
-## Milestone plan
+**Development completes at the end of S10.** S11–S14 are for testing, UAT, fixes, evidence,
+documentation, and presentation — not new features.
 
-The dates below are the inherited weekly windows, marked provisional. The sequencing is the
-important commitment.
+## 3. WBS and dependency map
 
-| Sprint | Provisional window | Goal and required outcome |
+| WBS | Module / deliverable | Sprint |
 |---|---|---|
-| S3 | 8–14 Aug | Make auth observable and proven; deliver Advisee profile and explicit Advisor upgrade. |
-| S4 | 15–21 Aug | Advisor discovery, public profiles, and advisor-owned service management. |
-| S5 | 22–28 Aug | Booking with database-enforced no-overlap guarantee. |
-| S6 | 29 Aug–4 Sep | Optional screening flow and payment/webhook lifecycle. |
-| S7 | 5–11 Sep | Appointment/trial chat and notifications. |
-| S8 | 12–18 Sep | Video-call access and authorized file storage. |
-| S9 | 19–25 Sep | Rule-based trust & safety, admin operations, and PWA work. |
-| S10 | 26 Sep–2 Oct | End-to-end integration, demo data, and feature freeze. |
-| S11–S14 | 3–30 Oct | Functional/load/security testing, UAT, fixes, traceability, report, and presentation. |
+| 4.1–4.4 | Environment, CI/CD, plan, test foundations | S1–S2 — delivered |
+| 4.5–4.6 | User/account model and authentication | S2–S3 |
+| 4.13 | Advisor discovery and service management | S4 |
+| 4.7 | Appointment booking | S5 |
+| 4.12 | Screening and payment | S6 |
+| 4.8, 4.11 | Chat and notifications | S7 |
+| 4.9, 4.10 | Video calls and file storage | S8 |
+| 4.14 | Off-platform detection, reports, admin | S9 |
+| 5.2–5.4 | Functional, load, security testing | S11 |
+| 5.1 | User acceptance testing | S12 |
+| 5.5 | Traceability, report, slides | S13–S14 |
 
-## S3 — current sprint: account and authorization baseline
+Dependencies are deliberate: auth → discovery/services → booking → payment and fulfilment.
+Video rooms and chat must be tied to appointments; off-platform detection depends on chat. Do not
+pull work forward without its integration path.
 
-**Goal:** a person can sign up as an Advisee, maintain their own profile, deliberately upgrade to
-Advisor, and the team can prove each authorization boundary with repeatable tests.
+## 4. Standing work and definition of done
 
-### In scope
+- Meet the advisor weekly and keep a decision/note record.
+- Hold sprint review/planning each Saturday; create the next sprint's GitHub issues.
+- Write focused unit tests alongside endpoint work; add real-Postgres integration tests where a
+  database invariant is promised.
+- Update the traceability table and capture screenshots, test output, and measured results as work
+  is completed.
+- Keep `docs/api-spec.md`, `docs/dev-log.md`, and `docs/HANDOFF.md` aligned with material contract
+  or implementation changes.
 
-- Repair the e2e test configuration for Better Auth ESM and ensure tests boot the application with
-  the same middleware as production, including raw bodies at `/api/auth/*`.
-- Document the version-pinned Better Auth endpoints used by this API: signup, signin, session, and
-  signout. Include required extra user fields, cookie behavior, error shape, and frontend examples.
-- Add cookie-preserving e2e tests for signup/signin, session lookup, protected-route 401, and
-  signout.
-- Add controller-level role tests: signed-in Advisee is denied an Admin action; seeded Admin is
-  allowed; Advisor-only routes reject an Advisee before upgrade and allow them after it.
-- Deliver own-profile read/update and avatar handling if the frontend contract is ready.
-- Deliver `POST /api/v1/advisors/me` as an explicit Advisee-to-Advisor upgrade, creating the
-  profile once and returning a documented repeat-upgrade result.
-- Update the access matrix and response DTOs so they express the new rule, including account
-  deletion/PDPA work if it fits the confirmed S3 capacity.
+A task is done when it is merged to `develop`, its response DTO and authorization behavior are
+documented, relevant tests pass, and report evidence is retained. The CI result must be green;
+SonarQube is not a completion criterion unless it is actually configured and enforced.
 
-### Explicitly out of scope
+## 5. Detailed sprint plan
 
-- Role picker, onboarding wizard, or a default Advisor account.
-- Advisor identity and skill verification UI/workflow beyond interfaces required by the upgrade.
-- Admin self-promotion endpoint.
+### S1 · 25–31 Jul — Setup and POC (delivered baseline)
 
-### S3 exit criteria
+The historical POC and tool-selection sprint supplied the foundation for the repository. Preserve
+the decisions that still matter: Better Auth owns `/api/auth/*`, PostgreSQL/Drizzle is the system of
+record, and later Omise/Jitsi choices must be validated before their implementation sprints.
 
-- Auth endpoints have a discoverable written contract, even if Better Auth remains excluded from
-  Nest Swagger.
-- The e2e suite runs and demonstrates the cookie session and 401/403/allowed boundaries.
-- Signup always produces an Advisee; no code path asks a registrant to select a role.
-- Advisor upgrade has a single documented repeat-request policy. **Resolve the existing contract
-  conflict before implementation:** it currently calls the request “idempotent” but also says a
-  second request returns `409`; both cannot be true.
-- `npm run build`, relevant unit tests, integration tests, and e2e tests pass locally.
+### S2 · 1–7 Aug — Foundation and authentication (delivered baseline)
 
-## Subsequent scope by dependency
+Delivered: canonical schema and migrations, email/password authentication, session-protected API,
+response envelope, test setup, CI verification, and enforced aggregate coverage.
 
-### S4 — Discovery and advisor-owned services
+### S3 · 8–14 Aug — Account and authorization baseline
 
-Public advisor search/profile/reviews; skill and category use; advisor-owned service CRUD;
-advisor profile fields; verification status/proof submission interfaces. Public data must follow the
-field-level access table in `api-spec.md`.
+**Goal:** prove that signup creates an Advisee, authorization boundaries are repeatable, and an
+Advisee deliberately upgrades to Advisor.
 
-### S5 — Booking
+**Delivered:** version-pinned auth documentation; cookie-preserving e2e coverage; suspended/deleted
+account denial; explicit Advisor upgrade; 409 for repeat upgrade; and CI verification.
 
-Timeslots, appointment state machine, cancellation rules, and the Postgres exclusion constraint.
-Prove no double booking with a concurrent integration test; save that output as report evidence.
+**Only remaining work if the frontend contract confirms it:**
 
-### S6 — Screening and payment
+| Area | Work |
+|---|---|
+| Profile | Own-profile read/update and avatar behavior, with separate allowlisted response DTOs. |
+| PDPA | Account deletion/anonymization design and implementation consistent with the ER model. |
+| Advisor profile | Add only the fields needed for S4 public discovery and advisor-owned services. |
+| Tests | Cover each new controller boundary; do not reintroduce role selection or onboarding. |
 
-Screening stays optional and independent of the trial flow. Add payment intents/charges, webhook
-signature verification and idempotency, invoice states, and confirmed booking only after payment.
+**Exit criteria:** no registration path selects a role; repeat upgrade remains a documented `409`
+policy; all account work uses the real application middleware and passes build, lint, relevant unit,
+integration, and e2e verification.
 
-### S7–S9 — fulfilment and trust
+### S4 · 15–21 Aug — Advisor discovery and service management (4.13)
 
-Chat/notifications, video/files, then rule-based off-platform detection, reports, admin review, and
-PWA. Each stage depends on the earlier appointment and authorization model; do not pull it forward
-without an integration path.
+**Goal:** an advisee can discover public advisors/services and an Advisor can manage only their own
+services.
 
-## Standing delivery rules
+| Area | Work |
+|---|---|
+| Backend | Public advisor search/profile/reviews; skills/categories; advisor-owned service CRUD with satang pricing, duration, category, and pagination. |
+| Authorization | Separate public, own-Advisor, and Admin DTOs; never expose full name, email, national ID, documents, or penalty points publicly. |
+| Ranking | Rule-based category match, then rating/popularity; confirmed off-platform penalties rank down silently. |
+| Performance | Measure discovery/search against the <3-second project QR and retain the result. |
+| Testing | Controller authorization/ownership tests and discovery integration tests. |
 
-- One issue and a focused branch per task; preserve `main ← UAT ← develop ← feature/*`.
-- Keep controller tests with endpoint changes and database integration tests for database guarantees.
-- Record real test output/screenshots for report evidence as work is completed.
-- Update `docs/api-spec.md`, `docs/dev-log.md`, and `docs/HANDOFF.md` in the same session when a
-  contract or material decision changes.
-- CI and the coverage strategy are priority debt, not completed process. Do not claim the 80% gate
-  exists until a workflow actually enforces it.
+### S5 · 22–28 Aug — Appointment booking (4.7)
 
-## Risks to review weekly
+**Goal:** booking works and double booking is impossible.
+
+| Area | Work |
+|---|---|
+| Backend | Advisor timeslots, timezone-safe `timestamptz` handling, booking/cancel/reschedule state machine, and appointment views for both parties. |
+| Guarantee | Add the Postgres exclusion constraint for overlapping live appointments; no application-only overlap check. |
+| Testing | Concurrently book the same slot with multiple requests and prove exactly one succeeds; retain output as Success Criterion evidence. |
+| Docs | Submit progress report #2 and record the state transitions in the API contract. |
+
+### S6 · 29 Aug–4 Sep — Optional screening and payment (4.12)
+
+**Goal:** screening, booking, payment, and confirmation have a correct lifecycle.
+
+| Area | Work |
+|---|---|
+| Screening | Advisor-configured screening questions and advisee responses. Screening and free trial remain independent and optional. |
+| Payment | Omise payment intent/charge flow, redirect/3DS as applicable, verified webhook signatures, idempotent webhook processing, invoices, and satang-only amounts. |
+| Booking | An appointment starts pending payment and becomes confirmed only after a valid payment outcome. |
+| Testing | Successful, failed, pending, delayed, and duplicate webhook cases; never charge or confirm twice. |
+
+### S7 · 5–11 Sep — Chat and notifications (4.8, 4.11)
+
+**Goal:** appointment/trial participants can communicate and receive timely events.
+
+| Area | Work |
+|---|---|
+| Chat | Appointment/trial-bound rooms, member-only messages/history/read state, and measured realtime latency. |
+| Notifications | Persist booking, payment, reminder, and message events with unread behavior. |
+| Trial | Expose the optional trial path only where its screening/trial configuration permits it. |
+| Evidence | Measure and retain chat latency against the project QR. |
+
+### S8 · 12–18 Sep — Video calls and files (4.9, 4.10)
+
+**Goal:** an authorized consultation can finish inside the platform.
+
+| Area | Work |
+|---|---|
+| Video | Validate the Jitsi/hosted decision, create appointment-bound rooms, authorize only participants, and restrict access to the meeting window plus a small buffer. |
+| Files | Member-authorized upload/download with MinIO object keys, 50 MB type/size enforcement, and no stored presigned URLs. |
+| Evidence | Measure call quality against the applicable QR and retain the result. |
+| Docs | Produce the 30% report draft from completed design and test evidence. |
+
+### S9 · 19–25 Sep — Trust & safety, admin, and PWA (4.14)
+
+**Goal:** retain platform safety evidence and give operations a minimal, authorized review path.
+
+| Area | Work |
+|---|---|
+| Detection | Rule-based patterns for phone, email, LINE ID, and social handles, including basic evasion such as spaced phone numbers. |
+| Operations | User reports, evidence-preserving flags, admin review/verification, and transaction views following the access matrix. |
+| Ranking | Apply confirmed-advisor penalties silently; never disclose flags/points to the Advisor. |
+| PWA | Manifest, offline shell, and install verification on a mobile device. |
+
+### S10 · 26 Sep–2 Oct — Feature freeze and integration
+
+**Goal:** freeze scope with two demonstrable end-to-end paths.
+
+1. Advisee: discover → optional screening/trial → book → pay → chat → video call.
+2. Advisor: upgrade/profile → create service → offer timeslot → receive booking → consult.
+
+Complete bug bash, UAT deployment and demo seed data, critical technical-debt fixes, UAT scripts,
+and honest coverage reporting. After this sprint, only defects and evidence/documentation work may
+enter scope; incomplete features move to Project 2.
+
+### S11 · 3–9 Oct — Functional, load, and security testing (5.2–5.4)
+
+Create module test cases and results; run the planned load test (including the 1,000-concurrent-user
+target if the test environment can support it); test authentication, authorization, encryption,
+PDPA controls, and OWASP basics. Fix findings by severity and submit the 60% report draft.
+
+### S12 · 10–16 Oct — User acceptance testing (5.1)
+
+Recruit representative Advisors and Advisees, run the prepared script, collect satisfaction results
+(target ≥80%) and unaided main-flow completion (target ≥90%), then prioritize necessary fixes.
+
+### S13 · 17–23 Oct — Fixes and traceability documents
+
+Fix necessary UAT findings. Complete CR → TC → QR → F → C → T traceability, House of Quality,
+important QR specifications, function/component mapping, ER/use-case/sequence-diagram checks, and
+the UAT-to-production release only after validation. CE Cloud publication and a short user guide are
+optional bonus work.
+
+### S14 · 24–30 Oct — Report and presentation
+
+Finish and format the report, reserve advisor/coordinator review time, create the presentation, and
+rehearse a 15-minute delivery. From 31 Oct to 9 Nov, rehearse at least three times, prepare answers
+on architecture, overlap protection, testing, and PDPA, and keep a recorded demo as contingency.
+
+## 6. Risks and explicit Project 2 boundary
 
 | Risk | Mitigation |
 |---|---|
-| Auth is assumed secure but is untested | Fix the e2e harness first; test the guard through real controllers and cookies. |
-| API contract drifts from Better Auth or frontend needs | Keep a concise, version-pinned auth reference and update it with configuration changes. |
-| Booking/payments leave too little time for evidence | Implement database constraints and webhook tests in their assigned sprints, not at freeze. |
-| CI/coverage becomes end-of-project work | Add CI after the auth suite is stable and make the report reflect measured coverage honestly. |
-| Historical dates or course deadlines drift | Confirm the calendar at the next team/advisor review and edit the provisional dates here. |
+| Frontend/API drift | Confirm the frontend contract before UI-dependent APIs; keep `api-spec.md` current. |
+| Booking/payment evidence arrives late | Implement the database constraint and webhook tests in S5/S6, not at feature freeze. |
+| Coverage regresses as modules grow | Keep focused unit/controller/database tests with each feature; CI enforces the aggregate 80% floor. |
+| Jitsi or merchant onboarding delays | Make the hosting/payment decision early; use supported test/hosted paths where required. |
+| Documentation is left to October | Capture results each sprint and draft the report from S8. |
+
+Project 2: AI matching, consultation summaries/chatbot, semantic/ML detection, subscriptions,
+native mobile apps, detailed review expansion, and automated advisor bank transfers. Project 1
+records payout obligations but does not automate transfer execution.
+
+## 7. Course-delivery checklist
+
+- [ ] Maintain advisor-meeting records and submit all four progress reports.
+- [ ] Keep ER at least 3NF and retain composite primary keys for junction tables.
+- [ ] Complete use-case descriptions and component-level sequence diagrams.
+- [ ] Finish report typography, paper setup, page numbering, and required format review.
+- [ ] Use the available format-review opportunity before final submission.
+- [ ] Maintain evidence for quality requirements and presentation/demo contingency.

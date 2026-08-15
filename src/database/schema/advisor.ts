@@ -1,4 +1,5 @@
 import {
+  check,
   integer,
   pgEnum,
   pgTable,
@@ -8,6 +9,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { adminProfiles, user } from './auth';
 import { bytea } from './custom-types';
 
@@ -28,21 +30,30 @@ export const skillProofLevelEnum = pgEnum('skill_proof_level', [
   'ADMIN_VERIFIED',
 ]);
 
-export const advisorProfiles = pgTable('advisor_profiles', {
-  userId: uuid('user_id')
-    .primaryKey()
-    .references(() => user.id),
-  headline: varchar('headline').notNull(),
-  bio: text('bio'),
-  penaltyPoints: integer('penalty_points').notNull().default(0),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  modifiedAt: timestamp('modified_at', { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const advisorProfiles = pgTable(
+  'advisor_profiles',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => user.id),
+    headline: varchar('headline').notNull(),
+    bio: text('bio'),
+    penaltyPoints: integer('penalty_points').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    modifiedAt: timestamp('modified_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    check(
+      'advisor_profiles_penalty_points_nonnegative',
+      sql`${table.penaltyPoints} >= 0`,
+    ),
+  ],
+);
 
 export const advisorIdentity = pgTable('advisor_identity', {
   advisorId: uuid('advisor_id')

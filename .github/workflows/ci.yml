@@ -38,7 +38,5 @@ jobs:
       - run: npm ci
       - run: npm run db:migrate
       - run: npm run build
-      - run: npx eslint "{src,apps,libs,test}/**/*.ts"
-      - run: npm run test:cov -- --runInBand
-      - run: npm run test:integration
-      - run: npm run test:e2e
+      - run: npm run lint
+      - run: npm run test:cov

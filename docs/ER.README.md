@@ -19,6 +19,9 @@ top-level `%%` comments — putting these notes in the diagram file breaks rende
   rule permits, and the distinction is the point of it.
 - **Files.** Anything stored in MinIO is referenced by `objectKey`, never by URL —
   presigned URLs expire, so a stored URL rots.
+- **Checks.** Postgres rejects negative monetary/penalty values, invalid duration and time ranges,
+  review stars outside 1–5, and file sizes outside 1 byte–50 MiB. These are database guarantees,
+  not validation rules that can be bypassed by another writer.
 
 ## Design decisions worth defending at the exam
 
@@ -36,6 +39,9 @@ carries the FK to it. This resolves the circular mandatory 1:1 the previous diag
 (each table requiring the other to exist first), and it matches the concurrency
 requirement: the slot is claimed by the appointment row, so the exclusion constraint —
 not the payment gateway — is what guarantees no double-booking.
+
+`UNIQUE (appointmentId)` on `SERVICE_INVOICES` enforces the invoice side of that 1:1. A retry must
+reuse the existing invoice/payment attempt rather than create a second invoice for one appointment.
 
 ### Slot availability is derived, not stored
 

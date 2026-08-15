@@ -56,7 +56,9 @@ export class SessionGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (requiredRoles?.length) {
+    // Every authenticated account is an Advisee. Avoid two unnecessary role queries when
+    // Advisee alone (or as one allowed role) already satisfies the route.
+    if (requiredRoles?.length && !requiredRoles.includes(Role.Advisee)) {
       const userRoles = await this.resolveRoles(authSession.user.id);
       const hasRequiredRole = requiredRoles.some((role) =>
         userRoles.includes(role),

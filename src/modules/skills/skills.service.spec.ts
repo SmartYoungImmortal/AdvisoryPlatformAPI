@@ -1,8 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
-import { InferSelectModel } from 'drizzle-orm';
-import { skills } from '../../database/schema';
+import type { InferSelectModel } from 'drizzle-orm';
+import type { skills } from '../../database/schema';
 import { SkillQueryDto } from './dtos/skill-query.dto';
-import { SkillsRepository } from './skills.repository';
+import type { SkillsRepository } from './skills.repository';
 import { SkillsService } from './skills.service';
 
 type Skill = InferSelectModel<typeof skills>;

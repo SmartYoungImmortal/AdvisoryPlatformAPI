@@ -1,4 +1,5 @@
 import {
+  check,
   integer,
   pgEnum,
   pgTable,
@@ -8,6 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { user } from './auth';
 import { chatRooms } from './chat';
 import { services } from './service';
@@ -31,6 +33,12 @@ export const serviceScreeningQuestions = pgTable(
       .notNull()
       .defaultNow(),
   },
+  (table) => [
+    check(
+      'service_screening_questions_display_order_nonnegative',
+      sql`${table.displayOrder} >= 0`,
+    ),
+  ],
 );
 
 export const screeningRequests = pgTable(
@@ -59,6 +67,10 @@ export const screeningRequests = pgTable(
     uniqueIndex('screening_requests_advisee_service_key').on(
       table.adviseeId,
       table.serviceId,
+    ),
+    check(
+      'screening_requests_trial_window_valid',
+      sql`(${table.trialStartedAt} IS NULL AND ${table.trialExpiresAt} IS NULL) OR (${table.trialStartedAt} IS NOT NULL AND ${table.trialExpiresAt} IS NOT NULL AND ${table.trialExpiresAt} > ${table.trialStartedAt})`,
     ),
   ],
 );

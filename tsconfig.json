@@ -16,10 +16,8 @@
     "incremental": true,
     "skipLibCheck": true,
     "types": ["node", "jest"],
-    "strictNullChecks": true,
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": true,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": true
   }
 }

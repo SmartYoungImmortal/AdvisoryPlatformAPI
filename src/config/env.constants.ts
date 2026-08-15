@@ -1,4 +1,4 @@
-import { Env } from './env.schema';
+import type { Env } from './env.schema';
 
 /**
  * Named keys for `ConfigService.get(...)` calls, so a renamed env var is a one-line

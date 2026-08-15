@@ -1,4 +1,5 @@
 import {
+  check,
   integer,
   pgEnum,
   pgTable,
@@ -8,6 +9,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { adminProfiles, user } from './auth';
 import { advisorProfiles } from './advisor';
 import { serviceAppointments } from './booking';
@@ -32,37 +34,57 @@ export const refundCaseStatusEnum = pgEnum('refund_case_status', [
   'REJECTED',
 ]);
 
-export const serviceInvoices = pgTable('service_invoices', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  appointmentId: uuid('appointment_id')
-    .notNull()
-    .references(() => serviceAppointments.id),
-  amountSatang: integer('amount_satang').notNull(),
-  platformFeeSatang: integer('platform_fee_satang').notNull(),
-  providerChargeId: varchar('provider_charge_id'),
-  status: invoiceStatusEnum('status').notNull().default('PENDING'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  modifiedAt: timestamp('modified_at', { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const serviceInvoices = pgTable(
+  'service_invoices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    appointmentId: uuid('appointment_id')
+      .notNull()
+      .unique()
+      .references(() => serviceAppointments.id),
+    amountSatang: integer('amount_satang').notNull(),
+    platformFeeSatang: integer('platform_fee_satang').notNull(),
+    providerChargeId: varchar('provider_charge_id'),
+    status: invoiceStatusEnum('status').notNull().default('PENDING'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    modifiedAt: timestamp('modified_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    check(
+      'service_invoices_amount_satang_nonnegative',
+      sql`${table.amountSatang} >= 0`,
+    ),
+    check(
+      'service_invoices_platform_fee_range',
+      sql`${table.platformFeeSatang} BETWEEN 0 AND ${table.amountSatang}`,
+    ),
+  ],
+);
 
-export const payouts = pgTable('payouts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  advisorId: uuid('advisor_id')
-    .notNull()
-    .references(() => advisorProfiles.userId),
-  amountSatang: integer('amount_satang').notNull(),
-  providerTransferId: varchar('provider_transfer_id'),
-  status: payoutStatusEnum('status').notNull().default('PENDING'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  paidAt: timestamp('paid_at', { withTimezone: true }),
-});
+export const payouts = pgTable(
+  'payouts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    advisorId: uuid('advisor_id')
+      .notNull()
+      .references(() => advisorProfiles.userId),
+    amountSatang: integer('amount_satang').notNull(),
+    providerTransferId: varchar('provider_transfer_id'),
+    status: payoutStatusEnum('status').notNull().default('PENDING'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+  },
+  (table) => [
+    check('payouts_amount_satang_positive', sql`${table.amountSatang} > 0`),
+  ],
+);
 
 export const payoutInvoices = pgTable(
   'payout_invoices',

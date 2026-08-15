@@ -30,10 +30,8 @@ import { UpdateServiceCategoryDto } from './dtos/update-service-category.dto';
 import { SERVICE_CATEGORY_MESSAGES } from './service-categories.constants';
 import { ServiceCategoriesService } from './service-categories.service';
 
-// The one place this controller's entity name is spelled out — see skills.controller.ts.
 const ENTITY_NAME = 'Service category';
 
-/** Pure CRUD, per CLAUDE.md's "no BaseCrudService" note — the other of the two modules that actually is one. */
 @ApiTags('Service Categories')
 @Controller('api/v1/service-categories')
 export class ServiceCategoriesController {
