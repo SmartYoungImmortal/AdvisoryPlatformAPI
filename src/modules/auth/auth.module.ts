@@ -1,32 +1,31 @@
-import { Global, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
-import { Env } from '@/config/env.schema';
-import { DRIZZLE, DrizzleDB } from '@/database/database.module';
-import { RoleRepository } from '@/common/authorization/role.repository';
 import { RoleResolver } from '@/common/authorization/role-resolver.service';
-import { SessionGuard } from '@/common/guards/session.guard';
-import { AuthController } from './auth.controller';
-import { createAuth } from './auth.config';
-import { AUTH } from './auth.constants';
+import { RoleRepository } from '@/common/authorization/role.repository';
+import type { Env } from '@/config/env.schema';
+import type { DrizzleDB } from '@/database/database.module';
+import { DRIZZLE } from '@/database/database.module';
+import { createAuth } from '@/modules/auth/auth.config';
+import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AuthModule as ThallespAuthModule } from '@thallesp/nestjs-better-auth';
 
-@Global()
 @Module({
-  controllers: [AuthController],
-  providers: [
-    RoleRepository,
-    RoleResolver,
-    {
-      provide: AUTH,
+  imports: [
+    ThallespAuthModule.forRootAsync({
       inject: [DRIZZLE, ConfigService],
-      useFactory: (db: DrizzleDB, config: ConfigService<Env, true>) =>
-        createAuth(db, config),
-    },
-    {
-      provide: APP_GUARD,
-      useClass: SessionGuard,
-    },
+      useFactory: (db: DrizzleDB, config: ConfigService<Env, true>) => {
+        const auth = createAuth(db, config);
+        return {
+          auth,
+          bodyParser: {
+            json: { limit: '2mb' },
+            urlencoded: { limit: '2mb', extended: true },
+            rawBody: true,
+          },
+        };
+      },
+    }),
   ],
-  exports: [AUTH, RoleResolver],
+  providers: [RoleRepository, RoleResolver],
+  exports: [RoleResolver],
 })
 export class AuthModule {}
