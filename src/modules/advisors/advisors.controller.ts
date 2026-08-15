@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Request } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { ApiConflictResponse, ApiTags } from '@nestjs/swagger';
 import {
   ApiCreate,
@@ -7,15 +7,13 @@ import {
 } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
-// import { Role, Roles } from '@/common/decorators/roles.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { ADVISOR_MESSAGES } from './advisors.constants';
 import { AdvisorOwnProfileResponseDto } from './dtos/advisor-own-profile-response.dto';
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
 import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 import { AdvisorsService } from './advisors.service';
-import type { Request as ExpressRequest } from 'express';
-import { Roles, UserHasPermission } from '@thallesp/nestjs-better-auth';
+import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Advisors')
 @Controller('api/v1/advisors')
@@ -34,14 +32,13 @@ export class AdvisorsController {
   upgrade(
     @CurrentUser() user: SessionUser,
     @Body() dto: CreateAdvisorProfileDto,
-    @Request() req: ExpressRequest,
   ): Promise<AdvisorOwnProfileResponseDto> {
-    return this.advisorsService.upgrade(user, dto, req);
+    return this.advisorsService.upgrade(user, dto);
   }
 
   @UserHasPermission({
     permission: {
-      advisor: ['updateSelf'],
+      advisor: ['read'],
     },
   })
   @Get('me')
