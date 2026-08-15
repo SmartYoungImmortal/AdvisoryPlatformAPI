@@ -42,7 +42,10 @@ about a particular client implementation.
   Drizzle queries. A service must not import `drizzle-orm`.
 - Do not introduce `shared/` or a generic `BaseCrudService`.
 - Extend `EntityRepository` only for tables with an `id` column. For FK-primary-key tables,
-  write a small plain repository with named queries.
+  write a small plain repository with named queries. That repository may compose
+  `CompositeKeyStore` for exact-key predicates and mechanical find/exists/create/delete operations;
+  never expose the store to services or move authorization, joins, transactions, or relationship
+  rules into it.
 
 ## HTTP contract
 

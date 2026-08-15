@@ -30,13 +30,14 @@ Verified against the registered Nest modules, controllers, tests, migrations, `H
 
 | Classification                                         | Issue IDs                                                  | Verification result                                                                                                                 |
 | ------------------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Completed — do not create                              | AP-001                                                     | Private MinIO avatar upload/read/replace/delete, cleanup, CI configuration, documentation, and tests are delivered.                 |
+| Completed — do not create                              | AP-001, AP-024, AP-026, AP-027                             | The avatar baseline and authenticated member-only chat core are delivered with documentation and tests.                           |
 | Partially prepared — remaining issue scope is not done | AP-002, AP-009, AP-046, AP-051, AP-062                     | These have some contract, schema, CORS, or documentation foundations, but each issue's stated final deliverable remains incomplete. |
-| Not implemented                                        | AP-003–AP-008, AP-010–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed module/workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature.        |
+| Not implemented                                        | AP-003–AP-008, AP-010–AP-023, AP-025, AP-028–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed module/workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature. |
 | Recurring                                              | AP-068                                                     | Create one issue for each future sprint; prior governance activity does not complete future copies.                                 |
 
-This audit prevents AP-001 from being created and distinguishes reusable foundations from finished
-features. Re-run it immediately before writing issues to GitHub in case the working tree changes.
+This audit prevents completed work from being created again and distinguishes reusable foundations
+from finished features. Re-run it immediately before writing issues to GitHub in case the working
+tree changes.
 
 ## 2. Planning conventions
 
@@ -388,7 +389,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 8
 - **Dependencies:** Delivered auth baseline
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Completed and locally verified; do not create a GitHub issue.
 
 ### AP-025 — Provision appointment and trial chat rooms atomically
 
@@ -412,7 +413,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 8
 - **Dependencies:** AP-025
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Completed and locally verified; production rooms remain blocked on AP-025.
 
 ### AP-027 — Implement chat read state and unread counts
 
@@ -424,7 +425,7 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 3
 - **Dependencies:** AP-026
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Completed and locally verified; production rooms remain blocked on AP-025.
 
 ### AP-028 — Implement persistent notification inbox and event creation
 

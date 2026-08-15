@@ -4,6 +4,34 @@ A running record of what changed and why, session by session — for picking thi
 not a user-facing release log (that's a different document, if this project ever needs one).
 Newest first. One entry per session with anything worth remembering; skip trivial sessions.
 
+## 2026-08-15 — extracted typed composite-key mechanics
+
+- Added a composition-based `CompositeKeyStore` for junction-table exact-key predicates and
+  mechanical find, exists, create, and delete operations. Key objects are inferred from the supplied
+  Drizzle columns, so missing or incorrectly typed key components fail TypeScript checks.
+- Kept feature repositories plain and named. The store is an internal implementation detail; joins,
+  authorization, transactions, updates, and relationship invariants remain in the feature
+  repository. `ChatRepository` now demonstrates this split for `(chatRoomId, memberUserId)`.
+- Added real-Postgres coverage using the `(userId, policyVersion)` PDPA consent key, including exact
+  selection, existence, creation, deletion, missing rows, and invalid one-column configuration.
+
+## 2026-08-15 — implemented authenticated realtime chat
+
+- Added a Socket.IO `/chat` namespace authenticated through the same Better Auth HttpOnly cookie
+  as HTTP. Handshakes reject missing sessions and inactive users, and the Socket.IO adapter derives
+  credentialed CORS from `TRUSTED_ORIGINS` so the two transports cannot drift.
+- Added member-only room listing, deterministic paginated history, persistent socket message sends,
+  room broadcasts, and message-ID-based read markers. Non-member probes consistently return 404.
+- Read markers use PostgreSQL `greatest(...)`, making them monotonic under delayed or reordered
+  events. Unread counts exclude the current member's own messages and use new membership/history
+  indexes.
+- Kept room creation and membership changes out of the public API. Those must be provisioned
+  atomically by the future appointment or accepted-trial workflow; neither upstream module exists
+  yet, so this change does not invent an unrestricted room-creation path.
+- Added unit, Postgres integration, and real cookie-preserving Socket.IO e2e coverage, including
+  unauthenticated handshakes, participant broadcasts, persistence, read updates, and non-member
+  isolation.
+
 ## 2026-08-15 — isolated external storage in e2e tests
 
 - Replaced the live MinIO dependency in the e2e application with a reusable in-memory storage stub.
