@@ -356,7 +356,7 @@ describe('authentication and authorization (e2e)', () => {
   it('creates an Advisee session, upgrades once, and then permits the Advisor route', async () => {
     const { agent } = await signUp();
 
-    await agent.get('/api/v1/advisors/me').expect(403);
+    await agent.get('/api/v1/advisors/me').expect(404);
 
     const upgraded = await agent
       .post('/api/v1/advisors/me')
