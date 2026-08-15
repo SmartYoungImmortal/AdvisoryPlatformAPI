@@ -48,7 +48,16 @@ jobs:
           -e MINIO_ROOT_PASSWORD=minioadmin
           -p 9000:9000
           minio/minio:latest server /data
-      - run: curl --retry 10 --retry-connrefused --retry-delay 1 http://localhost:9000/minio/health/live
+      - name: Wait for MinIO
+        run: |
+          if ! curl --fail --silent --show-error \
+            --retry 10 \
+            --retry-all-errors \
+            --retry-delay 1 \
+            http://localhost:9000/minio/health/live; then
+            docker logs minio
+            exit 1
+          fi
       - run: npm run db:migrate
       - run: npm run build
       - run: npm run lint
