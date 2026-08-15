@@ -1,8 +1,9 @@
 # AdvisoryPlatformAPI — working guide
 
-NestJS API for KMITL's Advisory Platform. This repository serves the separately owned
-`AdvisoryPlatform/` Next.js frontend: when an endpoint's shape is unclear, follow the
-frontend's actual needs. Do not invent product behaviour.
+NestJS API for KMITL's Advisory Platform. This repository owns the backend HTTP, WebSocket,
+authentication, persistence, and external-service integration contracts. When an endpoint's shape
+is unclear, resolve it in `docs/api-spec.md` from documented product and security requirements. Do
+not invent product behaviour.
 
 ## Read before changing architecture
 
@@ -13,7 +14,8 @@ frontend's actual needs. Do not invent product behaviour.
 - `docs/SPRINT-PLAN.md` — active delivery baseline; its dates remain provisional until confirmed.
 - `docs/dev-log.md` — decisions that were made during prior sessions.
 
-The frontend contract is not mirrored here. Ask before making a decision that depends on it.
+This repository is API-only. Do not add client application code or make undocumented assumptions
+about a particular client implementation.
 
 ## Architecture and invariants
 
@@ -33,6 +35,9 @@ The frontend contract is not mirrored here. Ask before making a decision that de
 - `src/database/schema/` is central because the schema is one connected FK graph.
 - Each feature lives in `src/modules/<feature>/` with controller, service, repository,
   module, DTOs, and focused tests.
+- Use the `@/` alias for imports that cross directories or feature boundaries (for example,
+  `@/database/schema`). Keep `./` relative imports for files inside the same feature or folder.
+  Do not introduce new `../` imports.
 - Controllers route, authorize, and document; services own business rules; repositories own
   Drizzle queries. A service must not import `drizzle-orm`.
 - Do not introduce `shared/` or a generic `BaseCrudService`.
@@ -46,6 +51,9 @@ The frontend contract is not mirrored here. Ask before making a decision that de
   `{ statusCode, message, data }`. Use the global interceptor/filter; controllers return
   plain values and never use Express `res` directly.
 - A response DTO is a whitelist. Do not return raw database rows.
+- A successful `DELETE` returns the deleted resource through its response DTO in `data`; do not
+  discard the repository's returned row or use `data: null`. Subresource deletes return a focused
+  allowlisted DTO for the value that was removed.
 - List routes use `OffsetPaginationDto` and return
   `{ items, total, page, limit, totalPages }`; maximum `limit` is 100.
 - User-facing messages come from the module's `*.constants.ts`; reuse `crudMessages()` for

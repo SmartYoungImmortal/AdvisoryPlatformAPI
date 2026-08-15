@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   PaginatedResult,
   paginate,
-} from '../../common/pagination/offset-pagination.dto';
+} from '@/common/pagination/offset-pagination.dto';
 import { CreateSkillDto } from './dtos/create-skill.dto';
 import { SkillQueryDto } from './dtos/skill-query.dto';
 import { SkillResponseDto } from './dtos/skill-response.dto';
@@ -57,11 +57,13 @@ export class SkillsService {
     return new SkillResponseDto(skill);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<SkillResponseDto> {
     const skill = await this.skillsRepository.deleteById(id);
 
     if (!skill) {
       throw new NotFoundException(SKILL_MESSAGES.notFound);
     }
+
+    return new SkillResponseDto(skill);
   }
 }

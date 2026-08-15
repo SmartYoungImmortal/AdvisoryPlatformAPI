@@ -2,7 +2,8 @@
 
 NestJS 11 backend for KMITL's Advisory Platform. The API uses Drizzle with self-hosted Postgres
 and Better Auth cookie sessions. Every signup creates an Advisee; an authenticated Advisee can
-explicitly create an Advisor profile.
+explicitly create an Advisor profile. This repository contains only the API and its infrastructure,
+contracts, tests, and delivery documentation; client applications are out of scope.
 
 ## Prerequisites
 
@@ -17,7 +18,7 @@ characters and keep `DATABASE_URL` aligned with the Docker Compose credentials.
 
 ```bash
 npm install
-docker compose up -d postgres
+docker compose up -d
 npm run db:migrate
 npm run start:dev
 ```
@@ -25,6 +26,10 @@ npm run start:dev
 The API listens on `http://localhost:3000` by default. Swagger is available at
 `http://localhost:3000/api/docs`; Better Auth routes under `/api/auth/*` are documented in
 [`docs/api-spec.md`](docs/api-spec.md) because Swagger intentionally does not own them.
+
+Local MinIO serves private uploaded objects. Its console is at `http://localhost:9001`; use the
+local development credentials from `.env.example` only. Override every `MINIO_*` value with
+environment-managed credentials outside local development.
 
 ## Verify changes
 

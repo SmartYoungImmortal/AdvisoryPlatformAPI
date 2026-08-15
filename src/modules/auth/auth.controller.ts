@@ -2,7 +2,7 @@ import { All, Controller, Inject, Req, Res } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { toNodeHandler } from 'better-auth/node';
 import type { Request, Response } from 'express';
-import { Public } from '../../common/decorators/public.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import type { Auth } from './auth.config';
 import { AUTH } from './auth.constants';
 

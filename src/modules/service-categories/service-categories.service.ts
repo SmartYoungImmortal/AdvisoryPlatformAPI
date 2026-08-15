@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   PaginatedResult,
   paginate,
-} from '../../common/pagination/offset-pagination.dto';
+} from '@/common/pagination/offset-pagination.dto';
 import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
 import { ServiceCategoryResponseDto } from './dtos/service-category-response.dto';
@@ -64,11 +64,13 @@ export class ServiceCategoriesService {
     return new ServiceCategoryResponseDto(category);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<ServiceCategoryResponseDto> {
     const category = await this.serviceCategoriesRepository.deleteById(id);
 
     if (!category) {
       throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);
     }
+
+    return new ServiceCategoryResponseDto(category);
   }
 }

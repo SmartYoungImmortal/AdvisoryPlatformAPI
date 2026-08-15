@@ -3,8 +3,8 @@ import { Pool } from 'pg';
 import { pgTable, uuid, text, integer } from 'drizzle-orm/pg-core';
 import { eq } from 'drizzle-orm';
 import { EntityRepository } from './entity.repository';
-import type { DrizzleDB } from '../../database/database.module';
-import * as schema from '../../database/schema';
+import type { DrizzleDB } from '@/database/database.module';
+import * as schema from '@/database/schema';
 
 const widgets = pgTable('_test_widgets', {
   id: uuid('id').primaryKey().defaultRandom(),

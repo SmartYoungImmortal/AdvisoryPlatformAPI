@@ -17,8 +17,9 @@ top-level `%%` comments — putting these notes in the diagram file breaks rende
   `SERVICE_IMAGES`, `PDPA_CONSENTS`, `ADVISOR_IDENTITY`, and `SERVICE_REVIEWS`
   (whose PK is its FK). Tables that *are* basic entities keep a uuid — that is what the
   rule permits, and the distinction is the point of it.
-- **Files.** Anything stored in MinIO is referenced by `objectKey`, never by URL —
-  presigned URLs expire, so a stored URL rots.
+- **Files.** Anything stored in the private MinIO bucket is referenced by `objectKey`, never by URL
+  — presigned URLs expire, so a stored URL rots. Avatar URLs are generated owner-only on demand and
+  expire after five minutes.
 - **Checks.** Postgres rejects negative monetary/penalty values, invalid duration and time ranges,
   review stars outside 1–5, and file sizes outside 1 byte–50 MiB. These are database guarantees,
   not validation rules that can be bypassed by another writer.
@@ -152,8 +153,10 @@ sync.
 
 `PDPA_CONSENTS` is keyed `(userId, policyVersion)` so re-consent to a new policy version
 is a new row and the history is preserved — which is the point of a consent record.
-Right-to-be-forgotten is served by `USERS.status = DELETED` plus hard deletion of
-personal columns; the diagram does not model the deletion procedure itself.
+Right-to-be-forgotten is served by the atomic `DELETE /api/v1/users/me` procedure: it sets
+`USERS.status = DELETED`, replaces required identity columns with non-identifying values, revokes
+sessions/accounts, erases verification/profile proof data, and unpublishes Advisor services.
+FK-bound transaction and safety evidence keeps only the pseudonymous internal UUID.
 
 ## Known gaps, deliberately left out
 

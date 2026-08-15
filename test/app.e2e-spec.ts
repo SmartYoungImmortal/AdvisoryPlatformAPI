@@ -3,23 +3,32 @@ import { Test } from '@nestjs/testing';
 import { eq } from 'drizzle-orm';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
-import { configureApp } from '../src/app.factory';
-import { AppModule } from '../src/app.module';
-import { DRIZZLE, type DrizzleDB } from '../src/database/database.module';
+import { configureApp } from '@/app.factory';
+import { AppModule } from '@/app.module';
+import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
   adminProfiles,
+  advisorIdentity,
   advisorProfiles,
+  advisorSkills,
+  notifications,
+  serviceCategories,
+  services,
   session,
+  skillProofDocuments,
   skills,
   user,
-} from '../src/database/schema';
+  verification,
+} from '@/database/schema';
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
   let db: DrizzleDB;
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
+  const createdServiceIds: string[] = [];
+  const createdCategoryIds: string[] = [];
 
   function object(value: unknown): Record<string, unknown> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -42,6 +51,18 @@ describe('authentication and authorization (e2e)', () => {
   });
 
   afterEach(async () => {
+    await Promise.all(
+      createdServiceIds
+        .splice(0)
+        .map((id) => db.delete(services).where(eq(services.id, id))),
+    );
+    await Promise.all(
+      createdCategoryIds
+        .splice(0)
+        .map((id) =>
+          db.delete(serviceCategories).where(eq(serviceCategories.id, id)),
+        ),
+    );
     await Promise.all(
       createdSkillIds
         .splice(0)
@@ -99,6 +120,237 @@ describe('authentication and authorization (e2e)', () => {
       .expect(({ body }) => {
         expect(body).toMatchObject({ statusCode: 401, data: null });
       });
+
+    await request(app.getHttpServer()).get('/api/v1/users/me').expect(401);
+  });
+
+  it('reads and updates the authenticated Advisee profile', async () => {
+    const { agent, email } = await signUp();
+
+    const profile = await agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(profile.body).data)).toMatchObject({
+      email,
+      displayName: 'E2E User',
+      fullName: 'E2E Test User',
+      timezone: 'Asia/Bangkok',
+      roles: ['ADVISEE'],
+    });
+
+    const updated = await agent
+      .patch('/api/v1/users/me')
+      .send({
+        displayName: '  Updated User  ',
+        fullName: '  Updated Test User  ',
+        timezone: 'UTC',
+      })
+      .expect(200);
+    expect(object(object(updated.body).data)).toMatchObject({
+      displayName: 'Updated User',
+      fullName: 'Updated Test User',
+      timezone: 'UTC',
+      roles: ['ADVISEE'],
+    });
+
+    await agent
+      .patch('/api/v1/users/me')
+      .send({ email: 'not-allowed@example.test' })
+      .expect(400);
+  });
+
+  it('uploads, reads, replaces, and removes the authenticated avatar', async () => {
+    const { agent, userId } = await signUp();
+
+    const uploaded = await agent
+      .post('/api/v1/users/me/avatar')
+      .attach('file', Buffer.from('first png'), {
+        filename: 'avatar.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+    const firstAvatar = object(object(uploaded.body).data);
+    const firstKey = firstAvatar.avatarKey;
+    expect(firstKey).toEqual(
+      expect.stringMatching(new RegExp(`^avatars/${userId}/`)),
+    );
+
+    const access = await agent.get('/api/v1/users/me/avatar').expect(200);
+    expect(object(object(access.body).data)).toMatchObject({
+      expiresInSeconds: 300,
+    });
+
+    const replacement = await agent
+      .post('/api/v1/users/me/avatar')
+      .attach('file', Buffer.from('second webp'), {
+        filename: 'avatar.webp',
+        contentType: 'image/webp',
+      })
+      .expect(201);
+    const replacementKey = object(object(replacement.body).data).avatarKey;
+    expect(replacementKey).toEqual(expect.stringMatching(/\.webp$/));
+    expect(replacementKey).not.toBe(firstKey);
+
+    await agent
+      .delete('/api/v1/users/me/avatar')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          data: { avatarKey: replacementKey },
+        });
+      });
+    await agent.get('/api/v1/users/me/avatar').expect(404);
+
+    await agent
+      .post('/api/v1/users/me/avatar')
+      .attach('file', Buffer.from('not an image'), {
+        filename: 'avatar.txt',
+        contentType: 'text/plain',
+      })
+      .expect(400);
+  });
+
+  it('removes an avatar without accepting a client-provided object key', async () => {
+    const { agent, userId } = await signUp();
+    await db
+      .update(user)
+      .set({ avatarKey: `avatars/${userId}.webp` })
+      .where(eq(user.id, userId));
+
+    await agent
+      .delete('/api/v1/users/me/avatar')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          message: 'Avatar removed',
+          data: { avatarKey: `avatars/${userId}.webp` },
+        });
+      });
+
+    const profile = await agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(profile.body).data)).toMatchObject({
+      avatarKey: null,
+    });
+  });
+
+  it('anonymizes an account and immediately revokes authentication', async () => {
+    const { agent, email, userId } = await signUp();
+    await agent
+      .post('/api/v1/advisors/me')
+      .send({ headline: 'Personal headline', bio: 'Personal biography' })
+      .expect(201);
+
+    const [skill] = await db
+      .insert(skills)
+      .values({ name: `Deletion skill ${crypto.randomUUID()}` })
+      .returning({ id: skills.id });
+    createdSkillIds.push(skill.id);
+    await db
+      .insert(advisorSkills)
+      .values({ advisorId: userId, skillId: skill.id });
+    await db.insert(skillProofDocuments).values({
+      advisorId: userId,
+      skillId: skill.id,
+      objectKey: `proofs/${userId}.pdf`,
+      originalFileName: 'personal-proof.pdf',
+    });
+    await db.insert(advisorIdentity).values({
+      advisorId: userId,
+      nationalIdHash: crypto.randomUUID(),
+      verificationStatus: 'SUBMITTED',
+    });
+    await db.insert(notifications).values({
+      ownerId: userId,
+      type: 'POLICY_WARNING',
+      title: 'Private notification',
+    });
+    await db.insert(verification).values({
+      identifier: email,
+      value: crypto.randomUUID(),
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const [category] = await db
+      .insert(serviceCategories)
+      .values({ name: `Deletion category ${crypto.randomUUID()}` })
+      .returning({ id: serviceCategories.id });
+    createdCategoryIds.push(category.id);
+    const [service] = await db
+      .insert(services)
+      .values({
+        advisorId: userId,
+        categoryId: category.id,
+        name: 'Published personal service',
+        priceSatang: 10000,
+        durationMinutes: 30,
+        isPublished: true,
+      })
+      .returning({ id: services.id });
+    createdServiceIds.push(service.id);
+
+    await agent
+      .delete('/api/v1/users/me')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          message: 'Account deleted',
+          data: {
+            id: userId,
+            email,
+            displayName: 'E2E User',
+            fullName: 'E2E Test User',
+            roles: ['ADVISEE', 'ADVISOR'],
+          },
+        });
+      });
+
+    await agent.get('/api/v1/users/me').expect(401);
+
+    const [deletedUser] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, userId));
+    expect(deletedUser).toMatchObject({
+      email: `${userId}@deleted.invalid`,
+      emailVerified: false,
+      displayName: 'Deleted User',
+      fullName: 'Deleted User',
+      avatarKey: null,
+      timezone: 'UTC',
+      status: 'DELETED',
+    });
+
+    const [deletedAdvisor] = await db
+      .select()
+      .from(advisorProfiles)
+      .where(eq(advisorProfiles.userId, userId));
+    expect(deletedAdvisor).toMatchObject({
+      headline: 'Deleted advisor',
+      bio: null,
+    });
+
+    const [unpublishedService] = await db
+      .select({ isPublished: services.isPublished })
+      .from(services)
+      .where(eq(services.id, service.id));
+    expect(unpublishedService?.isPublished).toBe(false);
+
+    const erasedRows = await Promise.all([
+      db.select().from(account).where(eq(account.userId, userId)),
+      db.select().from(session).where(eq(session.userId, userId)),
+      db
+        .select()
+        .from(advisorIdentity)
+        .where(eq(advisorIdentity.advisorId, userId)),
+      db
+        .select()
+        .from(advisorSkills)
+        .where(eq(advisorSkills.advisorId, userId)),
+      db
+        .select()
+        .from(skillProofDocuments)
+        .where(eq(skillProofDocuments.advisorId, userId)),
+      db.select().from(notifications).where(eq(notifications.ownerId, userId)),
+      db.select().from(verification).where(eq(verification.identifier, email)),
+    ]);
+    expect(erasedRows.every((rows) => rows.length === 0)).toBe(true);
   });
 
   it('creates an Advisee session, upgrades once, and then permits the Advisor route', async () => {
@@ -118,6 +370,20 @@ describe('authentication and authorization (e2e)', () => {
     const profile = await agent.get('/api/v1/advisors/me').expect(200);
     expect(object(object(profile.body).data)).toMatchObject({
       headline: 'Operations advisor',
+    });
+
+    const roles = await agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(roles.body).data)).toMatchObject({
+      roles: ['ADVISEE', 'ADVISOR'],
+    });
+
+    const updated = await agent
+      .patch('/api/v1/advisors/me')
+      .send({ headline: 'Updated operations advisor' })
+      .expect(200);
+    expect(object(object(updated.body).data)).toMatchObject({
+      headline: 'Updated operations advisor',
+      bio: 'Helping teams improve.',
     });
 
     await agent
@@ -155,6 +421,10 @@ describe('authentication and authorization (e2e)', () => {
       .expect(403);
 
     await db.insert(adminProfiles).values({ userId });
+    const adminProfile = await agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(adminProfile.body).data)).toMatchObject({
+      roles: ['ADVISEE', 'ADMIN'],
+    });
     await agent.post('/api/v1/skills').send({ name: '   ' }).expect(400);
     const created = await agent
       .post('/api/v1/skills')

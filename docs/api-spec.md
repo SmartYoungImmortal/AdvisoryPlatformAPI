@@ -1,7 +1,8 @@
 # Advisory Platform — API Specification
 
-**Status: SAMPLE.** Only the Advisors module is specified. It is here so the format can be agreed
-before the other ~11 modules are written. Do not treat the module list at the bottom as done.
+**Status: SAMPLE.** Authentication, own-user profiles, and the Advisors module are specified. This
+document establishes the format for the remaining modules; do not treat the list at the bottom as
+done.
 
 Data model: [`ER.mermaid`](./ER.mermaid) · rationale: [`ER.README.md`](./ER.README.md)
 Implementation conventions: [`../AGENTS.md`](../AGENTS.md) · delivery baseline:
@@ -13,7 +14,8 @@ Implementation conventions: [`../AGENTS.md`](../AGENTS.md) · delivery baseline:
 
 **Base paths.** `/api/auth/*` belongs to better-auth. Everything else is `/api/v1/*`.
 
-**Every response has the same envelope.** The frontend unwraps `data` unconditionally.
+**Every non-auth response has the same envelope.** API consumers read successful payloads from
+`data`; list payloads use `data.items` rather than a bare array.
 
 ```jsonc
 // success
@@ -36,6 +38,10 @@ marked `Public`. Auth is opt-out, so a forgotten decorator fails closed.
 
 **Money** is always an integer in satang. **Timestamps** are ISO 8601 with offset.
 **IDs** are uuid v4.
+
+**Delete responses.** A successful `DELETE` returns an allowlisted representation of the deleted
+resource in `data`. Repositories may use Postgres `RETURNING`, but controllers never expose the raw
+row; the service maps it through the same audience-appropriate response DTO rule as other routes.
 
 **Common errors, when applicable:**
 
@@ -133,7 +139,7 @@ curl -b cookies.txt -X POST http://localhost:3000/api/auth/sign-out
 For browser clients, use `credentials: 'include'` with `fetch`, or `withCredentials: true` with
 Axios; otherwise the browser discards or withholds the session cookie.
 
-### Testing without a frontend
+### Testing the API
 
 Use Postman (or curl) for the complete auth flow: sign in and let its cookie jar retain
 `better-auth.session_token`, then call protected `/api/v1/*` routes in the same client. Swagger
@@ -212,7 +218,77 @@ Written now so the remaining modules have a target to hit.
 
 ---
 
-## 6. Module: Advisors
+## 6. Module: Users
+
+### `GET /api/v1/users/me` — `Advisee`
+
+Returns the authenticated account owner's allowlisted base profile. Every signed-in account is an
+Advisee, so this is the stable profile entry point for Advisees, Advisors, and Admins.
+
+```jsonc
+{ "statusCode": 200, "message": "Success",
+  "data": {
+    "id": "3f1c...", "displayName": "Somchai P.", "email": "owner@example.com",
+    "emailVerified": false, "fullName": "Somchai Prasert", "avatarKey": null,
+    "timezone": "Asia/Bangkok", "roles": ["ADVISEE", "ADVISOR"],
+    "createdAt": "2026-08-01T09:00:00.000Z", "updatedAt": "2026-08-15T09:00:00.000Z"
+  } }
+```
+
+Roles are additive and returned in the stable order `ADVISEE`, `ADVISOR`, `ADMIN`. Advisor-specific
+fields remain behind `/api/v1/advisors/me`; they are not conditionally added to this DTO.
+
+### `PATCH /api/v1/users/me` — `Advisee`
+
+Updates the authenticated owner's base profile. Body fields are optional: `displayName`, `fullName`,
+and `timezone`. Email, verification state, account status, roles, and `avatarKey` are not accepted.
+
+### `POST /api/v1/users/me/avatar` — `Advisee`
+
+Uploads or replaces the authenticated owner's avatar using `multipart/form-data` with one required
+`file` field. Only JPEG, PNG, and WebP files up to 5 MiB are accepted. The API generates the private
+MinIO object key and returns `{ "avatarKey": "avatars/<user-id>/<uuid>.webp" }` in the standard
+success envelope. Clients cannot provide or choose object keys.
+
+### `GET /api/v1/users/me/avatar` — `Advisee`
+
+Returns a fresh private download URL for the authenticated owner's current avatar:
+
+```json
+{ "statusCode": 200, "message": "Success", "data": {
+  "url": "http://localhost:9000/advisory-platform/...signed-query...",
+  "expiresInSeconds": 300
+} }
+```
+
+The URL is deliberately transient and must not be stored. Requests without an avatar return `404`.
+
+### `DELETE /api/v1/users/me/avatar` — `Advisee`
+
+Clears the authenticated owner's `avatarKey`. This operation is idempotent from the client's
+perspective and returns the removed `{ avatarKey }` in the standard success envelope. The API then
+best-effort removes the corresponding private MinIO object; a cleanup failure does not restore the
+database reference.
+
+### `DELETE /api/v1/users/me` — `Advisee`
+
+Permanently closes the authenticated account and returns the pre-anonymization, allowlisted own-user
+profile in the standard success envelope. The operation is atomic:
+
+- all sessions and authentication accounts are deleted immediately;
+- the user row is marked `DELETED` and direct identity fields are replaced with non-identifying
+  values so FK-bound appointments, invoices, reports, and chat evidence remain valid;
+- avatar references, Advisor identity submissions, claimed skills/proof metadata, notifications,
+  and email verification records are erased;
+- any Advisor profile is anonymized and its services are unpublished.
+
+Consent and transactional/evidence records remain attached only to the pseudonymous internal UUID
+where retention is necessary. A subsequent request with the old session receives `401`. The former
+email address is no longer retained on the account and may be used for a new signup.
+
+---
+
+## 7. Module: Advisors
 
 ### `GET /api/v1/advisors` — `Public`
 
@@ -335,9 +411,9 @@ touch any other skill.
 
 ---
 
-## 7. Not yet written
+## 8. Not yet written
 
-auth · users · categories & skills · services · timeslots · screening · booking · payments &
+categories & skills · services · timeslots · screening · booking · payments &
 payouts · refunds · chat & files · notifications · trust & safety · admin console
 
 Booking is next — it is the one with the concurrency guarantee, the state machine and the payment

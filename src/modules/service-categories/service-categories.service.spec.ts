@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
-import type { serviceCategories } from '../../database/schema';
+import type { serviceCategories } from '@/database/schema';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
 import type { ServiceCategoriesRepository } from './service-categories.repository';
 import { ServiceCategoriesService } from './service-categories.service';
@@ -122,10 +122,15 @@ describe('ServiceCategoriesService', () => {
   });
 
   describe('delete', () => {
-    it('resolves when the category was deleted', async () => {
+    it('returns the deleted category', async () => {
       repository.deleteById.mockResolvedValue(makeCategory());
 
-      await expect(service.delete(makeCategory().id)).resolves.toBeUndefined();
+      await expect(service.delete(makeCategory().id)).resolves.toEqual(
+        expect.objectContaining({
+          id: makeCategory().id,
+          name: 'Marketing',
+        }),
+      );
     });
 
     it('throws NotFoundException when the category does not exist', async () => {

@@ -1,7 +1,8 @@
 import type { ArgumentsHost, ValidationError } from '@nestjs/common';
 import { HttpStatus, Logger, NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
-import { ValidationException } from '../utils/validation.exception';
+import { MulterError } from 'multer';
+import { ValidationException } from '@/common/utils/validation.exception';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 
 describe('AllExceptionsFilter', () => {
@@ -49,6 +50,17 @@ describe('AllExceptionsFilter', () => {
       message: 'Validation failed',
       data: null,
       errors: [{ property: 'email', message: 'email must be an email' }],
+    });
+  });
+
+  it('formats an oversized upload without leaking Multer details', () => {
+    filter.catch(new MulterError('LIMIT_FILE_SIZE'), host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.PAYLOAD_TOO_LARGE);
+    expect(json).toHaveBeenCalledWith({
+      statusCode: HttpStatus.PAYLOAD_TOO_LARGE,
+      message: 'Uploaded file is too large',
+      data: null,
     });
   });
 

@@ -1,6 +1,6 @@
 # Advisory Platform — Sprint Plan (Project 1)
 
-**Updated:** 2026-08-12
+**Updated:** 2026-08-15
 **Status:** authoritative delivery plan. The old [`sprint.md`](./sprint.md) filename is retained
 only as a redirect so existing editor tabs and links keep working.
 
@@ -18,7 +18,7 @@ only as a redirect so existing editor tabs and links keep working.
 | Branching | `main ← UAT ← develop ← feature/*`. |
 | Account model | Signup creates an Advisee only. Advisor access is the explicit authenticated upgrade; Admin is never self-service. |
 | Quality | CI verifies build/lint and requires at least 80% across merged unit, integration, and e2e statements, branches, functions, and lines. |
-| API contract | Confirm the separately owned frontend contract before inventing profile or onboarding behaviour. |
+| API contract | `docs/api-spec.md` is authoritative; resolve unclear behavior from documented product and security requirements before implementation. |
 | AI | All AI work is Project 2. Project 1 uses rule-based ordering and detection only. |
 
 ### Delivered before the remaining S3 work
@@ -42,7 +42,7 @@ only as a redirect so existing editor tabs and links keep working.
 | S6 | 29 Aug–4 Sep | — | Screening and payment |
 | S7 | 5–11 Sep | — | Chat and notifications |
 | S8 | 12–18 Sep | Progress report #3 + 30% report draft (18 Sep) | Video and files |
-| S9 | 19–25 Sep | — | Trust & safety, admin, PWA |
+| S9 | 19–25 Sep | — | Trust & safety, admin, API hardening |
 | S10 | 26 Sep–2 Oct | — | Feature freeze / integration |
 | S11 | 3–9 Oct | Progress report #4 + 60% report draft (9 Oct) | Functional, load, security test |
 | S12 | 10–16 Oct | — | UAT |
@@ -109,14 +109,14 @@ Advisee deliberately upgrades to Advisor.
 **Delivered:** version-pinned auth documentation; cookie-preserving e2e coverage; suspended/deleted
 account denial; explicit Advisor upgrade; 409 for repeat upgrade; and CI verification.
 
-**Only remaining work if the frontend contract confirms it:**
+**Delivered account scope:**
 
 | Area | Work |
 |---|---|
-| Profile | Own-profile read/update and avatar behavior, with separate allowlisted response DTOs. |
-| PDPA | Account deletion/anonymization design and implementation consistent with the ER model. |
-| Advisor profile | Add only the fields needed for S4 public discovery and advisor-owned services. |
-| Tests | Cover each new controller boundary; do not reintroduce role selection or onboarding. |
+| Profile | Base and Advisor own-profile read/update use separate allowlisted DTOs. Private MinIO-backed avatar upload, replacement, removal, and owner-only signed reads are delivered; generic consultation files remain S8 work. |
+| PDPA | Atomic account deletion revokes authentication, erases direct identity/proof data, anonymizes the retained FK anchor, and unpublishes Advisor services. |
+| Advisor profile | `headline` and `bio` are available for S4 public discovery and advisor-owned services; no speculative fields were added. |
+| Tests | Controller boundaries, role changes, profile updates, avatar upload/removal, anonymization, and immediate session revocation have database-backed coverage. |
 
 **Exit criteria:** no registration path selects a role; repeat upgrade remains a documented `409`
 policy; all account work uses the real application middleware and passes build, lint, relevant unit,
@@ -179,7 +179,7 @@ services.
 | Evidence | Measure call quality against the applicable QR and retain the result. |
 | Docs | Produce the 30% report draft from completed design and test evidence. |
 
-### S9 · 19–25 Sep — Trust & safety, admin, and PWA (4.14)
+### S9 · 19–25 Sep — Trust & safety, admin, and API hardening (4.14)
 
 **Goal:** retain platform safety evidence and give operations a minimal, authorized review path.
 
@@ -188,7 +188,7 @@ services.
 | Detection | Rule-based patterns for phone, email, LINE ID, and social handles, including basic evasion such as spaced phone numbers. |
 | Operations | User reports, evidence-preserving flags, admin review/verification, and transaction views following the access matrix. |
 | Ranking | Apply confirmed-advisor penalties silently; never disclose flags/points to the Advisor. |
-| PWA | Manifest, offline shell, and install verification on a mobile device. |
+| API hardening | Verify production CORS, trusted origins, cookie-session behavior, and useful error responses. |
 
 ### S10 · 26 Sep–2 Oct — Feature freeze and integration
 
@@ -229,7 +229,7 @@ on architecture, overlap protection, testing, and PDPA, and keep a recorded demo
 
 | Risk | Mitigation |
 |---|---|
-| Frontend/API drift | Confirm the frontend contract before UI-dependent APIs; keep `api-spec.md` current. |
+| API contract drift | Treat `api-spec.md` as authoritative and update it with every contract change. |
 | Booking/payment evidence arrives late | Implement the database constraint and webhook tests in S5/S6, not at feature freeze. |
 | Coverage regresses as modules grow | Keep focused unit/controller/database tests with each feature; CI enforces the aggregate 80% floor. |
 | Jitsi or merchant onboarding delays | Make the hosting/payment decision early; use supported test/hosted paths where required. |

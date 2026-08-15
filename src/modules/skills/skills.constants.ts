@@ -1,3 +1,3 @@
-import { crudMessages } from '../../common/constants/crud-messages';
+import { crudMessages } from '@/common/constants/crud-messages';
 
 export const SKILL_MESSAGES = crudMessages('Skill');

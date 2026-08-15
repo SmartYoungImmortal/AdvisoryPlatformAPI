@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Response } from 'express';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { RESPONSE_MESSAGE_KEY } from '../decorators/response-message.decorator';
+import { RESPONSE_MESSAGE_KEY } from '@/common/decorators/response-message.decorator';
 
 export interface ApiResponse<T> {
   statusCode: number;

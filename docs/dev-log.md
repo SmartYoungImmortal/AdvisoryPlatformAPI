@@ -4,6 +4,53 @@ A running record of what changed and why, session by session — for picking thi
 not a user-facing release log (that's a different document, if this project ever needs one).
 Newest first. One entry per session with anything worth remembering; skip trivial sessions.
 
+## 2026-08-15 — made the repository API-only
+
+- Removed the separately owned client application as a source of contract authority. The API
+  specification now owns request/response behavior, resolved from documented product, privacy, and
+  security requirements.
+- Replaced client-application and offline-shell coordination work in the sprint plan and proposed
+  issue backlog with API-owned contract, CORS, trusted-origin, cookie-session, and end-to-end API
+  verification work.
+- Kept browser cookie and CORS documentation where it defines API authentication and security
+  behavior; no client application implementation is in this repository's scope.
+
+## 2026-08-15 — completed the S3 own-profile API path
+
+- Standardized imports on `@/` for cross-directory and cross-feature dependencies while retaining
+  `./` inside a feature. Added matching TypeScript and Jest resolution; Nest's compiler rewrites
+  aliases to relative paths in emitted JavaScript, so production does not need a runtime loader.
+- Standardized successful `DELETE` responses across all current modules: services now map the row
+  returned by deletion through a response DTO instead of discarding it, and `ApiDelete` derives its
+  documentation from that DTO. This is the required convention for future modules as well.
+- Added owner-only `GET/PATCH /api/v1/users/me` as the stable base-profile path for every signed-in
+  account. The response allowlists private owner fields and returns additive `ADVISEE`, `ADVISOR`,
+  and `ADMIN` memberships so clients do not need to probe role-protected endpoints.
+- Added the specified `PATCH /api/v1/advisors/me` path for Advisor headline/bio updates while
+  retaining the separate Advisor-owner response DTO.
+- Kept email, status, role, and avatar-key mutation out of the general profile DTO.
+- Completed that anonymization design as an atomic owner-only delete: revoke sessions/accounts,
+  erase identity/skill-proof and notification data, replace required identity fields, retain the
+  pseudonymous FK anchor, anonymize the Advisor extension, and unpublish owned services.
+- Added owner-controlled avatar removal while continuing to reject client-provided object keys.
+- Removed repeated Swagger resource labels where a response DTO already supplies the name. The
+  composed decorators now derive readable labels from `*ResponseDto` by default and accept a
+  `{ name }` override only when the audience-specific DTO name is not the desired wording.
+- Centralized additive role lookup and stable ordering in one shared `RoleResolver`, used by both
+  `SessionGuard` and the Users own-profile path; its focused repository is now the sole owner of the
+  Advisor/Admin membership query.
+
+## 2026-08-15 — added private MinIO-backed avatars
+
+- Added local MinIO Docker Compose support and typed runtime configuration. The application creates
+  the configured bucket lazily, so a fresh local setup only needs `docker compose up -d`.
+- Avatar uploads accept only JPEG, PNG, and WebP content, are limited to 5 MiB in both Multer and
+  service validation, and receive server-generated keys under `avatars/<user-id>/`; clients never
+  provide an object key.
+- The bucket remains private. The owner-only read route returns a new five-minute presigned URL on
+  demand, while PostgreSQL stores only the object key. Replacements, removal, and account deletion
+  best-effort clean up old objects after the authoritative database change.
+
 ## 2026-08-12 — removed unusable Swagger cookie authorization
 
 - Removed Swagger's `better-auth.session_token` Authorize popup. Browser JavaScript cannot set the
