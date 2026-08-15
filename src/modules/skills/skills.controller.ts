@@ -30,8 +30,6 @@ import { UpdateSkillDto } from './dtos/update-skill.dto';
 import { SKILL_MESSAGES } from './skills.constants';
 import { SkillsService } from './skills.service';
 
-const ENTITY_NAME = 'Skill';
-
 @ApiTags('Skills')
 @Controller('api/v1/skills')
 export class SkillsController {
@@ -39,7 +37,7 @@ export class SkillsController {
 
   @Public()
   @Get()
-  @ApiGetPaginated(SkillResponseDto, ENTITY_NAME, { public: true })
+  @ApiGetPaginated(SkillResponseDto, { public: true })
   findMany(
     @Query() query: SkillQueryDto,
   ): Promise<PaginatedResult<SkillResponseDto>> {
@@ -48,7 +46,7 @@ export class SkillsController {
 
   @Public()
   @Get(':id')
-  @ApiGetOne(SkillResponseDto, ENTITY_NAME, { public: true })
+  @ApiGetOne(SkillResponseDto, { public: true })
   findOne(@Param('id', ParseUUIDPipe) id: string): Promise<SkillResponseDto> {
     return this.skillsService.findOne(id);
   }
@@ -56,7 +54,7 @@ export class SkillsController {
   @Roles(Role.Admin)
   @Post()
   @ResponseMessage(SKILL_MESSAGES.created)
-  @ApiCreate(SkillResponseDto, ENTITY_NAME)
+  @ApiCreate(SkillResponseDto)
   create(@Body() dto: CreateSkillDto): Promise<SkillResponseDto> {
     return this.skillsService.create(dto);
   }
@@ -64,7 +62,7 @@ export class SkillsController {
   @Roles(Role.Admin)
   @Patch(':id')
   @ResponseMessage(SKILL_MESSAGES.updated)
-  @ApiUpdate(SkillResponseDto, ENTITY_NAME)
+  @ApiUpdate(SkillResponseDto)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSkillDto,
@@ -76,7 +74,7 @@ export class SkillsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(SKILL_MESSAGES.deleted)
-  @ApiDelete(ENTITY_NAME)
+  @ApiDelete('Skill')
   delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.skillsService.delete(id);
   }

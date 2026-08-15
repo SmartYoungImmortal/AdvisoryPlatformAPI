@@ -30,8 +30,6 @@ import { UpdateServiceCategoryDto } from './dtos/update-service-category.dto';
 import { SERVICE_CATEGORY_MESSAGES } from './service-categories.constants';
 import { ServiceCategoriesService } from './service-categories.service';
 
-const ENTITY_NAME = 'Service category';
-
 @ApiTags('Service Categories')
 @Controller('api/v1/service-categories')
 export class ServiceCategoriesController {
@@ -41,7 +39,7 @@ export class ServiceCategoriesController {
 
   @Public()
   @Get()
-  @ApiGetPaginated(ServiceCategoryResponseDto, ENTITY_NAME, { public: true })
+  @ApiGetPaginated(ServiceCategoryResponseDto, { public: true })
   findMany(
     @Query() query: ServiceCategoryQueryDto,
   ): Promise<PaginatedResult<ServiceCategoryResponseDto>> {
@@ -50,7 +48,7 @@ export class ServiceCategoriesController {
 
   @Public()
   @Get(':id')
-  @ApiGetOne(ServiceCategoryResponseDto, ENTITY_NAME, { public: true })
+  @ApiGetOne(ServiceCategoryResponseDto, { public: true })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ServiceCategoryResponseDto> {
@@ -60,7 +58,7 @@ export class ServiceCategoriesController {
   @Roles(Role.Admin)
   @Post()
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.created)
-  @ApiCreate(ServiceCategoryResponseDto, ENTITY_NAME)
+  @ApiCreate(ServiceCategoryResponseDto)
   create(
     @Body() dto: CreateServiceCategoryDto,
   ): Promise<ServiceCategoryResponseDto> {
@@ -70,7 +68,7 @@ export class ServiceCategoriesController {
   @Roles(Role.Admin)
   @Patch(':id')
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.updated)
-  @ApiUpdate(ServiceCategoryResponseDto, ENTITY_NAME)
+  @ApiUpdate(ServiceCategoryResponseDto)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateServiceCategoryDto,
@@ -82,7 +80,7 @@ export class ServiceCategoriesController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.deleted)
-  @ApiDelete(ENTITY_NAME)
+  @ApiDelete('Service category')
   delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.serviceCategoriesService.delete(id);
   }

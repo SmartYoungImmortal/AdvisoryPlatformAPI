@@ -23,7 +23,7 @@ export class AdvisorsController {
   @Roles(Role.Advisee)
   @Post('me')
   @ResponseMessage(ADVISOR_MESSAGES.created)
-  @ApiCreate(AdvisorOwnProfileResponseDto, 'Advisor profile')
+  @ApiCreate(AdvisorOwnProfileResponseDto, { name: 'Advisor profile' })
   @ApiConflictResponse({ description: ADVISOR_MESSAGES.alreadyExists })
   upgrade(
     @CurrentUser() user: SessionUser,
@@ -34,7 +34,7 @@ export class AdvisorsController {
 
   @Roles(Role.Advisor)
   @Get('me')
-  @ApiGetOne(AdvisorOwnProfileResponseDto, 'Advisor profile')
+  @ApiGetOne(AdvisorOwnProfileResponseDto, { name: 'Advisor profile' })
   getMe(
     @CurrentUser() user: SessionUser,
   ): Promise<AdvisorOwnProfileResponseDto> {
@@ -44,7 +44,7 @@ export class AdvisorsController {
   @Roles(Role.Advisor)
   @Patch('me')
   @ResponseMessage(ADVISOR_MESSAGES.updated)
-  @ApiUpdate(AdvisorOwnProfileResponseDto, 'Advisor profile')
+  @ApiUpdate(AdvisorOwnProfileResponseDto, { name: 'Advisor profile' })
   updateMe(
     @CurrentUser() user: SessionUser,
     @Body() dto: UpdateAdvisorProfileDto,
