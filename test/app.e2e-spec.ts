@@ -170,7 +170,7 @@ describe('authentication and authorization (e2e)', () => {
       .expect(({ body }) => {
         expect(body).toMatchObject({
           message: 'Avatar removed',
-          data: null,
+          data: { avatarKey: `avatars/${userId}.webp` },
         });
       });
 
@@ -240,7 +240,13 @@ describe('authentication and authorization (e2e)', () => {
       .expect(({ body }) => {
         expect(body).toMatchObject({
           message: 'Account deleted',
-          data: null,
+          data: {
+            id: userId,
+            email,
+            displayName: 'E2E User',
+            fullName: 'E2E Test User',
+            roles: ['ADVISEE', 'ADVISOR'],
+          },
         });
       });
 

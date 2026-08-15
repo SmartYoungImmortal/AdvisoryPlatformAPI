@@ -57,11 +57,13 @@ export class SkillsService {
     return new SkillResponseDto(skill);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<SkillResponseDto> {
     const skill = await this.skillsRepository.deleteById(id);
 
     if (!skill) {
       throw new NotFoundException(SKILL_MESSAGES.notFound);
     }
+
+    return new SkillResponseDto(skill);
   }
 }

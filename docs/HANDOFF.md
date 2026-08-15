@@ -17,7 +17,8 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
 - Owner-only `GET/PATCH /api/v1/users/me` for every authenticated account, including additive role
   membership, plus `PATCH /api/v1/advisors/me` for Advisor headline/bio updates.
 - Owner-only avatar removal and atomic PDPA account anonymization at `DELETE /api/v1/users/me`,
-  including immediate credential/session revocation and Advisor-service unpublishing.
+  including immediate credential/session revocation and Advisor-service unpublishing. Successful
+  deletes return an allowlisted representation of the removed resource.
 - Public-read/Admin-write Skills and Service Categories sample modules.
 - Unit, Postgres integration, and cookie-preserving auth e2e suites. CI merges their coverage and
   enforces at least 80% for aggregate statements, branches, functions, and lines.

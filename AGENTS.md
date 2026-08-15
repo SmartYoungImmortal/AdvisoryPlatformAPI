@@ -46,6 +46,9 @@ The frontend contract is not mirrored here. Ask before making a decision that de
   `{ statusCode, message, data }`. Use the global interceptor/filter; controllers return
   plain values and never use Express `res` directly.
 - A response DTO is a whitelist. Do not return raw database rows.
+- A successful `DELETE` returns the deleted resource through its response DTO in `data`; do not
+  discard the repository's returned row or use `data: null`. Subresource deletes return a focused
+  allowlisted DTO for the value that was removed.
 - List routes use `OffsetPaginationDto` and return
   `{ items, total, page, limit, totalPages }`; maximum `limit` is 100.
 - User-facing messages come from the module's `*.constants.ts`; reuse `crudMessages()` for

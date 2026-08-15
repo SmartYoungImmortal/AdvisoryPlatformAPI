@@ -64,11 +64,13 @@ export class ServiceCategoriesService {
     return new ServiceCategoryResponseDto(category);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<ServiceCategoryResponseDto> {
     const category = await this.serviceCategoriesRepository.deleteById(id);
 
     if (!category) {
       throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);
     }
+
+    return new ServiceCategoryResponseDto(category);
   }
 }

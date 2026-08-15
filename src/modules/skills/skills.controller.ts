@@ -74,8 +74,8 @@ export class SkillsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(SKILL_MESSAGES.deleted)
-  @ApiDelete('Skill')
-  delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+  @ApiDelete(SkillResponseDto)
+  delete(@Param('id', ParseUUIDPipe) id: string): Promise<SkillResponseDto> {
     return this.skillsService.delete(id);
   }
 }

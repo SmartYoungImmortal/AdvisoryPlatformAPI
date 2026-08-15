@@ -122,10 +122,15 @@ describe('ServiceCategoriesService', () => {
   });
 
   describe('delete', () => {
-    it('resolves when the category was deleted', async () => {
+    it('returns the deleted category', async () => {
       repository.deleteById.mockResolvedValue(makeCategory());
 
-      await expect(service.delete(makeCategory().id)).resolves.toBeUndefined();
+      await expect(service.delete(makeCategory().id)).resolves.toEqual(
+        expect.objectContaining({
+          id: makeCategory().id,
+          name: 'Marketing',
+        }),
+      );
     });
 
     it('throws NotFoundException when the category does not exist', async () => {

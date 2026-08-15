@@ -107,14 +107,18 @@ describe('UsersService', () => {
   });
 
   it('removes the current user avatar', async () => {
-    repository.removeAvatar.mockResolvedValue(true);
+    repository.removeAvatar.mockResolvedValue({
+      avatarKey: `avatars/${userId}.webp`,
+    });
 
-    await expect(service.removeAvatar(userId)).resolves.toBeUndefined();
+    await expect(service.removeAvatar(userId)).resolves.toEqual({
+      avatarKey: `avatars/${userId}.webp`,
+    });
     expect(repository.removeAvatar).toHaveBeenCalledWith(userId);
   });
 
   it('throws when removing an avatar for a missing user', async () => {
-    repository.removeAvatar.mockResolvedValue(false);
+    repository.removeAvatar.mockResolvedValue(undefined);
 
     await expect(service.removeAvatar(userId)).rejects.toThrow(
       NotFoundException,
@@ -122,14 +126,22 @@ describe('UsersService', () => {
   });
 
   it('anonymizes and deletes the current account', async () => {
-    repository.anonymizeById.mockResolvedValue(true);
+    repository.anonymizeById.mockResolvedValue(profile());
+    roleResolver.resolve.mockResolvedValue([Role.Advisee, Role.Advisor]);
 
-    await expect(service.deleteMe(userId)).resolves.toBeUndefined();
+    await expect(service.deleteMe(userId)).resolves.toEqual(
+      expect.objectContaining({
+        id: userId,
+        email: 'person@example.test',
+        roles: [Role.Advisee, Role.Advisor],
+      }),
+    );
     expect(repository.anonymizeById).toHaveBeenCalledWith(userId);
   });
 
   it('throws when deleting a missing account', async () => {
-    repository.anonymizeById.mockResolvedValue(false);
+    repository.anonymizeById.mockResolvedValue(undefined);
+    roleResolver.resolve.mockResolvedValue([Role.Advisee]);
 
     await expect(service.deleteMe(userId)).rejects.toThrow(NotFoundException);
   });

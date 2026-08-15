@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, type InferSelectModel } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
 import {
   account,
@@ -15,19 +15,34 @@ import {
 } from '../../database/schema';
 import { EntityRepository } from '../../common/repositories/entity.repository';
 
+type User = InferSelectModel<typeof user>;
+
 @Injectable()
 export class UsersRepository extends EntityRepository<typeof user> {
   constructor(@Inject(DRIZZLE) private readonly database: DrizzleDB) {
     super(database, user);
   }
 
-  async removeAvatar(userId: string): Promise<boolean> {
-    const [profile] = await this.database
-      .update(user)
-      .set({ avatarKey: null, updatedAt: new Date() })
-      .where(eq(user.id, userId))
-      .returning({ id: user.id });
-    return profile !== undefined;
+  removeAvatar(userId: string): Promise<Pick<User, 'avatarKey'> | undefined> {
+    return this.database.transaction(async (tx) => {
+      const [profile] = await tx
+        .select({ avatarKey: user.avatarKey })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1)
+        .for('update');
+
+      if (!profile) {
+        return undefined;
+      }
+
+      await tx
+        .update(user)
+        .set({ avatarKey: null, updatedAt: new Date() })
+        .where(eq(user.id, userId));
+
+      return profile;
+    });
   }
 
   /**
@@ -35,16 +50,17 @@ export class UsersRepository extends EntityRepository<typeof user> {
    * appointments, invoices, reports, and chat evidence. The transaction also revokes every login
    * credential and session, so a completed deletion cannot leave an authenticated account behind.
    */
-  anonymizeById(userId: string): Promise<boolean> {
+  anonymizeById(userId: string): Promise<User | undefined> {
     return this.database.transaction(async (tx) => {
       const [profile] = await tx
-        .select({ email: user.email })
+        .select()
         .from(user)
         .where(eq(user.id, userId))
-        .limit(1);
+        .limit(1)
+        .for('update');
 
       if (!profile) {
-        return false;
+        return undefined;
       }
 
       const now = new Date();
@@ -88,7 +104,7 @@ export class UsersRepository extends EntityRepository<typeof user> {
         .where(eq(user.id, userId))
         .returning({ id: user.id });
 
-      return deletedProfile !== undefined;
+      return deletedProfile ? profile : undefined;
     });
   }
 }

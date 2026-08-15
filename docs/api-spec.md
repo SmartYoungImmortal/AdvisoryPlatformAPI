@@ -38,6 +38,10 @@ marked `Public`. Auth is opt-out, so a forgotten decorator fails closed.
 **Money** is always an integer in satang. **Timestamps** are ISO 8601 with offset.
 **IDs** are uuid v4.
 
+**Delete responses.** A successful `DELETE` returns an allowlisted representation of the deleted
+resource in `data`. Repositories may use Postgres `RETURNING`, but controllers never expose the raw
+row; the service maps it through the same audience-appropriate response DTO rule as other routes.
+
 **Common errors, when applicable:**
 
 | Code | When |
@@ -242,14 +246,14 @@ Avatar uploads remain deferred until the MinIO upload path exists.
 ### `DELETE /api/v1/users/me/avatar` — `Advisee`
 
 Clears the authenticated owner's `avatarKey`. This operation is idempotent from the client's
-perspective and returns the standard success envelope with `data: null`. Uploading a replacement
-avatar is intentionally unavailable until the MinIO object-upload path can validate ownership,
-file type, and size; clients cannot submit arbitrary storage keys.
+perspective and returns the removed `{ avatarKey }` in the standard success envelope. Uploading a
+replacement avatar is intentionally unavailable until the MinIO object-upload path can validate
+ownership, file type, and size; clients cannot submit arbitrary storage keys.
 
 ### `DELETE /api/v1/users/me` — `Advisee`
 
-Permanently closes the authenticated account and returns the standard success envelope with
-`data: null`. The operation is atomic:
+Permanently closes the authenticated account and returns the pre-anonymization, allowlisted own-user
+profile in the standard success envelope. The operation is atomic:
 
 - all sessions and authentication accounts are deleted immediately;
 - the user row is marked `DELETED` and direct identity fields are replaced with non-identifying

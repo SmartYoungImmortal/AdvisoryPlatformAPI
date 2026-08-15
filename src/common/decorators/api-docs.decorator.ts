@@ -199,12 +199,17 @@ export function ApiUpdate(
   );
 }
 
-export function ApiDelete(name: string): MethodDecorator {
+export function ApiDelete(
+  model: Type,
+  options: ApiDocsOptions = {},
+): MethodDecorator {
+  const name = modelName(model, options.name);
+
   return applyDecorators(
-    ApiExtraModels(ApiNullDataEnvelopeDto),
+    ApiExtraModels(ApiEnvelopeDto, ApiNullDataEnvelopeDto, model),
     ApiOkResponse({
       description: `${name} deleted`,
-      type: ApiNullDataEnvelopeDto,
+      schema: envelopeSchema(model),
     }),
     ApiNotFoundResponse({
       description: `${name} not found`,

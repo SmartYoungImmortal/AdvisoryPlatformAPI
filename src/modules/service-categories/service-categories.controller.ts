@@ -80,8 +80,10 @@ export class ServiceCategoriesController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.deleted)
-  @ApiDelete('Service category')
-  delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+  @ApiDelete(ServiceCategoryResponseDto)
+  delete(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ServiceCategoryResponseDto> {
     return this.serviceCategoriesService.delete(id);
   }
 }

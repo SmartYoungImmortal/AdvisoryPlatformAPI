@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { RoleResolver } from '../../common/authorization/role-resolver.service';
 import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
+import { UserAvatarResponseDto } from './dtos/user-avatar-response.dto';
 import { UserOwnProfileResponseDto } from './dtos/user-own-profile-response.dto';
 import { USER_MESSAGES } from './users.constants';
 import { UsersRepository } from './users.repository';
@@ -42,17 +43,22 @@ export class UsersService {
     return new UserOwnProfileResponseDto(profile, roles);
   }
 
-  async removeAvatar(userId: string): Promise<void> {
-    const removed = await this.usersRepository.removeAvatar(userId);
-    if (!removed) {
+  async removeAvatar(userId: string): Promise<UserAvatarResponseDto> {
+    const avatar = await this.usersRepository.removeAvatar(userId);
+    if (!avatar) {
       throw new NotFoundException(USER_MESSAGES.notFound);
     }
+
+    return new UserAvatarResponseDto(avatar.avatarKey);
   }
 
-  async deleteMe(userId: string): Promise<void> {
+  async deleteMe(userId: string): Promise<UserOwnProfileResponseDto> {
+    const roles = await this.roleResolver.resolve(userId);
     const deleted = await this.usersRepository.anonymizeById(userId);
     if (!deleted) {
       throw new NotFoundException(USER_MESSAGES.notFound);
     }
+
+    return new UserOwnProfileResponseDto(deleted, roles);
   }
 }

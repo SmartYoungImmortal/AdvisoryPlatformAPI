@@ -6,6 +6,9 @@ Newest first. One entry per session with anything worth remembering; skip trivia
 
 ## 2026-08-15 — completed the S3 own-profile API path
 
+- Standardized successful `DELETE` responses across all current modules: services now map the row
+  returned by deletion through a response DTO instead of discarding it, and `ApiDelete` derives its
+  documentation from that DTO. This is the required convention for future modules as well.
 - Added owner-only `GET/PATCH /api/v1/users/me` as the stable base-profile path for every signed-in
   account. The response allowlists private owner fields and returns additive `ADVISEE`, `ADVISOR`,
   and `ADMIN` memberships so clients do not need to probe role-protected endpoints.

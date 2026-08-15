@@ -18,6 +18,7 @@ import { ResponseMessage } from '../../common/decorators/response-message.decora
 import { Role, Roles } from '../../common/decorators/roles.decorator';
 import type { SessionUser } from '../auth/auth.config';
 import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
+import { UserAvatarResponseDto } from './dtos/user-avatar-response.dto';
 import { UserOwnProfileResponseDto } from './dtos/user-own-profile-response.dto';
 import { USER_MESSAGES } from './users.constants';
 import { UsersService } from './users.service';
@@ -51,8 +52,10 @@ export class UsersController {
   @Delete('me/avatar')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(USER_MESSAGES.avatarRemoved)
-  @ApiDelete('Avatar')
-  removeAvatar(@CurrentUser() currentUser: SessionUser): Promise<void> {
+  @ApiDelete(UserAvatarResponseDto, { name: 'Avatar' })
+  removeAvatar(
+    @CurrentUser() currentUser: SessionUser,
+  ): Promise<UserAvatarResponseDto> {
     return this.usersService.removeAvatar(currentUser.id);
   }
 
@@ -60,8 +63,10 @@ export class UsersController {
   @Delete('me')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(USER_MESSAGES.deleted)
-  @ApiDelete('Account')
-  deleteMe(@CurrentUser() currentUser: SessionUser): Promise<void> {
+  @ApiDelete(UserOwnProfileResponseDto, { name: 'Account' })
+  deleteMe(
+    @CurrentUser() currentUser: SessionUser,
+  ): Promise<UserOwnProfileResponseDto> {
     return this.usersService.deleteMe(currentUser.id);
   }
 }

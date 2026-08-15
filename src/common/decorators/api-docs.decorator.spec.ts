@@ -34,7 +34,7 @@ class DummyController {
   create(): void {}
 
   @Delete(':id')
-  @ApiDelete('Dummy')
+  @ApiDelete(DummyResponseDto)
   delete(): void {}
 }
 
@@ -91,9 +91,19 @@ describe('api-docs decorators', () => {
 
     const deleted = document.paths['/dummies/{id}']?.delete?.responses?.['200'];
     expect(deleted).toMatchObject({
+      description: 'Dummy deleted',
       content: {
         'application/json': {
-          schema: { $ref: '#/components/schemas/ApiNullDataEnvelopeDto' },
+          schema: {
+            allOf: [
+              { $ref: '#/components/schemas/ApiEnvelopeDto' },
+              {
+                properties: {
+                  data: { $ref: '#/components/schemas/DummyResponseDto' },
+                },
+              },
+            ],
+          },
         },
       },
     });
