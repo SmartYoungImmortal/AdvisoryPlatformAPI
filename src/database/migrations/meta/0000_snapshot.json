@@ -1,5 +1,5 @@
 {
-  "id": "01daee8c-d99c-4631-9ef5-81fb1fb9e5d1",
+  "id": "9de08abd-1def-4291-9287-7d2a52531fbd",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -90,7 +90,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "account_user_id_idx": {
+          "name": "account_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
@@ -102,7 +118,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -260,9 +276,31 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "impersonated_by": {
+          "name": "impersonated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "session_user_id_idx": {
+          "name": "session_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
@@ -274,7 +312,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -367,6 +405,30 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "banned": {
+          "name": "banned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ban_reason": {
+          "name": "ban_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ban_expires": {
+          "name": "ban_expires",
+          "type": "timestamp (6) with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -429,7 +491,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "verification_identifier_idx": {
+          "name": "verification_identifier_idx",
+          "columns": [
+            {
+              "expression": "identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -604,7 +682,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "advisor_profiles_penalty_points_nonnegative": {
+          "name": "advisor_profiles_penalty_points_nonnegative",
+          "value": "\"advisor_profiles\".\"penalty_points\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.advisor_skills": {
@@ -874,6 +957,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "modified_at": {
+          "name": "modified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -941,7 +1031,12 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "service_images_carousel_index_nonnegative": {
+          "name": "service_images_carousel_index_nonnegative",
+          "value": "\"service_images\".\"carousel_index\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.services": {
@@ -1065,7 +1160,20 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "services_price_satang_nonnegative": {
+          "name": "services_price_satang_nonnegative",
+          "value": "\"services\".\"price_satang\" >= 0"
+        },
+        "services_duration_minutes_positive": {
+          "name": "services_duration_minutes_positive",
+          "value": "\"services\".\"duration_minutes\" > 0"
+        },
+        "services_trial_duration_consistent": {
+          "name": "services_trial_duration_consistent",
+          "value": "(\"services\".\"trial_enabled\" AND \"services\".\"trial_duration_minutes\" > 0) OR (NOT \"services\".\"trial_enabled\" AND \"services\".\"trial_duration_minutes\" IS NULL)"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.screening_answers": {
@@ -1277,7 +1385,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "screening_requests_trial_window_valid": {
+          "name": "screening_requests_trial_window_valid",
+          "value": "(\"screening_requests\".\"trial_started_at\" IS NULL AND \"screening_requests\".\"trial_expires_at\" IS NULL) OR (\"screening_requests\".\"trial_started_at\" IS NOT NULL AND \"screening_requests\".\"trial_expires_at\" IS NOT NULL AND \"screening_requests\".\"trial_expires_at\" > \"screening_requests\".\"trial_started_at\")"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.service_screening_questions": {
@@ -1336,7 +1449,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "service_screening_questions_display_order_nonnegative": {
+          "name": "service_screening_questions_display_order_nonnegative",
+          "value": "\"service_screening_questions\".\"display_order\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.service_appointments": {
@@ -1507,7 +1625,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "service_reviews_stars_range": {
+          "name": "service_reviews_stars_range",
+          "value": "\"service_reviews\".\"stars\" BETWEEN 1 AND 5"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.service_timeslots": {
@@ -1581,7 +1704,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "service_timeslots_end_after_start": {
+          "name": "service_timeslots_end_after_start",
+          "value": "\"service_timeslots\".\"end_time\" > \"service_timeslots\".\"start_time\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.payout_invoices": {
@@ -1714,7 +1842,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "payouts_amount_satang_positive": {
+          "name": "payouts_amount_satang_positive",
+          "value": "\"payouts\".\"amount_satang\" > 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.refund_cases": {
@@ -1897,9 +2030,26 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "service_invoices_appointment_id_unique": {
+          "name": "service_invoices_appointment_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appointment_id"
+          ]
+        }
+      },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "service_invoices_amount_satang_nonnegative": {
+          "name": "service_invoices_amount_satang_nonnegative",
+          "value": "\"service_invoices\".\"amount_satang\" >= 0"
+        },
+        "service_invoices_platform_fee_range": {
+          "name": "service_invoices_platform_fee_range",
+          "value": "\"service_invoices\".\"platform_fee_satang\" BETWEEN 0 AND \"service_invoices\".\"amount_satang\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.chat_files": {
@@ -1995,7 +2145,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "chat_files_size_range": {
+          "name": "chat_files_size_range",
+          "value": "\"chat_files\".\"file_size_bytes\" BETWEEN 1 AND 52428800"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.chat_members": {
@@ -2028,7 +2183,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "chat_members_member_user_id_idx": {
+          "name": "chat_members_member_user_id_idx",
+          "columns": [
+            {
+              "expression": "member_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "chat_members_chat_room_id_chat_rooms_id_fk": {
           "name": "chat_members_chat_room_id_chat_rooms_id_fk",
@@ -2108,7 +2279,35 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "chat_messages_room_created_id_idx": {
+          "name": "chat_messages_room_created_id_idx",
+          "columns": [
+            {
+              "expression": "chat_room_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "chat_messages_chat_room_id_chat_rooms_id_fk": {
           "name": "chat_messages_chat_room_id_chat_rooms_id_fk",
@@ -2267,7 +2466,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "off_platform_flags_penalty_points_nonnegative": {
+          "name": "off_platform_flags_penalty_points_nonnegative",
+          "value": "\"off_platform_flags\".\"penalty_points_applied\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.user_reports": {
