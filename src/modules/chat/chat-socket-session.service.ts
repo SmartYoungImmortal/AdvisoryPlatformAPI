@@ -7,7 +7,6 @@ import {
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Socket } from 'socket.io';
 import type { Auth, SessionUser } from '@/modules/auth/auth.config';
-import { AUTH } from '@/modules/auth/auth.constants';
 import { CHAT_MESSAGES } from './chat.constants';
 import type {
   ChatClientToServerEvents,
@@ -15,6 +14,7 @@ import type {
   ChatServerToClientEvents,
   ChatSocketData,
 } from './chat-socket.types';
+import { AuthService } from '@thallesp/nestjs-better-auth';
 
 export type ChatSocket = Socket<
   ChatClientToServerEvents,
@@ -25,7 +25,7 @@ export type ChatSocket = Socket<
 
 @Injectable()
 export class ChatSocketSessionService {
-  constructor(@Inject(AUTH) private readonly auth: Auth) {}
+  constructor(@Inject(AuthService) private readonly auth: Auth) {}
 
   async authenticate(client: ChatSocket): Promise<SessionUser> {
     const authSession = await this.auth.api.getSession({

@@ -48,6 +48,7 @@ CREATE TABLE "session" (
 	"user_agent" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"impersonated_by" text,
 	CONSTRAINT "session_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
@@ -63,6 +64,10 @@ CREATE TABLE "user" (
 	"status" "user_status" DEFAULT 'ACTIVE' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"role" text,
+	"banned" boolean,
+	"ban_reason" text,
+	"ban_expires" timestamp (6) with time zone,
 	CONSTRAINT "user_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
@@ -94,7 +99,8 @@ CREATE TABLE "advisor_profiles" (
 	"bio" text,
 	"penalty_points" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"modified_at" timestamp with time zone DEFAULT now() NOT NULL
+	"modified_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "advisor_profiles_penalty_points_nonnegative" CHECK ("advisor_profiles"."penalty_points" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "advisor_skills" (
@@ -130,7 +136,8 @@ CREATE TABLE "service_categories" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar NOT NULL,
 	"description" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"modified_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "service_images" (
@@ -138,7 +145,8 @@ CREATE TABLE "service_images" (
 	"carousel_index" integer NOT NULL,
 	"object_key" varchar NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "service_images_service_id_carousel_index_pk" PRIMARY KEY("service_id","carousel_index")
+	CONSTRAINT "service_images_service_id_carousel_index_pk" PRIMARY KEY("service_id","carousel_index"),
+	CONSTRAINT "service_images_carousel_index_nonnegative" CHECK ("service_images"."carousel_index" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "services" (
@@ -154,7 +162,10 @@ CREATE TABLE "services" (
 	"trial_enabled" boolean DEFAULT false NOT NULL,
 	"trial_duration_minutes" integer,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"modified_at" timestamp with time zone DEFAULT now() NOT NULL
+	"modified_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "services_price_satang_nonnegative" CHECK ("services"."price_satang" >= 0),
+	CONSTRAINT "services_duration_minutes_positive" CHECK ("services"."duration_minutes" > 0),
+	CONSTRAINT "services_trial_duration_consistent" CHECK (("services"."trial_enabled" AND "services"."trial_duration_minutes" > 0) OR (NOT "services"."trial_enabled" AND "services"."trial_duration_minutes" IS NULL))
 );
 --> statement-breakpoint
 CREATE TABLE "screening_answers" (
@@ -175,7 +186,8 @@ CREATE TABLE "screening_requests" (
 	"trial_started_at" timestamp with time zone,
 	"trial_expires_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"decided_at" timestamp with time zone
+	"decided_at" timestamp with time zone,
+	CONSTRAINT "screening_requests_trial_window_valid" CHECK (("screening_requests"."trial_started_at" IS NULL AND "screening_requests"."trial_expires_at" IS NULL) OR ("screening_requests"."trial_started_at" IS NOT NULL AND "screening_requests"."trial_expires_at" IS NOT NULL AND "screening_requests"."trial_expires_at" > "screening_requests"."trial_started_at"))
 );
 --> statement-breakpoint
 CREATE TABLE "service_screening_questions" (
@@ -183,7 +195,8 @@ CREATE TABLE "service_screening_questions" (
 	"service_id" uuid NOT NULL,
 	"question" text NOT NULL,
 	"display_order" integer NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "service_screening_questions_display_order_nonnegative" CHECK ("service_screening_questions"."display_order" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "service_appointments" (
@@ -203,7 +216,8 @@ CREATE TABLE "service_reviews" (
 	"comment" text,
 	"advisor_reply" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"modified_at" timestamp with time zone DEFAULT now() NOT NULL
+	"modified_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "service_reviews_stars_range" CHECK ("service_reviews"."stars" BETWEEN 1 AND 5)
 );
 --> statement-breakpoint
 CREATE TABLE "service_timeslots" (
@@ -213,7 +227,8 @@ CREATE TABLE "service_timeslots" (
 	"end_time" timestamp with time zone NOT NULL,
 	"status" timeslot_status DEFAULT 'OPEN' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"modified_at" timestamp with time zone DEFAULT now() NOT NULL
+	"modified_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "service_timeslots_end_after_start" CHECK ("service_timeslots"."end_time" > "service_timeslots"."start_time")
 );
 --> statement-breakpoint
 CREATE TABLE "payout_invoices" (
@@ -229,7 +244,8 @@ CREATE TABLE "payouts" (
 	"provider_transfer_id" varchar,
 	"status" "payout_status" DEFAULT 'PENDING' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"paid_at" timestamp with time zone
+	"paid_at" timestamp with time zone,
+	CONSTRAINT "payouts_amount_satang_positive" CHECK ("payouts"."amount_satang" > 0)
 );
 --> statement-breakpoint
 CREATE TABLE "refund_cases" (
@@ -251,7 +267,10 @@ CREATE TABLE "service_invoices" (
 	"provider_charge_id" varchar,
 	"status" "invoice_status" DEFAULT 'PENDING' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"modified_at" timestamp with time zone DEFAULT now() NOT NULL
+	"modified_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "service_invoices_appointment_id_unique" UNIQUE("appointment_id"),
+	CONSTRAINT "service_invoices_amount_satang_nonnegative" CHECK ("service_invoices"."amount_satang" >= 0),
+	CONSTRAINT "service_invoices_platform_fee_range" CHECK ("service_invoices"."platform_fee_satang" BETWEEN 0 AND "service_invoices"."amount_satang")
 );
 --> statement-breakpoint
 CREATE TABLE "chat_files" (
@@ -263,7 +282,8 @@ CREATE TABLE "chat_files" (
 	"mime_type" varchar NOT NULL,
 	"file_size_bytes" integer NOT NULL,
 	"expiry_date" timestamp with time zone,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "chat_files_size_range" CHECK ("chat_files"."file_size_bytes" BETWEEN 1 AND 52428800)
 );
 --> statement-breakpoint
 CREATE TABLE "chat_members" (
@@ -296,7 +316,8 @@ CREATE TABLE "off_platform_flags" (
 	"reviewed_by_admin_id" uuid,
 	"penalty_points_applied" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"reviewed_at" timestamp with time zone
+	"reviewed_at" timestamp with time zone,
+	CONSTRAINT "off_platform_flags_penalty_points_nonnegative" CHECK ("off_platform_flags"."penalty_points_applied" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "user_reports" (
@@ -321,10 +342,10 @@ CREATE TABLE "notifications" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "admin_profiles" ADD CONSTRAINT "admin_profiles_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pdpa_consents" ADD CONSTRAINT "pdpa_consents_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advisor_identity" ADD CONSTRAINT "advisor_identity_advisor_id_advisor_profiles_user_id_fk" FOREIGN KEY ("advisor_id") REFERENCES "public"."advisor_profiles"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advisor_identity" ADD CONSTRAINT "advisor_identity_verified_by_admin_id_admin_profiles_user_id_fk" FOREIGN KEY ("verified_by_admin_id") REFERENCES "public"."admin_profiles"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advisor_profiles" ADD CONSTRAINT "advisor_profiles_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -367,4 +388,9 @@ ALTER TABLE "user_reports" ADD CONSTRAINT "user_reports_reported_user_id_user_id
 ALTER TABLE "user_reports" ADD CONSTRAINT "user_reports_chat_room_id_chat_rooms_id_fk" FOREIGN KEY ("chat_room_id") REFERENCES "public"."chat_rooms"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_reports" ADD CONSTRAINT "user_reports_reviewed_by_admin_id_admin_profiles_user_id_fk" FOREIGN KEY ("reviewed_by_admin_id") REFERENCES "public"."admin_profiles"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_owner_id_user_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "screening_requests_advisee_service_key" ON "screening_requests" USING btree ("advisee_id","service_id");
+CREATE INDEX "account_user_id_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "session_user_id_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");--> statement-breakpoint
+CREATE UNIQUE INDEX "screening_requests_advisee_service_key" ON "screening_requests" USING btree ("advisee_id","service_id");--> statement-breakpoint
+CREATE INDEX "chat_members_member_user_id_idx" ON "chat_members" USING btree ("member_user_id");--> statement-breakpoint
+CREATE INDEX "chat_messages_room_created_id_idx" ON "chat_messages" USING btree ("chat_room_id","created_at","id");

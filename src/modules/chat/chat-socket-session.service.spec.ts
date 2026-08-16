@@ -5,6 +5,9 @@ import type { ChatSocket } from './chat-socket-session.service';
 jest.mock('better-auth/node', () => ({
   fromNodeHeaders: jest.fn(() => new Headers()),
 }));
+jest.mock('@thallesp/nestjs-better-auth', () => ({
+  AuthService: class AuthService {},
+}));
 
 import { ChatSocketSessionService } from './chat-socket-session.service';
 

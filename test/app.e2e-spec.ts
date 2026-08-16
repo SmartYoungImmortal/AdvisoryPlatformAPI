@@ -398,7 +398,7 @@ describe('authentication and authorization (e2e)', () => {
   it('creates an Advisee session, upgrades once, and then permits the Advisor route', async () => {
     const { agent } = await signUp();
 
-    await agent.get('/api/v1/advisors/me').expect(403);
+    await agent.get('/api/v1/advisors/me').expect(404);
 
     const upgraded = await agent
       .post('/api/v1/advisors/me')
@@ -463,6 +463,7 @@ describe('authentication and authorization (e2e)', () => {
       .expect(403);
 
     await db.insert(adminProfiles).values({ userId });
+    await db.update(user).set({ role: 'admin' }).where(eq(user.id, userId));
     const adminProfile = await agent.get('/api/v1/users/me').expect(200);
     expect(object(object(adminProfile.body).data)).toMatchObject({
       roles: ['ADVISEE', 'ADMIN'],

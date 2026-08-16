@@ -1,10 +1,55 @@
-import { betterAuth } from 'better-auth';
+import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import type { ConfigService } from '@nestjs/config';
 import type { DrizzleDB } from '@/database/database.module';
 import * as schema from '@/database/schema';
 import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
+import { admin as adminPlugin } from 'better-auth/plugins';
+import { createAccessControl } from 'better-auth/plugins/access';
+import {
+  adminAc,
+  defaultStatements,
+  userAc,
+} from 'better-auth/plugins/admin/access';
+
+const statements = {
+  ...defaultStatements,
+  profile: ['read', 'updateSelf', 'deleteSelf'],
+  advisor: ['createSelf', 'read', 'updateSelf'],
+  advisorService: ['createSelf', 'read', 'update', 'delete'],
+  skills: ['create', 'read', 'update', 'delete'],
+} as const;
+
+const ac = createAccessControl(statements);
+const adminStatements = {
+  ...adminAc.statements,
+  profile: ['read', 'updateSelf', 'deleteSelf'],
+  skills: ['create', 'read', 'update', 'delete'],
+} as const;
+const advisorStatements = {
+  ...userAc.statements,
+  profile: ['read', 'updateSelf', 'deleteSelf'],
+  advisor: ['createSelf', 'read', 'updateSelf'],
+  advisorService: ['createSelf', 'read', 'update', 'delete'],
+  skills: ['read', 'create'],
+} as const;
+const adviseeStatements = {
+  ...userAc.statements,
+  profile: ['read', 'updateSelf', 'deleteSelf'],
+  advisor: ['createSelf', 'read'],
+  advisorService: ['read'],
+  skills: ['read'],
+} as const;
+const adminRole = ac.newRole(adminStatements);
+const advisorRole = ac.newRole(advisorStatements);
+const adviseeRole = ac.newRole(adviseeStatements);
+
+export const appRoles = {
+  admin: adminRole,
+  advisor: advisorRole,
+  advisee: adviseeRole,
+};
 
 /**
  * better-auth owns the `user` table's base fields (id, email, emailVerified, name, image,
@@ -60,9 +105,25 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
         },
       },
     },
+    plugins: [
+      adminPlugin({
+        ac,
+        roles: appRoles,
+        defaultRole: 'advisee',
+      }),
+    ],
   });
 }
 
 export type Auth = ReturnType<typeof createAuth>;
+export type AuthRoles = keyof typeof appRoles;
 export type AuthSession = Auth['$Infer']['Session'];
 export type SessionUser = AuthSession['user'];
+export type AuthStatements = {
+  [Resource in keyof typeof statements]?: Array<
+    (typeof statements)[Resource][number]
+  >;
+};
+export interface MemberHasPermissionOptions {
+  permissions: AuthStatements;
+}

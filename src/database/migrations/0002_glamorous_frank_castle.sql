@@ -1,2 +1,0 @@
-CREATE INDEX "chat_members_member_user_id_idx" ON "chat_members" USING btree ("member_user_id");--> statement-breakpoint
-CREATE INDEX "chat_messages_room_created_id_idx" ON "chat_messages" USING btree ("chat_room_id","created_at","id");

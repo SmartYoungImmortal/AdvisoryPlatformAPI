@@ -21,7 +21,6 @@ import {
 } from '@/common/decorators/api-docs.decorator';
 import { Public } from '@/common/decorators/public.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
-import { Role, Roles } from '@/common/decorators/roles.decorator';
 import { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
@@ -29,6 +28,8 @@ import { ServiceCategoryResponseDto } from './dtos/service-category-response.dto
 import { UpdateServiceCategoryDto } from './dtos/update-service-category.dto';
 import { SERVICE_CATEGORY_MESSAGES } from './service-categories.constants';
 import { ServiceCategoriesService } from './service-categories.service';
+import { AuthRoles } from '@/modules/auth/auth.config';
+import { Roles } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Service Categories')
 @Controller('api/v1/service-categories')
@@ -55,7 +56,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.findOne(id);
   }
 
-  @Roles(Role.Admin)
+  @Roles(['admin'] as AuthRoles[])
   @Post()
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.created)
   @ApiCreate(ServiceCategoryResponseDto)
@@ -65,7 +66,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.create(dto);
   }
 
-  @Roles(Role.Admin)
+  @Roles(['admin'] as AuthRoles[])
   @Patch(':id')
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.updated)
   @ApiUpdate(ServiceCategoryResponseDto)
@@ -76,7 +77,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.update(id, dto);
   }
 
-  @Roles(Role.Admin)
+  @Roles(['admin'] as AuthRoles[])
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.deleted)

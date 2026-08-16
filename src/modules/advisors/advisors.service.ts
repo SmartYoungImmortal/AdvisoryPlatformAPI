@@ -30,6 +30,7 @@ export class AdvisorsService {
     if (!advisor) {
       throw new ConflictException(ADVISOR_MESSAGES.alreadyExists);
     }
+
     return new AdvisorOwnProfileResponseDto(user, advisor);
   }
 

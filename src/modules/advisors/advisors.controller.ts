@@ -7,20 +7,24 @@ import {
 } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
-import { Role, Roles } from '@/common/decorators/roles.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { ADVISOR_MESSAGES } from './advisors.constants';
 import { AdvisorOwnProfileResponseDto } from './dtos/advisor-own-profile-response.dto';
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
 import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 import { AdvisorsService } from './advisors.service';
+import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Advisors')
 @Controller('api/v1/advisors')
 export class AdvisorsController {
   constructor(private readonly advisorsService: AdvisorsService) {}
 
-  @Roles(Role.Advisee)
+  @UserHasPermission({
+    permission: {
+      advisor: ['createSelf'],
+    },
+  })
   @Post('me')
   @ResponseMessage(ADVISOR_MESSAGES.created)
   @ApiCreate(AdvisorOwnProfileResponseDto, { name: 'Advisor profile' })
@@ -32,7 +36,11 @@ export class AdvisorsController {
     return this.advisorsService.upgrade(user, dto);
   }
 
-  @Roles(Role.Advisor)
+  @UserHasPermission({
+    permission: {
+      advisor: ['read'],
+    },
+  })
   @Get('me')
   @ApiGetOne(AdvisorOwnProfileResponseDto, { name: 'Advisor profile' })
   getMe(
@@ -41,7 +49,11 @@ export class AdvisorsController {
     return this.advisorsService.getMe(user);
   }
 
-  @Roles(Role.Advisor)
+  @UserHasPermission({
+    permission: {
+      advisor: ['updateSelf'],
+    },
+  })
   @Patch('me')
   @ResponseMessage(ADVISOR_MESSAGES.updated)
   @ApiUpdate(AdvisorOwnProfileResponseDto, { name: 'Advisor profile' })
