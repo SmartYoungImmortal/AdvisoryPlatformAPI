@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,15 +9,10 @@ import { AdvisorOwnProfileResponseDto } from './dtos/advisor-own-profile-respons
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
 import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 import { AdvisorsRepository } from './advisors.repository';
-import { Auth } from '@/modules/auth/auth.config';
-import { AuthService } from '@thallesp/nestjs-better-auth';
 
 @Injectable()
 export class AdvisorsService {
-  constructor(
-    private readonly advisorsRepository: AdvisorsRepository,
-    @Inject(AuthService) private authService: AuthService<Auth>,
-  ) {}
+  constructor(private readonly advisorsRepository: AdvisorsRepository) {}
 
   async getMe(user: SessionUser): Promise<AdvisorOwnProfileResponseDto> {
     const advisor = await this.advisorsRepository.findByUserId(user.id);
