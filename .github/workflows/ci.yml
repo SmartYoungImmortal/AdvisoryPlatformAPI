@@ -37,11 +37,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+        name: Install pnpm
         with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
+          version: 11
+          cache: true
+      - name: Install dependencies
+        run: pnpm install
       - run: >-
           docker run -d --name minio
           -e MINIO_ROOT_USER=minioadmin
@@ -58,7 +60,7 @@ jobs:
             docker logs minio
             exit 1
           fi
-      - run: npm run db:migrate
-      - run: npm run build
-      - run: npm run lint
-      - run: npm run test:cov
+      - run: pnpm run db:migrate
+      - run: pnpm run build
+      - run: pnpm run lint
+      - run: pnpm run test:cov
