@@ -13,6 +13,12 @@ erDiagram
         enum status
         datetimetz createdAt
         datetimetz modifiedAt
+        %% better auth admin plugin
+        %% possible values: "admin" | "advisor" | "advisee"
+        varchar role
+        bool banned
+        varchar bannedReason
+        datetimetz banExpires
     }
 
     PDPA_CONSENTS {
@@ -292,6 +298,21 @@ erDiagram
         datetimetz createdAt
     }
 
+    OMISE_CUSTOMERS {
+        uuid userId fk,pk
+        varchar customerId pk
+    }
+
+    OMISE_CARDS {
+        uuid userId fk,pk
+        varchar cardId pk
+    }
+
+    OMISE_BANK_ACCOUNTS {
+        uuid userId fk,pk
+        varchar bankAccountId pk
+        boolean isDefault
+    }
 
     USERS ||--o| ADVISOR_PROFILES : "is an"
     USERS ||--o| ADMIN_PROFILES : "is an"
@@ -344,3 +365,7 @@ erDiagram
     ADMIN_PROFILES ||--o{ USER_REPORTS : "handles"
 
     USERS ||--o{ NOTIFICATIONS : "notified by"
+
+    USERS ||--o| OMISE_CUSTOMERS : "pay using"
+    USERS ||--o| OMISE_CARDS : "registered"
+    ADVISOR_PROFILES ||--o{ OMISE_BANK_ACCOUNTS : "get paid py"

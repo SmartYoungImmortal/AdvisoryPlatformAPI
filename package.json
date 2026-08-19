@@ -42,6 +42,7 @@
     "express": "^5.2.1",
     "minio": "^8.0.7",
     "multer": "^2.2.0",
+    "omise": "^1.1.0",
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
