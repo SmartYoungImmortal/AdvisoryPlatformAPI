@@ -7,7 +7,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { user } from './auth';
+import { user } from '@/database/schema';
 
 export const notificationTypeEnum = pgEnum('notification_type', [
   'BOOKING_CONFIRMED',

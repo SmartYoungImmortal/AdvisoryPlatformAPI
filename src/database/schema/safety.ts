@@ -9,8 +9,12 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { adminProfiles, user } from './auth';
-import { chatMessages, chatRooms } from './chat';
+import {
+  user,
+  chatMessages,
+  chatRooms,
+  adminProfiles,
+} from '@/database/schema';
 
 export const offPlatformFlagStatusEnum = pgEnum('off_platform_flag_status', [
   'PENDING_REVIEW',

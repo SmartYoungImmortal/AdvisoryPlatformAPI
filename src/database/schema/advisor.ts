@@ -10,8 +10,9 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { adminProfiles, user } from './auth';
+import { user } from '@/database/schema';
 import { bytea } from './custom-types';
+import { adminProfiles } from '@/database/schema/auth-supplements';
 
 export const identityVerificationStatusEnum = pgEnum(
   'identity_verification_status',
