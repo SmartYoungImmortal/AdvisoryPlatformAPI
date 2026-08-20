@@ -10,10 +10,13 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { adminProfiles, user } from './auth';
-import { advisorProfiles } from './advisor';
-import { serviceAppointments } from './booking';
 import { boolean } from 'drizzle-orm/pg-core';
+import {
+  user,
+  advisorProfiles,
+  serviceAppointments,
+  adminProfiles,
+} from '@/database/schema';
 
 export const invoiceStatusEnum = pgEnum('invoice_status', [
   'PENDING',

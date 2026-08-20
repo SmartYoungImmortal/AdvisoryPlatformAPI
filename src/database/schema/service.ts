@@ -10,7 +10,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { advisorProfiles } from './advisor';
+import { advisorProfiles } from '@/database/schema';
 
 export const serviceCategories = pgTable('service_categories', {
   id: uuid('id').primaryKey().defaultRandom(),

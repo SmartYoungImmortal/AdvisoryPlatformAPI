@@ -9,9 +9,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { user } from './auth';
-import { chatRooms } from './chat';
-import { services } from './service';
+import { user, chatRooms, services } from '@/database/schema';
 
 export const timeslotStatusEnum = pgEnum('timeslot_status', [
   'OPEN',

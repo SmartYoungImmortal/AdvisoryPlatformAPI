@@ -15,6 +15,13 @@
       "when": 1787164698814,
       "tag": "0001_freezing_namorita",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787223388307,
+      "tag": "0002_nosy_wallow",
+      "breakpoints": true
     }
   ]
 }
