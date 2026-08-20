@@ -304,6 +304,7 @@ describe('authentication and authorization (e2e)', () => {
       title: 'Private notification',
     });
     await db.insert(verification).values({
+      id: crypto.randomUUID(),
       identifier: email,
       value: crypto.randomUUID(),
       expiresAt: new Date(Date.now() + 60_000),
