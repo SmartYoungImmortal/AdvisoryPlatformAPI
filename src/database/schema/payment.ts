@@ -13,6 +13,7 @@ import { sql } from 'drizzle-orm';
 import { adminProfiles, user } from './auth';
 import { advisorProfiles } from './advisor';
 import { serviceAppointments } from './booking';
+import { boolean } from 'drizzle-orm/pg-core';
 
 export const invoiceStatusEnum = pgEnum('invoice_status', [
   'PENDING',
@@ -116,4 +117,27 @@ export const refundCases = pgTable('refund_cases', {
     .notNull()
     .defaultNow(),
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+});
+
+export const omiseCustomers = pgTable('omise_customers', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .unique()
+    .references(() => user.id),
+  customerId: varchar('customer_id').notNull().unique(),
+});
+
+export const omiseCards = pgTable('omise_cards', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => user.id),
+  cardId: varchar('card_id').notNull().unique(),
+});
+
+export const omiseBankAccounts = pgTable('omise_bank_accounts', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => user.id),
+  bankAccountId: varchar('bank_account_id').notNull().unique(),
+  isDefault: boolean().notNull().default(false),
 });
