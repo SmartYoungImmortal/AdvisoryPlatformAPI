@@ -8,14 +8,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import * as schema from './schema';
+import { relations } from './relations';
 import { ENV_KEYS } from '@/config/env.constants';
 import { Env } from '@/config/env.schema';
 
 export const DRIZZLE = Symbol('DRIZZLE');
 export const PG_POOL = Symbol('PG_POOL');
 
-export type DrizzleDB = NodePgDatabase<typeof schema>;
+export type DrizzleDB = NodePgDatabase<typeof relations>;
 
 @Injectable()
 class DatabaseLifecycle implements OnApplicationShutdown {
@@ -40,7 +40,8 @@ class DatabaseLifecycle implements OnApplicationShutdown {
     {
       provide: DRIZZLE,
       inject: [PG_POOL],
-      useFactory: (pool: Pool): DrizzleDB => drizzle(pool, { schema }),
+      useFactory: (pool: Pool): DrizzleDB =>
+        drizzle({ client: pool, relations }),
     },
     DatabaseLifecycle,
   ],

@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { DrizzleDB } from '@/database/database.module';
-import * as schema from '@/database/schema';
+import { relations } from '@/database/relations';
 import { UsersRepository } from './users.repository';
 
 describe('UsersRepository (integration)', () => {
@@ -11,7 +11,7 @@ describe('UsersRepository (integration)', () => {
 
   beforeAll(() => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const db: DrizzleDB = drizzle(pool, { schema });
+    const db: DrizzleDB = drizzle({ client: pool, relations });
     repository = new UsersRepository(db);
   });
 

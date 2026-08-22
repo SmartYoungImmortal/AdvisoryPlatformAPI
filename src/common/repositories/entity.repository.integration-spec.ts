@@ -4,7 +4,7 @@ import { pgTable, uuid, text, integer } from 'drizzle-orm/pg-core';
 import { eq } from 'drizzle-orm';
 import { EntityRepository } from './entity.repository';
 import type { DrizzleDB } from '@/database/database.module';
-import * as schema from '@/database/schema';
+import { relations } from '@/database/relations';
 
 const widgets = pgTable('_test_widgets', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -25,7 +25,7 @@ describe('EntityRepository (integration)', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    db = drizzle(pool, { schema });
+    db = drizzle({ client: pool, relations });
     repo = new WidgetRepository(db);
 
     await db.execute(`

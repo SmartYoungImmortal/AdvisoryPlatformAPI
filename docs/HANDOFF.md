@@ -1,6 +1,6 @@
 # Handoff
 
-Current as of 2026-08-15. Use `git status` for the working-tree state and [`dev-log.md`](./dev-log.md)
+Current as of 2026-08-22. Use `git status` for the working-tree state and [`dev-log.md`](./dev-log.md)
 for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide.
 
 ## What works
@@ -11,7 +11,9 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
   repositories retain named authorization, transaction, join, and invariant-aware queries.
 - Cross-directory imports use the `@/` alias; same-folder feature imports remain relative with
   `./`. Nest build and all Jest configurations resolve the alias consistently.
-- Drizzle/Postgres connection lifecycle and the canonical 31-table schema, with forward migrations.
+- Drizzle ORM v1 RC/Postgres connection lifecycle and the canonical 31-table schema, with forward
+  migrations. Relational Queries v2 uses the central [`relations.ts`](../src/database/relations.ts)
+  configuration; no legacy `relations()` declarations remain.
 - Better Auth at `/api/auth/*`, using raw request bodies and cookie sessions.
 - A fail-closed global `SessionGuard`: public routes require `@Public()`, inactive accounts receive
   403, and one shared role resolver derives additive Advisor/Admin membership from profile rows for
@@ -40,10 +42,10 @@ appointment. Better Auth lookup indexes and user-delete cascades exist for its s
 ## Run and verify
 
 ```bash
-npm install
+pnpm install
 docker compose up -d
-npm run db:migrate
-npm run start:dev
+pnpm run db:migrate
+pnpm run start:dev
 ```
 
 Swagger is at `http://localhost:3000/api/docs`. Better Auth is not shown there; use the auth section
@@ -53,12 +55,12 @@ The local MinIO console is at `http://localhost:9001`; its development-only cred
 `.env.example`.
 
 ```bash
-npm run build
-npm run lint
-npm test -- --runInBand
-npm run test:integration
-npm run test:e2e
-npm run test:cov
+pnpm run build
+pnpm run lint
+pnpm test -- --runInBand
+pnpm run test:integration
+pnpm run test:e2e
+pnpm run test:cov
 ```
 
 ## Known gaps

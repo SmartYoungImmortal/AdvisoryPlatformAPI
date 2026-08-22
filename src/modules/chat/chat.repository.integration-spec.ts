@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import { Pool } from 'pg';
 import type { DrizzleDB } from '@/database/database.module';
-import * as schema from '@/database/schema';
+import { relations } from '@/database/relations';
 import { chatMembers, chatMessages, chatRooms, user } from '@/database/schema';
 import { ChatRepository } from './chat.repository';
 
@@ -17,7 +17,7 @@ describe('ChatRepository (integration)', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    db = drizzle(pool, { schema });
+    db = drizzle({ client: pool, relations });
     repository = new ChatRepository(db);
     await db.insert(user).values(
       [firstUserId, secondUserId, outsiderId].map((id) => ({
