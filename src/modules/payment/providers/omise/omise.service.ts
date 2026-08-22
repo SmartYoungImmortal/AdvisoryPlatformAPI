@@ -1,25 +1,26 @@
 import { ENV_KEYS } from '@/config/env.constants';
 import { SessionUser } from '@/modules/auth/auth.config';
+import { IPaymentProvider } from '@/modules/payment/providers/interface';
+import type {
+  CardId,
+  CustomerId,
+  TokenId,
+} from '@/modules/payment/providers/omise/types';
+import { TokenIdPrefix } from '@/modules/payment/providers/omise/types';
 import { OmiseRepository } from '@/modules/payment/providers/omise/omise.repository';
 import {
   ChargeStatus,
   FailureCodeEnum,
   FailureCodeKeys,
-  IPaymentProvider,
 } from '@/modules/payment/providers/providers';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Omise from 'omise';
-
-function createOmiseCustomer(user: SessionUser): Omise.Customers.IRequest {
-  return {
-    email: user.email,
-    description: `Name: ${user.name}; Full Name: ${user.fullName};`,
-    metadata: {
-      userId: user.id,
-    },
-  };
-}
+import {
+  createOmiseCustomer,
+  getCardIds,
+  sortCardsDescendingAddDate,
+} from '@/modules/payment/providers/omise/utils';
 
 @Injectable()
 export class OmisePaymentProvider implements IPaymentProvider {
@@ -36,71 +37,92 @@ export class OmisePaymentProvider implements IPaymentProvider {
     });
   }
 
-  async createCustomerAndBindCard(
+  async saveTokenToOmiseCustomer(
     user: SessionUser,
-    cardToken: string,
-  ): Promise<void> {
-    const customerReqData: Omise.Customers.IRequest = {
-      ...createOmiseCustomer(user),
-      card: cardToken,
-    };
-
-    const omiseCustomerRes = await this.omise.customers.create(customerReqData);
-
-    await this.repo.recordOmiseCustomer(user.id, omiseCustomerRes.id);
-    return;
+    customerId: CustomerId,
+    tokenId: TokenId,
+  ) {
+    const customer = await this.omise.customers.update(customerId, {
+      card: tokenId,
+    });
+    await this.repo.recordOmiseCards(user.id, getCardIds(customer.cards.data));
+    return customer;
   }
 
-  async chargeDefaultCard(
+  async getOmiseCustomerIdandSaveToken(
     user: SessionUser,
-    amount: number,
-  ): Promise<ChargeStatus> {
-    const omiseCustomer = await this.repo.getOmiseCustomer(user.id);
-
-    if (!omiseCustomer)
-      throw new BadRequestException('Omise customer not found');
-
-    try {
-      const chargeRes = await this.omise.charges.create({
-        amount,
-        currency: this.config.get(ENV_KEYS.CURRENCY_CODE) || 'thb',
-        customer: omiseCustomer.customerId,
-      });
-      if (chargeRes.failure_code) {
-        return {
-          status: 'failed',
-          errorCode: FailureCodeKeys.parse(chargeRes.failure_code),
-          message: FailureCodeEnum.parse(chargeRes.failure_code),
-        };
-      }
+    cardOrTokenId: CardId | TokenId,
+  ): Promise<{
+    customerId: CustomerId;
+    cardId: CardId;
+  }> {
+    const isToken = cardOrTokenId.startsWith(TokenIdPrefix);
+    const localOmiseCustomer = await this.repo.getOmiseCustomer(user.id);
+    if (localOmiseCustomer !== undefined) {
+      const customerId = localOmiseCustomer.customerId as CustomerId;
+      const cardId: CardId = isToken
+        ? (sortCardsDescendingAddDate(
+            (
+              await this.saveTokenToOmiseCustomer(
+                user,
+                customerId,
+                cardOrTokenId as TokenId,
+              )
+            ).cards.data,
+          )[0].id as CardId)
+        : (cardOrTokenId as CardId);
       return {
-        status: 'success',
-      };
-    } catch (error) {
-      console.error(error);
-      return {
-        status: 'failed',
-        errorCode: 'unspecified',
-        message: FailureCodeEnum.parse('unspecified'),
+        customerId,
+        cardId,
       };
     }
+
+    if (!isToken) throw new BadRequestException('Card token expected');
+
+    const customerReqData: Omise.Customers.IRequest = {
+      ...createOmiseCustomer(user),
+      card: cardOrTokenId,
+    };
+
+    const customer = await this.omise.customers.create(customerReqData);
+    const recordCustomerPromise = this.repo.recordOmiseCustomer(
+      user.id,
+      customer.id as CustomerId,
+    );
+    const recordCardsPromise = this.repo.recordOmiseCards(
+      user.id,
+      getCardIds(customer.cards.data),
+    );
+
+    const customerId = customer.id as CustomerId;
+    const cardId = sortCardsDescendingAddDate(customer.cards.data)[0]
+      .id as CardId;
+
+    await Promise.all([recordCustomerPromise, recordCardsPromise]);
+    return {
+      customerId,
+      cardId,
+    };
   }
 
   async chargeSpecificCard(
     user: SessionUser,
     amount: number,
-    cardId: string,
+    cardOrTokenId: CardId | TokenId,
+    redirectUri: string,
   ): Promise<ChargeStatus> {
-    const omiseCustomer = await this.repo.getOmiseCustomer(user.id);
+    const { customerId, cardId } = await this.getOmiseCustomerIdandSaveToken(
+      user,
+      cardOrTokenId,
+    );
 
-    if (!omiseCustomer)
-      throw new BadRequestException('Omise customer not found');
     try {
       const chargeRes = await this.omise.charges.create({
         amount,
         currency: this.config.get(ENV_KEYS.CURRENCY_CODE) || 'thb',
-        customer: omiseCustomer.customerId,
+        customer: customerId,
         card: cardId,
+        return_uri: redirectUri,
       });
       if (chargeRes.failure_code) {
         return {
@@ -111,8 +133,9 @@ export class OmisePaymentProvider implements IPaymentProvider {
       }
       return {
         status: 'success',
+        redirectUrl: chargeRes.authorize_uri,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
       return {
         status: 'failed',

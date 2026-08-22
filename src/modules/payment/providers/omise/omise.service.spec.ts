@@ -90,7 +90,7 @@ describe('OmisePaymentProvider', () => {
       const mockCustomerResponse = { id: 'cust_test_123' };
       mockCustomersCreate.mockResolvedValue(mockCustomerResponse);
 
-      await provider.createCustomerAndBindCard(mockUser, cardToken);
+      await provider.getOmiseCustomerIdandSaveToken(mockUser, cardToken);
 
       expect(mockCustomersCreate).toHaveBeenCalledWith({
         email: mockUser.email,
@@ -104,72 +104,6 @@ describe('OmisePaymentProvider', () => {
         mockUser.id,
         mockCustomerResponse.id,
       );
-    });
-  });
-
-  describe('chargeDefaultCard', () => {
-    it('should throw BadRequestException if omise customer is not found', async () => {
-      mockOmiseRepository.getOmiseCustomer.mockResolvedValue(null);
-
-      await expect(provider.chargeDefaultCard(mockUser, 1000)).rejects.toThrow(
-        BadRequestException,
-      );
-      expect(mockOmiseRepository.getOmiseCustomer).toHaveBeenCalledWith(
-        mockUser.id,
-      );
-    });
-
-    it('should return a success status if the charge is created without a failure_code', async () => {
-      mockOmiseRepository.getOmiseCustomer.mockResolvedValue({
-        customerId: 'cust_test_123',
-      });
-      mockChargesCreate.mockResolvedValue({
-        id: 'chrg_test_123',
-        failure_code: null,
-      });
-
-      const result = await provider.chargeDefaultCard(mockUser, 1000);
-
-      expect(mockChargesCreate).toHaveBeenCalledWith({
-        amount: 1000,
-        currency: 'thb',
-        customer: 'cust_test_123',
-      });
-      expect(result).toEqual({ status: 'success' });
-    });
-
-    it('should return a failed status with parsed errorCode/message if charge has a failure_code', async () => {
-      mockOmiseRepository.getOmiseCustomer.mockResolvedValue({
-        customerId: 'cust_test_123',
-      });
-      mockChargesCreate.mockResolvedValue({
-        id: 'chrg_test_123',
-        failure_code: 'insufficient_funds',
-      });
-
-      const result = await provider.chargeDefaultCard(mockUser, 1000);
-
-      expect(result).toEqual({
-        status: 'failed',
-        errorCode: 'insufficient_funds',
-        message: 'Mocked message for insufficient_funds',
-      });
-    });
-
-    it('should catch errors and return an unspecified failed status', async () => {
-      mockOmiseRepository.getOmiseCustomer.mockResolvedValue({
-        customerId: 'cust_test_123',
-      });
-      mockChargesCreate.mockRejectedValue(new Error('Network error'));
-
-      const result = await provider.chargeDefaultCard(mockUser, 1000);
-
-      expect(console.error).toHaveBeenCalled();
-      expect(result).toEqual({
-        status: 'failed',
-        errorCode: 'unspecified',
-        message: 'Mocked message for unspecified',
-      });
     });
   });
 

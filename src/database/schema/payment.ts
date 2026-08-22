@@ -131,16 +131,12 @@ export const omiseCustomers = pgTable('omise_customers', {
 });
 
 export const omiseCards = pgTable('omise_cards', {
-  userId: uuid('user_id')
-    .primaryKey()
-    .references(() => user.id),
-  cardId: varchar('card_id').notNull().unique(),
+  userId: uuid('user_id').references(() => user.id),
+  cardId: varchar('card_id').notNull().primaryKey(),
 });
 
 export const omiseBankAccounts = pgTable('omise_bank_accounts', {
-  userId: uuid('user_id')
-    .primaryKey()
-    .references(() => user.id),
-  bankAccountId: varchar('bank_account_id').notNull().unique(),
+  userId: uuid('user_id').references(() => user.id),
+  bankAccountId: varchar('bank_account_id').notNull().primaryKey(),
   isDefault: boolean().notNull().default(false),
 });

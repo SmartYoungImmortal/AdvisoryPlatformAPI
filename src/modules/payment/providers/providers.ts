@@ -1,5 +1,4 @@
-import type { SessionUser } from '@/modules/auth/auth.config';
-import z from 'zod';
+import { z } from 'zod';
 
 export const FailureCodesMap = {
   confirmed_amount_mismatch:
@@ -21,18 +20,23 @@ export const FailureCodesMap = {
   expired_card: 'Card is expired.',
   stolen_or_lost_card: 'Card stolen or lost.',
   timeout: 'Payment provider did not respond in time.',
-  unspecified: 'Other unspeciffied error.',
+  unspecified: 'Other unspecified error.',
 } as const;
+
 export const FailureCodeKeys = z.enum(
   Object.keys(FailureCodesMap) as [
     keyof typeof FailureCodesMap,
     ...(keyof typeof FailureCodesMap)[],
   ],
 );
-export const FailureCodeEnum = z.enum(FailureCodesMap);
+
+export const FailureCodeEnum = FailureCodeKeys.transform(
+  (key) => FailureCodesMap[key],
+);
+
 export const chargeStatus = z.discriminatedUnion('status', [
   z.object({ status: z.literal('pending') }),
-  z.object({ status: z.literal('success') }),
+  z.object({ status: z.literal('success'), redirectUrl: z.url() }),
   z.object({
     status: z.literal('failed'),
     errorCode: FailureCodeKeys,
@@ -40,16 +44,3 @@ export const chargeStatus = z.discriminatedUnion('status', [
   }),
 ]);
 export type ChargeStatus = z.infer<typeof chargeStatus>;
-
-export interface IPaymentProvider {
-  createCustomerAndBindCard(
-    user: SessionUser,
-    cardToken: string,
-  ): Promise<void>;
-  chargeDefaultCard(user: SessionUser, amount: number): Promise<ChargeStatus>;
-  chargeSpecificCard(
-    user: SessionUser,
-    amount: number,
-    cardId: string,
-  ): Promise<ChargeStatus>;
-}
