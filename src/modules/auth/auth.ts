@@ -1,7 +1,6 @@
 import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import * as schema from '@/database/schema';
-import { ENV_KEYS } from '@/config/env.constants';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import {
