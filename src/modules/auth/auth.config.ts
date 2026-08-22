@@ -13,33 +13,52 @@ import {
   userAc,
 } from 'better-auth/plugins/admin/access';
 
+const permissions = {
+  profile: {
+    selfManaged: ['read', 'updateSelf', 'deleteSelf'],
+  },
+  advisor: {
+    selfManaged: ['createSelf', 'read', 'updateSelf'],
+    selfCreateOrRead: ['createSelf', 'read'],
+  },
+  advisorService: {
+    selfManaged: ['createSelf', 'read', 'update', 'delete'],
+    readOnly: ['read'],
+  },
+  skills: {
+    managed: ['create', 'read', 'update', 'delete'],
+    readAndCreate: ['read', 'create'],
+    readOnly: ['read'],
+  },
+} as const;
+
 const statements = {
   ...defaultStatements,
-  profile: ['read', 'updateSelf', 'deleteSelf'],
-  advisor: ['createSelf', 'read', 'updateSelf'],
-  advisorService: ['createSelf', 'read', 'update', 'delete'],
-  skills: ['create', 'read', 'update', 'delete'],
+  profile: permissions.profile.selfManaged,
+  advisor: permissions.advisor.selfManaged,
+  advisorService: permissions.advisorService.selfManaged,
+  skills: permissions.skills.managed,
 } as const;
 
 const ac = createAccessControl(statements);
 const adminStatements = {
   ...adminAc.statements,
-  profile: ['read', 'updateSelf', 'deleteSelf'],
-  skills: ['create', 'read', 'update', 'delete'],
+  profile: permissions.profile.selfManaged,
+  skills: permissions.skills.managed,
 } as const;
 const advisorStatements = {
   ...userAc.statements,
-  profile: ['read', 'updateSelf', 'deleteSelf'],
-  advisor: ['createSelf', 'read', 'updateSelf'],
-  advisorService: ['createSelf', 'read', 'update', 'delete'],
-  skills: ['read', 'create'],
+  profile: permissions.profile.selfManaged,
+  advisor: permissions.advisor.selfManaged,
+  advisorService: permissions.advisorService.selfManaged,
+  skills: permissions.skills.readAndCreate,
 } as const;
 const adviseeStatements = {
   ...userAc.statements,
-  profile: ['read', 'updateSelf', 'deleteSelf'],
-  advisor: ['createSelf', 'read'],
-  advisorService: ['read'],
-  skills: ['read'],
+  profile: permissions.profile.selfManaged,
+  advisor: permissions.advisor.selfCreateOrRead,
+  advisorService: permissions.advisorService.readOnly,
+  skills: permissions.skills.readOnly,
 } as const;
 const adminRole = ac.newRole(adminStatements);
 const advisorRole = ac.newRole(advisorStatements);
