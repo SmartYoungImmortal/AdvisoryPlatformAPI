@@ -567,7 +567,7 @@ blocking issue dependencies, not merely related work.
 
 ### AP-039 — Detect off-platform contact patterns in chat messages
 
-- **Description:** Add deterministic, versioned detection for phone numbers, email addresses, LINE
+- **Description:** Add deterministic, versioned regex detection for phone numbers, email addresses, LINE
   IDs, and social handles, including basic spacing/punctuation evasion. Persist one evidence-linked
   flag per applicable match, avoid blocking message delivery unless explicitly approved, and add a
   focused false-positive/false-negative fixture suite.

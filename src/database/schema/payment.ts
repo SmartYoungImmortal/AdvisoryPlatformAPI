@@ -50,6 +50,8 @@ export const serviceInvoices = pgTable(
     platformFeeSatang: integer('platform_fee_satang').notNull(),
     providerChargeId: varchar('provider_charge_id'),
     status: invoiceStatusEnum('status').notNull().default('PENDING'),
+    // Set to consultation completion + seven days before it may enter a payout.
+    payoutEligibleAt: timestamp('payout_eligible_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -78,6 +80,7 @@ export const payouts = pgTable(
       .notNull()
       .references(() => advisorProfiles.userId),
     amountSatang: integer('amount_satang').notNull(),
+    transferFeeSatang: integer('transfer_fee_satang').notNull().default(2000),
     providerTransferId: varchar('provider_transfer_id'),
     status: payoutStatusEnum('status').notNull().default('PENDING'),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -87,6 +90,10 @@ export const payouts = pgTable(
   },
   (table) => [
     check('payouts_amount_satang_positive', sql`${table.amountSatang} > 0`),
+    check(
+      'payouts_transfer_fee_satang_nonnegative',
+      sql`${table.transferFeeSatang} >= 0`,
+    ),
   ],
 );
 
@@ -122,6 +129,22 @@ export const refundCases = pgTable('refund_cases', {
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 });
 
+export const refundCaseEvidence = pgTable(
+  'refund_case_evidence',
+  {
+    refundCaseId: uuid('refund_case_id')
+      .notNull()
+      .references(() => refundCases.id),
+    objectKey: varchar('object_key').notNull(),
+    originalFileName: varchar('original_file_name').notNull(),
+    mimeType: varchar('mime_type').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.refundCaseId, table.objectKey] })],
+);
+
 export const omiseCustomers = pgTable('omise_customers', {
   userId: uuid('user_id')
     .primaryKey()
@@ -142,5 +165,7 @@ export const omiseBankAccounts = pgTable('omise_bank_accounts', {
     .primaryKey()
     .references(() => user.id),
   bankAccountId: varchar('bank_account_id').notNull().unique(),
+  bankName: varchar('bank_name'),
+  accountName: varchar('account_name'),
   isDefault: boolean().notNull().default(false),
 });
