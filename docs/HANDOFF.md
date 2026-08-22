@@ -14,10 +14,11 @@ for decision history. [`../AGENTS.md`](../AGENTS.md) is the implementation guide
 - Drizzle ORM v1 RC/Postgres connection lifecycle and the canonical 31-table schema, with forward
   migrations. Relational Queries v2 uses the central [`relations.ts`](../src/database/relations.ts)
   configuration; no legacy `relations()` declarations remain.
-- Better Auth at `/api/auth/*`, using raw request bodies and cookie sessions.
-- A fail-closed global `SessionGuard`: public routes require `@Public()`, inactive accounts receive
-  403, and one shared role resolver derives additive Advisor/Admin membership from profile rows for
-  both authorization and user-profile responses.
+- Better Auth at `/api/auth/*`, using raw request bodies and cookie sessions. Protected HTTP
+  failures distinguish a missing session from an invalid or expired session cookie.
+- A fail-closed Better Auth global guard: public routes require `@Public()`, inactive accounts
+  receive 403, and one shared role resolver derives additive Advisor/Admin membership from profile
+  rows for both authorization and user-profile responses.
 - Written and copy-pasteable auth requests in [`api-spec.md`](./api-spec.md).
 - Atomic `POST /api/v1/advisors/me` Advisee-to-Advisor upgrade and owner-only `GET /api/v1/advisors/me`.
 - Owner-only `GET/PATCH /api/v1/users/me` for every authenticated account, including additive role

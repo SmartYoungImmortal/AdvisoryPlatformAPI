@@ -132,6 +132,20 @@ describe('authentication and authorization (e2e)', () => {
     await request(app.getHttpServer()).get('/api/v1/users/me').expect(401);
   });
 
+  it('explains when a supplied session cookie is invalid', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/users/me')
+      .set('Cookie', 'better-auth.session_token=invalid-value')
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          statusCode: 401,
+          message: 'Session is invalid or expired. Please sign in again.',
+          data: null,
+        });
+      });
+  });
+
   it('reads and updates the authenticated Advisee profile', async () => {
     const { agent, email } = await signUp();
 

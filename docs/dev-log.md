@@ -1,5 +1,19 @@
 # Dev log
 
+## 2026-08-22 - restored public-route authentication bypass
+
+- Updated the local `@Public()` wrapper to write the `PUBLIC` metadata consumed by Better Auth's
+  global guard. The old wrapper still wrote the legacy `isPublic` key, so legitimate public
+  endpoints incorrectly attempted session resolution and returned 401. Added focused decorator
+  coverage for the metadata contract.
+
+## 2026-08-22 - clarified invalid session failures
+
+- Protected HTTP routes now distinguish absent authentication (`Authentication required`) from a
+  supplied Better Auth session cookie that cannot be resolved (`Session is invalid or expired.
+  Please sign in again.`). The standard 401 envelope remains unchanged, and explicit module-level
+  unauthorized messages are preserved.
+
 ## 2026-08-22 - migrated object storage from MinIO to SeaweedFS
 
 - Replaced the MinIO SDK and client-specific storage boundary with the AWS S3 SDK configured for
