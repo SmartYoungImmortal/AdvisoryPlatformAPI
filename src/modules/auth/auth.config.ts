@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth/minimal';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import type { ConfigService } from '@nestjs/config';
 import type { DrizzleDB } from '@/database/database.module';
 import * as schema from '@/database/schema';
