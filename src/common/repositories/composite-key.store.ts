@@ -63,17 +63,17 @@ export class CompositeKeyStore<
   async create(
     values: InferInsertModel<TTable>,
   ): Promise<InferSelectModel<TTable>> {
-    const [row] = await this.db.insert(this.table).values(values).returning();
-    return row as InferSelectModel<TTable>;
+    const rows = await this.db.insert(this.table).values(values).returning();
+    return (rows as InferSelectModel<TTable>[])[0];
   }
 
   async delete(
     key: CompositeKeyValues<TColumns>,
   ): Promise<InferSelectModel<TTable> | undefined> {
-    const [row] = await this.db
+    const rows = await this.db
       .delete(this.table)
       .where(this.where(key))
       .returning();
-    return row as InferSelectModel<TTable> | undefined;
+    return (rows as InferSelectModel<TTable>[])[0];
   }
 }

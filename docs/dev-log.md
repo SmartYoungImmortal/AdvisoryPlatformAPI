@@ -1,5 +1,22 @@
 # Dev log
 
+## 2026-08-22 - upgraded Drizzle relations to v2
+
+- Upgraded `drizzle-orm` and `drizzle-kit` together from the 0.x line to `1.0.0-rc.4`, and applied
+  the available Better Auth patch update (`1.7.1`). TypeScript 7 was deliberately not included: it
+  is an unrelated compiler-major migration and the direct dependency audit identified no other
+  actionable upgrades.
+- Replaced the legacy per-table `relations()` declarations with a single `defineRelations()` object
+  in `src/database/relations.ts`. Every production and integration-test database factory now uses
+  Drizzle v2's `{ client, relations }` configuration.
+- Adapted generic repository create/delete helpers to v1's stricter `returning()` type surface
+  without changing their return contracts. Build, lint, and 80 unit tests pass. The Postgres
+  integration suite could not connect to its configured database in this environment; it failed
+  before assertions with the driver's connection `AggregateError`.
+- The remaining deprecated transitive packages (`glob` and `inflight`) are pulled solely through
+  Jest's current coverage dependencies. They have no safe direct upgrade or compatible override;
+  reassess when Jest updates that dependency chain.
+
 A running record of what changed and why, session by session — for picking this back up cold,
 not a user-facing release log (that's a different document, if this project ever needs one).
 Newest first. One entry per session with anything worth remembering; skip trivial sessions.

@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { DrizzleDB } from '@/database/database.module';
-import * as schema from '@/database/schema';
 import { pdpaConsents, user } from '@/database/schema';
 import { CompositeKeyStore } from './composite-key.store';
 
@@ -20,7 +19,7 @@ describe('CompositeKeyStore (integration)', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    db = drizzle(pool, { schema });
+    db = drizzle({ client: pool });
     store = new CompositeKeyStore(db, pdpaConsents, {
       userId: pdpaConsents.userId,
       policyVersion: pdpaConsents.policyVersion,
