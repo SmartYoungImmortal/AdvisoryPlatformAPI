@@ -27,9 +27,10 @@ The API listens on `http://localhost:3000` by default. Swagger is available at
 `http://localhost:3000/api/docs`; Better Auth routes under `/api/auth/*` are documented in
 [`docs/api-spec.md`](docs/api-spec.md) because Swagger intentionally does not own them.
 
-Local MinIO serves private uploaded objects. Its console is at `http://localhost:9001`; use the
-local development credentials from `.env.example` only. Override every `MINIO_*` value with
-environment-managed credentials outside local development.
+Local SeaweedFS serves private uploaded objects through its S3 gateway at
+`http://localhost:8333`. Its filer UI is available at `http://localhost:8888`; it is a file browser,
+not an administrative console. Use the local development credentials from `.env.example` only.
+Override every `SEAWEEDFS_S3_*` value with environment-managed credentials outside local development.
 
 ## Verify changes
 

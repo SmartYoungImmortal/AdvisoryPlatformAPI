@@ -17,7 +17,7 @@ top-level `%%` comments — putting these notes in the diagram file breaks rende
   `SERVICE_IMAGES`, `PDPA_CONSENTS`, `ADVISOR_IDENTITY`, and `SERVICE_REVIEWS`
   (whose PK is its FK). Tables that *are* basic entities keep a uuid — that is what the
   rule permits, and the distinction is the point of it.
-- **Files.** Anything stored in the private MinIO bucket is referenced by `objectKey`, never by URL
+- **Files.** Anything stored in the private SeaweedFS bucket is referenced by `objectKey`, never by URL
   — presigned URLs expire, so a stored URL rots. Avatar URLs are generated owner-only on demand and
   expire after five minutes.
 - **Checks.** Postgres rejects negative monetary/penalty values, invalid duration and time ranges,
@@ -101,7 +101,7 @@ has a status, a decision, a reason and a trial window, so it is one.
 - `nationalIdEncrypted` — AES at rest, key from the environment. **Never stored or logged in
   plaintext, and never returned by any endpoint.**
 - `nationalIdHash` — `UNIQUE`, so two accounts cannot claim the same identity.
-- The uploaded scan is a MinIO object key, not a URL.
+- The uploaded scan is a SeaweedFS object key, not a URL.
 
 The natural-key rule was considered here and rejected, for five reasons worth having ready:
 

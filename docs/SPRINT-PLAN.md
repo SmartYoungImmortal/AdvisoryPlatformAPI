@@ -113,7 +113,7 @@ account denial; explicit Advisor upgrade; 409 for repeat upgrade; and CI verific
 
 | Area | Work |
 |---|---|
-| Profile | Base and Advisor own-profile read/update use separate allowlisted DTOs. Private MinIO-backed avatar upload, replacement, removal, and owner-only signed reads are delivered; generic consultation files remain S8 work. |
+| Profile | Base and Advisor own-profile read/update use separate allowlisted DTOs. Private SeaweedFS-backed avatar upload, replacement, removal, and owner-only signed reads are delivered; generic consultation files remain S8 work. |
 | PDPA | Atomic account deletion revokes authentication, erases direct identity/proof data, anonymizes the retained FK anchor, and unpublishes Advisor services. |
 | Advisor profile | `headline` and `bio` are available for S4 public discovery and advisor-owned services; no speculative fields were added. |
 | Tests | Controller boundaries, role changes, profile updates, avatar upload/removal, anonymization, and immediate session revocation have database-backed coverage. |
@@ -175,7 +175,7 @@ services.
 | Area | Work |
 |---|---|
 | Video | Validate the Jitsi/hosted decision, create appointment-bound rooms, authorize only participants, and restrict access to the meeting window plus a small buffer. |
-| Files | Member-authorized upload/download with MinIO object keys, 50 MB type/size enforcement, and no stored presigned URLs. |
+| Files | Member-authorized upload/download with SeaweedFS object keys, 50 MB type/size enforcement, and no stored presigned URLs. |
 | Evidence | Measure call quality against the applicable QR and retain the result. |
 | Docs | Produce the 30% report draft from completed design and test evidence. |
 

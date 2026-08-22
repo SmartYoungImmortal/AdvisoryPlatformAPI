@@ -19,7 +19,7 @@ about a particular client implementation.
 
 ## Architecture and invariants
 
-- Stack: NestJS 11, Drizzle, self-hosted Postgres, better-auth. MinIO, Socket.IO, Jitsi,
+- Stack: NestJS 11, Drizzle, self-hosted Postgres, better-auth. SeaweedFS, Socket.IO, Jitsi,
   and Omise are planned integrations.
 - Use UUID primary keys; every timestamp is `timestamptz`.
 - Monetary values are integer satang, never floats or baht; name fields `*Satang`.

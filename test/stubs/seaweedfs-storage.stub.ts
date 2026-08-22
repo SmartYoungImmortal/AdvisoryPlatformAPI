@@ -1,10 +1,10 @@
 import type {
-  MinioStorageService,
+  SeaweedFsStorageService,
   StoredObject,
-} from '@/common/storage/minio-storage.service';
+} from '@/common/storage/seaweedfs-storage.service';
 
 type StorageBoundary = Pick<
-  MinioStorageService,
+  SeaweedFsStorageService,
   'putObject' | 'removeObject' | 'createDownloadUrl'
 >;
 
@@ -12,7 +12,7 @@ type StorageBoundary = Pick<
  * In-memory replacement for the external object-storage boundary in e2e tests.
  * The application, HTTP stack, authentication, and PostgreSQL remain real.
  */
-export class MinioStorageStub implements StorageBoundary {
+export class SeaweedFsStorageStub implements StorageBoundary {
   private readonly objects = new Map<string, StoredObject>();
 
   putObject(object: StoredObject): Promise<void> {

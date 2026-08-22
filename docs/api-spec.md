@@ -260,7 +260,7 @@ and `timezone`. Email, verification state, account status, roles, and `avatarKey
 
 Uploads or replaces the authenticated owner's avatar using `multipart/form-data` with one required
 `file` field. Only JPEG, PNG, and WebP files up to 5 MiB are accepted. The API generates the private
-MinIO object key and returns `{ "avatarKey": "avatars/<user-id>/<uuid>.webp" }` in the standard
+SeaweedFS object key and returns `{ "avatarKey": "avatars/<user-id>/<uuid>.webp" }` in the standard
 success envelope. Clients cannot provide or choose object keys.
 
 ### `GET /api/v1/users/me/avatar` — `Advisee`
@@ -284,7 +284,7 @@ The URL is deliberately transient and must not be stored. Requests without an av
 
 Clears the authenticated owner's `avatarKey`. This operation is idempotent from the client's
 perspective and returns the removed `{ avatarKey }` in the standard success envelope. The API then
-best-effort removes the corresponding private MinIO object; a cleanup failure does not restore the
+best-effort removes the corresponding private SeaweedFS object; a cleanup failure does not restore the
 database reference.
 
 ### `DELETE /api/v1/users/me` — `Advisee`
@@ -405,7 +405,7 @@ Submit เลขบัตรประชาชน + document scan. `multipart/fo
 Fields: `nationalId` (13 digits, checksum-validated), `document` (image/pdf, ≤50MB).
 
 Server: validates checksum → hashes → checks `nationalIdHash` uniqueness → encrypts → stores the
-scan in MinIO → sets `verificationStatus = SUBMITTED`.
+scan in SeaweedFS → sets `verificationStatus = SUBMITTED`.
 
 Response echoes **status only**. Never the ID, never a document URL.
 

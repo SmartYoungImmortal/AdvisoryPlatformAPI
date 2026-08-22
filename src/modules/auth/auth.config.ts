@@ -76,7 +76,7 @@ export const appRoles = {
  * `displayName` Drizzle property (the ER's "what everyone else sees" field) instead of
  * adding a redundant column. `image` is left unused in favor of a separate `avatarKey`
  * additionalField, matching the domain schema's four (fullName, avatarKey, timezone,
- * status) and this repo's `objectKey`-style naming for MinIO references.
+ * status) and this repo's `objectKey`-style naming for SeaweedFS references.
  *
  * Note: `additionalFields[key].fieldName`, if set, must name the *Drizzle schema property*
  * (see @better-auth/core's getFieldName, which indexes straight into the passed-in Drizzle

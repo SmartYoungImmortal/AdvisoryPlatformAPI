@@ -1,5 +1,17 @@
 # Dev log
 
+## 2026-08-22 - migrated object storage from MinIO to SeaweedFS
+
+- Replaced the MinIO SDK and client-specific storage boundary with the AWS S3 SDK configured for
+  SeaweedFS's S3 gateway. The boundary still creates its private bucket lazily, writes only
+  server-generated object keys, and returns temporary signed download URLs.
+- Replaced the local MinIO Compose service and `MINIO_*` runtime settings with a SeaweedFS S3
+  gateway on port 8333 and typed `SEAWEEDFS_S3_*` settings. The service configures a local
+  development S3 identity from environment-managed values at startup; production credentials stay
+  outside the repository.
+- Kept avatar behavior, storage stubs, and owner-only download contracts unchanged while renaming
+  implementation types and current documentation to SeaweedFS.
+
 ## 2026-08-22 - upgraded Drizzle relations to v2
 
 - Upgraded `drizzle-orm` and `drizzle-kit` together from the 0.x line to `1.0.0-rc.4`, and applied
