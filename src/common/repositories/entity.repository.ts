@@ -63,8 +63,8 @@ export abstract class EntityRepository<TTable extends TableWithId> {
   async create(
     values: InferInsertModel<TTable>,
   ): Promise<InferSelectModel<TTable>> {
-    const [row] = await this.db.insert(this.table).values(values).returning();
-    return row as InferSelectModel<TTable>;
+    const rows = await this.db.insert(this.table).values(values).returning();
+    return (rows as InferSelectModel<TTable>[])[0];
   }
 
   async createMany(
