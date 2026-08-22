@@ -304,13 +304,13 @@ erDiagram
     }
 
     OMISE_CARDS {
-        uuid userId fk,pk
-        varchar cardId
+        uuid userId fk
+        varchar cardId pk
     }
 
     OMISE_BANK_ACCOUNTS {
-        uuid userId fk,pk
-        varchar bankAccountId
+        uuid userId fk
+        varchar bankAccountId pk
         boolean isDefault
     }
 
