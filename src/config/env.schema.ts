@@ -28,6 +28,10 @@ export const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string().min(3).default('minioadmin'),
   MINIO_SECRET_KEY: z.string().min(8).default('minioadmin'),
   MINIO_BUCKET: z.string().trim().min(3).max(63).default('advisory-platform'),
+  // Omise
+  OMISE_PUBLIC_KEY: z.string(),
+  OMISE_SECRET_KEY: z.string(),
+  CURRENCY_CODE: z.string().lowercase().default('thb'),
 });
 
 export type Env = z.infer<typeof envSchema>;
