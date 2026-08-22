@@ -23,17 +23,18 @@ function createOmiseCustomer(user: SessionUser): Omise.Customers.IRequest {
 
 @Injectable()
 export class OmisePaymentProvider implements IPaymentProvider {
+  public readonly omise: Omise.IOmise;
+
   constructor(
     private config: ConfigService,
     private readonly repo: OmiseRepository,
-  ) {}
-
-  omise = (() =>
-    Omise({
+  ) {
+    this.omise = Omise({
       omiseVersion: '2019-05-29',
       secretKey: this.config.get(ENV_KEYS.OMISE_SECRET_KEY),
       publicKey: this.config.get(ENV_KEYS.OMISE_PUBLIC_KEY),
-    }))();
+    });
+  }
 
   async createCustomerAndBindCard(
     user: SessionUser,

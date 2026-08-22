@@ -1,3 +1,4 @@
+import type { SessionUser } from '@/modules/auth/auth.config';
 import z from 'zod';
 
 export const FailureCodesMap = {
