@@ -32,7 +32,7 @@ export class PaymentService {
     if (chargeResult.status !== 'success')
       throw new InternalServerErrorException(chargeResult);
     // redirect to 3ds w/ redirect uri to service appopintment
-    return { url: chargeResult.redirectUrl, statusCode: 303 };
+    return { url: chargeResult.redirectUrl };
     // retrieve omise charge
     // update invoice
   }

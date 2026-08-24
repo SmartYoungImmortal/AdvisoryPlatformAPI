@@ -1,8 +1,9 @@
-import { Controller, Post, Body, Redirect } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, Res } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { Response } from 'express';
 
 @Controller('api/v1/payment')
 export class PaymentController {
@@ -34,8 +35,13 @@ export class PaymentController {
   // }
 
   @Post('checkout')
-  @Redirect()
-  async checkout(@CurrentUser() user: SessionUser, @Body() dto: CheckoutDto) {
-    return await this.paymentService.checkout(user, dto);
+  async checkout(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: CheckoutDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.paymentService.checkout(user, dto);
+
+    return res.redirect(HttpStatus.SEE_OTHER, result.url);
   }
 }

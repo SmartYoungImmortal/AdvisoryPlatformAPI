@@ -3,6 +3,8 @@ import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import type { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { Response } from 'express';
+import { HttpStatus } from '@nestjs/common';
 
 describe('PaymentController', () => {
   let controller: PaymentController;
@@ -11,6 +13,10 @@ describe('PaymentController', () => {
   const mockPaymentService = {
     checkout: jest.fn(),
   };
+
+  const mockRes = {
+    redirect: jest.fn(),
+  } as unknown as Response;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -43,15 +49,19 @@ describe('PaymentController', () => {
         startTimes: ['2023-01-01T00:00:00.000Z'],
         cardToken: 'tok_test',
       };
-      const mockServiceResult = { some: 'result' };
+      const mockServiceResult = { url: 'https://omise.co/pay/123' };
 
       mockPaymentService.checkout.mockResolvedValue(mockServiceResult);
 
-      const result = await controller.checkout(mockUser, mockDto);
+      const result = await controller.checkout(mockUser, mockDto, mockRes);
 
       expect(service.checkout).toHaveBeenCalledTimes(1);
       expect(service.checkout).toHaveBeenCalledWith(mockUser, mockDto);
-      expect(result).toEqual(mockServiceResult);
+      expect(mockRes.redirect).toHaveBeenCalledTimes(1);
+      expect(mockRes.redirect).toHaveBeenCalledWith(
+        HttpStatus.SEE_OTHER,
+        'https://omise.co/pay/123',
+      );
     });
   });
 });
