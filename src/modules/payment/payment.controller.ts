@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Redirect } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
@@ -34,6 +34,7 @@ export class PaymentController {
   // }
 
   @Post('checkout')
+  @Redirect()
   async checkout(@CurrentUser() user: SessionUser, @Body() dto: CheckoutDto) {
     return await this.paymentService.checkout(user, dto);
   }
