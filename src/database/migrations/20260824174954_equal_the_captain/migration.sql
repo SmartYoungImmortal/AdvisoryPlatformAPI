@@ -1,0 +1,6 @@
+ALTER TABLE "omise_bank_accounts" RENAME CONSTRAINT "omise_bank_accounts_user_id_user_id_fk" TO "omise_bank_accounts_user_id_user_id_fkey";--> statement-breakpoint
+ALTER TABLE "omise_cards" RENAME CONSTRAINT "omise_cards_user_id_user_id_fk" TO "omise_cards_user_id_user_id_fkey";--> statement-breakpoint
+ALTER TABLE "omise_customers" RENAME CONSTRAINT "omise_customers_user_id_user_id_fk" TO "omise_customers_user_id_user_id_fkey";--> statement-breakpoint
+ALTER TABLE "omise_bank_accounts" DROP CONSTRAINT "omise_bank_accounts_user_id_user_id_fkey", ADD CONSTRAINT "omise_bank_accounts_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "omise_cards" DROP CONSTRAINT "omise_cards_user_id_user_id_fkey", ADD CONSTRAINT "omise_cards_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "omise_customers" DROP CONSTRAINT "omise_customers_user_id_user_id_fkey", ADD CONSTRAINT "omise_customers_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;
