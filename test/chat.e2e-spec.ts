@@ -6,7 +6,7 @@ import { io, type Socket } from 'socket.io-client';
 import request from 'supertest';
 import { configureApp } from '@/app.factory';
 import { AppModule } from '@/app.module';
-import { MinioStorageService } from '@/common/storage/minio-storage.service';
+import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
@@ -22,7 +22,7 @@ import type {
   ChatSocketError,
 } from '@/modules/chat/chat-socket.types';
 import type { ChatMessageResponseDto } from '@/modules/chat/dtos/chat-message-response.dto';
-import { MinioStorageStub } from './stubs/minio-storage.stub';
+import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
 
 type ClientSocket = Socket<ChatServerToClientEvents, ChatClientToServerEvents>;
 
@@ -58,8 +58,8 @@ describe('chat sockets (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(MinioStorageService)
-      .useValue(new MinioStorageStub())
+      .overrideProvider(SeaweedFsStorageService)
+      .useValue(new SeaweedFsStorageStub())
       .compile();
 
     app = moduleFixture.createNestApplication<NestExpressApplication>({

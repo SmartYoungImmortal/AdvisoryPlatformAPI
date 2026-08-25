@@ -7,7 +7,7 @@ import {
 import type { InferSelectModel } from 'drizzle-orm';
 import { Role } from '@/common/decorators/roles.decorator';
 import type { RoleResolver } from '@/common/authorization/role-resolver.service';
-import type { MinioStorageService } from '@/common/storage/minio-storage.service';
+import type { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { user } from '@/database/schema';
 import type { UsersRepository } from './users.repository';
 import { UsersService } from './users.service';
@@ -46,7 +46,7 @@ describe('UsersService', () => {
   let roleResolver: jest.Mocked<Pick<RoleResolver, 'resolve'>>;
   let storage: jest.Mocked<
     Pick<
-      MinioStorageService,
+      SeaweedFsStorageService,
       'putObject' | 'removeObject' | 'createDownloadUrl'
     >
   >;
@@ -69,7 +69,7 @@ describe('UsersService', () => {
     service = new UsersService(
       repository as unknown as UsersRepository,
       roleResolver as unknown as RoleResolver,
-      storage as unknown as MinioStorageService,
+      storage as unknown as SeaweedFsStorageService,
     );
   });
 
@@ -253,10 +253,10 @@ describe('UsersService', () => {
       ...profile(),
       avatarKey: `avatars/${userId}/current.webp`,
     });
-    storage.createDownloadUrl.mockResolvedValue('http://minio.test/signed');
+    storage.createDownloadUrl.mockResolvedValue('http://seaweedfs.test/signed');
 
     await expect(service.getAvatarUrl(userId)).resolves.toEqual({
-      url: 'http://minio.test/signed',
+      url: 'http://seaweedfs.test/signed',
       expiresInSeconds: 300,
     });
     expect(storage.createDownloadUrl).toHaveBeenCalledWith(

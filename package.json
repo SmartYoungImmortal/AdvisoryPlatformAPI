@@ -27,6 +27,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1115.0",
+    "@aws-sdk/s3-request-presigner": "^3.1115.0",
     "@better-auth/drizzle-adapter": "^1.7.1",
     "@nestjs/common": "^11.2.1",
     "@nestjs/config": "^4.0.4",
@@ -41,7 +43,6 @@
     "class-validator": "^0.15.1",
     "drizzle-orm": "1.0.0-rc.4",
     "express": "^5.2.1",
-    "minio": "^8.0.7",
     "multer": "^2.2.0",
     "omise": "^1.1.0",
     "pg": "^8.23.0",

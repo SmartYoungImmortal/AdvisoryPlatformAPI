@@ -5,7 +5,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
 import { configureApp } from '@/app.factory';
 import { AppModule } from '@/app.module';
-import { MinioStorageService } from '@/common/storage/minio-storage.service';
+import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
@@ -22,12 +22,12 @@ import {
   user,
   verification,
 } from '@/database/schema';
-import { MinioStorageStub } from './stubs/minio-storage.stub';
+import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
   let db: DrizzleDB;
-  let storage: MinioStorageStub;
+  let storage: SeaweedFsStorageStub;
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
   const createdServiceIds: string[] = [];
@@ -41,11 +41,11 @@ describe('authentication and authorization (e2e)', () => {
   }
 
   beforeAll(async () => {
-    storage = new MinioStorageStub();
+    storage = new SeaweedFsStorageStub();
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(MinioStorageService)
+      .overrideProvider(SeaweedFsStorageService)
       .useValue(storage)
       .compile();
 
@@ -130,6 +130,20 @@ describe('authentication and authorization (e2e)', () => {
       });
 
     await request(app.getHttpServer()).get('/api/v1/users/me').expect(401);
+  });
+
+  it('explains when a supplied session cookie is invalid', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/users/me')
+      .set('Cookie', 'better-auth.session_token=invalid-value')
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          statusCode: 401,
+          message: 'Session is invalid or expired. Please sign in again.',
+          data: null,
+        });
+      });
   });
 
   it('reads and updates the authenticated Advisee profile', async () => {

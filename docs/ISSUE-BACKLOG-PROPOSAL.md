@@ -77,10 +77,10 @@ blocking issue dependencies, not merely related work.
 
 ## Completed reference — do not create
 
-### AP-001 — Complete secure avatar upload and retrieval with MinIO
+### AP-001 — Complete secure avatar upload and retrieval with SeaweedFS
 
 - **Description:** Implemented the owner-only avatar flow with JPEG/PNG/WebP MIME and 5 MiB size
-  validation, opaque MinIO object keys, five-minute download URLs, safe replacement/deletion,
+  validation, opaque SeaweedFS object keys, five-minute download URLs, safe replacement/deletion,
   account-deletion cleanup, CI configuration, API documentation, and unit/e2e coverage.
 - **Priority:** P1
 - **Sprint:** S3
@@ -516,7 +516,7 @@ blocking issue dependencies, not merely related work.
 ### AP-035 — Implement secure Advisor identity submission
 
 - **Description:** Add multipart identity submission with Thai national-ID checksum validation,
-- non-reversible lookup hashing for uniqueness, authenticated encryption at rest, MinIO document storage, safe
+- non-reversible lookup hashing for uniqueness, authenticated encryption at rest, SeaweedFS document storage, safe
   resubmission rules, and a status-only response. Never log, return, or use plaintext national IDs
   as identifiers.
 - **Priority:** P0
@@ -567,7 +567,7 @@ blocking issue dependencies, not merely related work.
 
 ### AP-039 — Detect off-platform contact patterns in chat messages
 
-- **Description:** Add deterministic, versioned detection for phone numbers, email addresses, LINE
+- **Description:** Add deterministic, versioned regex detection for phone numbers, email addresses, LINE
   IDs, and social handles, including basic spacing/punctuation evasion. Persist one evidence-linked
   flag per applicable match, avoid blocking message delivery unless explicitly approved, and add a
   focused false-positive/false-negative fixture suite.
