@@ -10,7 +10,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { user, chatRooms, services } from '@/database/schema';
+import { user, services } from '@/database/schema';
 
 export const screeningStatusEnum = pgEnum('screening_status', [
   'PENDING',
@@ -51,10 +51,6 @@ export const screeningRequests = pgTable(
       .references(() => user.id),
     status: screeningStatusEnum('status').notNull().default('PENDING'),
     decisionReason: text('decision_reason'),
-    // Trial fields are null unless the service has trialEnabled.
-    chatRoomId: uuid('chat_room_id').references(() => chatRooms.id),
-    trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
-    trialExpiresAt: timestamp('trial_expires_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -65,10 +61,6 @@ export const screeningRequests = pgTable(
     uniqueIndex('screening_requests_advisee_service_key').on(
       table.adviseeId,
       table.serviceId,
-    ),
-    check(
-      'screening_requests_trial_window_valid',
-      sql`(${table.trialStartedAt} IS NULL AND ${table.trialExpiresAt} IS NULL) OR (${table.trialStartedAt} IS NOT NULL AND ${table.trialExpiresAt} IS NOT NULL AND ${table.trialExpiresAt} > ${table.trialStartedAt})`,
     ),
   ],
 );
@@ -90,4 +82,21 @@ export const screeningAnswers = pgTable(
   (table) => [
     primaryKey({ columns: [table.screeningRequestId, table.questionId] }),
   ],
+);
+
+/** One free-trial entitlement per advisee and service, independent from screening. */
+export const trialGrants = pgTable(
+  'trial_grants',
+  {
+    serviceId: uuid('service_id')
+      .notNull()
+      .references(() => services.id),
+    adviseeId: uuid('advisee_id')
+      .notNull()
+      .references(() => user.id),
+    grantedAt: timestamp('granted_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.serviceId, table.adviseeId] })],
 );

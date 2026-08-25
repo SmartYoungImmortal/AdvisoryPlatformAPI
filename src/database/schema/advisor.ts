@@ -25,12 +25,6 @@ export const skillProofReviewStatusEnum = pgEnum('skill_proof_review_status', [
   'REJECTED',
 ]);
 
-export const skillProofLevelEnum = pgEnum('skill_proof_level', [
-  'SELF_DECLARED',
-  'DOCUMENT_SUBMITTED',
-  'ADMIN_VERIFIED',
-]);
-
 export const advisorProfiles = pgTable(
   'advisor_profiles',
   {
@@ -97,9 +91,6 @@ export const advisorSkills = pgTable(
     skillId: uuid('skill_id')
       .notNull()
       .references(() => skills.id),
-    proofLevel: skillProofLevelEnum('proof_level')
-      .notNull()
-      .default('SELF_DECLARED'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

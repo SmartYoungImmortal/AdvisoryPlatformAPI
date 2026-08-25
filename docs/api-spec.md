@@ -177,8 +177,8 @@ never by conditional fields inside one DTO — a conditional field is how data l
 | `nationalId`                        | ❌    | ❌          | ❌ **not even their own** | ❌ _see below_     |
 | identity verification _status_      | ✅    | ✅          | ✅                        | ✅                 |
 | identity _document_                 | ❌    | ❌          | own only                  | ✅                 |
-| skill `proofLevel`                  | ✅    | ✅          | ✅                        | ✅                 |
-| skill proof _document_              | ❌    | ❌          | own only                  | ✅                 |
+| skill claim                         | ✅    | ✅          | ✅                        | ✅                 |
+| skill proof _document/status_       | ❌    | ❌          | own only                  | ✅                 |
 | `penaltyPoints`, off-platform flags | ❌    | ❌          | ❌                        | ✅                 |
 | invoice gross                       | ❌    | own only    | own bookings              | ✅                 |
 | invoice `platformFeeSatang`, net    | ❌    | ❌          | own bookings              | ✅                 |
@@ -314,8 +314,8 @@ Search advisors. Backs Discovery. Must return in <3s (QR).
 Query: `page`, `limit` (≤100), `skillId`, `categoryId`, `minPriceSatang`, `maxPriceSatang`,
 `minRating`, `verifiedOnly` (bool), `q` (free text over displayName + headline).
 
-Ordering is rule-based, not AI: category match, then rating, then popularity. Advisors with
-confirmed off-platform flags are ranked down — **silently**. The response never reveals that a
+Ordering is rule-based, not AI: category match, then rating, then popularity. Off-platform contact
+detection uses versioned regex patterns. Advisors with confirmed flags are ranked down — **silently**. The response never reveals that a
 penalty was applied.
 
 ```jsonc
@@ -329,12 +329,11 @@ penalty was applied.
         "displayName": "Somchai P.",
         "avatarKey": "avatars/3f1c.webp",
         "headline": "Manufacturing ops, 12 yrs",
-        "badge": "VERIFIED_EXPERT", // derived, see ER.README
+        "badge": "IDENTITY_VERIFIED", // derived, see ER.README
         "skills": [
           {
             "skillId": "9a2...",
             "name": "Lean manufacturing",
-            "proofLevel": "ADMIN_VERIFIED",
           },
         ],
         "rating": 4.6,
@@ -352,7 +351,7 @@ penalty was applied.
 
 ### `GET /api/v1/advisors/:id` — `Public`
 
-Public profile: headline, bio, all skills with `proofLevel`, published services, rating summary.
+Public profile: headline, bio, all claimed skills, published services, rating summary.
 
 Never includes `fullName`, `email`, `nationalId`, `penaltyPoints`, or any document.
 
@@ -379,7 +378,7 @@ Own profile response only. It has a dedicated allowlist and is not reused for pu
 admin lists, which each receive their own response DTO.
 
 Eventually includes everything the public view hides **except** `nationalId`: identity verification
-status, own documents, per-skill proof levels, unpublished services.
+status, own documents, optional skill-proof documents, unpublished services.
 
 Deliberately excludes `penaltyPoints` — an advisor who can see their score will optimise against
 the detector rather than stop.
@@ -392,9 +391,8 @@ Body: `headline`, `bio`. Both optional.
 
 Replaces the claimed skill set. Body: `{ "skillIds": ["uuid", ...] }`.
 
-Skills that survive the replace **keep their `proofLevel`**. New skills start `SELF_DECLARED`.
-Removing a skill soft-deletes its proof documents — re-adding it does not silently restore
-`ADMIN_VERIFIED`, or a bad actor could launder a verification.
+Removing a skill soft-deletes its proof documents. Re-adding it restores only the skill claim, not
+previous proof documents.
 
 `400` if any `skillId` is unknown.
 
@@ -429,7 +427,8 @@ Response echoes **status only**. Never the ID, never a document URL.
 ### `POST /api/v1/advisors/me/skills/:skillId/proof` — `Advisor`
 
 Upload a certificate for one claimed skill. `multipart/form-data`, ≤50MB.
-Sets that skill's `proofLevel` to `DOCUMENT_SUBMITTED`.
+Creates an optional proof-document record with `PENDING` review status. It does not change the
+claimed skill or public profile.
 
 `404` if the advisor has not claimed that skill.
 
@@ -448,14 +447,14 @@ Body: `{ "decision": "VERIFIED" | "REJECTED", "rejectionReason": "string" }`
 ### `PATCH /api/v1/admin/advisors/:id/skills/:skillId/proof` — `Admin`
 
 Body: `{ "decision": "APPROVED" | "REJECTED", "rejectionReason": "string" }`
-On approve, that skill's `proofLevel` becomes `ADMIN_VERIFIED`. Approving a skill does **not**
-touch any other skill.
+The decision updates the submitted document's review status only. It does not change the skill
+claim or any public badge.
 
 ---
 
 ## 8. Module: Chat
 
-Chat rooms are created only by the appointment or accepted-trial workflows. There is no public
+Chat rooms are created only by the appointment or granted-trial workflows. There is no public
 room-create or membership-management endpoint. Until those upstream workflows are implemented,
 tests and operational fixtures may create their linked room records directly; clients may not.
 
@@ -509,9 +508,60 @@ treated as durable acknowledgement.
 
 ---
 
-## 9. Not yet written
+## 9. Agreed booking-domain rules pending endpoint design
 
-categories & skills · services · timeslots · screening · booking · payments &
+The booking, availability, screening, payment, payout, and refund endpoints are not yet written.
+Their paths and DTOs must be designed in the corresponding feature modules, but they must preserve
+the following agreed behavior.
+
+### Availability and slots
+
+- Each Advisor has exactly one Global Availability configuration: a fixed 30-minute slot interval,
+  optional buffer, booking horizon (60 days by default), minimum booking notice, and optional daily
+  consultation-minute limit. A minimum notice is stored as minutes even when the UI collects a
+  number of minutes, hours, or days.
+- An Advisor can own several reusable Availability Profiles. A Service selects one Profile; the
+  profile remains soft-deleted rather than erased when it has historical use.
+- A Profile has non-overlapping weekly windows, specific-date windows, and full-day or partial-day
+  blocked periods. A blocked period always overrides specific-date and weekly availability.
+- Candidate start times follow the fixed 30-minute interval. Service and Trial durations need only
+  be positive; a duration does not change the start-time grid. Availability is derived; it is not a
+  client-managed list of independently bookable slot records.
+- A booking blocks the advisor across all of their Services and Profiles through its consultation
+  range plus the configured buffer. Daily limits count consultation minutes only, not buffer time.
+- A cancellation reopens its original range only when the time remaining still satisfies the
+  minimum booking notice. Otherwise it remains unavailable. Every reschedule is a cancellation
+  followed by a new booking and refund flow.
+
+### Screening and trial
+
+- A Service with `screeningRequired` requires submitted answers and an Advisor `ACCEPTED` decision
+  before an Advisee can select a paid appointment time. A declined request notifies the Advisee.
+- Trial is independent from screening. An Advisee may receive one Trial per Service only after the
+  Advisor creates a direct grant; a grant has no request/approval status. A granted Trial uses the
+  Service's Availability Profile and configured Trial duration.
+
+### Payment, payout, and refund
+
+- Advisees pay the full amount during booking. Invoice amounts and fees are integer satang.
+- An invoice becomes payout-eligible seven days after its consultation completes. The current
+  payout transfer fee is 2,000 satang; it is recorded on the payout rather than silently inferred.
+- Refund requests contain a written reason plus zero or more uploaded evidence files. An Admin
+  reviews the request and may contact both participants for additional information.
+- When either participant cannot attend, the appointment is cancelled before Omise performs the
+  refund. Advisor-originated cancellation also feeds the separate behavior-penalty workflow.
+
+### Explicit Project 1 boundary
+
+- Availability belongs to Advisors only. Advisee calendars, Google Calendar conflict checks, and
+  special daylight-saving-time behavior are future work; all persisted appointment timestamps still
+  use `timestamptz`.
+
+---
+
+## 10. Not yet written
+
+categories & skills · services & availability · screening · booking · payments &
 payouts · refunds · chat files · notifications · trust & safety · admin console
 
 Booking is next — it is the one with the concurrency guarantee, the state machine and the payment
