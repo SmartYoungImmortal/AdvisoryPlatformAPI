@@ -7,6 +7,8 @@ import { ServiceCategoriesModule } from './modules/service-categories/service-ca
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { ChatModule } from './modules/chat/chat.module';
+import { MeetingsController } from './meetings/meetings.controller';
+import { MeetingsModule } from './meetings/meetings.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { ChatModule } from './modules/chat/chat.module';
     ServiceCategoriesModule,
     UsersModule,
     ChatModule,
+    MeetingsModule,
   ],
+  controllers: [MeetingsController],
 })
 export class AppModule {}
