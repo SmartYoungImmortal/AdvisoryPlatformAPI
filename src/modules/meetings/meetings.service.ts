@@ -41,4 +41,15 @@ export class MeetingsService {
     });
     return token;
   }
+
+  async getMeetingUrl(user: SessionUser, room: string) {
+    const meetHostName = this.config.get<string>(
+      ENV_KEYS.MEETINGS_JITSI_DOMAIN,
+    );
+    const token = await this.getMeetingToken(user, room);
+
+    const url = `https://${meetHostName}/${room}?jwt=${token}`;
+
+    return url;
+  }
 }
