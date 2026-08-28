@@ -10,16 +10,14 @@ not invent product behaviour.
 - `docs/api-spec.md` — API contract and field-level access rules. It is incomplete; only
   Advisors is a sample specification.
 - `docs/ER.mermaid` and `docs/ER.README.md` — canonical data model and rationale.
-- `docs/HANDOFF.md` — current implementation snapshot and known gaps.
 - `docs/SPRINT-PLAN.md` — active delivery baseline; its dates remain provisional until confirmed.
-- `docs/dev-log.md` — decisions that were made during prior sessions.
 
 This repository is API-only. Do not add client application code or make undocumented assumptions
 about a particular client implementation.
 
 ## Architecture and invariants
 
-- Stack: NestJS 11, Drizzle, self-hosted Postgres, better-auth. MinIO, Socket.IO, Jitsi,
+- Stack: NestJS 11, Drizzle, self-hosted Postgres, better-auth. SeaweedFS, Socket.IO, Jitsi,
   and Omise are planned integrations.
 - Use UUID primary keys; every timestamp is `timestamptz`.
 - Monetary values are integer satang, never floats or baht; name fields `*Satang`.
@@ -94,8 +92,6 @@ about a particular client implementation.
   four aggregate metrics; the command needs the test Postgres database.
 - The working tree may contain intentional uncommitted work. Inspect `git status` and preserve
   unrelated changes.
-- Record substantive implementation decisions in `docs/dev-log.md` and update
-  `docs/HANDOFF.md` when its snapshot changes.
 
 ## Auth verification baseline
 

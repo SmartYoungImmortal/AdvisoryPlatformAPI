@@ -1,6 +1,7 @@
 export * from './auth-betterauth';
 export * from './auth-supplements';
 export * from './advisor';
+export * from './availability';
 export * from './service';
 export * from './screening';
 export * from './booking';

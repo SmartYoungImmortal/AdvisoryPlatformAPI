@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { MulterError } from 'multer';
@@ -15,6 +16,7 @@ describe('AllExceptionsFilter', () => {
   let json: jest.Mock;
   let status: jest.Mock;
   let host: ArgumentsHost;
+  let cookieHeader: string | undefined;
 
   beforeEach(() => {
     filter = new AllExceptionsFilter();
@@ -23,6 +25,7 @@ describe('AllExceptionsFilter', () => {
     host = {
       switchToHttp: () => ({
         getResponse: () => ({ status }) as unknown as Response,
+        getRequest: () => ({ headers: { cookie: cookieHeader } }),
       }),
     } as unknown as ArgumentsHost;
   });
@@ -34,6 +37,43 @@ describe('AllExceptionsFilter', () => {
     expect(json).toHaveBeenCalledWith({
       statusCode: HttpStatus.NOT_FOUND,
       message: 'Booking not found',
+      data: null,
+    });
+  });
+
+  it('explains when authentication is required', () => {
+    filter.catch(new UnauthorizedException(), host);
+
+    expect(json).toHaveBeenCalledWith({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      message: 'Authentication required',
+      data: null,
+    });
+  });
+
+  it('explains when a Better Auth session cookie is invalid or expired', () => {
+    cookieHeader = 'better-auth.session_token=invalid-value';
+
+    filter.catch(new UnauthorizedException(), host);
+
+    expect(json).toHaveBeenCalledWith({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      message: 'Session is invalid or expired. Please sign in again.',
+      data: null,
+    });
+  });
+
+  it('keeps explicit unauthorized messages unchanged', () => {
+    cookieHeader = 'better-auth.session_token=invalid-value';
+
+    filter.catch(
+      new UnauthorizedException('Custom authentication error'),
+      host,
+    );
+
+    expect(json).toHaveBeenCalledWith({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      message: 'Custom authentication error',
       data: null,
     });
   });

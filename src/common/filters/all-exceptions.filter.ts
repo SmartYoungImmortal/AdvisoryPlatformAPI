@@ -12,6 +12,7 @@ import {
   FieldError,
   ValidationException,
 } from '@/common/utils/validation.exception';
+import { AUTH_MESSAGES } from '@/modules/auth/auth.constants';
 
 interface ErrorEnvelope {
   statusCode: number;
@@ -58,7 +59,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const status = exception.getStatus();
       response.status(status).json({
         statusCode: status,
-        message: AllExceptionsFilter.extractMessage(exception),
+        message: AllExceptionsFilter.authenticationMessage(
+          status,
+          AllExceptionsFilter.extractMessage(exception),
+          host.switchToHttp().getRequest<{ headers?: { cookie?: string } }>()
+            .headers?.cookie,
+        ),
         data: null,
       } satisfies ErrorEnvelope);
       return;
@@ -85,5 +91,27 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     return exception.message;
+  }
+
+  private static authenticationMessage(
+    status: number,
+    message: string,
+    cookieHeader: string | undefined,
+  ): string {
+    if (status !== 401 || message !== 'Unauthorized') {
+      return message;
+    }
+
+    return AllExceptionsFilter.hasBetterAuthSessionCookie(cookieHeader)
+      ? AUTH_MESSAGES.invalidOrExpiredSession
+      : AUTH_MESSAGES.authenticationRequired;
+  }
+
+  private static hasBetterAuthSessionCookie(
+    cookieHeader: string | undefined,
+  ): boolean {
+    return /(?:^|;\s*)(?:__Secure-)?better-auth[.-]session_token(?:\.\d+)?=/.test(
+      cookieHeader ?? '',
+    );
   }
 }

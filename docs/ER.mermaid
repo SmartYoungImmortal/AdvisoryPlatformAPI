@@ -64,8 +64,6 @@ erDiagram
         varchar originalFileName
         %% enum: PENDING, APPROVED, REJECTED
         enum reviewStatus
-        uuid reviewedByAdminId fk
-        text rejectionReason
         datetimetz createdAt
         datetimetz reviewedAt
     }
@@ -82,8 +80,7 @@ erDiagram
     ADVISOR_SKILLS {
         uuid advisorId fk,pk
         uuid skillId fk,pk
-        %% enum: SELF_DECLARED, DOCUMENT_SUBMITTED, ADMIN_VERIFIED
-        enum proofLevel
+
         datetimetz createdAt
     }
 
@@ -99,18 +96,64 @@ erDiagram
         uuid serviceId pk
         uuid advisorId fk
         uuid categoryId fk
+        uuid availabilityProfileId fk
         varchar name
         text description
         int priceSatang
         int durationMinutes
         bool isPublished
-        %% Independent switches. Booking does NOT require either.
+        %% screeningRequired gates paid booking; trialEnabled is independent.
         bool screeningRequired
         bool trialEnabled
         %% null unless trialEnabled
         int trialDurationMinutes
         datetimetz createdAt
         datetimetz modifiedAt
+    }
+
+    ADVISOR_GLOBAL_AVAILABILITY {
+        uuid advisorId fk,pk
+        int slotIntervalMinutes
+        int bufferMinutes
+        int bookingHorizonDays
+        int minimumBookingNoticeMinutes
+        int dailyConsultationLimitMinutes
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    AVAILABILITY_PROFILES {
+        uuid availabilityProfileId pk
+        uuid advisorId fk
+        varchar name
+        datetimetz deletedAt
+        datetimetz createdAt
+        datetimetz modifiedAt
+    }
+
+    AVAILABILITY_WEEKLY_WINDOWS {
+        uuid availabilityWeeklyWindowId pk
+        uuid availabilityProfileId fk
+        int dayOfWeek
+        time startTime
+        time endTime
+    }
+
+    AVAILABILITY_SPECIFIC_WINDOWS {
+        uuid availabilitySpecificWindowId pk
+        uuid availabilityProfileId fk
+        date availableDate
+        time startTime
+        time endTime
+    }
+
+    AVAILABILITY_BLOCKED_PERIODS {
+        uuid availabilityBlockedPeriodId pk
+        uuid availabilityProfileId fk
+        date blockedDate
+        time startTime
+        time endTime
+        datetimetz createdAt
     }
 
     SERVICE_IMAGES {
@@ -131,16 +174,12 @@ erDiagram
 
     SCREENING_REQUESTS {
         uuid screeningRequestId pk
-        %% UNIQUE (adviseeId, serviceId) — one trial per advisee per service
+        %% UNIQUE (adviseeId, serviceId) — one screening request per service
         uuid serviceId fk
         uuid adviseeId fk
         %% enum: PENDING, ACCEPTED, DECLINED
         enum status
         text decisionReason
-        %% trial fields are null unless the service has trialEnabled
-        uuid chatRoomId fk
-        datetimetz trialStartedAt
-        datetimetz trialExpiresAt
         datetimetz createdAt
         datetimetz decidedAt
     }
@@ -152,22 +191,26 @@ erDiagram
         datetimetz createdAt
     }
 
-
-    SERVICE_TIMESLOTS {
-        uuid timeslotId pk
-        uuid serviceId fk
-        datetimetz startTime
-        datetimetz endTime
-        %% enum: OPEN, BLOCKED  (booked-ness is derived from SERVICE_APPOINTMENTS)
-        enum status
-        datetimetz createdAt
-        datetimetz modifiedAt
+    TRIAL_GRANTS {
+        uuid serviceId fk,pk
+        uuid adviseeId fk,pk
+        datetimetz grantedAt
     }
+
 
     SERVICE_APPOINTMENTS {
         uuid appointmentId pk
-        uuid timeslotId fk
+        uuid serviceId fk
+        uuid advisorId fk
         uuid adviseeId fk
+        %% enum: CONSULTATION, TRIAL
+        enum type
+        datetimetz startTime
+        datetimetz endTime
+        datetimetz unavailableUntil
+        bool blocksAvailability
+        uuid cancelledByUserId fk
+        datetimetz cancelledAt
         uuid chatRoomId fk
         varchar jitsiRoomName
         %% enum: PENDING_PAYMENT, BOOKED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
@@ -194,6 +237,7 @@ erDiagram
         varchar providerChargeId
         %% enum: PENDING, HELD_IN_ESCROW, RELEASED, REFUNDED, FAILED
         enum status
+        datetimetz payoutEligibleAt
         datetimetz createdAt
         datetimetz modifiedAt
     }
@@ -202,6 +246,7 @@ erDiagram
         uuid payoutId pk
         uuid advisorId fk
         int amountSatang
+        int transferFeeSatang
         varchar providerTransferId
         %% enum: PENDING, PAID, FAILED
         enum status
@@ -224,6 +269,14 @@ erDiagram
         enum status
         datetimetz createdAt
         datetimetz resolvedAt
+    }
+
+    REFUND_CASE_EVIDENCE {
+        uuid refundCaseId fk,pk
+        varchar objectKey pk
+        varchar originalFileName
+        varchar mimeType
+        datetimetz createdAt
     }
 
 
@@ -309,8 +362,10 @@ erDiagram
     }
 
     OMISE_BANK_ACCOUNTS {
-        uuid userId fk
-        varchar bankAccountId pk
+        uuid userId fk,pk
+        varchar bankAccountId
+        varchar bankName
+        varchar accountName
         boolean isDefault
     }
 
@@ -327,18 +382,25 @@ erDiagram
     ADMIN_PROFILES ||--o{ SKILL_PROOF_DOCUMENTS : "reviews"
 
     ADVISOR_PROFILES ||--o{ SERVICES : "provides"
+    ADVISOR_PROFILES ||--|| ADVISOR_GLOBAL_AVAILABILITY : "sets"
+    ADVISOR_PROFILES ||--o{ AVAILABILITY_PROFILES : "owns"
+    AVAILABILITY_PROFILES ||--o{ AVAILABILITY_WEEKLY_WINDOWS : "repeats"
+    AVAILABILITY_PROFILES ||--o{ AVAILABILITY_SPECIFIC_WINDOWS : "adds"
+    AVAILABILITY_PROFILES ||--o{ AVAILABILITY_BLOCKED_PERIODS : "blocks"
     SERVICE_CATEGORIES ||--o{ SERVICES : "classifies"
+    AVAILABILITY_PROFILES ||--o{ SERVICES : "schedules"
     SERVICES ||--o{ SERVICE_IMAGES : "shown by"
-    SERVICES ||--o{ SERVICE_TIMESLOTS : "available at"
     SERVICES ||--o{ SERVICE_SCREENING_QUESTIONS : "asks"
 
     SERVICES ||--o{ SCREENING_REQUESTS : "screened by"
     USERS ||--o{ SCREENING_REQUESTS : "requests"
     SCREENING_REQUESTS ||--o{ SCREENING_ANSWERS : "contains"
     SERVICE_SCREENING_QUESTIONS ||--o{ SCREENING_ANSWERS : "answered by"
-    CHAT_ROOMS ||--o| SCREENING_REQUESTS : "hosts trial for"
+    SERVICES ||--o{ TRIAL_GRANTS : "grants trial for"
+    USERS ||--o{ TRIAL_GRANTS : "receives"
 
-    SERVICE_TIMESLOTS ||--o| SERVICE_APPOINTMENTS : "booked as"
+    SERVICES ||--o{ SERVICE_APPOINTMENTS : "booked as"
+    ADVISOR_PROFILES ||--o{ SERVICE_APPOINTMENTS : "provides"
     USERS ||--o{ SERVICE_APPOINTMENTS : "books"
     CHAT_ROOMS ||--o| SERVICE_APPOINTMENTS : "hosts"
     SERVICE_APPOINTMENTS ||--o| SERVICE_REVIEWS : "reviewed by"
@@ -348,6 +410,7 @@ erDiagram
     PAYOUTS ||--o{ PAYOUT_INVOICES : "settles"
     ADVISOR_PROFILES ||--o{ PAYOUTS : "receives"
     SERVICE_INVOICES ||--o{ REFUND_CASES : "disputed by"
+    REFUND_CASES ||--o{ REFUND_CASE_EVIDENCE : "evidenced by"
     USERS ||--o{ REFUND_CASES : "raises"
     ADMIN_PROFILES ||--o{ REFUND_CASES : "resolves"
 

@@ -81,8 +81,8 @@ pull work forward without its integration path.
   database invariant is promised.
 - Update the traceability table and capture screenshots, test output, and measured results as work
   is completed.
-- Keep `docs/api-spec.md`, `docs/dev-log.md`, and `docs/HANDOFF.md` aligned with material contract
-  or implementation changes.
+- Keep `docs/api-spec.md` and the ER documentation aligned with material contract or implementation
+  changes.
 
 A task is done when it is merged to `develop`, its response DTO and authorization behavior are
 documented, relevant tests pass, and report evidence is retained. The CI result must be green;
@@ -113,7 +113,7 @@ account denial; explicit Advisor upgrade; 409 for repeat upgrade; and CI verific
 
 | Area | Work |
 |---|---|
-| Profile | Base and Advisor own-profile read/update use separate allowlisted DTOs. Private MinIO-backed avatar upload, replacement, removal, and owner-only signed reads are delivered; generic consultation files remain S8 work. |
+| Profile | Base and Advisor own-profile read/update use separate allowlisted DTOs. Private SeaweedFS-backed avatar upload, replacement, removal, and owner-only signed reads are delivered; generic consultation files remain S8 work. |
 | PDPA | Atomic account deletion revokes authentication, erases direct identity/proof data, anonymizes the retained FK anchor, and unpublishes Advisor services. |
 | Advisor profile | `headline` and `bio` are available for S4 public discovery and advisor-owned services; no speculative fields were added. |
 | Tests | Controller boundaries, role changes, profile updates, avatar upload/removal, anonymization, and immediate session revocation have database-backed coverage. |
@@ -129,9 +129,9 @@ services.
 
 | Area | Work |
 |---|---|
-| Backend | Public advisor search/profile/reviews; skills/categories; advisor-owned service CRUD with satang pricing, duration, category, and pagination. |
+| Backend | Public advisor search/profile/reviews; skills/categories; advisor-owned service CRUD with satang pricing, positive duration, category, Availability Profile selection, and pagination. Candidate start times remain on the fixed 30-minute grid. |
 | Authorization | Separate public, own-Advisor, and Admin DTOs; never expose full name, email, national ID, documents, or penalty points publicly. |
-| Ranking | Rule-based category match, then rating/popularity; confirmed off-platform penalties rank down silently. |
+| Ranking | Rule-based category match, then rating/popularity; confirmed regex-detected off-platform penalties rank down silently. |
 | Performance | Measure discovery/search against the <3-second project QR and retain the result. |
 | Testing | Controller authorization/ownership tests and discovery integration tests. |
 
@@ -141,8 +141,8 @@ services.
 
 | Area | Work |
 |---|---|
-| Backend | Advisor timeslots, timezone-safe `timestamptz` handling, booking/cancel/reschedule state machine, and appointment views for both parties. |
-| Guarantee | Add the Postgres exclusion constraint for overlapping live appointments; no application-only overlap check. |
+| Backend | Advisor Global Availability and reusable Availability Profiles, timezone-safe `timestamptz` handling, derived 30-minute booking slots, booking/cancel/reschedule state machine, and appointment views for both parties. |
+| Guarantee | Add the Postgres exclusion constraint for overlapping advisor-wide appointment ranges, including the booked buffer; no application-only overlap check. |
 | Testing | Concurrently book the same slot with multiple requests and prove exactly one succeeds; retain output as Success Criterion evidence. |
 | Docs | Submit progress report #2 and record the state transitions in the API contract. |
 
@@ -152,7 +152,7 @@ services.
 
 | Area | Work |
 |---|---|
-| Screening | Advisor-configured screening questions and advisee responses. Screening and free trial remain independent and optional. |
+| Screening | Advisor-configured screening questions and advisee responses. When enabled, screening approval is required before paid time selection. Free trials remain separately optional, one per advisee/service, and require an Advisor-created direct grant before time selection. |
 | Payment | Omise payment intent/charge flow, redirect/3DS as applicable, verified webhook signatures, idempotent webhook processing, invoices, and satang-only amounts. |
 | Booking | An appointment starts pending payment and becomes confirmed only after a valid payment outcome. |
 | Testing | Successful, failed, pending, delayed, and duplicate webhook cases; never charge or confirm twice. |
@@ -175,7 +175,7 @@ services.
 | Area | Work |
 |---|---|
 | Video | Validate the Jitsi/hosted decision, create appointment-bound rooms, authorize only participants, and restrict access to the meeting window plus a small buffer. |
-| Files | Member-authorized upload/download with MinIO object keys, 50 MB type/size enforcement, and no stored presigned URLs. |
+| Files | Member-authorized upload/download with SeaweedFS object keys, 50 MB type/size enforcement, and no stored presigned URLs. |
 | Evidence | Measure call quality against the applicable QR and retain the result. |
 | Docs | Produce the 30% report draft from completed design and test evidence. |
 
@@ -195,7 +195,7 @@ services.
 **Goal:** freeze scope with two demonstrable end-to-end paths.
 
 1. Advisee: discover → optional screening/trial → book → pay → chat → video call.
-2. Advisor: upgrade/profile → create service → offer timeslot → receive booking → consult.
+2. Advisor: upgrade/profile → configure availability → create service → receive booking → consult.
 
 Complete bug bash, UAT deployment and demo seed data, critical technical-debt fixes, UAT scripts,
 and honest coverage reporting. After this sprint, only defects and evidence/documentation work may

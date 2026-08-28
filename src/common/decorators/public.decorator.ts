@@ -1,6 +1,7 @@
 import { SetMetadata } from '@nestjs/common';
 
-export const IS_PUBLIC_KEY = 'isPublic';
+/** The metadata key consumed by @thallesp/nestjs-better-auth's AuthGuard. */
+export const BETTER_AUTH_PUBLIC_KEY = 'PUBLIC';
 
-/** Opts a route out of SessionGuard. Auth is opt-out, not opt-in — a forgotten decorator fails closed. */
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+/** Opts a route out of Better Auth's global guard. Authentication remains opt-out. */
+export const Public = () => SetMetadata(BETTER_AUTH_PUBLIC_KEY, true);

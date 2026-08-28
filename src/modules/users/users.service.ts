@@ -6,7 +6,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { RoleResolver } from '@/common/authorization/role-resolver.service';
-import { MinioStorageService } from '@/common/storage/minio-storage.service';
+import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import {
   AVATAR_EXTENSIONS,
   AVATAR_URL_EXPIRY_SECONDS,
@@ -32,7 +32,7 @@ export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly roleResolver: RoleResolver,
-    private readonly storage: MinioStorageService,
+    private readonly storage: SeaweedFsStorageService,
   ) {}
 
   async getMe(userId: string): Promise<UserOwnProfileResponseDto> {

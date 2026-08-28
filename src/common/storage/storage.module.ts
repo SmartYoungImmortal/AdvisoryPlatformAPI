@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { MinioStorageService } from './minio-storage.service';
+import { SeaweedFsStorageService } from './seaweedfs-storage.service';
 
 @Module({
-  providers: [MinioStorageService],
-  exports: [MinioStorageService],
+  providers: [SeaweedFsStorageService],
+  exports: [SeaweedFsStorageService],
 })
 export class StorageModule {}
