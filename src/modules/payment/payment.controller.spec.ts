@@ -53,7 +53,7 @@ describe('PaymentController', () => {
 
       mockPaymentService.checkout.mockResolvedValue(mockServiceResult);
 
-      const result = await controller.checkout(mockUser, mockDto, mockRes);
+      await controller.checkout(mockUser, mockDto, mockRes);
 
       expect(service.checkout).toHaveBeenCalledTimes(1);
       expect(service.checkout).toHaveBeenCalledWith(mockUser, mockDto);

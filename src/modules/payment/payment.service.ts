@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  Redirect,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
 import { SessionUser } from '@/modules/auth/auth.config';
 import { service as serviceMock } from '@/mock/services';
-import { appointmentPendingPayment } from '@/mock/appointments';
+// import { appointmentPendingPayment } from '@/mock/appointments';
 import { invoicePending } from '@/mock/invoices';
 import { IPaymentProvider } from '@/modules/payment/providers/interface';
 
@@ -19,7 +15,7 @@ export class PaymentService {
     // TODO: replace
     const service = serviceMock;
     // create service appopintment
-    const appointment = appointmentPendingPayment;
+    // const appointment = appointmentPendingPayment;
     // create invoice w/ omise charge id
     const invoice = invoicePending;
     // create omise charge
