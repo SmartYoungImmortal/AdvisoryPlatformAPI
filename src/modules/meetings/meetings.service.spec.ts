@@ -16,6 +16,8 @@ describe('MeetingsService', () => {
   const mockRoom = 'test-room-123';
   const mockJitsiDomain = 'meet.example.com';
   const mockJwtToken = 'mocked.jwt.token';
+  const mockMeetingLink =
+    'https://meet.example.com/test-room-123?jwt=mocked.jwt.token';
 
   const mockSessionUser = {
     avatarKey: 'avatar-uuid.png',
@@ -114,6 +116,21 @@ describe('MeetingsService', () => {
       expect(jwtService.signAsync).toHaveBeenCalledWith(
         service.getMeetingTokenPayload(mockSessionUser, mockRoom),
         { notBefore: expectedNotBefore },
+      );
+    });
+  });
+
+  describe('getMeetingUrl', () => {
+    it('should correctly generate url with the correct room and jwt', async () => {
+      service.getMeetingToken = jest.fn().mockResolvedValue(mockJwtToken);
+      const result = await service.getMeetingUrl(mockSessionUser, mockRoom);
+
+      expect(result).toBe(mockMeetingLink);
+
+      expect(service.getMeetingToken).toHaveBeenCalledTimes(1);
+      expect(service.getMeetingToken).toHaveBeenCalledWith(
+        mockSessionUser,
+        mockRoom,
       );
     });
   });
