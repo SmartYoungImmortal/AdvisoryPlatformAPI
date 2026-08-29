@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --ignore-scripts --frozen-lockfile
 
 # Copy the rest of the application files
-COPY src/ .
+COPY src/* .
 COPY nest-cli.json .
 COPY drizzle.config.ts .
 COPY tsconfig.json .
@@ -31,7 +31,7 @@ FROM node:lts-alpine AS runtime
 
 WORKDIR /app
 
-COPY --from=build --chown=appuser:appgroup /app ./
+COPY --from=build --chown=appuser:appgroup /app/dist/main .
 
 RUN groupadd -g 1001 appgroup && \
     useradd -u 1001 -g appgroup -m -d /app -s /bin/false appuser
@@ -43,4 +43,4 @@ ENV NODE_ENV=production
 
 # Command to run the application
 USER appuser
-CMD ["node", "dist/main"]
+CMD ["node", "."]
