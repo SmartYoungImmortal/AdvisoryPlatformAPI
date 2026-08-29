@@ -28,24 +28,25 @@ jobs:
         ports:
           - 8333:8333
     env:
-      DATABASE_URL: postgresql://advisory:advisory@localhost:5432/advisory_platform
-      BETTER_AUTH_SECRET: ci-only-secret-that-is-longer-than-thirty-two-characters
       BETTER_AUTH_URL: http://localhost:3000
       TRUSTED_ORIGINS: http://localhost:3001
       POSTGRES_USER: advisory
-      POSTGRES_PASSWORD: advisory
       POSTGRES_DB: advisory_platform
       SEAWEEDFS_S3_ENDPOINT: localhost
       SEAWEEDFS_S3_PORT: 8333
       SEAWEEDFS_S3_USE_SSL: false
       SEAWEEDFS_S3_ACCESS_KEY: seaweedfsadmin
-      SEAWEEDFS_S3_SECRET_KEY: seaweedfsadmin
       SEAWEEDFS_S3_BUCKET: advisory-platform
       SEAWEEDFS_S3_REGION: us-east-1
 
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SEAWEEDFS_S3_SECRET_KEY: ${{ secrets.SEAWEEDFS_S3_SECRET_KEY }}
+
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/setup@v2
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b
         name: Install pnpm
         with:
           version: 11
