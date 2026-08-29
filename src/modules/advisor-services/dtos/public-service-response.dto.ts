@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { PublicServiceSearchDocument } from '../advisor-services.types';
+import type { PublicServiceDocument } from '@/modules/advisor-services/advisor-services.types';
 
 /** Public allowlist. Owner-only scheduling configuration is intentionally excluded. */
 export class PublicServiceResponseDto {
@@ -14,7 +14,7 @@ export class PublicServiceResponseDto {
   @ApiProperty() trialEnabled: boolean;
   @ApiPropertyOptional({ nullable: true }) trialDurationMinutes: number | null;
 
-  constructor(service: PublicServiceSearchDocument) {
+  constructor(service: PublicServiceDocument) {
     this.id = service.id;
     this.advisorId = service.advisorId;
     this.categoryId = service.categoryId;
