@@ -1,5 +1,10 @@
 name: Create and publish a Docker image
 
+permissions:
+  attestations: write
+  packages: write
+  id-token: write
+
 on:
   workflow_call:
 
