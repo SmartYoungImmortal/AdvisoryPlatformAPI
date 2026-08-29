@@ -68,4 +68,4 @@ jobs:
       packages: write
       id-token: write
       contents: read
-    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@872c5bdcf07c3fa57331cf6f199438ee83b549c6
+    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@dc91c13a900a6f70f86bbd2580fc3a9bebeab605
