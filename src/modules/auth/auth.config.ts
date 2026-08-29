@@ -25,6 +25,10 @@ const permissions = {
     selfManaged: ['createSelf', 'read', 'update', 'delete'],
     readOnly: ['read'],
   },
+  serviceCategory: {
+    managed: ['create', 'read', 'update', 'delete'],
+    readOnly: ['read'],
+  },
   skills: {
     managed: ['create', 'read', 'update', 'delete'],
     readAndCreate: ['read', 'create'],
@@ -37,6 +41,7 @@ const statements = {
   profile: permissions.profile.selfManaged,
   advisor: permissions.advisor.selfManaged,
   advisorService: permissions.advisorService.selfManaged,
+  serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
 } as const;
 
@@ -44,6 +49,7 @@ const ac = createAccessControl(statements);
 const adminStatements = {
   ...adminAc.statements,
   profile: permissions.profile.selfManaged,
+  serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
 } as const;
 const advisorStatements = {
@@ -51,6 +57,7 @@ const advisorStatements = {
   profile: permissions.profile.selfManaged,
   advisor: permissions.advisor.selfManaged,
   advisorService: permissions.advisorService.selfManaged,
+  serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.readAndCreate,
 } as const;
 const adviseeStatements = {
@@ -58,6 +65,7 @@ const adviseeStatements = {
   profile: permissions.profile.selfManaged,
   advisor: permissions.advisor.selfCreateOrRead,
   advisorService: permissions.advisorService.readOnly,
+  serviceCategory: permissions.serviceCategory.readOnly,
   skills: permissions.skills.readOnly,
 } as const;
 const adminRole = ac.newRole(adminStatements);

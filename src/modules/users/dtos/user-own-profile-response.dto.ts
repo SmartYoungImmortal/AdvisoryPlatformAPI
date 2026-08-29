@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { InferSelectModel } from 'drizzle-orm';
 import type { user } from '@/database/schema';
-import { Role } from '@/common/decorators/roles.decorator';
+import { Role } from '@/common/authorization/role.enum';
 
 type User = InferSelectModel<typeof user>;
 
