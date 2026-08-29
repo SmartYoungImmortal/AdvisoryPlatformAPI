@@ -40,6 +40,13 @@ about a particular client implementation.
 - Availability Profile date/time windows are Advisor-local IANA wall-clock values. Convert them to
   UTC only at the scheduling boundary; calculate horizon and daily limits in the Advisor's local
   date, and reject invalid timezones or nonexistent daylight-saving local times.
+- Derived slots are authenticated Advisee data. For a Service with screening enabled, enforce an
+  accepted screening request before exposing slots as well as before creating the booking. Apply
+  both global and per-Service daily consultation-minute limits; buffers block time but never count
+  toward either limit.
+- Booking creation must take the per-Advisor transaction advisory lock and rederive eligibility
+  after acquiring it. This serializes daily-limit decisions; the Postgres exclusion constraint is
+  still the final overlap guarantee.
 - Use the `@/` alias for imports that cross directories or feature boundaries (for example,
   `@/database/schema`). Keep `./` relative imports for files inside the same feature or folder.
   Do not introduce new `../` imports.
@@ -75,7 +82,7 @@ about a particular client implementation.
   response mapping consistent; do not create generic feature services to do this.
 - User-facing messages come from the module's `*.constants.ts`; reuse `crudMessages()` for
   ordinary CRUD text.
-- Use the composed Swagger decorators (`ApiGetOne`, `ApiGetPaginated`, `ApiCreate`,
+- Use the composed Swagger decorators (`ApiGetOne`, `ApiGetMany`, `ApiGetPaginated`, `ApiCreate`,
   `ApiUpdate`, `ApiDelete`) rather than repeating response declarations or manually adding the
   session-cookie security scheme.
 

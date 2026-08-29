@@ -4,5 +4,4 @@ export const BOOKING_MESSAGES = {
   selfBooking: 'You cannot book your own service',
   unavailable: 'Timeslot is not available',
   conflict: 'Timeslot already booked',
-  screeningRequired: 'Accepted screening is required before booking',
 } as const;

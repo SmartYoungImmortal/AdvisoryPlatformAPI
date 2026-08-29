@@ -8,4 +8,5 @@ export const AVAILABILITY_MESSAGES = {
   invalidWindows: 'Availability windows must not overlap',
   invalidRange: 'The requested date range is invalid',
   unavailable: 'Timeslot is not available',
+  screeningRequired: 'Accepted screening is required before viewing slots',
 } as const;

@@ -464,9 +464,11 @@ the standard offset-paginated own-Service list. `GET`, `PATCH`, and `DELETE`
 outside the Advisor's ownership returns `404`.
 
 Create and update fields are `categoryId`, `availabilityProfileId`, `name`, `description`,
-`priceSatang`, `durationMinutes`, `isPublished`, `screeningRequired`, `trialEnabled`, and
-`trialDurationMinutes`. `trialDurationMinutes` is required only when `trialEnabled` is true and
-must otherwise be absent. The current module returns the owner-only allowlist:
+`priceSatang`, `durationMinutes`, `dailyConsultationLimitMinutes`, `isPublished`,
+`screeningRequired`, `trialEnabled`, and `trialDurationMinutes`.
+`dailyConsultationLimitMinutes` is nullable, where `null` means unlimited.
+`trialDurationMinutes` is required only when `trialEnabled` is true and must otherwise be absent.
+The current module returns the owner-only allowlist:
 
 ```jsonc
 {
@@ -478,6 +480,7 @@ must otherwise be absent. The current module returns the owner-only allowlist:
   "description": "Practical career planning",
   "priceSatang": 150000,
   "durationMinutes": 60,
+  "dailyConsultationLimitMinutes": 120,
   "isPublished": false,
   "screeningRequired": false,
   "trialEnabled": true,
@@ -563,10 +566,12 @@ The implemented scheduling contract uses these routes, all under the standard re
   `/api/v1/advisors/me/availability/profiles/:profileId`, manage Advisor-owned reusable Profiles.
   A write replaces the supplied weekly, specific-date, and blocked windows atomically. Deletes are
   soft deletes.
-- `GET /api/v1/services/:serviceId/slots?from=YYYY-MM-DD&to=YYYY-MM-DD` is public and returns
-  derived candidate `{ startTime, endTime }` pairs for a published Service. The inclusive date
-  range is bounded to 90 days. Blocked periods, existing availability-blocking appointments,
-  global notice/horizon, service duration, and the daily consultation limit are applied.
+- `GET /api/v1/services/:serviceId/slots?from=YYYY-MM-DD&to=YYYY-MM-DD` requires an authenticated
+  Advisee and returns derived candidate `{ startTime, endTime }` pairs for a published Service.
+  For a screened Service, the Advisee must have an `ACCEPTED` screening request before this route
+  exposes slots. The inclusive date range is bounded to 90 days. Blocked periods, existing
+  availability-blocking appointments, global notice/horizon, service duration, and both global
+  and per-Service daily consultation limits are applied.
 - `POST /api/v1/bookings` accepts `{ serviceId, startTime }` from an authenticated Advisee and
   creates a `PENDING_PAYMENT` consultation appointment. It rejects self-booking and any time that
   is not currently a derived slot. The Advisor-wide PostgreSQL exclusion constraint is the final
@@ -574,9 +579,11 @@ The implemented scheduling contract uses these routes, all under the standard re
 - `GET /api/v1/bookings/me` and `GET /api/v1/advisors/me/bookings` return the respective
   paginated participant views.
 
-Screening, payment, payout, and refund endpoints are not yet written. Their paths and DTOs must
-be designed in the corresponding feature modules, but they must preserve the following agreed
-behavior.
+Screening-management, payment, payout, and refund endpoints are not yet written. Slot discovery
+and booking already enforce an accepted screening row when `screeningRequired` is enabled, but the
+HTTP workflow that creates questions, submits answers, and records the Advisor decision remains
+outstanding. The remaining paths and DTOs must be designed in the corresponding feature modules
+and preserve the following agreed behavior.
 
 ### Availability and slots
 
@@ -596,6 +603,9 @@ behavior.
   client-managed list of independently bookable slot records.
 - A booking blocks the advisor across all of their Services and Profiles through its consultation
   range plus the configured buffer. Daily limits count consultation minutes only, not buffer time.
+- Specific-date windows add exceptional availability to the recurring weekly windows for that
+  date. Overlapping ranges are merged before candidate slots are derived. Blocked periods then
+  remove time from the combined result.
 - A cancellation reopens its original range only when the time remaining still satisfies the
   minimum booking notice. Otherwise it remains unavailable. Every reschedule is a cancellation
   followed by a new booking and refund flow.
@@ -604,9 +614,11 @@ behavior.
 
 - A Service with `screeningRequired` requires submitted answers and an Advisor `ACCEPTED` decision
   before an Advisee can select a paid appointment time. A declined request notifies the Advisee.
-- Trial is independent from screening. An Advisee may receive one Trial per Service only after the
-  Advisor creates a direct grant; a grant has no request/approval status. A granted Trial uses the
-  Service's Availability Profile and configured Trial duration.
+- Trial is independent from screening. The 22 August meeting summary requires both an
+  Advisee-initiated Trial request that the Advisor can grant or decline and an Advisor-created
+  direct grant. An Advisee may use one Trial per Service. The exact request/decision DTOs and state
+  transitions are not implemented yet; a granted Trial uses the Service's Availability Profile and
+  configured Trial duration.
 
 ### Payment, payout, and refund
 
@@ -628,8 +640,11 @@ behavior.
 
 ## 11. Not yet written
 
-categories & skills · services & availability · screening · booking · payments &
-payouts · refunds · chat files · notifications · trust & safety · admin console
+Public Service/advisor discovery · Availability Profile inline creation/automatic naming ·
+multi-session booking · cancellation/rescheduling · screening management · Trial request/direct
+grant workflow · payments & payouts · refunds · chat files · notifications · trust & safety ·
+remaining admin operations
 
-Booking is next — it is the one with the concurrency guarantee, the state machine and the payment
-gate, so it will stress this format hardest.
+The booking path is only partially complete. Its next gates are a real-Postgres concurrency test,
+the cancellation/rescheduling state transitions, multi-session request semantics, and the payment
+lifecycle.

@@ -7,6 +7,7 @@ import {
   availabilityProfiles,
   availabilitySpecificWindows,
   availabilityWeeklyWindows,
+  screeningRequests,
   serviceAppointments,
   services,
   user,
@@ -174,48 +175,53 @@ export class AvailabilityRepository {
       .limit(1);
     const service = serviceContext?.service;
     if (!service?.availabilityProfileId) return undefined;
-    const [global, profile, weeklyWindows, specificWindows, blockedPeriods] =
-      await Promise.all([
-        this.findGlobal(service.advisorId),
-        this.db
-          .select()
-          .from(availabilityProfiles)
-          .where(
-            and(
-              eq(availabilityProfiles.id, service.availabilityProfileId),
-              isNull(availabilityProfiles.deletedAt),
-            ),
-          )
-          .limit(1)
-          .then((rows) => rows[0]),
-        this.db
-          .select()
-          .from(availabilityWeeklyWindows)
-          .where(
-            eq(
-              availabilityWeeklyWindows.availabilityProfileId,
-              service.availabilityProfileId,
-            ),
+    const [
+      global,
+      profileRows,
+      weeklyWindows,
+      specificWindows,
+      blockedPeriods,
+    ] = await Promise.all([
+      this.findGlobal(service.advisorId),
+      this.db
+        .select()
+        .from(availabilityProfiles)
+        .where(
+          and(
+            eq(availabilityProfiles.id, service.availabilityProfileId),
+            isNull(availabilityProfiles.deletedAt),
           ),
-        this.db
-          .select()
-          .from(availabilitySpecificWindows)
-          .where(
-            eq(
-              availabilitySpecificWindows.availabilityProfileId,
-              service.availabilityProfileId,
-            ),
+        )
+        .limit(1),
+      this.db
+        .select()
+        .from(availabilityWeeklyWindows)
+        .where(
+          eq(
+            availabilityWeeklyWindows.availabilityProfileId,
+            service.availabilityProfileId,
           ),
-        this.db
-          .select()
-          .from(availabilityBlockedPeriods)
-          .where(
-            eq(
-              availabilityBlockedPeriods.availabilityProfileId,
-              service.availabilityProfileId,
-            ),
+        ),
+      this.db
+        .select()
+        .from(availabilitySpecificWindows)
+        .where(
+          eq(
+            availabilitySpecificWindows.availabilityProfileId,
+            service.availabilityProfileId,
           ),
-      ]);
+        ),
+      this.db
+        .select()
+        .from(availabilityBlockedPeriods)
+        .where(
+          eq(
+            availabilityBlockedPeriods.availabilityProfileId,
+            service.availabilityProfileId,
+          ),
+        ),
+    ]);
+    const [profile] = profileRows;
     return global && profile
       ? {
           service,
@@ -240,5 +246,23 @@ export class AvailabilityRepository {
           gt(serviceAppointments.unavailableUntil, from),
         ),
       );
+  }
+
+  async hasAcceptedScreening(
+    serviceId: string,
+    adviseeId: string,
+  ): Promise<boolean> {
+    const [request] = await this.db
+      .select({ id: screeningRequests.id })
+      .from(screeningRequests)
+      .where(
+        and(
+          eq(screeningRequests.serviceId, serviceId),
+          eq(screeningRequests.adviseeId, adviseeId),
+          eq(screeningRequests.status, 'ACCEPTED'),
+        ),
+      )
+      .limit(1);
+    return request !== undefined;
   }
 }

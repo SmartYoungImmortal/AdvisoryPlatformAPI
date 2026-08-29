@@ -1,14 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, type InferSelectModel, type SQL } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  type InferInsertModel,
+  type InferSelectModel,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import {
-  screeningRequests,
-  serviceAppointments,
-  services,
-} from '@/database/schema';
+import { serviceAppointments, services } from '@/database/schema';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
+type NewAppointment = InferInsertModel<typeof serviceAppointments>;
 
 @Injectable()
 export class BookingsRepository extends EntityRepository<
@@ -27,22 +31,26 @@ export class BookingsRepository extends EntityRepository<
     return service;
   }
 
-  async hasAcceptedScreening(
-    serviceId: string,
-    adviseeId: string,
-  ): Promise<boolean> {
-    const [request] = await this.db
-      .select({ id: screeningRequests.id })
-      .from(screeningRequests)
-      .where(
-        and(
-          eq(screeningRequests.serviceId, serviceId),
-          eq(screeningRequests.adviseeId, adviseeId),
-          eq(screeningRequests.status, 'ACCEPTED'),
-        ),
-      )
-      .limit(1);
-    return request !== undefined;
+  /**
+   * Serializes the eligibility recheck and insert per Advisor. This closes the
+   * race for daily limits while the exclusion constraint remains the final
+   * guarantee against overlapping appointment ranges.
+   */
+  createWithSchedulingLock(
+    advisorId: string,
+    eligibleValues: () => Promise<NewAppointment>,
+  ): Promise<Appointment> {
+    return this.db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${advisorId}, 0))`,
+      );
+      const values = await eligibleValues();
+      const [appointment] = await tx
+        .insert(serviceAppointments)
+        .values(values)
+        .returning();
+      return appointment;
+    });
   }
 
   async findManyForAdvisee(

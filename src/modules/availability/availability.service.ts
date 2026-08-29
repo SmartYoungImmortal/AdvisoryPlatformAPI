@@ -84,25 +84,44 @@ export class AvailabilityService {
   async findSlots(
     serviceId: string,
     query: SlotQueryDto,
+    adviseeId: string,
   ): Promise<AvailabilitySlotResponseDto[]> {
     if (!isIsoDate(query.from) || !isIsoDate(query.to) || query.from > query.to)
       throw new BadRequestException(AVAILABILITY_MESSAGES.invalidRange);
     if (daysBetween(query.from, query.to) > 89)
       throw new BadRequestException(AVAILABILITY_MESSAGES.invalidRange);
     const context = await this.getSchedulingContext(serviceId);
+    await this.assertCanViewSlots(context, adviseeId);
     return this.deriveSlots(context, query.from, query.to);
   }
 
   async findSlotAt(
     serviceId: string,
     startTime: Date,
+    adviseeId: string,
   ): Promise<AvailabilitySlotResponseDto | undefined> {
     const context = await this.getSchedulingContext(serviceId);
+    await this.assertCanViewSlots(context, adviseeId);
     const date = dateInTimeZone(startTime, context.timezone);
     const slots = await this.deriveSlots(context, date, date);
     return slots.find(
       (slot) => slot.startTime.getTime() === startTime.getTime(),
     );
+  }
+
+  private async assertCanViewSlots(
+    context: SchedulingContext,
+    adviseeId: string,
+  ): Promise<void> {
+    if (
+      context.service.screeningRequired &&
+      !(await this.repository.hasAcceptedScreening(
+        context.service.id,
+        adviseeId,
+      ))
+    ) {
+      throw new BadRequestException(AVAILABILITY_MESSAGES.screeningRequired);
+    }
   }
 
   private async getSchedulingContext(
@@ -159,20 +178,19 @@ export class AvailabilityService {
     );
     const slots: AvailabilitySlotResponseDto[] = [];
     for (let date = from; date <= to; date = addDays(date, 1)) {
-      const ranges = context.specificWindows
+      const specificRanges = context.specificWindows
         .filter((window) => window.availableDate === date)
         .map((window) => ({
           startTime: window.startTime,
           endTime: window.endTime,
         }));
-      const source = ranges.length
-        ? ranges
-        : context.weeklyWindows
-            .filter((window) => window.dayOfWeek === isoWeekday(date))
-            .map((window) => ({
-              startTime: window.startTime,
-              endTime: window.endTime,
-            }));
+      const weeklyRanges = context.weeklyWindows
+        .filter((window) => window.dayOfWeek === isoWeekday(date))
+        .map((window) => ({
+          startTime: window.startTime,
+          endTime: window.endTime,
+        }));
+      const source = mergeRanges([...weeklyRanges, ...specificRanges]);
       for (const range of source) {
         const rangeEnd = zonedDateTimeToUtc(
           date,
@@ -318,7 +336,12 @@ function addRange(
   ranges.set(key, values);
 }
 function isIsoDate(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
 }
 function daysBetween(from: string, to: string): number {
   return (
@@ -343,4 +366,22 @@ function isSlotGridTime(time: string): boolean {
     Number(match[2]) < 60 &&
     Number(match[2]) % 30 === 0
   );
+}
+
+function mergeRanges(
+  ranges: Array<{ startTime: string; endTime: string }>,
+): Array<{ startTime: string; endTime: string }> {
+  const sorted = [...ranges].sort((a, b) =>
+    a.startTime.localeCompare(b.startTime),
+  );
+  const merged: Array<{ startTime: string; endTime: string }> = [];
+  for (const range of sorted) {
+    const previous = merged.at(-1);
+    if (!previous || previous.endTime < range.startTime) {
+      merged.push({ ...range });
+    } else if (range.endTime > previous.endTime) {
+      previous.endTime = range.endTime;
+    }
+  }
+  return merged;
 }

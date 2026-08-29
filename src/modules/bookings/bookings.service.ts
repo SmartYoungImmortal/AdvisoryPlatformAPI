@@ -31,30 +31,33 @@ export class BookingsService {
     if (!service) throw new NotFoundException(BOOKING_MESSAGES.notFound);
     if (service.advisorId === user.id)
       throw new BadRequestException(BOOKING_MESSAGES.selfBooking);
-    if (
-      service.screeningRequired &&
-      !(await this.repository.hasAcceptedScreening(service.id, user.id))
-    )
-      throw new BadRequestException(BOOKING_MESSAGES.screeningRequired);
     const startTime = new Date(dto.startTime);
     if (Number.isNaN(startTime.getTime()))
       throw new BadRequestException(BOOKING_MESSAGES.unavailable);
-    const slot = await this.availability.findSlotAt(dto.serviceId, startTime);
-    if (!slot) throw new BadRequestException(BOOKING_MESSAGES.unavailable);
     try {
-      const appointment = await this.repository.create({
-        serviceId: service.id,
-        advisorId: service.advisorId,
-        adviseeId: user.id,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        unavailableUntil: new Date(
-          slot.endTime.getTime() +
-            (await this.availability.getGlobal(service.advisorId))
-              .bufferMinutes *
-              60000,
-        ),
-      });
+      const appointment = await this.repository.createWithSchedulingLock(
+        service.advisorId,
+        async () => {
+          const slot = await this.availability.findSlotAt(
+            dto.serviceId,
+            startTime,
+            user.id,
+          );
+          if (!slot)
+            throw new BadRequestException(BOOKING_MESSAGES.unavailable);
+          const global = await this.availability.getGlobal(service.advisorId);
+          return {
+            serviceId: service.id,
+            advisorId: service.advisorId,
+            adviseeId: user.id,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            unavailableUntil: new Date(
+              slot.endTime.getTime() + global.bufferMinutes * 60000,
+            ),
+          };
+        },
+      );
       return new BookingResponseDto(appointment);
     } catch (error: unknown) {
       if (isExclusionViolation(error))

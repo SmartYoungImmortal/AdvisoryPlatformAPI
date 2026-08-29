@@ -1,7 +1,8 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { ApiGetOne } from '@/common/decorators/api-docs.decorator';
-import { Public } from '@/common/decorators/public.decorator';
+import { ApiGetMany } from '@/common/decorators/api-docs.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { SessionUser } from '@/modules/auth/auth.config';
 import { AvailabilityService } from './availability.service';
 import {
   AvailabilitySlotResponseDto,
@@ -13,16 +14,13 @@ import {
 export class ServiceSlotsController {
   constructor(private readonly availability: AvailabilityService) {}
 
-  @Public()
   @Get(':serviceId/slots')
-  @ApiGetOne(AvailabilitySlotResponseDto, {
-    name: 'Available slots',
-    public: true,
-  })
+  @ApiGetMany(AvailabilitySlotResponseDto, { name: 'Available slots' })
   findSlots(
+    @CurrentUser() user: SessionUser,
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
     @Query() query: SlotQueryDto,
   ): Promise<AvailabilitySlotResponseDto[]> {
-    return this.availability.findSlots(serviceId, query);
+    return this.availability.findSlots(serviceId, query, user.id);
   }
 }
