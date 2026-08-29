@@ -15,7 +15,7 @@ RUN curl -fsS https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which 
 # Copy the rest of the application files
 COPY src/ .
 COPY nest-cli.json .
-COPY drizzle.config.js .
+COPY drizzle.config.ts .
 COPY tsconfig.json .
 COPY eslint.config.mjs .
 
