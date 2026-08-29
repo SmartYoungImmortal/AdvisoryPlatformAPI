@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { Trim } from '../../../common/decorators/trim.decorator';
+import { Trim } from '@/common/decorators/trim.decorator';
 
 export class CreateSkillDto {
   @ApiProperty({ maxLength: 100 })

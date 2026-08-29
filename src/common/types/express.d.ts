@@ -1,4 +1,4 @@
-import type { AuthSession, SessionUser } from '../../modules/auth/auth.config';
+import type { AuthSession, SessionUser } from '@/modules/auth/auth.config';
 
 declare global {
   namespace Express {

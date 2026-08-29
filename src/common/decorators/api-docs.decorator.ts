@@ -39,6 +39,12 @@ export class ApiPaginatedDataDto {
   @ApiProperty() totalPages!: number;
 }
 
+export class ApiCursorPaginatedDataDto {
+  @ApiProperty() limit!: number;
+  @ApiProperty({ nullable: true, type: String }) nextCursor!: string | null;
+  @ApiProperty() hasMore!: boolean;
+}
+
 function envelopeSchema(model: Type): ResponseSchema {
   return {
     allOf: [
@@ -73,13 +79,61 @@ function paginatedEnvelopeSchema(model: Type): ResponseSchema {
   };
 }
 
-export interface ApiReadOptions {
+function cursorPaginatedEnvelopeSchema(model: Type): ResponseSchema {
+  return {
+    allOf: [
+      { $ref: getSchemaPath(ApiEnvelopeDto) },
+      {
+        properties: {
+          data: {
+            allOf: [
+              { $ref: getSchemaPath(ApiCursorPaginatedDataDto) },
+              {
+                properties: {
+                  items: {
+                    type: 'array',
+                    items: { $ref: getSchemaPath(model) },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ],
+  };
+}
+
+export interface ApiDocsOptions {
+  /**
+   * Human-readable resource name used in response descriptions. By default it is
+   * derived from the response DTO class name (for example,
+   * `ServiceCategoryResponseDto` becomes `Service category`).
+   */
+  name?: string;
+}
+
+export interface ApiReadOptions extends ApiDocsOptions {
   /**
    * Defaults to `false` — SessionGuard fails closed (a route is protected unless
    * `@Public()` says otherwise), so the docs default the same way. Pass `true` only
    * for a handler that actually carries `@Public()`.
    */
   public?: boolean;
+}
+
+function modelName(model: Type, override: string | undefined): string {
+  if (override) {
+    return override;
+  }
+
+  const words = model.name
+    .replace(/(?:Response)?Dto$/, '')
+    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .toLowerCase();
+
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /** `[]` on a public route, `[ApiCookieAuth(...)]` otherwise — the one place that decides it. */
@@ -106,9 +160,10 @@ function authDecorators(isPublic: boolean | undefined): MethodDecorator[] {
 
 export function ApiGetOne(
   model: Type,
-  name: string,
   options: ApiReadOptions = {},
 ): MethodDecorator {
+  const name = modelName(model, options.name);
+
   return applyDecorators(
     ApiExtraModels(ApiEnvelopeDto, ApiNullDataEnvelopeDto, model),
     ApiOkResponse({
@@ -125,9 +180,10 @@ export function ApiGetOne(
 
 export function ApiGetPaginated(
   model: Type,
-  name: string,
   options: ApiReadOptions = {},
 ): MethodDecorator {
+  const name = modelName(model, options.name);
+
   return applyDecorators(
     ApiExtraModels(ApiEnvelopeDto, ApiPaginatedDataDto, model),
     ApiOkResponse({
@@ -138,7 +194,28 @@ export function ApiGetPaginated(
   );
 }
 
-export function ApiCreate(model: Type, name: string): MethodDecorator {
+export function ApiGetCursorPaginated(
+  model: Type,
+  options: ApiReadOptions = {},
+): MethodDecorator {
+  const name = modelName(model, options.name);
+
+  return applyDecorators(
+    ApiExtraModels(ApiEnvelopeDto, ApiCursorPaginatedDataDto, model),
+    ApiOkResponse({
+      description: `Cursor-paginated list of ${name}`,
+      schema: cursorPaginatedEnvelopeSchema(model),
+    }),
+    ...authDecorators(options.public),
+  );
+}
+
+export function ApiCreate(
+  model: Type,
+  options: ApiDocsOptions = {},
+): MethodDecorator {
+  const name = modelName(model, options.name);
+
   return applyDecorators(
     ApiExtraModels(ApiEnvelopeDto, ApiNullDataEnvelopeDto, model),
     ApiCreatedResponse({
@@ -149,7 +226,12 @@ export function ApiCreate(model: Type, name: string): MethodDecorator {
   );
 }
 
-export function ApiUpdate(model: Type, name: string): MethodDecorator {
+export function ApiUpdate(
+  model: Type,
+  options: ApiDocsOptions = {},
+): MethodDecorator {
+  const name = modelName(model, options.name);
+
   return applyDecorators(
     ApiExtraModels(ApiEnvelopeDto, model),
     ApiOkResponse({
@@ -164,12 +246,17 @@ export function ApiUpdate(model: Type, name: string): MethodDecorator {
   );
 }
 
-export function ApiDelete(name: string): MethodDecorator {
+export function ApiDelete(
+  model: Type,
+  options: ApiDocsOptions = {},
+): MethodDecorator {
+  const name = modelName(model, options.name);
+
   return applyDecorators(
-    ApiExtraModels(ApiNullDataEnvelopeDto),
+    ApiExtraModels(ApiEnvelopeDto, ApiNullDataEnvelopeDto, model),
     ApiOkResponse({
       description: `${name} deleted`,
-      type: ApiNullDataEnvelopeDto,
+      schema: envelopeSchema(model),
     }),
     ApiNotFoundResponse({
       description: `${name} not found`,

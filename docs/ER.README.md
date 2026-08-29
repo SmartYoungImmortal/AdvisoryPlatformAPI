@@ -17,8 +17,9 @@ top-level `%%` comments — putting these notes in the diagram file breaks rende
   `SERVICE_IMAGES`, `PDPA_CONSENTS`, `ADVISOR_IDENTITY`, and `SERVICE_REVIEWS`
   (whose PK is its FK). Tables that *are* basic entities keep a uuid — that is what the
   rule permits, and the distinction is the point of it.
-- **Files.** Anything stored in MinIO is referenced by `objectKey`, never by URL —
-  presigned URLs expire, so a stored URL rots.
+- **Files.** Anything stored in the private SeaweedFS bucket is referenced by `objectKey`, never by URL
+  — presigned URLs expire, so a stored URL rots. Avatar URLs are generated owner-only on demand and
+  expire after five minutes.
 - **Checks.** Postgres rejects negative monetary/penalty values, invalid duration and time ranges,
   review stars outside 1–5, and file sizes outside 1 byte–50 MiB. These are database guarantees,
   not validation rules that can be bypassed by another writer.
@@ -45,14 +46,19 @@ reuse the existing invoice/payment attempt rather than create a second invoice f
 
 ### Slot availability is derived, not stored
 
-`SERVICE_TIMESLOTS.status` is `OPEN` / `BLOCKED` and expresses only what the *advisor*
-chose. Whether a slot is taken is derived from whether a live `SERVICE_APPOINTMENTS` row
-points at it. Storing a `isBooked` flag would be a second copy of that fact and would
-drift.
+Slots are calculated from an Advisor's one `ADVISOR_GLOBAL_AVAILABILITY` record and the
+Availability Profile selected by the Service. Weekly and specific windows provide candidate
+starts; blocked periods always subtract from them. The fixed Project 1 interval is 30 minutes,
+and Service and Trial durations must be multiples of that interval.
 
-The no-overlap guarantee is a **database-level exclusion constraint** on
-`(serviceId, tstzrange(startTime, endTime))`, not an application-layer check. This is the
-project's first Success Criterion and it must survive concurrent requests.
+`SERVICE_APPOINTMENTS` stores the booked consultation range and `unavailableUntil`, which
+snapshots the appointment end plus the configured buffer. `blocksAvailability` makes the
+cancellation rule explicit: a cancelled appointment releases its range only if doing so still
+satisfies the minimum booking notice; otherwise it continues to block that time.
+
+The no-overlap guarantee is a **database-level exclusion constraint** on an Advisor's
+`tstzrange(startTime, unavailableUntil)`, not an application-layer check. It therefore prevents
+overlaps across every Service and Profile owned by that Advisor and survives concurrent requests.
 
 ### Escrow and payouts are modelled in Project 1
 
@@ -60,38 +66,41 @@ project's first Success Criterion and it must survive concurrent requests.
 matching sequence diagram CF-05. `PAYOUTS` records what is owed to an advisor and
 `PAYOUT_INVOICES` records which invoices a payout settles.
 
-Advisor take-home is `amountSatang - platformFeeSatang` and is deliberately **not** stored
-as a third column — it is derivable within the row.
+Advisor take-home is `amountSatang - platformFeeSatang`. The current 2,000-satang transfer fee is
+recorded separately on the payout; its allocation is not silently inferred from either party's
+balance. An invoice becomes eligible for payout seven days after the consultation completes,
+represented by `payoutEligibleAt` before it can be included in a payout.
 
 ### Screening and the free trial are optional, and independent of each other
 
-**Booking never depends on screening.** Most services are bought directly. `SERVICES` carries two
-independent switches:
+Services still carry two independent switches, but the screening switch is a booking gate:
+when `screeningRequired` is on, an Advisee must submit answers and receive an `ACCEPTED`
+`SCREENING_REQUESTS` decision before choosing a paid appointment time. Services without that
+switch can be booked directly.
 
 | `screeningRequired` | `trialEnabled` | Meaning |
 |---|---|---|
 | off | off | Book straight away — the default |
-| on | off | Answer my questions first, then pay — a filter, not a giveaway |
-| off | on | Free chat, no form |
-| on | on | The full CF-03 flow |
+| on | off | Answer questions, receive approval, then choose and pay for a time |
+| off | on | Request a free trial, then choose a time only after the Advisor grants it |
+| on | on | Screening approval and the separate trial flow are both available |
 
 Two switches rather than one because Tan asked for screening so it *"ช่วยเลือกลูกค้าได้"* — that is a
 filter. Coupling it to a free trial would force every advisor who wants to filter to also give away
 unpaid time.
 
-**One trial per advisee per service**, enforced by `UNIQUE (adviseeId, serviceId)` on
-`SCREENING_REQUESTS`. An advisee who already knows the advisor is not pushed through a trial, and
-nobody farms free sessions by re-applying.
+**One trial per advisee per service** is enforced by the composite primary key
+`(serviceId, adviseeId)` on `TRIAL_GRANTS`. A grant is created directly by the Advisor; it has no
+request/approval status. A granted trial uses the Service's Availability Profile and configured
+trial duration.
 
-There is no separate `TRIAL_SESSIONS` table. It was strictly 1:1 with the screening request and held
-three timestamps; those now live on the request itself (`chatRoomId`, `trialStartedAt`,
-`trialExpiresAt`, all null unless a trial was granted).
+There is no separate `TRIAL_SESSIONS` table. A trial is represented by a `TRIAL`
+`SERVICE_APPOINTMENTS` row, which keeps the same scheduling, chat-room, and audit path as a paid
+consultation without creating an invoice.
 
-`SCREENING_REQUESTS` keeps a uuid PK rather than the natural `(adviseeId, serviceId)` composite,
-because a composite would force `SCREENING_ANSWERS` into a three-column key in which `serviceId` is
-already determined by `questionId` — redundant, and the kind of thing a normalization check flags.
-The Orientation rule bans surrogate ids on tables that are *not* basic entities; a screening request
-has a status, a decision, a reason and a trial window, so it is one.
+`SCREENING_REQUESTS` keeps a uuid PK because it has its own state, decision, reason, answers, and
+lifecycle. `TRIAL_GRANTS` is an entitlement junction, so it correctly uses the composite key.
+`SCREENING_ANSWERS` also uses a composite key for its junction relationship.
 
 ### เลขบัตรประชาชน: stored, encrypted, deliberately not a primary key
 
@@ -100,7 +109,7 @@ has a status, a decision, a reason and a trial window, so it is one.
 - `nationalIdEncrypted` — AES at rest, key from the environment. **Never stored or logged in
   plaintext, and never returned by any endpoint.**
 - `nationalIdHash` — `UNIQUE`, so two accounts cannot claim the same identity.
-- The uploaded scan is a MinIO object key, not a URL.
+- The uploaded scan is a SeaweedFS object key, not a URL.
 
 The natural-key rule was considered here and rejected, for five reasons worth having ready:
 
@@ -117,28 +126,18 @@ The natural-key rule was considered here and rejected, for five reasons worth ha
 Where the rule *was* applied: every junction table, and the `UNIQUE (adviseeId, serviceId)`
 constraint above.
 
-### Proof of expertise has two axes, not one ladder
+### Identity is the only advisor verification level
 
-**Current product decision (2026-08-10):** registration creates an Advisee only. The historic
-reference to an onboarding wizard below is superseded: a user explicitly upgrades to Advisor first,
-then identity and skill verification remain separate trust checks.
+**Current product decision (2026-08-22):** registration creates an Advisee only. A user explicitly
+upgrades to Advisor, and identity verification remains the only verification workflow.
 
-Identity and skill are different claims and are verified separately — which is already how the UX
-onboarding wizard is split (Stage 2 identification, Stage 3 skills + proof of skill).
+`ADVISOR_IDENTITY.verificationStatus` is the only verification state: `NONE → SUBMITTED →
+VERIFIED | REJECTED`. Skills are claims only; there is no `proofLevel` and no skill-verification
+badge. `SKILL_PROOF_DOCUMENTS` may retain optional documents and their review records for
+administration, but they do not change a skill or public-profile state.
 
-- **Identity**, on the advisor: `ADVISOR_IDENTITY.verificationStatus` — `NONE → SUBMITTED →
-  VERIFIED | REJECTED`.
-- **Skill**, per claimed skill: `ADVISOR_SKILLS.proofLevel` — `SELF_DECLARED → DOCUMENT_SUBMITTED →
-  ADMIN_VERIFIED`, evidenced by `SKILL_PROOF_DOCUMENTS`.
-
-The badge an advisee sees is **derived, not stored**: identity verified plus at least one
-admin-verified skill reads as a verified expert; identity alone reads as identity-verified;
-otherwise unbadged.
-
-A single ladder on the advisor was rejected because an advisor at "certificates verified" who lists
-five skills is implicitly claiming proof for all five when the admin may have checked one. That is
-exactly the *"CV/Resume ปลอมความสามารถ"* problem Tan raised in his interview — a single ladder would
-launder it.
+The badge an advisee sees is **derived, not stored**: an identity-verified Advisor receives the
+identity-verified badge; otherwise the Advisor is unbadged.
 
 ### Trust & safety has an evidence trail
 
@@ -152,8 +151,10 @@ sync.
 
 `PDPA_CONSENTS` is keyed `(userId, policyVersion)` so re-consent to a new policy version
 is a new row and the history is preserved — which is the point of a consent record.
-Right-to-be-forgotten is served by `USERS.status = DELETED` plus hard deletion of
-personal columns; the diagram does not model the deletion procedure itself.
+Right-to-be-forgotten is served by the atomic `DELETE /api/v1/users/me` procedure: it sets
+`USERS.status = DELETED`, replaces required identity columns with non-identifying values, revokes
+sessions/accounts, erases verification/profile proof data, and unpublishes Advisor services.
+FK-bound transaction and safety evidence keeps only the pseudonymous internal UUID.
 
 ## Known gaps, deliberately left out
 

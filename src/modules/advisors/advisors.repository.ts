@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InferSelectModel, eq } from 'drizzle-orm';
-import { DRIZZLE, type DrizzleDB } from '../../database/database.module';
-import { advisorProfiles } from '../../database/schema';
+import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
+import { advisorProfiles, user as userSchema } from '@/database/schema';
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
+import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 
 type AdvisorProfile = InferSelectModel<typeof advisorProfiles>;
 
@@ -28,10 +29,32 @@ export class AdvisorsRepository {
     userId: string,
     dto: CreateAdvisorProfileDto,
   ): Promise<AdvisorProfile | undefined> {
+    const advisor = await this.db.transaction(async (tx) => {
+      const [advisor] = await tx
+        .insert(advisorProfiles)
+        .values({ userId, ...dto })
+        .onConflictDoNothing()
+        .returning();
+
+      await tx
+        .update(userSchema)
+        .set({ role: 'advisor' })
+        .where(eq(userSchema.id, userId));
+
+      return advisor;
+    });
+
+    return advisor;
+  }
+
+  async updateByUserId(
+    userId: string,
+    dto: UpdateAdvisorProfileDto,
+  ): Promise<AdvisorProfile | undefined> {
     const [advisor] = await this.db
-      .insert(advisorProfiles)
-      .values({ userId, ...dto })
-      .onConflictDoNothing()
+      .update(advisorProfiles)
+      .set({ ...dto, modifiedAt: new Date() })
+      .where(eq(advisorProfiles.userId, userId))
       .returning();
     return advisor;
   }

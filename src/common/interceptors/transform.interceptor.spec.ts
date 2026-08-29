@@ -1,7 +1,7 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { of } from 'rxjs';
-import { RESPONSE_MESSAGE_KEY } from '../decorators/response-message.decorator';
+import { RESPONSE_MESSAGE_KEY } from '@/common/decorators/response-message.decorator';
 import { TransformInterceptor } from './transform.interceptor';
 
 describe('TransformInterceptor', () => {

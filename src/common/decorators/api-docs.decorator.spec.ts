@@ -11,6 +11,7 @@ import { ApiProperty, DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import {
   ApiCreate,
   ApiDelete,
+  ApiGetCursorPaginated,
   ApiGetOne,
   ApiGetPaginated,
 } from './api-docs.decorator';
@@ -21,20 +22,24 @@ class DummyResponseDto {
 
 @Controller('dummies')
 class DummyController {
+  @Get('feed')
+  @ApiGetCursorPaginated(DummyResponseDto)
+  findFeed(): void {}
+
   @Get(':id')
-  @ApiGetOne(DummyResponseDto, 'Dummy')
+  @ApiGetOne(DummyResponseDto)
   findOne(): void {}
 
   @Get()
-  @ApiGetPaginated(DummyResponseDto, 'Dummy', { public: true })
+  @ApiGetPaginated(DummyResponseDto, { public: true })
   findMany(): void {}
 
   @Post()
-  @ApiCreate(DummyResponseDto, 'Dummy')
+  @ApiCreate(DummyResponseDto, { name: 'Test dummy' })
   create(): void {}
 
   @Delete(':id')
-  @ApiDelete('Dummy')
+  @ApiDelete(DummyResponseDto)
   delete(): void {}
 }
 
@@ -64,9 +69,18 @@ describe('api-docs decorators', () => {
 
     expect(document.components?.schemas?.DummyResponseDto).toBeDefined();
     expect(document.components?.schemas?.ApiEnvelopeDto).toBeDefined();
+    expect(
+      document.components?.schemas?.ApiCursorPaginatedDataDto,
+    ).toBeDefined();
+
+    expect(
+      document.paths['/dummies/feed']?.get?.responses?.['200'],
+    ).toMatchObject({
+      description: 'Cursor-paginated list of Dummy',
+    });
 
     const getOne = document.paths['/dummies/{id}']?.get?.responses?.['200'];
-    expect(getOne).toBeDefined();
+    expect(getOne).toMatchObject({ description: 'Dummy found' });
     expect(
       document.paths['/dummies/{id}']?.get?.responses?.['401'],
     ).toBeDefined();
@@ -77,7 +91,9 @@ describe('api-docs decorators', () => {
     expect(document.paths['/dummies/{id}']?.get?.summary).toBeUndefined();
 
     const getManyOperation = document.paths['/dummies']?.get;
-    expect(getManyOperation?.responses?.['200']).toBeDefined();
+    expect(getManyOperation?.responses?.['200']).toMatchObject({
+      description: 'Paginated list of Dummy',
+    });
     expect(getManyOperation?.responses?.['401']).toBeUndefined();
     expect(getManyOperation?.security).toBeUndefined();
     expect(getManyOperation?.summary).toBe(
@@ -85,13 +101,23 @@ describe('api-docs decorators', () => {
     );
 
     const create = document.paths['/dummies']?.post?.responses?.['201'];
-    expect(create).toBeDefined();
+    expect(create).toMatchObject({ description: 'Test dummy created' });
 
     const deleted = document.paths['/dummies/{id}']?.delete?.responses?.['200'];
     expect(deleted).toMatchObject({
+      description: 'Dummy deleted',
       content: {
         'application/json': {
-          schema: { $ref: '#/components/schemas/ApiNullDataEnvelopeDto' },
+          schema: {
+            allOf: [
+              { $ref: '#/components/schemas/ApiEnvelopeDto' },
+              {
+                properties: {
+                  data: { $ref: '#/components/schemas/DummyResponseDto' },
+                },
+              },
+            ],
+          },
         },
       },
     });

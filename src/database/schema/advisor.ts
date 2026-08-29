@@ -10,8 +10,9 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { adminProfiles, user } from './auth';
+import { user } from '@/database/schema';
 import { bytea } from './custom-types';
+import { adminProfiles } from '@/database/schema/auth-supplements';
 
 export const identityVerificationStatusEnum = pgEnum(
   'identity_verification_status',
@@ -22,12 +23,6 @@ export const skillProofReviewStatusEnum = pgEnum('skill_proof_review_status', [
   'PENDING',
   'APPROVED',
   'REJECTED',
-]);
-
-export const skillProofLevelEnum = pgEnum('skill_proof_level', [
-  'SELF_DECLARED',
-  'DOCUMENT_SUBMITTED',
-  'ADMIN_VERIFIED',
 ]);
 
 export const advisorProfiles = pgTable(
@@ -96,9 +91,6 @@ export const advisorSkills = pgTable(
     skillId: uuid('skill_id')
       .notNull()
       .references(() => skills.id),
-    proofLevel: skillProofLevelEnum('proof_level')
-      .notNull()
-      .default('SELF_DECLARED'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

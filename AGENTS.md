@@ -1,23 +1,23 @@
 # AdvisoryPlatformAPI — working guide
 
-NestJS API for KMITL's Advisory Platform. This repository serves the separately owned
-`AdvisoryPlatform/` Next.js frontend: when an endpoint's shape is unclear, follow the
-frontend's actual needs. Do not invent product behaviour.
+NestJS API for KMITL's Advisory Platform. This repository owns the backend HTTP, WebSocket,
+authentication, persistence, and external-service integration contracts. When an endpoint's shape
+is unclear, resolve it in `docs/api-spec.md` from documented product and security requirements. Do
+not invent product behaviour.
 
 ## Read before changing architecture
 
 - `docs/api-spec.md` — API contract and field-level access rules. It is incomplete; only
   Advisors is a sample specification.
 - `docs/ER.mermaid` and `docs/ER.README.md` — canonical data model and rationale.
-- `docs/HANDOFF.md` — current implementation snapshot and known gaps.
 - `docs/SPRINT-PLAN.md` — active delivery baseline; its dates remain provisional until confirmed.
-- `docs/dev-log.md` — decisions that were made during prior sessions.
 
-The frontend contract is not mirrored here. Ask before making a decision that depends on it.
+This repository is API-only. Do not add client application code or make undocumented assumptions
+about a particular client implementation.
 
 ## Architecture and invariants
 
-- Stack: NestJS 11, Drizzle, self-hosted Postgres, better-auth. MinIO, Socket.IO, Jitsi,
+- Stack: NestJS 11, Drizzle, self-hosted Postgres, better-auth. SeaweedFS, Socket.IO, Jitsi,
   and Omise are planned integrations.
 - Use UUID primary keys; every timestamp is `timestamptz`.
 - Monetary values are integer satang, never floats or baht; name fields `*Satang`.
@@ -33,11 +33,17 @@ The frontend contract is not mirrored here. Ask before making a decision that de
 - `src/database/schema/` is central because the schema is one connected FK graph.
 - Each feature lives in `src/modules/<feature>/` with controller, service, repository,
   module, DTOs, and focused tests.
+- Use the `@/` alias for imports that cross directories or feature boundaries (for example,
+  `@/database/schema`). Keep `./` relative imports for files inside the same feature or folder.
+  Do not introduce new `../` imports.
 - Controllers route, authorize, and document; services own business rules; repositories own
   Drizzle queries. A service must not import `drizzle-orm`.
 - Do not introduce `shared/` or a generic `BaseCrudService`.
 - Extend `EntityRepository` only for tables with an `id` column. For FK-primary-key tables,
-  write a small plain repository with named queries.
+  write a small plain repository with named queries. That repository may compose
+  `CompositeKeyStore` for exact-key predicates and mechanical find/exists/create/delete operations;
+  never expose the store to services or move authorization, joins, transactions, or relationship
+  rules into it.
 
 ## HTTP contract
 
@@ -46,8 +52,14 @@ The frontend contract is not mirrored here. Ask before making a decision that de
   `{ statusCode, message, data }`. Use the global interceptor/filter; controllers return
   plain values and never use Express `res` directly.
 - A response DTO is a whitelist. Do not return raw database rows.
-- List routes use `OffsetPaginationDto` and return
-  `{ items, total, page, limit, totalPages }`; maximum `limit` is 100.
+- A successful `DELETE` returns the deleted resource through its response DTO in `data`; do not
+  discard the repository's returned row or use `data: null`. Subresource deletes return a focused
+  allowlisted DTO for the value that was removed.
+- Ordinary list routes use `OffsetPaginationDto` and return
+  `{ items, total, page, limit, totalPages }`. Append-heavy feeds such as chat messages use
+  `CursorPaginationDto` and return `{ items, limit, nextCursor, hasMore }`; clients must treat the
+  cursor as opaque. Calendar availability uses a bounded date range rather than a third pagination
+  type. The maximum `limit` is 100 for both pagination styles.
 - User-facing messages come from the module's `*.constants.ts`; reuse `crudMessages()` for
   ordinary CRUD text.
 - Use the composed Swagger decorators (`ApiGetOne`, `ApiGetPaginated`, `ApiCreate`,
@@ -80,8 +92,6 @@ The frontend contract is not mirrored here. Ask before making a decision that de
   four aggregate metrics; the command needs the test Postgres database.
 - The working tree may contain intentional uncommitted work. Inspect `git status` and preserve
   unrelated changes.
-- Record substantive implementation decisions in `docs/dev-log.md` and update
-  `docs/HANDOFF.md` when its snapshot changes.
 
 ## Auth verification baseline
 

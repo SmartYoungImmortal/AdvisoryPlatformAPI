@@ -10,7 +10,8 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { advisorProfiles } from './advisor';
+import { advisorProfiles } from '@/database/schema';
+import { availabilityProfiles } from './availability';
 
 export const serviceCategories = pgTable('service_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -35,6 +36,11 @@ export const services = pgTable(
     categoryId: uuid('category_id')
       .notNull()
       .references(() => serviceCategories.id),
+    // Required by the service-creation contract. Kept nullable while the S4 CRUD migration
+    // backfills existing draft services that predate Availability Profiles.
+    availabilityProfileId: uuid('availability_profile_id').references(
+      () => availabilityProfiles.id,
+    ),
     name: varchar('name').notNull(),
     description: text('description'),
     priceSatang: integer('price_satang').notNull(),

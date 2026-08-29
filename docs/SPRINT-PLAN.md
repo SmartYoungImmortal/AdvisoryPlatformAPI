@@ -1,6 +1,6 @@
 # Advisory Platform — Sprint Plan (Project 1)
 
-**Updated:** 2026-08-12
+**Updated:** 2026-08-29
 **Status:** authoritative delivery plan. The old [`sprint.md`](./sprint.md) filename is retained
 only as a redirect so existing editor tabs and links keep working.
 
@@ -18,10 +18,10 @@ only as a redirect so existing editor tabs and links keep working.
 | Branching | `main ← UAT ← develop ← feature/*`. |
 | Account model | Signup creates an Advisee only. Advisor access is the explicit authenticated upgrade; Admin is never self-service. |
 | Quality | CI verifies build/lint and requires at least 80% across merged unit, integration, and e2e statements, branches, functions, and lines. |
-| API contract | Confirm the separately owned frontend contract before inventing profile or onboarding behaviour. |
+| API contract | `docs/api-spec.md` is authoritative; resolve unclear behavior from documented product and security requirements before implementation. |
 | AI | All AI work is Project 2. Project 1 uses rule-based ordering and detection only. |
 
-### Delivered before the remaining S3 work
+### Delivery position at the start of S6 (2026-08-29)
 
 - S1/S2 foundation: Postgres/Drizzle schema, Better Auth, global `SessionGuard`, role decorators,
   response envelope, and Swagger-ready skills/service-category examples.
@@ -29,6 +29,31 @@ only as a redirect so existing editor tabs and links keep working.
   401, Advisor upgrade, role allow/deny, and suspended-account denial.
 - Delivery automation: GitHub Actions runs build/lint and an aggregate unit, integration, and auth
   e2e coverage command with an enforced 80% threshold for all four metrics.
+- Meeting-decision foundation: the 22 August decisions are reflected in the canonical ER model,
+  the agreed-domain rules in `api-spec.md`, and migrations/schema for availability, appointments,
+  trials, refunds, payouts, and services. This is a foundation only; it is not a delivered
+  availability, service, booking, screening, payment, refund, or payout API.
+- Booking data guarantee: the appointment migration enables `btree_gist` and includes the required
+  Advisor-wide exclusion constraint. It still needs the booking workflow, stable conflict mapping,
+  and concurrent real-Postgres evidence before it is considered complete.
+- Chat foundation delivered ahead of plan: session-authenticated Socket.IO plus member-only
+  message/history/read-state behavior is implemented and tested. Appointment/trial room
+  provisioning and the product workflows that create rooms are still outstanding.
+
+### Carry-over and recovery decision
+
+S4 did not deliver service CRUD or public discovery, and S5 did not deliver an availability or
+booking API. Treat their endpoint and evidence work as carry-over; do not describe schema-only
+work as feature completion. No Progress report #2 artifact or booking evidence is present in this
+repository, so the report task remains outstanding unless the team can link evidence stored
+elsewhere.
+
+S6 is therefore a recovery sprint. Its non-negotiable path is service CRUD → availability/profile
+management → atomic booking and database-constraint proof. Omise and the self-hosted Jitsi setup
+are complete prerequisites; payment implementation must still wait until booking is usable. Public
+discovery, cancellation/rescheduling, screening, payment, and later work move only after this path
+is finished; the Saturday review must explicitly defer lower-priority scope to Project 2 if the S10
+feature-freeze date cannot be protected.
 
 ## 2. Timeline and course deliverables
 
@@ -42,7 +67,7 @@ only as a redirect so existing editor tabs and links keep working.
 | S6 | 29 Aug–4 Sep | — | Screening and payment |
 | S7 | 5–11 Sep | — | Chat and notifications |
 | S8 | 12–18 Sep | Progress report #3 + 30% report draft (18 Sep) | Video and files |
-| S9 | 19–25 Sep | — | Trust & safety, admin, PWA |
+| S9 | 19–25 Sep | — | Trust & safety, admin, API hardening |
 | S10 | 26 Sep–2 Oct | — | Feature freeze / integration |
 | S11 | 3–9 Oct | Progress report #4 + 60% report draft (9 Oct) | Functional, load, security test |
 | S12 | 10–16 Oct | — | UAT |
@@ -81,8 +106,8 @@ pull work forward without its integration path.
   database invariant is promised.
 - Update the traceability table and capture screenshots, test output, and measured results as work
   is completed.
-- Keep `docs/api-spec.md`, `docs/dev-log.md`, and `docs/HANDOFF.md` aligned with material contract
-  or implementation changes.
+- Keep `docs/api-spec.md` and the ER documentation aligned with material contract or implementation
+  changes.
 
 A task is done when it is merged to `develop`, its response DTO and authorization behavior are
 documented, relevant tests pass, and report evidence is retained. The CI result must be green;
@@ -109,53 +134,68 @@ Advisee deliberately upgrades to Advisor.
 **Delivered:** version-pinned auth documentation; cookie-preserving e2e coverage; suspended/deleted
 account denial; explicit Advisor upgrade; 409 for repeat upgrade; and CI verification.
 
-**Only remaining work if the frontend contract confirms it:**
+**Delivered account scope:**
 
 | Area | Work |
 |---|---|
-| Profile | Own-profile read/update and avatar behavior, with separate allowlisted response DTOs. |
-| PDPA | Account deletion/anonymization design and implementation consistent with the ER model. |
-| Advisor profile | Add only the fields needed for S4 public discovery and advisor-owned services. |
-| Tests | Cover each new controller boundary; do not reintroduce role selection or onboarding. |
+| Profile | Base and Advisor own-profile read/update use separate allowlisted DTOs. Private SeaweedFS-backed avatar upload, replacement, removal, and owner-only signed reads are delivered; generic consultation files remain S8 work. |
+| PDPA | Atomic account deletion revokes authentication, erases direct identity/proof data, anonymizes the retained FK anchor, and unpublishes Advisor services. |
+| Advisor profile | `headline` and `bio` are available for S4 public discovery and advisor-owned services; no speculative fields were added. |
+| Tests | Controller boundaries, role changes, profile updates, avatar upload/removal, anonymization, and immediate session revocation have database-backed coverage. |
 
 **Exit criteria:** no registration path selects a role; repeat upgrade remains a documented `409`
 policy; all account work uses the real application middleware and passes build, lint, relevant unit,
 integration, and e2e verification.
 
-### S4 · 15–21 Aug — Advisor discovery and service management (4.13)
+### S4 · 15–21 Aug — Advisor discovery and service management (4.13, carried into S6)
 
 **Goal:** an advisee can discover public advisors/services and an Advisor can manage only their own
 services.
 
 | Area | Work |
 |---|---|
-| Backend | Public advisor search/profile/reviews; skills/categories; advisor-owned service CRUD with satang pricing, duration, category, and pagination. |
+| Backend | Public advisor search/profile/reviews; skills/categories; advisor-owned service CRUD with satang pricing, positive duration, category, Availability Profile selection, and pagination. Candidate start times remain on the fixed 30-minute grid. |
 | Authorization | Separate public, own-Advisor, and Admin DTOs; never expose full name, email, national ID, documents, or penalty points publicly. |
-| Ranking | Rule-based category match, then rating/popularity; confirmed off-platform penalties rank down silently. |
+| Ranking | Rule-based category match, then rating/popularity; confirmed regex-detected off-platform penalties rank down silently. |
 | Performance | Measure discovery/search against the <3-second project QR and retain the result. |
 | Testing | Controller authorization/ownership tests and discovery integration tests. |
 
-### S5 · 22–28 Aug — Appointment booking (4.7)
+**Actual outcome:** Skills/categories and the own-profile foundation already existed, but no
+Advisor-owned service module or public discovery endpoints were delivered. Carry the service
+contract and CRUD into S6 first; public search/detail, ranking, reviews, and performance evidence
+remain follow-on work.
+
+### S5 · 22–28 Aug — Appointment booking (4.7, carried into S6)
 
 **Goal:** booking works and double booking is impossible.
 
 | Area | Work |
 |---|---|
-| Backend | Advisor timeslots, timezone-safe `timestamptz` handling, booking/cancel/reschedule state machine, and appointment views for both parties. |
-| Guarantee | Add the Postgres exclusion constraint for overlapping live appointments; no application-only overlap check. |
+| Backend | Advisor Global Availability and reusable Availability Profiles, timezone-safe `timestamptz` handling, derived 30-minute booking slots, booking/cancel/reschedule state machine, and appointment views for both parties. |
+| Guarantee | Add the Postgres exclusion constraint for overlapping advisor-wide appointment ranges, including the booked buffer; no application-only overlap check. |
 | Testing | Concurrently book the same slot with multiple requests and prove exactly one succeeds; retain output as Success Criterion evidence. |
 | Docs | Submit progress report #2 and record the state transitions in the API contract. |
 
-### S6 · 29 Aug–4 Sep — Optional screening and payment (4.12)
+**Actual outcome:** The agreed availability/booking data model, migration, and exclusion constraint
+were prepared. There is no availability controller/service, derived-slot endpoint, atomic booking
+workflow, transition API, concurrency test, or repository-held Progress report #2 evidence.
 
-**Goal:** screening, booking, payment, and confirmation have a correct lifecycle.
+### S6 · 29 Aug–4 Sep — Recovery: services, availability, and booking (4.13, 4.7)
+
+**Goal:** restore the dependency-critical booking path and leave a measured, honest baseline for
+the delayed payment work.
 
 | Area | Work |
 |---|---|
-| Screening | Advisor-configured screening questions and advisee responses. Screening and free trial remain independent and optional. |
-| Payment | Omise payment intent/charge flow, redirect/3DS as applicable, verified webhook signatures, idempotent webhook processing, invoices, and satang-only amounts. |
-| Booking | An appointment starts pending payment and becomes confirmed only after a valid payment outcome. |
-| Testing | Successful, failed, pending, delayed, and duplicate webhook cases; never charge or confirm twice. |
+| Services | Finalize the service/booking HTTP contract and deliver Advisor-owned service CRUD. A service selects an Availability Profile and has independent screening/trial switches. |
+| Availability | Deliver the single Global Availability configuration, reusable Profiles, weekly/specific/blocked windows, and derived 30-minute public slots. Blocked periods override specific and weekly availability; profiles with history are soft-deleted. |
+| Booking | Deliver atomic eligible-slot booking and party-specific views. Preserve the existing Advisor-wide Postgres exclusion constraint, map its conflict safely, and prove concurrent requests yield exactly one success. |
+| Provider readiness | Omise payment setup and the self-hosted Jitsi setup are complete. Record their configuration decisions/evidence safely; payment and video APIs remain separate implementation work. |
+| Evidence | Complete the missing Progress report #2 only with the actual API contract, constraint test, coverage, risks, and measured results; otherwise record it as overdue. |
+
+**Next dependency gate:** After the above is complete, S7 starts screening, direct Trial grants,
+and the payment/webhook lifecycle. A Trial is independent from screening, is granted directly by
+the Advisor (not requested/approved), and is limited to one grant per Advisee/service.
 
 ### S7 · 5–11 Sep — Chat and notifications (4.8, 4.11)
 
@@ -163,9 +203,10 @@ services.
 
 | Area | Work |
 |---|---|
-| Chat | Appointment/trial-bound rooms, member-only messages/history/read state, and measured realtime latency. |
+| Chat | Appointment/trial-bound room provisioning, with the already-delivered member-only
+  messages/history/read state available at all times after a room exists; measure realtime latency. |
 | Notifications | Persist booking, payment, reminder, and message events with unread behavior. |
-| Trial | Expose the optional trial path only where its screening/trial configuration permits it. |
+| Trial | Expose the optional direct-grant Trial path independently from screening. |
 | Evidence | Measure and retain chat latency against the project QR. |
 
 ### S8 · 12–18 Sep — Video calls and files (4.9, 4.10)
@@ -174,12 +215,12 @@ services.
 
 | Area | Work |
 |---|---|
-| Video | Validate the Jitsi/hosted decision, create appointment-bound rooms, authorize only participants, and restrict access to the meeting window plus a small buffer. |
-| Files | Member-authorized upload/download with MinIO object keys, 50 MB type/size enforcement, and no stored presigned URLs. |
+| Video | Use the agreed self-hosted Jitsi direction, create appointment-bound rooms, authorize only participants, and restrict access to the meeting window plus a small buffer. |
+| Files | Member-authorized upload/download with SeaweedFS object keys, 50 MB type/size enforcement, and no stored presigned URLs. |
 | Evidence | Measure call quality against the applicable QR and retain the result. |
 | Docs | Produce the 30% report draft from completed design and test evidence. |
 
-### S9 · 19–25 Sep — Trust & safety, admin, and PWA (4.14)
+### S9 · 19–25 Sep — Trust & safety, admin, and API hardening (4.14)
 
 **Goal:** retain platform safety evidence and give operations a minimal, authorized review path.
 
@@ -188,14 +229,14 @@ services.
 | Detection | Rule-based patterns for phone, email, LINE ID, and social handles, including basic evasion such as spaced phone numbers. |
 | Operations | User reports, evidence-preserving flags, admin review/verification, and transaction views following the access matrix. |
 | Ranking | Apply confirmed-advisor penalties silently; never disclose flags/points to the Advisor. |
-| PWA | Manifest, offline shell, and install verification on a mobile device. |
+| API hardening | Verify production CORS, trusted origins, cookie-session behavior, and useful error responses. |
 
 ### S10 · 26 Sep–2 Oct — Feature freeze and integration
 
 **Goal:** freeze scope with two demonstrable end-to-end paths.
 
 1. Advisee: discover → optional screening/trial → book → pay → chat → video call.
-2. Advisor: upgrade/profile → create service → offer timeslot → receive booking → consult.
+2. Advisor: upgrade/profile → configure availability → create service → receive booking → consult.
 
 Complete bug bash, UAT deployment and demo seed data, critical technical-debt fixes, UAT scripts,
 and honest coverage reporting. After this sprint, only defects and evidence/documentation work may
@@ -229,15 +270,16 @@ on architecture, overlap protection, testing, and PDPA, and keep a recorded demo
 
 | Risk | Mitigation |
 |---|---|
-| Frontend/API drift | Confirm the frontend contract before UI-dependent APIs; keep `api-spec.md` current. |
+| API contract drift | Treat `api-spec.md` as authoritative and update it with every contract change. |
 | Booking/payment evidence arrives late | Implement the database constraint and webhook tests in S5/S6, not at feature freeze. |
 | Coverage regresses as modules grow | Keep focused unit/controller/database tests with each feature; CI enforces the aggregate 80% floor. |
-| Jitsi or merchant onboarding delays | Make the hosting/payment decision early; use supported test/hosted paths where required. |
+| Provider integration drift | Omise and self-hosted Jitsi setup are complete; retain configuration evidence and validate API integration against those agreed environments. |
 | Documentation is left to October | Capture results each sprint and draft the report from S8. |
 
 Project 2: AI matching, consultation summaries/chatbot, semantic/ML detection, subscriptions,
-native mobile apps, detailed review expansion, and automated advisor bank transfers. Project 1
-records payout obligations but does not automate transfer execution.
+native mobile apps, detailed review expansion, anonymous mode, and automated advisor bank
+transfers. Advisor Insights remains deferred pending advisor confirmation. Project 1 records payout
+obligations but does not automate transfer execution.
 
 ## 7. Course-delivery checklist
 

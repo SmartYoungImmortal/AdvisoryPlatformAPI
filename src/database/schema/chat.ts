@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  index,
   integer,
   pgTable,
   primaryKey,
@@ -10,7 +11,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { user } from './auth';
+import { user } from '@/database/schema';
 
 export const chatRooms = pgTable('chat_rooms', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -34,22 +35,35 @@ export const chatMembers = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.chatRoomId, table.memberUserId] })],
+  (table) => [
+    primaryKey({ columns: [table.chatRoomId, table.memberUserId] }),
+    index('chat_members_member_user_id_idx').on(table.memberUserId),
+  ],
 );
 
-export const chatMessages = pgTable('chat_messages', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  chatRoomId: uuid('chat_room_id')
-    .notNull()
-    .references(() => chatRooms.id),
-  senderUserId: uuid('sender_user_id')
-    .notNull()
-    .references(() => user.id),
-  message: text('message').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const chatMessages = pgTable(
+  'chat_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    chatRoomId: uuid('chat_room_id')
+      .notNull()
+      .references(() => chatRooms.id),
+    senderUserId: uuid('sender_user_id')
+      .notNull()
+      .references(() => user.id),
+    message: text('message').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('chat_messages_room_created_id_idx').on(
+      table.chatRoomId,
+      table.createdAt,
+      table.id,
+    ),
+  ],
+);
 
 export const chatFiles = pgTable(
   'chat_files',

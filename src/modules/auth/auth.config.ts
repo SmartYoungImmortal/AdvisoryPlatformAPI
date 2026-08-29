@@ -1,10 +1,82 @@
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { betterAuth } from 'better-auth/minimal';
+import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import type { ConfigService } from '@nestjs/config';
-import type { DrizzleDB } from '../../database/database.module';
-import * as schema from '../../database/schema';
-import { ENV_KEYS } from '../../config/env.constants';
-import type { Env } from '../../config/env.schema';
+import type { DrizzleDB } from '@/database/database.module';
+import * as schema from '@/database/schema';
+import { ENV_KEYS } from '@/config/env.constants';
+import type { Env } from '@/config/env.schema';
+import { admin as adminPlugin } from 'better-auth/plugins';
+import { createAccessControl } from 'better-auth/plugins/access';
+import {
+  adminAc,
+  defaultStatements,
+  userAc,
+} from 'better-auth/plugins/admin/access';
+
+const permissions = {
+  profile: {
+    selfManaged: ['read', 'updateSelf', 'deleteSelf'],
+  },
+  advisor: {
+    selfManaged: ['createSelf', 'read', 'updateSelf'],
+    selfCreateOrRead: ['createSelf', 'read'],
+  },
+  advisorService: {
+    selfManaged: ['createSelf', 'read', 'update', 'delete'],
+    readOnly: ['read'],
+  },
+  serviceCategory: {
+    managed: ['create', 'read', 'update', 'delete'],
+    readOnly: ['read'],
+  },
+  skills: {
+    managed: ['create', 'read', 'update', 'delete'],
+    readAndCreate: ['read', 'create'],
+    readOnly: ['read'],
+  },
+} as const;
+
+const statements = {
+  ...defaultStatements,
+  profile: permissions.profile.selfManaged,
+  advisor: permissions.advisor.selfManaged,
+  advisorService: permissions.advisorService.selfManaged,
+  serviceCategory: permissions.serviceCategory.managed,
+  skills: permissions.skills.managed,
+} as const;
+
+const ac = createAccessControl(statements);
+const adminStatements = {
+  ...adminAc.statements,
+  profile: permissions.profile.selfManaged,
+  serviceCategory: permissions.serviceCategory.managed,
+  skills: permissions.skills.managed,
+} as const;
+const advisorStatements = {
+  ...userAc.statements,
+  profile: permissions.profile.selfManaged,
+  advisor: permissions.advisor.selfManaged,
+  advisorService: permissions.advisorService.selfManaged,
+  serviceCategory: permissions.serviceCategory.managed,
+  skills: permissions.skills.readAndCreate,
+} as const;
+const adviseeStatements = {
+  ...userAc.statements,
+  profile: permissions.profile.selfManaged,
+  advisor: permissions.advisor.selfCreateOrRead,
+  advisorService: permissions.advisorService.readOnly,
+  serviceCategory: permissions.serviceCategory.readOnly,
+  skills: permissions.skills.readOnly,
+} as const;
+const adminRole = ac.newRole(adminStatements);
+const advisorRole = ac.newRole(advisorStatements);
+const adviseeRole = ac.newRole(adviseeStatements);
+
+export const appRoles = {
+  admin: adminRole,
+  advisor: advisorRole,
+  advisee: adviseeRole,
+};
 
 /**
  * better-auth owns the `user` table's base fields (id, email, emailVerified, name, image,
@@ -12,7 +84,7 @@ import type { Env } from '../../config/env.schema';
  * `displayName` Drizzle property (the ER's "what everyone else sees" field) instead of
  * adding a redundant column. `image` is left unused in favor of a separate `avatarKey`
  * additionalField, matching the domain schema's four (fullName, avatarKey, timezone,
- * status) and this repo's `objectKey`-style naming for MinIO references.
+ * status) and this repo's `objectKey`-style naming for SeaweedFS references.
  *
  * Note: `additionalFields[key].fieldName`, if set, must name the *Drizzle schema property*
  * (see @better-auth/core's getFieldName, which indexes straight into the passed-in Drizzle
@@ -60,9 +132,25 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
         },
       },
     },
+    plugins: [
+      adminPlugin({
+        ac,
+        roles: appRoles,
+        defaultRole: 'advisee',
+      }),
+    ],
   });
 }
 
 export type Auth = ReturnType<typeof createAuth>;
+export type AuthRoles = keyof typeof appRoles;
 export type AuthSession = Auth['$Infer']['Session'];
 export type SessionUser = AuthSession['user'];
+export type AuthStatements = {
+  [Resource in keyof typeof statements]?: Array<
+    (typeof statements)[Resource][number]
+  >;
+};
+export interface MemberHasPermissionOptions {
+  permissions: AuthStatements;
+}

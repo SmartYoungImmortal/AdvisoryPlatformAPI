@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { InferSelectModel } from 'drizzle-orm';
-import { skills } from '../../../database/schema';
+import { skills } from '@/database/schema';
 
 export class SkillResponseDto {
   @ApiProperty() id: string;
