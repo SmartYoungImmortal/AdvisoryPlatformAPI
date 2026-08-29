@@ -149,15 +149,13 @@ export const omiseCustomers = pgTable('omise_customers', {
   userId: uuid('user_id')
     .primaryKey()
     .unique()
-    .references(() => user.id),
+    .references(() => user.id, { onDelete: 'cascade' }),
   customerId: varchar('customer_id').notNull().unique(),
 });
 
 export const omiseCards = pgTable('omise_cards', {
-  userId: uuid('user_id')
-    .primaryKey()
-    .references(() => user.id),
-  cardId: varchar('card_id').notNull().unique(),
+  userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
+  cardId: varchar('card_id').notNull().primaryKey(),
 });
 
 export const omiseBankAccounts = pgTable('omise_bank_accounts', {
