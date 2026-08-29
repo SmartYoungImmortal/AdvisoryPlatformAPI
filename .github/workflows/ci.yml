@@ -8,57 +8,20 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: advisory
-          POSTGRES_PASSWORD: advisory
-          POSTGRES_DB: advisory_platform
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U advisory"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-      seaweedfs:
-        image: chrislusf/seaweedfs:latest
-        env:
-          SEAWEEDFS_S3_ACCESS_KEY: seaweedfsadmin
-          SEAWEEDFS_S3_SECRET_KEY: seaweedfsadmin
-        ports:
-          - 8333:8333
-    env:
-      DATABASE_URL: postgresql://advisory:advisory@localhost:5432/advisory_platform
-      BETTER_AUTH_SECRET: ci-only-secret-that-is-longer-than-thirty-two-characters
-      BETTER_AUTH_URL: http://localhost:3000
-      TRUSTED_ORIGINS: http://localhost:3001
-      POSTGRES_USER: advisory
-      POSTGRES_PASSWORD: advisory
-      POSTGRES_DB: advisory_platform
-      SEAWEEDFS_S3_ENDPOINT: localhost
-      SEAWEEDFS_S3_PORT: 8333
-      SEAWEEDFS_S3_USE_SSL: false
-      SEAWEEDFS_S3_ACCESS_KEY: seaweedfsadmin
-      SEAWEEDFS_S3_SECRET_KEY: seaweedfsadmin
-      SEAWEEDFS_S3_BUCKET: advisory-platform
-      SEAWEEDFS_S3_REGION: us-east-1
+    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@45ca93faec9f4d9f81d58147cf43b90456cbac4b
+    secrets:
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SEAWEEDFS_S3_SECRET_KEY: ${{ secrets.SEAWEEDFS_S3_SECRET_KEY }}
+      OMISE_SECRET_KEY: ${{ secrets.OMISE_SECRET_KEY }}
+      OMISE_PUBLIC_KEY: ${{ secrets.OMISE_PUBLIC_KEY }}
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v6
-        name: Install pnpm
-        with:
-          version: 11
-          cache: true
-      - name: Install dependencies
-        run: pnpm install
-      - run: pnpm run db:migrate
-      - run: pnpm run build
-      - run: pnpm run lint
-      - run: pnpm run test:cov
-        env:
-          OMISE_SECRET_KEY: ${{ secrets.OMISE_SECRET_KEY }}
-          OMISE_PUBLIC_KEY: ${{ secrets.OMISE_PUBLIC_KEY }}
+  build-container:
+    permissions:
+      artifact-metadata: write
+      attestations: write
+      packages: write
+      id-token: write
+      contents: read
+    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@dc91c13a900a6f70f86bbd2580fc3a9bebeab605

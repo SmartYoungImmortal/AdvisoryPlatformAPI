@@ -14,8 +14,8 @@ export class PaymentService {
     // get price
     // TODO: replace
     const service = serviceMock;
-    // create service appopintment
-    // const appointment = appointmentPendingPayment;
+    // create service booking
+    // const booking = appointmentPendingPayment;
     // create invoice w/ omise charge id
     const invoice = invoicePending;
     // create omise charge
@@ -27,7 +27,7 @@ export class PaymentService {
     );
     if (chargeResult.status !== 'success')
       throw new InternalServerErrorException(chargeResult);
-    // redirect to 3ds w/ redirect uri to service appopintment
+    // redirect to 3ds w/ redirect uri to service booking
     return { url: chargeResult.redirectUrl };
     // retrieve omise charge
     // update invoice
