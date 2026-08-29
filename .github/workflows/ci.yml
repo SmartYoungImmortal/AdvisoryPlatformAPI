@@ -34,6 +34,8 @@ jobs:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: advisory-platform
+      OMISE_PUBLIC_KEY: pkey_test_placeholder
+      OMISE_SECRET_KEY: skey_test_placeholder
 
     steps:
       - uses: actions/checkout@v4
