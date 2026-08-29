@@ -8,7 +8,7 @@ on:
 
 jobs:
   verify:
-    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@74ade20690ac83892b3ead9a89c42ebde85bd5f7
+    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@9ddd740349c0f834bd5661144c1e31a20bac4b6f
 
   build-container:
     permissions:
