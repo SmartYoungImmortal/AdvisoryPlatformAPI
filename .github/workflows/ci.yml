@@ -8,7 +8,7 @@ on:
 
 jobs:
   verify:
-    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@b5ebb66edef1b6cb449a33dbcad7b383b1e4b1c0
+    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@45ca93faec9f4d9f81d58147cf43b90456cbac4b
     secrets:
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
