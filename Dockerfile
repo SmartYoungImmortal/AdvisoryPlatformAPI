@@ -10,7 +10,7 @@ COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
 
 # Install the application dependencies
-RUN pnpm install
+RUN pnpm install --ignore-scripts
 
 # Copy the rest of the application files
 COPY . .
