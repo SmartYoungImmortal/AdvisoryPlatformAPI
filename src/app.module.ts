@@ -7,8 +7,9 @@ import { ServiceCategoriesModule } from './modules/service-categories/service-ca
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { ChatModule } from './modules/chat/chat.module';
-import { MeetingsController } from './meetings/meetings.controller';
-import { MeetingsModule } from './meetings/meetings.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { MeetingsController } from './modules/meetings/meetings.controller';
+import { MeetingsModule } from './modules/meetings/meetings.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MeetingsModule } from './meetings/meetings.module';
     UsersModule,
     ChatModule,
     MeetingsModule,
+    PaymentModule,
   ],
   controllers: [MeetingsController],
 })

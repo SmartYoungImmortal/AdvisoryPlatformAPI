@@ -34,6 +34,11 @@ export const envSchema = z.object({
     .max(63)
     .default('advisory-platform'),
   SEAWEEDFS_S3_REGION: z.string().trim().min(1).default('us-east-1'),
+  // Omise
+  OMISE_PUBLIC_KEY: z.string(),
+  OMISE_SECRET_KEY: z.string(),
+  CURRENCY_CODE: z.string().lowercase().default('thb'),
+  // Meetings
   MEETINGS_JITSI_DOMAIN: z.string().trim().min(1).nonoptional(),
   MEETINGS_JWT_SECRET_FILENAME: z.string().trim().min(1).nonoptional(),
   MEETINGS_JWT_PUBLIC_FILENAME: z.string().trim().min(1).nonoptional(),

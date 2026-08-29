@@ -8,6 +8,7 @@ import { StaticConfigService } from '@/config/static/static.service';
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
+      cache: true,
     }),
   ],
   providers: [StaticConfigService],
