@@ -1,7 +1,11 @@
 # Use the official Node.js image as the base image
-FROM node:lts-alpine
+FROM node:lts-alpine AS build
 
-# Set the working directory inside the container
+RUN corepack enable
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
 WORKDIR /app
 
 # Copy package.json and package-lock.json to the working directory
@@ -10,7 +14,8 @@ COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
 
 # Install the application dependencies
-RUN corepack prepare pnpm@11 --activate && corepack enable pnpm && pnpm install --ignore-scripts --frozen-lockfile
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --ignore-scripts --frozen-lockfile
 
 # Copy the rest of the application files
 COPY src/ .
@@ -22,9 +27,20 @@ COPY eslint.config.mjs .
 # Build the NestJS application
 RUN pnpm run build
 
+FROM node:lts-alpine AS runtime
+
+WORKDIR /app
+
+COPY --from=build --chown=appuser:appgroup /app ./
+
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -m -d /app -s /bin/false appuser
+
 # Expose the application port
 EXPOSE 3000
 
+ENV NODE_ENV=production
+
 # Command to run the application
-USER node
+USER appuser
 CMD ["node", "dist/main"]
