@@ -1,5 +1,10 @@
 name: CI
 
+permissions:
+  attestations: write
+  packages: write
+  id-token: write
+
 on:
   push:
     branches: [main, develop, UAT]
