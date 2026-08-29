@@ -9,6 +9,8 @@ import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { ChatModule } from './modules/chat/chat.module';
 import { AdvisorServicesModule } from './modules/advisor-services/advisor-services.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { AvailabilityModule } from './modules/availability/availability.module';
+import { BookingsModule } from './modules/bookings/bookings.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { PaymentModule } from './modules/payment/payment.module';
     ChatModule,
     AdvisorServicesModule,
     PaymentModule,
+    AvailabilityModule,
+    BookingsModule,
   ],
 })
 export class AppModule {}

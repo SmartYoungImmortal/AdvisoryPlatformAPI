@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
-  PaginatedResult,
-  paginate,
+  paginateQuery,
+  type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { CreateSkillDto } from './dtos/create-skill.dto';
 import { SkillQueryDto } from './dtos/skill-query.dto';
@@ -17,18 +17,11 @@ export class SkillsService {
   async findMany(
     query: SkillQueryDto,
   ): Promise<PaginatedResult<SkillResponseDto>> {
-    const [items, total] = await Promise.all([
-      this.skillsRepository.findMany(undefined, {
-        limit: query.limit,
-        offset: query.offset,
-      }),
-      this.skillsRepository.count(),
-    ]);
-
-    return paginate(
-      items.map((skill) => new SkillResponseDto(skill)),
-      total,
+    return paginateQuery(
       query,
+      (options) => this.skillsRepository.findMany(undefined, options),
+      () => this.skillsRepository.count(),
+      (skill) => new SkillResponseDto(skill),
     );
   }
 

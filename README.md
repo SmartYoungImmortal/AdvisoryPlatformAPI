@@ -24,7 +24,7 @@ npm run start:dev
 ```
 
 The API listens on `http://localhost:3000` by default. Swagger is available at
-`http://localhost:3000/api/docs`; Better Auth routes under `/api/auth/*` are documented in
+`http://localhost:3000/api/v1/docs`; Better Auth routes under `/api/auth/*` are documented in
 [`docs/api-spec.md`](docs/api-spec.md) because Swagger intentionally does not own them.
 
 Local SeaweedFS serves private uploaded objects through its S3 gateway at

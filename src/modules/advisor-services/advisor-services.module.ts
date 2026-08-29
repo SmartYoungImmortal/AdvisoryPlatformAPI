@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AdvisorServicesController } from './advisor-services.controller';
+import { AdminServicesController } from './admin-services.controller';
 import { AdvisorServicesRepository } from './advisor-services.repository';
 import { AdvisorServicesService } from './advisor-services.service';
 
 @Module({
-  controllers: [AdvisorServicesController],
+  controllers: [AdvisorServicesController, AdminServicesController],
   providers: [AdvisorServicesService, AdvisorServicesRepository],
 })
 export class AdvisorServicesModule {}

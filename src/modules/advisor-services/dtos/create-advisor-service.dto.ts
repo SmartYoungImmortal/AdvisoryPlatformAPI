@@ -45,6 +45,12 @@ export class CreateAdvisorServiceDto {
   @Min(1)
   durationMinutes!: number;
 
+  @ApiPropertyOptional({ minimum: 1, nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  dailyConsultationLimitMinutes?: number | null;
+
   @ApiPropertyOptional({ default: false })
   @IsOptional()
   @IsBoolean()

@@ -490,6 +490,10 @@ must otherwise be absent. The current module returns the owner-only allowlist:
 Public Service search/detail and public Advisor discovery are separate follow-on routes. They must
 return published Services only and must never reuse this owner DTO.
 
+`GET /api/v1/admin/services?page=1&limit=20` is an Admin-only offset-paginated view of all
+Services. It returns the same administrative allowlist above, including unpublished Services, so
+operational staff can review ownership and publishing state without using an Advisor's own route.
+
 ---
 
 ## 9. Module: Chat
@@ -548,11 +552,31 @@ treated as durable acknowledgement.
 
 ---
 
-## 10. Agreed booking-domain rules pending endpoint design
+## 10. Availability and booking
 
-The booking, availability, screening, payment, payout, and refund endpoints are not yet written.
-Their paths and DTOs must be designed in the corresponding feature modules, but they must preserve
-the following agreed behavior.
+The implemented scheduling contract uses these routes, all under the standard response envelope:
+
+- `GET` / `PUT /api/v1/advisors/me/availability/global` reads or updates the Advisor's one Global
+  Availability record. The slot interval stays fixed at 30 minutes; the mutable values are buffer,
+  horizon, minimum booking notice, and optional daily consultation-minute limit.
+- `GET` / `POST /api/v1/advisors/me/availability/profiles`, plus `PATCH` / `DELETE`
+  `/api/v1/advisors/me/availability/profiles/:profileId`, manage Advisor-owned reusable Profiles.
+  A write replaces the supplied weekly, specific-date, and blocked windows atomically. Deletes are
+  soft deletes.
+- `GET /api/v1/services/:serviceId/slots?from=YYYY-MM-DD&to=YYYY-MM-DD` is public and returns
+  derived candidate `{ startTime, endTime }` pairs for a published Service. The inclusive date
+  range is bounded to 90 days. Blocked periods, existing availability-blocking appointments,
+  global notice/horizon, service duration, and the daily consultation limit are applied.
+- `POST /api/v1/bookings` accepts `{ serviceId, startTime }` from an authenticated Advisee and
+  creates a `PENDING_PAYMENT` consultation appointment. It rejects self-booking and any time that
+  is not currently a derived slot. The Advisor-wide PostgreSQL exclusion constraint is the final
+  atomic overlap guard and its violation is returned as `409 Timeslot already booked`.
+- `GET /api/v1/bookings/me` and `GET /api/v1/advisors/me/bookings` return the respective
+  paginated participant views.
+
+Screening, payment, payout, and refund endpoints are not yet written. Their paths and DTOs must
+be designed in the corresponding feature modules, but they must preserve the following agreed
+behavior.
 
 ### Availability and slots
 
@@ -564,6 +588,9 @@ the following agreed behavior.
   profile remains soft-deleted rather than erased when it has historical use.
 - A Profile has non-overlapping weekly windows, specific-date windows, and full-day or partial-day
   blocked periods. A blocked period always overrides specific-date and weekly availability.
+- Profile dates and wall-clock window times are interpreted in the Advisor's IANA `timezone`.
+  Slot responses use `timestamptz`/ISO UTC instants. Invalid Advisor timezones and local times
+  skipped by daylight-saving transitions are rejected rather than silently shifted.
 - Candidate start times follow the fixed 30-minute interval. Service and Trial durations need only
   be positive; a duration does not change the start-time grid. Availability is derived; it is not a
   client-managed list of independently bookable slot records.

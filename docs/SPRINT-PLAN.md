@@ -193,6 +193,15 @@ the delayed payment work.
 | Provider readiness | Omise payment setup and the self-hosted Jitsi setup are complete. Record their configuration decisions/evidence safely; payment and video APIs remain separate implementation work. |
 | Evidence | Complete the missing Progress report #2 only with the actual API contract, constraint test, coverage, risks, and measured results; otherwise record it as overdue. |
 
+**Actual outcome (feature/time-scheduling-booking):** Advisor Global Availability and reusable
+Availability Profile HTTP APIs are implemented, including validation/replacement of weekly,
+specific-date, and blocked windows. Published services expose derived 30-minute public slots and
+authenticated Advisees can create `PENDING_PAYMENT` bookings and view their own appointments;
+Advisors can view their received appointments. Booking rechecks the derived slot then relies on
+the existing Advisor-wide Postgres exclusion constraint and maps its conflict to HTTP 409. Build
+and lint pass. Cancellation/rescheduling, screening/payment integration, and direct concurrent
+Postgres integration-test evidence remain outstanding.
+
 **Next dependency gate:** After the above is complete, S7 starts screening, direct Trial grants,
 and the payment/webhook lifecycle. A Trial is independent from screening, is granted directly by
 the Advisor (not requested/approved), and is limited to one grant per Advisee/service.

@@ -13,6 +13,8 @@ export class AdvisorServiceResponseDto {
   @ApiPropertyOptional() description: string | null;
   @ApiProperty({ description: 'Integer satang' }) priceSatang: number;
   @ApiProperty() durationMinutes: number;
+  @ApiPropertyOptional({ nullable: true }) dailyConsultationLimitMinutes:
+    number | null;
   @ApiProperty() isPublished: boolean;
   @ApiProperty() screeningRequired: boolean;
   @ApiProperty() trialEnabled: boolean;
@@ -29,6 +31,7 @@ export class AdvisorServiceResponseDto {
     this.description = service.description;
     this.priceSatang = service.priceSatang;
     this.durationMinutes = service.durationMinutes;
+    this.dailyConsultationLimitMinutes = service.dailyConsultationLimitMinutes;
     this.isPublished = service.isPublished;
     this.screeningRequired = service.screeningRequired;
     this.trialEnabled = service.trialEnabled;

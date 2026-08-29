@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import {
-  paginate,
+  paginateQuery,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { services } from '@/database/schema';
@@ -27,18 +27,11 @@ export class AdvisorServicesService {
     user: SessionUser,
     query: AdvisorServiceQueryDto,
   ): Promise<PaginatedResult<AdvisorServiceResponseDto>> {
-    const [items, total] = await Promise.all([
-      this.repository.findManyByAdvisorId(user.id, {
-        limit: query.limit,
-        offset: query.offset,
-      }),
-      this.repository.countByAdvisorId(user.id),
-    ]);
-
-    return paginate(
-      items.map((service) => new AdvisorServiceResponseDto(service)),
-      total,
+    return paginateQuery(
       query,
+      (options) => this.repository.findManyByAdvisorId(user.id, options),
+      () => this.repository.countByAdvisorId(user.id),
+      (service) => new AdvisorServiceResponseDto(service),
     );
   }
 
@@ -48,6 +41,17 @@ export class AdvisorServicesService {
   ): Promise<AdvisorServiceResponseDto> {
     return new AdvisorServiceResponseDto(
       await this.getOwned(user.id, serviceId),
+    );
+  }
+
+  async findManyForAdmin(
+    query: AdvisorServiceQueryDto,
+  ): Promise<PaginatedResult<AdvisorServiceResponseDto>> {
+    return paginateQuery(
+      query,
+      (options) => this.repository.findMany(undefined, options),
+      () => this.repository.count(),
+      (service) => new AdvisorServiceResponseDto(service),
     );
   }
 
@@ -73,6 +77,7 @@ export class AdvisorServicesService {
       description: dto.description,
       priceSatang: dto.priceSatang,
       durationMinutes: dto.durationMinutes,
+      dailyConsultationLimitMinutes: dto.dailyConsultationLimitMinutes ?? null,
       isPublished: dto.isPublished ?? false,
       screeningRequired: dto.screeningRequired ?? false,
       trialEnabled: dto.trialEnabled ?? false,

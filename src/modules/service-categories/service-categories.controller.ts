@@ -31,7 +31,7 @@ import { ServiceCategoriesService } from './service-categories.service';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Service Categories')
-@Controller('api/v1/service-categories')
+@Controller('service-categories')
 export class ServiceCategoriesController {
   constructor(
     private readonly serviceCategoriesService: ServiceCategoriesService,

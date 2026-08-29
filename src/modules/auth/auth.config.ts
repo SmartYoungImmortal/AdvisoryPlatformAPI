@@ -49,6 +49,7 @@ const ac = createAccessControl(statements);
 const adminStatements = {
   ...adminAc.statements,
   profile: permissions.profile.selfManaged,
+  advisorService: permissions.advisorService.readOnly,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
 } as const;
