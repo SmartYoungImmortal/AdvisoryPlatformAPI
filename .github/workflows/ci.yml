@@ -47,14 +47,12 @@ jobs:
       SEAWEEDFS_S3_REGION: us-east-1
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v2
         name: Install pnpm
         with:
           version: 11
           cache: true
-      - name: Install dependencies
-        run: pnpm install
       - run: pnpm run db:migrate
       - run: pnpm run build
       - run: pnpm run lint
