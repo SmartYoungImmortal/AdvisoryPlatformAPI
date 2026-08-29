@@ -7,6 +7,7 @@ export const AVAILABILITY_MESSAGES = {
   profileNotFound: 'Availability profile not found',
   invalidWindows: 'Availability windows must not overlap',
   invalidRange: 'The requested date range is invalid',
+  invalidTimezone: 'Advisor timezone is invalid',
   unavailable: 'Timeslot is not available',
   screeningRequired: 'Accepted screening is required before viewing slots',
 } as const;

@@ -24,6 +24,8 @@ about a particular client implementation.
 - No secrets, tokens, keys, or internal IPs in the repository. Use `.env.example` for names.
 - `any` is forbidden. Prefer Drizzle inference; use `unknown` and narrow it at external
   boundaries.
+- Do not use promise chaining (`.then()` or `.catch()`). Use `async`/`await` with `try`/`catch`
+  when error handling is required.
 - Junction tables have composite primary keys and no surrogate `id`.
 - Booking overlap must ultimately be a Postgres exclusion constraint, not an app-level check.
 
@@ -102,6 +104,17 @@ about a particular client implementation.
   sessions are cookies.
 - The better-auth user table is the domain user table. Keep its UUID schema and `additionalFields`
   aligned with `src/database/schema/auth.ts`.
+- Elasticsearch is cross-cutting infrastructure in `src/common/search/`, not a Service-only
+  dependency. It has no HTTP controller and is imported explicitly by each consuming feature.
+  The feature's existing service/repository own document mapping, indexing lifecycle, and its
+  resource controller; use the typed gateway and immutable query builder with allowlisted DTO
+  fields only. Never reflect arbitrary request keys into an index query. It is a derived public
+  read model, never an authorization source: recheck indexed Service hits against Postgres before
+  returning them and keep Elasticsearch failures from changing database write outcomes.
+- Local SeaweedFS uses the pinned `weed mini` Docker configuration with standard
+  `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET` environment variables. Keep its
+  S3 gateway and filer UI loopback-bound; application code accesses it only through
+  `SeaweedFsStorageService` using path-style S3 requests and stores object keys, never object URLs.
 
 ## Testing and delivery
 

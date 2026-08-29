@@ -12,7 +12,17 @@ export class BookingResponseDto {
   @ApiProperty({ format: 'date-time' }) startTime: Date;
   @ApiProperty({ format: 'date-time' }) endTime: Date;
   @ApiProperty({ format: 'date-time' }) unavailableUntil: Date;
-  @ApiProperty() state: string;
+  @ApiProperty({
+    enum: [
+      'PENDING_PAYMENT',
+      'BOOKED',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED',
+      'NO_SHOW',
+    ],
+  })
+  state: Appointment['state'];
   @ApiProperty() createdAt: Date;
 
   constructor(appointment: Appointment) {

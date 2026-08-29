@@ -18,6 +18,7 @@ import type {
   UpsertAvailabilityProfileDto,
   WeeklyWindowDto,
 } from './dtos/availability.dto';
+import type { AvailabilityProfileDetails } from './availability.types';
 
 type AvailabilityProfile = InferSelectModel<typeof availabilityProfiles>;
 
@@ -49,8 +50,8 @@ export class AvailabilityRepository {
     return global;
   }
 
-  async findProfiles(advisorId: string): Promise<AvailabilityProfile[]> {
-    return this.db
+  async findProfiles(advisorId: string): Promise<AvailabilityProfileDetails[]> {
+    const profiles = await this.db
       .select()
       .from(availabilityProfiles)
       .where(
@@ -59,6 +60,7 @@ export class AvailabilityRepository {
           isNull(availabilityProfiles.deletedAt),
         ),
       );
+    return Promise.all(profiles.map((profile) => this.profileDetails(profile)));
   }
 
   async findOwnedProfile(
@@ -83,8 +85,8 @@ export class AvailabilityRepository {
     advisorId: string,
     profileId: string | undefined,
     dto: UpsertAvailabilityProfileDto,
-  ): Promise<AvailabilityProfile> {
-    return this.db.transaction(async (tx) => {
+  ): Promise<AvailabilityProfileDetails> {
+    const profile = await this.db.transaction(async (tx) => {
       const profile = profileId
         ? (
             await tx
@@ -146,12 +148,13 @@ export class AvailabilityRepository {
       }
       return profile;
     });
+    return this.profileDetails(profile);
   }
 
   async softDelete(
     advisorId: string,
     profileId: string,
-  ): Promise<AvailabilityProfile | undefined> {
+  ): Promise<AvailabilityProfileDetails | undefined> {
     const [profile] = await this.db
       .update(availabilityProfiles)
       .set({ deletedAt: new Date(), modifiedAt: new Date() })
@@ -163,7 +166,7 @@ export class AvailabilityRepository {
         ),
       )
       .returning();
-    return profile;
+    return profile ? this.profileDetails(profile) : undefined;
   }
 
   async schedulingContext(serviceId: string) {
@@ -264,5 +267,29 @@ export class AvailabilityRepository {
       )
       .limit(1);
     return request !== undefined;
+  }
+
+  private async profileDetails(
+    profile: AvailabilityProfile,
+  ): Promise<AvailabilityProfileDetails> {
+    const [weeklyWindows, specificWindows, blockedPeriods] = await Promise.all([
+      this.db
+        .select()
+        .from(availabilityWeeklyWindows)
+        .where(eq(availabilityWeeklyWindows.availabilityProfileId, profile.id)),
+      this.db
+        .select()
+        .from(availabilitySpecificWindows)
+        .where(
+          eq(availabilitySpecificWindows.availabilityProfileId, profile.id),
+        ),
+      this.db
+        .select()
+        .from(availabilityBlockedPeriods)
+        .where(
+          eq(availabilityBlockedPeriods.availabilityProfileId, profile.id),
+        ),
+    ]);
+    return { profile, weeklyWindows, specificWindows, blockedPeriods };
   }
 }

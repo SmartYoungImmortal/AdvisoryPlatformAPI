@@ -6,10 +6,12 @@ import request from 'supertest';
 import { configureApp } from '@/app.factory';
 import { AppModule } from '@/app.module';
 import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
+import { PasswordResetMailer } from '@/common/mail/password-reset-mailer.service';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
   adminProfiles,
+  advisorGlobalAvailability,
   advisorIdentity,
   advisorProfiles,
   advisorSkills,
@@ -28,6 +30,14 @@ describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
   let db: DrizzleDB;
   let storage: SeaweedFsStorageStub;
+  const passwordResetMailer = {
+    isConfigured: true,
+    deliveries: [] as Array<[recipient: string, resetUrl: string]>,
+    send(recipient: string, resetUrl: string): Promise<void> {
+      this.deliveries.push([recipient, resetUrl]);
+      return Promise.resolve();
+    },
+  };
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
   const createdServiceIds: string[] = [];
@@ -47,6 +57,8 @@ describe('authentication and authorization (e2e)', () => {
     })
       .overrideProvider(SeaweedFsStorageService)
       .useValue(storage)
+      .overrideProvider(PasswordResetMailer)
+      .useValue(passwordResetMailer)
       .compile();
 
     app = moduleFixture.createNestApplication<NestExpressApplication>({
@@ -59,6 +71,7 @@ describe('authentication and authorization (e2e)', () => {
 
   afterEach(async () => {
     storage.clear();
+    passwordResetMailer.deliveries.splice(0);
     await Promise.all(
       createdServiceIds
         .splice(0)
@@ -79,9 +92,13 @@ describe('authentication and authorization (e2e)', () => {
     await Promise.all(
       createdUserIds.splice(0).map(async (id) => {
         await db.delete(adminProfiles).where(eq(adminProfiles.userId, id));
+        await db
+          .delete(advisorGlobalAvailability)
+          .where(eq(advisorGlobalAvailability.advisorId, id));
         await db.delete(advisorProfiles).where(eq(advisorProfiles.userId, id));
         await db.delete(session).where(eq(session.userId, id));
         await db.delete(account).where(eq(account.userId, id));
+        await db.delete(verification).where(eq(verification.value, id));
         await db.delete(user).where(eq(user.id, id));
       }),
     );
@@ -130,6 +147,40 @@ describe('authentication and authorization (e2e)', () => {
       });
 
     await request(app.getHttpServer()).get('/api/v1/users/me').expect(401);
+  });
+
+  it('delivers a one-time reset link, revokes the old session, and accepts the new password', async () => {
+    const { agent, email, password } = await signUp();
+    const resetRequest = await request(app.getHttpServer())
+      .post('/api/auth/request-password-reset')
+      .send({ email })
+      .expect(200);
+    expect(resetRequest.body).toMatchObject({ status: true });
+    expect(passwordResetMailer.deliveries).toHaveLength(1);
+    const [, resetUrl] = passwordResetMailer.deliveries[0] ?? [];
+    if (!resetUrl) {
+      throw new Error('Password reset mail did not include a URL');
+    }
+    const token = new URL(resetUrl).pathname.split('/').at(-1);
+    if (!token) {
+      throw new Error('Password reset URL did not include a token');
+    }
+
+    await request(app.getHttpServer())
+      .post('/api/auth/reset-password')
+      .send({ token, newPassword: 'E2e-reset-password-456!' })
+      .expect(200)
+      .expect(({ body }) => expect(body).toMatchObject({ status: true }));
+
+    await agent.get('/api/v1/users/me').expect(401);
+    await request(app.getHttpServer())
+      .post('/api/auth/sign-in/email')
+      .send({ email, password })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/auth/sign-in/email')
+      .send({ email, password: 'E2e-reset-password-456!' })
+      .expect(200);
   });
 
   it('explains when a supplied session cookie is invalid', async () => {

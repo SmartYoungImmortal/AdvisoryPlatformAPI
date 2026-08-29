@@ -74,6 +74,8 @@ All browser requests must use credentials so the HttpOnly session cookie is stor
 | `POST /api/auth/sign-in/email` | Create a session for an existing account | `email`, `password`                                 | `200`; returns `user` and sets the session cookie        |
 | `GET /api/auth/get-session`    | Read the current session                 | none                                                | `200`; returns `{ session, user }` or `null`             |
 | `POST /api/auth/sign-out`      | End the current session                  | none                                                | `200`; returns `{ success: true }` and clears the cookie |
+| `POST /api/auth/request-password-reset` | Email a one-time reset link | `email`, optional `redirectTo` | `200`; generic success response, whether or not the email exists |
+| `POST /api/auth/reset-password` | Consume a reset token and set a password | `token`, `newPassword` | `200`; all existing sessions are revoked |
 
 `name` maps to the platform display name. `fullName` is the legal name and must never be included in
 public advisor responses. A newly registered user is always an Advisee; Advisor access is gained
@@ -121,6 +123,18 @@ curl -i -c cookies.txt -X POST http://localhost:3000/api/auth/sign-in/email \
   -H "Content-Type: application/json" \
   -d '{"email":"somchai@example.com","password":"use-a-long-unique-password"}'
 ```
+
+### Password reset
+
+Password reset requires Better Auth's configured delivery callback. This deployment provides that
+callback through SMTP and is available when `SMTP_URL` and `SMTP_FROM` are both configured. Request
+a link with `POST /api/auth/request-password-reset` and include a `redirectTo` URL from
+`TRUSTED_ORIGINS`. The API always returns the same generic success message to avoid account
+enumeration. The mail contains a one-hour, one-time API link that forwards the token to
+`redirectTo`; submit that token with the new password to `POST /api/auth/reset-password`.
+
+The reset endpoint is Better Auth-owned, not a Nest controller, so its responses intentionally do
+not use the `/api/v1` response envelope. A successful reset revokes all sessions for that user.
 
 ### Use the session cookie
 
@@ -272,7 +286,7 @@ Returns a fresh private download URL for the authenticated owner's current avata
   "statusCode": 200,
   "message": "Success",
   "data": {
-    "url": "http://localhost:9000/advisory-platform/...signed-query...",
+    "url": "http://localhost:8333/advisory-platform/...signed-query...",
     "expiresInSeconds": 300
   }
 }
@@ -490,8 +504,19 @@ The current module returns the owner-only allowlist:
 }
 ```
 
-Public Service search/detail and public Advisor discovery are separate follow-on routes. They must
-return published Services only and must never reuse this owner DTO.
+### Public service search and detail
+
+`GET /api/v1/services` and `GET /api/v1/services/:serviceId` are `Public`. They return published
+Services from active, non-banned Advisors only; unavailable, unpublished, suspended, banned, and
+deleted services return `404` for the detail route. The search route uses normal offset pagination
+and accepts optional `q` (text), `categoryId`, `advisorId`, `minPriceSatang`, and `maxPriceSatang`
+filters. An inverted price range is `400`.
+
+Search is backed by Elasticsearch but Postgres remains the authorization source of truth: every
+Elasticsearch hit is rechecked before it is returned. The public allowlist is `id`, `advisorId`,
+`categoryId`, `name`, `description`, `priceSatang`, `durationMinutes`, `screeningRequired`,
+`trialEnabled`, and `trialDurationMinutes`. It never reuses the owner DTO or exposes availability
+profile, daily-limit, publishing, or other owner-only fields.
 
 `GET /api/v1/admin/services?page=1&limit=20` is an Admin-only offset-paginated view of all
 Services. It returns the same administrative allowlist above, including unpublished Services, so
@@ -565,7 +590,8 @@ The implemented scheduling contract uses these routes, all under the standard re
 - `GET` / `POST /api/v1/advisors/me/availability/profiles`, plus `PATCH` / `DELETE`
   `/api/v1/advisors/me/availability/profiles/:profileId`, manage Advisor-owned reusable Profiles.
   A write replaces the supplied weekly, specific-date, and blocked windows atomically. Deletes are
-  soft deletes.
+  soft deletes. Profile responses include `weeklyWindows`, `specificWindows`, and `blockedPeriods`
+  so clients can reconstruct the full Advisor-local scheduling configuration.
 - `GET /api/v1/services/:serviceId/slots?from=YYYY-MM-DD&to=YYYY-MM-DD` requires an authenticated
   Advisee and returns derived candidate `{ startTime, endTime }` pairs for a published Service.
   For a screened Service, the Advisee must have an `ACCEPTED` screening request before this route
@@ -603,6 +629,10 @@ and preserve the following agreed behavior.
   client-managed list of independently bookable slot records.
 - A booking blocks the advisor across all of their Services and Profiles through its consultation
   range plus the configured buffer. Daily limits count consultation minutes only, not buffer time.
+- Booking creation takes a transaction-scoped advisory lock keyed by Advisor and rederives the
+  requested slot after acquiring it. This makes global/per-Service daily-limit decisions atomic
+  across simultaneous non-overlapping requests. The exclusion constraint remains the final guard
+  for overlapping ranges.
 - Specific-date windows add exceptional availability to the recurring weekly windows for that
   date. Overlapping ranges are merged before candidate slots are derived. Blocked periods then
   remove time from the combined result.

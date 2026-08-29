@@ -203,12 +203,19 @@ and lint pass. Slot derivation uses the Advisor's IANA timezone, applies buffer 
 per-Service consultation-minute limits, and gates a screened Service before slot display and
 booking unless the Advisee has an accepted screening row.
 
+Public published-Service discovery is also delivered on this branch: Elasticsearch indexes the
+safe public Service projection, `GET /api/v1/services` supports documented text/category/price/
+Advisor filters, and `GET /api/v1/services/:serviceId` uses Postgres for final disclosure checks.
+Password reset now uses Better Auth's one-time tokens, SMTP delivery when configured, and session
+revocation after a successful reset. See [`HANDOFF.md`](./HANDOFF.md) for environment and
+verification details.
+
 Meeting-summary acceptance status for this branch:
 
 | 22 Aug decision | Status |
 |---|---|
 | One Global Availability, fixed 30-minute start grid, buffer, 60-day default horizon, minimum notice, and optional global daily limit | Implemented |
-| Multiple Profiles with non-overlapping weekly windows, additive specific-date windows, blocked full/partial periods, and soft delete | Implemented; Profile reads currently return metadata rather than nested window details |
+| Multiple Profiles with non-overlapping weekly windows, additive specific-date windows, blocked full/partial periods, nested read responses, and soft delete | Implemented |
 | Service selects a Profile and can set an optional independent daily consultation limit | Implemented |
 | Create a Profile inline from Service creation and automatically name an unnamed Profile | Not implemented; the combined request shape and naming rule are not specified |
 | Advisor-wide blocking across Services/Profiles, with buffer excluded from daily-limit minutes | Implemented in derivation and backed by the Postgres exclusion constraint |

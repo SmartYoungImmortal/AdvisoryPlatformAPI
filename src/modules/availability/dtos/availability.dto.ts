@@ -14,13 +14,10 @@ import {
 } from 'class-validator';
 import { Trim } from '@/common/decorators/trim.decorator';
 import type { InferSelectModel } from 'drizzle-orm';
-import {
-  advisorGlobalAvailability,
-  availabilityProfiles,
-} from '@/database/schema';
+import { advisorGlobalAvailability } from '@/database/schema';
+import type { AvailabilityProfileDetails } from '@/modules/availability/availability.types';
 
 type GlobalAvailability = InferSelectModel<typeof advisorGlobalAvailability>;
-type AvailabilityProfile = InferSelectModel<typeof availabilityProfiles>;
 
 export class TimeWindowDto {
   @ApiProperty({ example: '09:00' })
@@ -169,12 +166,40 @@ export class AvailabilityProfileResponseDto {
   @ApiProperty() name: string;
   @ApiProperty() createdAt: Date;
   @ApiProperty() modifiedAt: Date;
+  @ApiProperty({ type: () => [WeeklyWindowDto] })
+  weeklyWindows: WeeklyWindowDto[];
+  @ApiProperty({ type: () => [SpecificWindowDto] })
+  specificWindows: SpecificWindowDto[];
+  @ApiProperty({ type: () => [BlockedPeriodDto] })
+  blockedPeriods: BlockedPeriodDto[];
 
-  constructor(profile: AvailabilityProfile) {
+  constructor(details: AvailabilityProfileDetails) {
+    const { profile } = details;
     this.id = profile.id;
     this.advisorId = profile.advisorId;
     this.name = profile.name;
     this.createdAt = profile.createdAt;
     this.modifiedAt = profile.modifiedAt;
+    this.weeklyWindows = details.weeklyWindows.map(
+      ({ dayOfWeek, startTime, endTime }) => ({
+        dayOfWeek,
+        startTime,
+        endTime,
+      }),
+    );
+    this.specificWindows = details.specificWindows.map(
+      ({ availableDate, startTime, endTime }) => ({
+        availableDate,
+        startTime,
+        endTime,
+      }),
+    );
+    this.blockedPeriods = details.blockedPeriods.map(
+      ({ blockedDate, startTime, endTime }) => ({
+        blockedDate,
+        ...(startTime === null ? {} : { startTime }),
+        ...(endTime === null ? {} : { endTime }),
+      }),
+    );
   }
 }

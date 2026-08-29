@@ -115,6 +115,9 @@ describe('BookingsRepository concurrency (integration)', () => {
 
 function postgresErrorCode(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null || !('code' in error)) {
+    if (typeof error === 'object' && error !== null && 'cause' in error) {
+      return postgresErrorCode(error.cause);
+    }
     return undefined;
   }
   return typeof error.code === 'string' ? error.code : undefined;

@@ -27,10 +27,14 @@ The API listens on `http://localhost:3000` by default. Swagger is available at
 `http://localhost:3000/api/v1/docs`; Better Auth routes under `/api/auth/*` are documented in
 [`docs/api-spec.md`](docs/api-spec.md) because Swagger intentionally does not own them.
 
-Local SeaweedFS serves private uploaded objects through its S3 gateway at
-`http://localhost:8333`. Its filer UI is available at `http://localhost:8888`; it is a file browser,
-not an administrative console. Use the local development credentials from `.env.example` only.
-Override every `SEAWEEDFS_S3_*` value with environment-managed credentials outside local development.
+Local SeaweedFS runs the pinned single-node `weed mini` configuration. It serves private uploaded
+objects through its S3 gateway at `http://localhost:8333`, pre-creates
+`SEAWEEDFS_S3_BUCKET`, and uses the access key and secret from `.env`. Its filer UI is available at
+`http://localhost:8888`; it is a file browser, not an administrative console. Both ports bind to
+loopback only. Use the local development credentials from `.env.example` only. Override every
+`SEAWEEDFS_S3_*` value with environment-managed credentials outside local development.
+The Compose command includes an idempotent ownership repair so it can safely reuse the named volume
+from the previous SeaweedFS configuration.
 
 ## Verify changes
 

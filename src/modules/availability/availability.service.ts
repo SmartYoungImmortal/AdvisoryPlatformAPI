@@ -4,10 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
-import {
-  advisorGlobalAvailability,
-  availabilityProfiles,
-} from '@/database/schema';
+import { advisorGlobalAvailability } from '@/database/schema';
 import { AVAILABILITY_MESSAGES } from './availability.constants';
 import { AvailabilityRepository } from './availability.repository';
 import {
@@ -22,9 +19,9 @@ import type {
   UpsertAvailabilityProfileDto,
 } from './dtos/availability.dto';
 import { AvailabilitySlotResponseDto } from './dtos/availability.dto';
+import type { AvailabilityProfileDetails } from './availability.types';
 
 type GlobalAvailability = InferSelectModel<typeof advisorGlobalAvailability>;
-type AvailabilityProfile = InferSelectModel<typeof availabilityProfiles>;
 type SchedulingContext = Exclude<
   Awaited<ReturnType<AvailabilityRepository['schedulingContext']>>,
   undefined
@@ -48,14 +45,14 @@ export class AvailabilityService {
     return this.repository.upsertGlobal(advisorId, dto);
   }
 
-  findProfiles(advisorId: string): Promise<AvailabilityProfile[]> {
+  findProfiles(advisorId: string): Promise<AvailabilityProfileDetails[]> {
     return this.repository.findProfiles(advisorId);
   }
 
   async createProfile(
     advisorId: string,
     dto: UpsertAvailabilityProfileDto,
-  ): Promise<AvailabilityProfile> {
+  ): Promise<AvailabilityProfileDetails> {
     this.assertWindows(dto);
     return this.repository.saveProfile(advisorId, undefined, dto);
   }
@@ -64,7 +61,7 @@ export class AvailabilityService {
     advisorId: string,
     profileId: string,
     dto: UpsertAvailabilityProfileDto,
-  ): Promise<AvailabilityProfile> {
+  ): Promise<AvailabilityProfileDetails> {
     this.assertWindows(dto);
     if (!(await this.repository.findOwnedProfile(advisorId, profileId)))
       throw new NotFoundException(AVAILABILITY_MESSAGES.profileNotFound);
@@ -74,7 +71,7 @@ export class AvailabilityService {
   async deleteProfile(
     advisorId: string,
     profileId: string,
-  ): Promise<AvailabilityProfile> {
+  ): Promise<AvailabilityProfileDetails> {
     const profile = await this.repository.softDelete(advisorId, profileId);
     if (!profile)
       throw new NotFoundException(AVAILABILITY_MESSAGES.profileNotFound);
@@ -133,7 +130,7 @@ export class AvailabilityService {
     try {
       assertIanaTimeZone(context.timezone);
     } catch {
-      throw new BadRequestException('Advisor timezone is invalid');
+      throw new BadRequestException(AVAILABILITY_MESSAGES.invalidTimezone);
     }
     return context;
   }
