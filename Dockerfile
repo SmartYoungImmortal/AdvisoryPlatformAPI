@@ -10,7 +10,7 @@ COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
 
 # Install the application dependencies
-RUN curl -fsS https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" env PNPM_VERSION=11 sh - && pnpm install --ignore-scripts --frozen-lockfile
+RUN wget --max-redirect=0 -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && pnpm install --ignore-scripts --frozen-lockfile
 
 # Copy the rest of the application files
 COPY src/ .
