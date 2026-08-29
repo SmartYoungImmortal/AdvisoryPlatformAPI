@@ -1,4 +1,4 @@
-export interface PublicServiceSearchDocument {
+export interface PublicServiceDocument {
   id: string;
   advisorId: string;
   categoryId: string;

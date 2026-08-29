@@ -7,7 +7,6 @@ import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
-import type { PasswordResetMailer } from '@/common/mail/password-reset-mailer.service';
 import {
   adminAc,
   defaultStatements,
@@ -93,11 +92,7 @@ export const appRoles = {
  * schema object) — not the physical DB column. Since our Drizzle keys already match these
  * field names, no override is needed here.
  */
-export function createAuth(
-  db: DrizzleDB,
-  config: ConfigService<Env, true>,
-  passwordResetMailer: PasswordResetMailer,
-) {
+export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
   return betterAuth({
     database: drizzleAdapter(db, { provider: 'pg', schema }),
     secret: config.get(ENV_KEYS.BETTER_AUTH_SECRET, { infer: true }),
@@ -105,19 +100,6 @@ export function createAuth(
     trustedOrigins: config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
     emailAndPassword: {
       enabled: true,
-      ...(passwordResetMailer.isConfigured
-        ? {
-            resetPasswordTokenExpiresIn: 60 * 60,
-            revokeSessionsOnPasswordReset: true,
-            sendResetPassword: ({
-              user,
-              url,
-            }: {
-              user: { email: string };
-              url: string;
-            }) => passwordResetMailer.send(user.email, url),
-          }
-        : {}),
     },
     advanced: {
       database: {

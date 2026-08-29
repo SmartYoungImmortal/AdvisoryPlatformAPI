@@ -74,8 +74,6 @@ All browser requests must use credentials so the HttpOnly session cookie is stor
 | `POST /api/auth/sign-in/email` | Create a session for an existing account | `email`, `password`                                 | `200`; returns `user` and sets the session cookie        |
 | `GET /api/auth/get-session`    | Read the current session                 | none                                                | `200`; returns `{ session, user }` or `null`             |
 | `POST /api/auth/sign-out`      | End the current session                  | none                                                | `200`; returns `{ success: true }` and clears the cookie |
-| `POST /api/auth/request-password-reset` | Email a one-time reset link | `email`, optional `redirectTo` | `200`; generic success response, whether or not the email exists |
-| `POST /api/auth/reset-password` | Consume a reset token and set a password | `token`, `newPassword` | `200`; all existing sessions are revoked |
 
 `name` maps to the platform display name. `fullName` is the legal name and must never be included in
 public advisor responses. A newly registered user is always an Advisee; Advisor access is gained
@@ -123,18 +121,6 @@ curl -i -c cookies.txt -X POST http://localhost:3000/api/auth/sign-in/email \
   -H "Content-Type: application/json" \
   -d '{"email":"somchai@example.com","password":"use-a-long-unique-password"}'
 ```
-
-### Password reset
-
-Password reset requires Better Auth's configured delivery callback. This deployment provides that
-callback through SMTP and is available when `SMTP_URL` and `SMTP_FROM` are both configured. Request
-a link with `POST /api/auth/request-password-reset` and include a `redirectTo` URL from
-`TRUSTED_ORIGINS`. The API always returns the same generic success message to avoid account
-enumeration. The mail contains a one-hour, one-time API link that forwards the token to
-`redirectTo`; submit that token with the new password to `POST /api/auth/reset-password`.
-
-The reset endpoint is Better Auth-owned, not a Nest controller, so its responses intentionally do
-not use the `/api/v1` response envelope. A successful reset revokes all sessions for that user.
 
 ### Use the session cookie
 
@@ -512,8 +498,7 @@ deleted services return `404` for the detail route. The search route uses normal
 and accepts optional `q` (text), `categoryId`, `advisorId`, `minPriceSatang`, and `maxPriceSatang`
 filters. An inverted price range is `400`.
 
-Search is backed by Elasticsearch but Postgres remains the authorization source of truth: every
-Elasticsearch hit is rechecked before it is returned. The public allowlist is `id`, `advisorId`,
+Search queries Postgres directly. The public allowlist is `id`, `advisorId`,
 `categoryId`, `name`, `description`, `priceSatang`, `durationMinutes`, `screeningRequired`,
 `trialEnabled`, and `trialDurationMinutes`. It never reuses the owner DTO or exposes availability
 profile, daily-limit, publishing, or other owner-only fields.

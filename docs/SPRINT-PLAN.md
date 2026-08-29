@@ -10,16 +10,16 @@ only as a redirect so existing editor tabs and links keep working.
 
 ## 1. Planning rules and current facts
 
-| Topic | Active rule |
-|---|---|
-| Sprint cadence | One week, Saturday–Friday; Saturday afternoon is review and planning for the next sprint. |
-| Capacity | Plan about 30 feature-hours per sprint for the four-person team; reserve about 10 hours for meetings, reporting, and bugs. |
-| Task tracking | One task in this plan equals one GitHub issue and focused `feature/*` branch. |
-| Branching | `main ← UAT ← develop ← feature/*`. |
-| Account model | Signup creates an Advisee only. Advisor access is the explicit authenticated upgrade; Admin is never self-service. |
-| Quality | CI verifies build/lint and requires at least 80% across merged unit, integration, and e2e statements, branches, functions, and lines. |
-| API contract | `docs/api-spec.md` is authoritative; resolve unclear behavior from documented product and security requirements before implementation. |
-| AI | All AI work is Project 2. Project 1 uses rule-based ordering and detection only. |
+| Topic          | Active rule                                                                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Sprint cadence | One week, Saturday–Friday; Saturday afternoon is review and planning for the next sprint.                                              |
+| Capacity       | Plan about 30 feature-hours per sprint for the four-person team; reserve about 10 hours for meetings, reporting, and bugs.             |
+| Task tracking  | One task in this plan equals one GitHub issue and focused `feature/*` branch.                                                          |
+| Branching      | `main ← UAT ← develop ← feature/*`.                                                                                                    |
+| Account model  | Signup creates an Advisee only. Advisor access is the explicit authenticated upgrade; Admin is never self-service.                     |
+| Quality        | CI verifies build/lint and requires at least 80% across merged unit, integration, and e2e statements, branches, functions, and lines.  |
+| API contract   | `docs/api-spec.md` is authoritative; resolve unclear behavior from documented product and security requirements before implementation. |
+| AI             | All AI work is Project 2. Project 1 uses rule-based ordering and detection only.                                                       |
 
 ### Delivery position at the start of S6 (2026-08-29)
 
@@ -57,42 +57,42 @@ feature-freeze date cannot be protected.
 
 ## 2. Timeline and course deliverables
 
-| Sprint | Provisional window | Course deliverable | Phase |
-|---|---|---|---|
-| S1 | 25–31 Jul | — | Setup / POC — delivered baseline |
-| S2 | 1–7 Aug | Progress report #1 (7 Aug) | Foundation — delivered baseline |
-| S3 | 8–14 Aug | — | Account and authorization baseline |
-| S4 | 15–21 Aug | — | Advisor discovery and services |
-| S5 | 22–28 Aug | Progress report #2 (28 Aug) | Booking |
-| S6 | 29 Aug–4 Sep | — | Screening and payment |
-| S7 | 5–11 Sep | — | Chat and notifications |
-| S8 | 12–18 Sep | Progress report #3 + 30% report draft (18 Sep) | Video and files |
-| S9 | 19–25 Sep | — | Trust & safety, admin, API hardening |
-| S10 | 26 Sep–2 Oct | — | Feature freeze / integration |
-| S11 | 3–9 Oct | Progress report #4 + 60% report draft (9 Oct) | Functional, load, security test |
-| S12 | 10–16 Oct | — | UAT |
-| S13 | 17–23 Oct | — | Fixes and traceability documents |
-| S14 | 24–30 Oct | Report and presentation due (30 Oct) | Report and slides |
-| — | 31 Oct–9 Nov | Presentation examination | Rehearsal and Q&A |
+| Sprint | Provisional window | Course deliverable                             | Phase                                |
+| ------ | ------------------ | ---------------------------------------------- | ------------------------------------ |
+| S1     | 25–31 Jul          | —                                              | Setup / POC — delivered baseline     |
+| S2     | 1–7 Aug            | Progress report #1 (7 Aug)                     | Foundation — delivered baseline      |
+| S3     | 8–14 Aug           | —                                              | Account and authorization baseline   |
+| S4     | 15–21 Aug          | —                                              | Advisor discovery and services       |
+| S5     | 22–28 Aug          | Progress report #2 (28 Aug)                    | Booking                              |
+| S6     | 29 Aug–4 Sep       | —                                              | Screening and payment                |
+| S7     | 5–11 Sep           | —                                              | Chat and notifications               |
+| S8     | 12–18 Sep          | Progress report #3 + 30% report draft (18 Sep) | Video and files                      |
+| S9     | 19–25 Sep          | —                                              | Trust & safety, admin, API hardening |
+| S10    | 26 Sep–2 Oct       | —                                              | Feature freeze / integration         |
+| S11    | 3–9 Oct            | Progress report #4 + 60% report draft (9 Oct)  | Functional, load, security test      |
+| S12    | 10–16 Oct          | —                                              | UAT                                  |
+| S13    | 17–23 Oct          | —                                              | Fixes and traceability documents     |
+| S14    | 24–30 Oct          | Report and presentation due (30 Oct)           | Report and slides                    |
+| —      | 31 Oct–9 Nov       | Presentation examination                       | Rehearsal and Q&A                    |
 
 **Development completes at the end of S10.** S11–S14 are for testing, UAT, fixes, evidence,
 documentation, and presentation — not new features.
 
 ## 3. WBS and dependency map
 
-| WBS | Module / deliverable | Sprint |
-|---|---|---|
-| 4.1–4.4 | Environment, CI/CD, plan, test foundations | S1–S2 — delivered |
-| 4.5–4.6 | User/account model and authentication | S2–S3 |
-| 4.13 | Advisor discovery and service management | S4 |
-| 4.7 | Appointment booking | S5 |
-| 4.12 | Screening and payment | S6 |
-| 4.8, 4.11 | Chat and notifications | S7 |
-| 4.9, 4.10 | Video calls and file storage | S8 |
-| 4.14 | Off-platform detection, reports, admin | S9 |
-| 5.2–5.4 | Functional, load, security testing | S11 |
-| 5.1 | User acceptance testing | S12 |
-| 5.5 | Traceability, report, slides | S13–S14 |
+| WBS       | Module / deliverable                       | Sprint            |
+| --------- | ------------------------------------------ | ----------------- |
+| 4.1–4.4   | Environment, CI/CD, plan, test foundations | S1–S2 — delivered |
+| 4.5–4.6   | User/account model and authentication      | S2–S3             |
+| 4.13      | Advisor discovery and service management   | S4                |
+| 4.7       | Appointment booking                        | S5                |
+| 4.12      | Screening and payment                      | S6                |
+| 4.8, 4.11 | Chat and notifications                     | S7                |
+| 4.9, 4.10 | Video calls and file storage               | S8                |
+| 4.14      | Off-platform detection, reports, admin     | S9                |
+| 5.2–5.4   | Functional, load, security testing         | S11               |
+| 5.1       | User acceptance testing                    | S12               |
+| 5.5       | Traceability, report, slides               | S13–S14           |
 
 Dependencies are deliberate: auth → discovery/services → booking → payment and fulfilment.
 Video rooms and chat must be tied to appointments; off-platform detection depends on chat. Do not
@@ -136,12 +136,12 @@ account denial; explicit Advisor upgrade; 409 for repeat upgrade; and CI verific
 
 **Delivered account scope:**
 
-| Area | Work |
-|---|---|
-| Profile | Base and Advisor own-profile read/update use separate allowlisted DTOs. Private SeaweedFS-backed avatar upload, replacement, removal, and owner-only signed reads are delivered; generic consultation files remain S8 work. |
-| PDPA | Atomic account deletion revokes authentication, erases direct identity/proof data, anonymizes the retained FK anchor, and unpublishes Advisor services. |
-| Advisor profile | `headline` and `bio` are available for S4 public discovery and advisor-owned services; no speculative fields were added. |
-| Tests | Controller boundaries, role changes, profile updates, avatar upload/removal, anonymization, and immediate session revocation have database-backed coverage. |
+| Area            | Work                                                                                                                                                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Profile         | Base and Advisor own-profile read/update use separate allowlisted DTOs. Private SeaweedFS-backed avatar upload, replacement, removal, and owner-only signed reads are delivered; generic consultation files remain S8 work. |
+| PDPA            | Atomic account deletion revokes authentication, erases direct identity/proof data, anonymizes the retained FK anchor, and unpublishes Advisor services.                                                                     |
+| Advisor profile | `headline` and `bio` are available for S4 public discovery and advisor-owned services; no speculative fields were added.                                                                                                    |
+| Tests           | Controller boundaries, role changes, profile updates, avatar upload/removal, anonymization, and immediate session revocation have database-backed coverage.                                                                 |
 
 **Exit criteria:** no registration path selects a role; repeat upgrade remains a documented `409`
 policy; all account work uses the real application middleware and passes build, lint, relevant unit,
@@ -152,13 +152,13 @@ integration, and e2e verification.
 **Goal:** an advisee can discover public advisors/services and an Advisor can manage only their own
 services.
 
-| Area | Work |
-|---|---|
-| Backend | Public advisor search/profile/reviews; skills/categories; advisor-owned service CRUD with satang pricing, positive duration, category, Availability Profile selection, and pagination. Candidate start times remain on the fixed 30-minute grid. |
-| Authorization | Separate public, own-Advisor, and Admin DTOs; never expose full name, email, national ID, documents, or penalty points publicly. |
-| Ranking | Rule-based category match, then rating/popularity; confirmed regex-detected off-platform penalties rank down silently. |
-| Performance | Measure discovery/search against the <3-second project QR and retain the result. |
-| Testing | Controller authorization/ownership tests and discovery integration tests. |
+| Area          | Work                                                                                                                                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Backend       | Public advisor search/profile/reviews; skills/categories; advisor-owned service CRUD with satang pricing, positive duration, category, Availability Profile selection, and pagination. Candidate start times remain on the fixed 30-minute grid. |
+| Authorization | Separate public, own-Advisor, and Admin DTOs; never expose full name, email, national ID, documents, or penalty points publicly.                                                                                                                 |
+| Ranking       | Rule-based category match, then rating/popularity; confirmed regex-detected off-platform penalties rank down silently.                                                                                                                           |
+| Performance   | Measure discovery/search against the <3-second project QR and retain the result.                                                                                                                                                                 |
+| Testing       | Controller authorization/ownership tests and discovery integration tests.                                                                                                                                                                        |
 
 **Actual outcome:** Skills/categories and the own-profile foundation already existed, but no
 Advisor-owned service module or public discovery endpoints were delivered. Carry the service
@@ -169,12 +169,12 @@ remain follow-on work.
 
 **Goal:** booking works and double booking is impossible.
 
-| Area | Work |
-|---|---|
-| Backend | Advisor Global Availability and reusable Availability Profiles, timezone-safe `timestamptz` handling, derived 30-minute booking slots, booking/cancel/reschedule state machine, and appointment views for both parties. |
-| Guarantee | Add the Postgres exclusion constraint for overlapping advisor-wide appointment ranges, including the booked buffer; no application-only overlap check. |
-| Testing | Concurrently book the same slot with multiple requests and prove exactly one succeeds; retain output as Success Criterion evidence. |
-| Docs | Submit progress report #2 and record the state transitions in the API contract. |
+| Area      | Work                                                                                                                                                                                                                    |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend   | Advisor Global Availability and reusable Availability Profiles, timezone-safe `timestamptz` handling, derived 30-minute booking slots, booking/cancel/reschedule state machine, and appointment views for both parties. |
+| Guarantee | Add the Postgres exclusion constraint for overlapping advisor-wide appointment ranges, including the booked buffer; no application-only overlap check.                                                                  |
+| Testing   | Concurrently book the same slot with multiple requests and prove exactly one succeeds; retain output as Success Criterion evidence.                                                                                     |
+| Docs      | Submit progress report #2 and record the state transitions in the API contract.                                                                                                                                         |
 
 **Actual outcome:** The agreed availability/booking data model, migration, and exclusion constraint
 were prepared. There is no availability controller/service, derived-slot endpoint, atomic booking
@@ -185,13 +185,13 @@ workflow, transition API, concurrency test, or repository-held Progress report #
 **Goal:** restore the dependency-critical booking path and leave a measured, honest baseline for
 the delayed payment work.
 
-| Area | Work |
-|---|---|
-| Services | Finalize the service/booking HTTP contract and deliver Advisor-owned service CRUD. A service selects an Availability Profile and has independent screening/trial switches. |
-| Availability | Deliver the single Global Availability configuration, reusable Profiles, weekly/specific/blocked windows, and derived 30-minute public slots. Blocked periods override specific and weekly availability; profiles with history are soft-deleted. |
-| Booking | Deliver atomic eligible-slot booking and party-specific views. Preserve the existing Advisor-wide Postgres exclusion constraint, map its conflict safely, and prove concurrent requests yield exactly one success. |
-| Provider readiness | Omise payment setup and the self-hosted Jitsi setup are complete. Record their configuration decisions/evidence safely; payment and video APIs remain separate implementation work. |
-| Evidence | Complete the missing Progress report #2 only with the actual API contract, constraint test, coverage, risks, and measured results; otherwise record it as overdue. |
+| Area               | Work                                                                                                                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Services           | Finalize the service/booking HTTP contract and deliver Advisor-owned service CRUD. A service selects an Availability Profile and has independent screening/trial switches.                                                                       |
+| Availability       | Deliver the single Global Availability configuration, reusable Profiles, weekly/specific/blocked windows, and derived 30-minute public slots. Blocked periods override specific and weekly availability; profiles with history are soft-deleted. |
+| Booking            | Deliver atomic eligible-slot booking and party-specific views. Preserve the existing Advisor-wide Postgres exclusion constraint, map its conflict safely, and prove concurrent requests yield exactly one success.                               |
+| Provider readiness | Omise payment setup and the self-hosted Jitsi setup are complete. Record their configuration decisions/evidence safely; payment and video APIs remain separate implementation work.                                                              |
+| Evidence           | Complete the missing Progress report #2 only with the actual API contract, constraint test, coverage, risks, and measured results; otherwise record it as overdue.                                                                               |
 
 **Actual outcome (feature/time-scheduling-booking):** Advisor Global Availability and reusable
 Availability Profile HTTP APIs are implemented, including validation/replacement of weekly,
@@ -203,29 +203,27 @@ and lint pass. Slot derivation uses the Advisor's IANA timezone, applies buffer 
 per-Service consultation-minute limits, and gates a screened Service before slot display and
 booking unless the Advisee has an accepted screening row.
 
-Public published-Service discovery is also delivered on this branch: Elasticsearch indexes the
-safe public Service projection, `GET /api/v1/services` supports documented text/category/price/
-Advisor filters, and `GET /api/v1/services/:serviceId` uses Postgres for final disclosure checks.
-Password reset now uses Better Auth's one-time tokens, SMTP delivery when configured, and session
-revocation after a successful reset. See [`HANDOFF.md`](./HANDOFF.md) for environment and
-verification details.
+Public published-Service discovery is also delivered on this branch: `GET /api/v1/services`
+queries Postgres with the documented text/category/price/Advisor filters, and
+`GET /api/v1/services/:serviceId` uses the same visibility rules for final disclosure checks. See
+[`HANDOFF.md`](./HANDOFF.md) for environment and verification details.
 
 Meeting-summary acceptance status for this branch:
 
-| 22 Aug decision | Status |
-|---|---|
-| One Global Availability, fixed 30-minute start grid, buffer, 60-day default horizon, minimum notice, and optional global daily limit | Implemented |
-| Multiple Profiles with non-overlapping weekly windows, additive specific-date windows, blocked full/partial periods, nested read responses, and soft delete | Implemented |
-| Service selects a Profile and can set an optional independent daily consultation limit | Implemented |
-| Create a Profile inline from Service creation and automatically name an unnamed Profile | Not implemented; the combined request shape and naming rule are not specified |
-| Advisor-wide blocking across Services/Profiles, with buffer excluded from daily-limit minutes | Implemented in derivation and backed by the Postgres exclusion constraint |
-| Advisee views slots before booking; screened Services require accepted screening first | Implemented; screening question/submission/decision HTTP APIs remain outstanding |
-| Advisor-local wall time persisted/exposed as timezone-safe instants | Implemented and unit-tested for Bangkok conversion, date boundaries, leap day, and nonexistent DST wall times |
-| Two concurrent requests for one Advisor time produce exactly one booking | Per-Advisor transactional scheduling lock, exclusion constraint, and HTTP 409 mapping implemented; a real-Postgres concurrent integration spec is added, but its local run requires the test Postgres service |
-| Multiple sessions in one booking | Not implemented; the meeting summary does not define whether sessions are contiguous or an explicit list of starts |
-| Cancellation/rescheduling reopens the old time only when minimum notice remains | Not implemented |
-| Trial request/decision plus Advisor direct grant, one Trial per Advisee/Service | Not implemented; this supersedes the earlier direct-grant-only wording |
-| Payment/refund behavior tied to booking and cancellation | Not implemented |
+| 22 Aug decision                                                                                                                                             | Status                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One Global Availability, fixed 30-minute start grid, buffer, 60-day default horizon, minimum notice, and optional global daily limit                        | Implemented                                                                                                                                                                                                   |
+| Multiple Profiles with non-overlapping weekly windows, additive specific-date windows, blocked full/partial periods, nested read responses, and soft delete | Implemented                                                                                                                                                                                                   |
+| Service selects a Profile and can set an optional independent daily consultation limit                                                                      | Implemented                                                                                                                                                                                                   |
+| Create a Profile inline from Service creation and automatically name an unnamed Profile                                                                     | Not implemented; the combined request shape and naming rule are not specified                                                                                                                                 |
+| Advisor-wide blocking across Services/Profiles, with buffer excluded from daily-limit minutes                                                               | Implemented in derivation and backed by the Postgres exclusion constraint                                                                                                                                     |
+| Advisee views slots before booking; screened Services require accepted screening first                                                                      | Implemented; screening question/submission/decision HTTP APIs remain outstanding                                                                                                                              |
+| Advisor-local wall time persisted/exposed as timezone-safe instants                                                                                         | Implemented and unit-tested for Bangkok conversion, date boundaries, leap day, and nonexistent DST wall times                                                                                                 |
+| Two concurrent requests for one Advisor time produce exactly one booking                                                                                    | Per-Advisor transactional scheduling lock, exclusion constraint, and HTTP 409 mapping implemented; a real-Postgres concurrent integration spec is added, but its local run requires the test Postgres service |
+| Multiple sessions in one booking                                                                                                                            | Not implemented; the meeting summary does not define whether sessions are contiguous or an explicit list of starts                                                                                            |
+| Cancellation/rescheduling reopens the old time only when minimum notice remains                                                                             | Not implemented                                                                                                                                                                                               |
+| Trial request/decision plus Advisor direct grant, one Trial per Advisee/Service                                                                             | Not implemented; this supersedes the earlier direct-grant-only wording                                                                                                                                        |
+| Payment/refund behavior tied to booking and cancellation                                                                                                    | Not implemented                                                                                                                                                                                               |
 
 This branch therefore matches the implemented scheduling subset, but it does **not** yet satisfy
 the entire 22 August booking agreement. It must not be marked complete until the outstanding rows
@@ -239,35 +237,35 @@ and is limited to one use per Advisee/service.
 
 **Goal:** appointment/trial participants can communicate and receive timely events.
 
-| Area | Work |
-|---|---|
-| Chat | Appointment/trial-bound room provisioning, with the already-delivered member-only
-  messages/history/read state available at all times after a room exists; measure realtime latency. |
-| Notifications | Persist booking, payment, reminder, and message events with unread behavior. |
-| Trial | Expose the optional direct-grant Trial path independently from screening. |
-| Evidence | Measure and retain chat latency against the project QR. |
+| Area                                                                                              | Work                                                                              |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Chat                                                                                              | Appointment/trial-bound room provisioning, with the already-delivered member-only |
+| messages/history/read state available at all times after a room exists; measure realtime latency. |
+| Notifications                                                                                     | Persist booking, payment, reminder, and message events with unread behavior.      |
+| Trial                                                                                             | Expose the optional direct-grant Trial path independently from screening.         |
+| Evidence                                                                                          | Measure and retain chat latency against the project QR.                           |
 
 ### S8 · 12–18 Sep — Video calls and files (4.9, 4.10)
 
 **Goal:** an authorized consultation can finish inside the platform.
 
-| Area | Work |
-|---|---|
-| Video | Use the agreed self-hosted Jitsi direction, create appointment-bound rooms, authorize only participants, and restrict access to the meeting window plus a small buffer. |
-| Files | Member-authorized upload/download with SeaweedFS object keys, 50 MB type/size enforcement, and no stored presigned URLs. |
-| Evidence | Measure call quality against the applicable QR and retain the result. |
-| Docs | Produce the 30% report draft from completed design and test evidence. |
+| Area     | Work                                                                                                                                                                    |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Video    | Use the agreed self-hosted Jitsi direction, create appointment-bound rooms, authorize only participants, and restrict access to the meeting window plus a small buffer. |
+| Files    | Member-authorized upload/download with SeaweedFS object keys, 50 MB type/size enforcement, and no stored presigned URLs.                                                |
+| Evidence | Measure call quality against the applicable QR and retain the result.                                                                                                   |
+| Docs     | Produce the 30% report draft from completed design and test evidence.                                                                                                   |
 
 ### S9 · 19–25 Sep — Trust & safety, admin, and API hardening (4.14)
 
 **Goal:** retain platform safety evidence and give operations a minimal, authorized review path.
 
-| Area | Work |
-|---|---|
-| Detection | Rule-based patterns for phone, email, LINE ID, and social handles, including basic evasion such as spaced phone numbers. |
-| Operations | User reports, evidence-preserving flags, admin review/verification, and transaction views following the access matrix. |
-| Ranking | Apply confirmed-advisor penalties silently; never disclose flags/points to the Advisor. |
-| API hardening | Verify production CORS, trusted origins, cookie-session behavior, and useful error responses. |
+| Area          | Work                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Detection     | Rule-based patterns for phone, email, LINE ID, and social handles, including basic evasion such as spaced phone numbers. |
+| Operations    | User reports, evidence-preserving flags, admin review/verification, and transaction views following the access matrix.   |
+| Ranking       | Apply confirmed-advisor penalties silently; never disclose flags/points to the Advisor.                                  |
+| API hardening | Verify production CORS, trusted origins, cookie-session behavior, and useful error responses.                            |
 
 ### S10 · 26 Sep–2 Oct — Feature freeze and integration
 
@@ -306,13 +304,13 @@ on architecture, overlap protection, testing, and PDPA, and keep a recorded demo
 
 ## 6. Risks and explicit Project 2 boundary
 
-| Risk | Mitigation |
-|---|---|
-| API contract drift | Treat `api-spec.md` as authoritative and update it with every contract change. |
-| Booking/payment evidence arrives late | Implement the database constraint and webhook tests in S5/S6, not at feature freeze. |
-| Coverage regresses as modules grow | Keep focused unit/controller/database tests with each feature; CI enforces the aggregate 80% floor. |
-| Provider integration drift | Omise and self-hosted Jitsi setup are complete; retain configuration evidence and validate API integration against those agreed environments. |
-| Documentation is left to October | Capture results each sprint and draft the report from S8. |
+| Risk                                  | Mitigation                                                                                                                                    |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| API contract drift                    | Treat `api-spec.md` as authoritative and update it with every contract change.                                                                |
+| Booking/payment evidence arrives late | Implement the database constraint and webhook tests in S5/S6, not at feature freeze.                                                          |
+| Coverage regresses as modules grow    | Keep focused unit/controller/database tests with each feature; CI enforces the aggregate 80% floor.                                           |
+| Provider integration drift            | Omise and self-hosted Jitsi setup are complete; retain configuration evidence and validate API integration against those agreed environments. |
+| Documentation is left to October      | Capture results each sprint and draft the report from S8.                                                                                     |
 
 Project 2: AI matching, consultation summaries/chatbot, semantic/ML detection, subscriptions,
 native mobile apps, detailed review expansion, anonymous mode, and automated advisor bank

@@ -1,21 +1,4 @@
 services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.0
-    restart: unless-stopped
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: 'false'
-      ES_JAVA_OPTS: -Xms512m -Xmx512m
-    ports:
-      - '127.0.0.1:9200:9200'
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS http://localhost:9200/_cluster/health || exit 1']
-      interval: 10s
-      timeout: 5s
-      retries: 12
-
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -54,6 +37,5 @@ services:
       - seaweedfs_data:/data
 
 volumes:
-  elasticsearch_data:
   postgres_data:
   seaweedfs_data:
