@@ -32,7 +32,7 @@ import { UsersService } from './users.service';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Users')
-@Controller('api/v1/users')
+@Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

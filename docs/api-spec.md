@@ -74,6 +74,8 @@ All browser requests must use credentials so the HttpOnly session cookie is stor
 | `POST /api/auth/sign-in/email` | Create a session for an existing account | `email`, `password`                                 | `200`; returns `user` and sets the session cookie        |
 | `GET /api/auth/get-session`    | Read the current session                 | none                                                | `200`; returns `{ session, user }` or `null`             |
 | `POST /api/auth/sign-out`      | End the current session                  | none                                                | `200`; returns `{ success: true }` and clears the cookie |
+| `POST /api/auth/request-password-reset` | Email a one-time reset link | `email`, optional `redirectTo` | `200`; generic success response, whether or not the email exists |
+| `POST /api/auth/reset-password` | Consume a reset token and set a password | `token`, `newPassword` | `200`; all existing sessions are revoked |
 
 `name` maps to the platform display name. `fullName` is the legal name and must never be included in
 public advisor responses. A newly registered user is always an Advisee; Advisor access is gained
@@ -121,6 +123,18 @@ curl -i -c cookies.txt -X POST http://localhost:3000/api/auth/sign-in/email \
   -H "Content-Type: application/json" \
   -d '{"email":"somchai@example.com","password":"use-a-long-unique-password"}'
 ```
+
+### Password reset
+
+Password reset requires Better Auth's configured delivery callback. This deployment provides that
+callback through SMTP and is available when `SMTP_URL` and `SMTP_FROM` are both configured. Request
+a link with `POST /api/auth/request-password-reset` and include a `redirectTo` URL from
+`TRUSTED_ORIGINS`. The API always returns the same generic success message to avoid account
+enumeration. The mail contains a one-hour, one-time API link that forwards the token to
+`redirectTo`; submit that token with the new password to `POST /api/auth/reset-password`.
+
+The reset endpoint is Better Auth-owned, not a Nest controller, so its responses intentionally do
+not use the `/api/v1` response envelope. A successful reset revokes all sessions for that user.
 
 ### Use the session cookie
 
@@ -272,7 +286,7 @@ Returns a fresh private download URL for the authenticated owner's current avata
   "statusCode": 200,
   "message": "Success",
   "data": {
-    "url": "http://localhost:9000/advisory-platform/...signed-query...",
+    "url": "http://localhost:8333/advisory-platform/...signed-query...",
     "expiresInSeconds": 300
   }
 }
@@ -464,9 +478,11 @@ the standard offset-paginated own-Service list. `GET`, `PATCH`, and `DELETE`
 outside the Advisor's ownership returns `404`.
 
 Create and update fields are `categoryId`, `availabilityProfileId`, `name`, `description`,
-`priceSatang`, `durationMinutes`, `isPublished`, `screeningRequired`, `trialEnabled`, and
-`trialDurationMinutes`. `trialDurationMinutes` is required only when `trialEnabled` is true and
-must otherwise be absent. The current module returns the owner-only allowlist:
+`priceSatang`, `durationMinutes`, `dailyConsultationLimitMinutes`, `isPublished`,
+`screeningRequired`, `trialEnabled`, and `trialDurationMinutes`.
+`dailyConsultationLimitMinutes` is nullable, where `null` means unlimited.
+`trialDurationMinutes` is required only when `trialEnabled` is true and must otherwise be absent.
+The current module returns the owner-only allowlist:
 
 ```jsonc
 {
@@ -478,6 +494,7 @@ must otherwise be absent. The current module returns the owner-only allowlist:
   "description": "Practical career planning",
   "priceSatang": 150000,
   "durationMinutes": 60,
+  "dailyConsultationLimitMinutes": 120,
   "isPublished": false,
   "screeningRequired": false,
   "trialEnabled": true,
@@ -487,8 +504,23 @@ must otherwise be absent. The current module returns the owner-only allowlist:
 }
 ```
 
-Public Service search/detail and public Advisor discovery are separate follow-on routes. They must
-return published Services only and must never reuse this owner DTO.
+### Public service search and detail
+
+`GET /api/v1/services` and `GET /api/v1/services/:serviceId` are `Public`. They return published
+Services from active, non-banned Advisors only; unavailable, unpublished, suspended, banned, and
+deleted services return `404` for the detail route. The search route uses normal offset pagination
+and accepts optional `q` (text), `categoryId`, `advisorId`, `minPriceSatang`, and `maxPriceSatang`
+filters. An inverted price range is `400`.
+
+Search is backed by Elasticsearch but Postgres remains the authorization source of truth: every
+Elasticsearch hit is rechecked before it is returned. The public allowlist is `id`, `advisorId`,
+`categoryId`, `name`, `description`, `priceSatang`, `durationMinutes`, `screeningRequired`,
+`trialEnabled`, and `trialDurationMinutes`. It never reuses the owner DTO or exposes availability
+profile, daily-limit, publishing, or other owner-only fields.
+
+`GET /api/v1/admin/services?page=1&limit=20` is an Admin-only offset-paginated view of all
+Services. It returns the same administrative allowlist above, including unpublished Services, so
+operational staff can review ownership and publishing state without using an Advisor's own route.
 
 ---
 
@@ -548,11 +580,36 @@ treated as durable acknowledgement.
 
 ---
 
-## 10. Agreed booking-domain rules pending endpoint design
+## 10. Availability and booking
 
-The booking, availability, screening, payment, payout, and refund endpoints are not yet written.
-Their paths and DTOs must be designed in the corresponding feature modules, but they must preserve
-the following agreed behavior.
+The implemented scheduling contract uses these routes, all under the standard response envelope:
+
+- `GET` / `PUT /api/v1/advisors/me/availability/global` reads or updates the Advisor's one Global
+  Availability record. The slot interval stays fixed at 30 minutes; the mutable values are buffer,
+  horizon, minimum booking notice, and optional daily consultation-minute limit.
+- `GET` / `POST /api/v1/advisors/me/availability/profiles`, plus `PATCH` / `DELETE`
+  `/api/v1/advisors/me/availability/profiles/:profileId`, manage Advisor-owned reusable Profiles.
+  A write replaces the supplied weekly, specific-date, and blocked windows atomically. Deletes are
+  soft deletes. Profile responses include `weeklyWindows`, `specificWindows`, and `blockedPeriods`
+  so clients can reconstruct the full Advisor-local scheduling configuration.
+- `GET /api/v1/services/:serviceId/slots?from=YYYY-MM-DD&to=YYYY-MM-DD` requires an authenticated
+  Advisee and returns derived candidate `{ startTime, endTime }` pairs for a published Service.
+  For a screened Service, the Advisee must have an `ACCEPTED` screening request before this route
+  exposes slots. The inclusive date range is bounded to 90 days. Blocked periods, existing
+  availability-blocking appointments, global notice/horizon, service duration, and both global
+  and per-Service daily consultation limits are applied.
+- `POST /api/v1/bookings` accepts `{ serviceId, startTime }` from an authenticated Advisee and
+  creates a `PENDING_PAYMENT` consultation appointment. It rejects self-booking and any time that
+  is not currently a derived slot. The Advisor-wide PostgreSQL exclusion constraint is the final
+  atomic overlap guard and its violation is returned as `409 Timeslot already booked`.
+- `GET /api/v1/bookings/me` and `GET /api/v1/advisors/me/bookings` return the respective
+  paginated participant views.
+
+Screening-management, payment, payout, and refund endpoints are not yet written. Slot discovery
+and booking already enforce an accepted screening row when `screeningRequired` is enabled, but the
+HTTP workflow that creates questions, submits answers, and records the Advisor decision remains
+outstanding. The remaining paths and DTOs must be designed in the corresponding feature modules
+and preserve the following agreed behavior.
 
 ### Availability and slots
 
@@ -564,11 +621,21 @@ the following agreed behavior.
   profile remains soft-deleted rather than erased when it has historical use.
 - A Profile has non-overlapping weekly windows, specific-date windows, and full-day or partial-day
   blocked periods. A blocked period always overrides specific-date and weekly availability.
+- Profile dates and wall-clock window times are interpreted in the Advisor's IANA `timezone`.
+  Slot responses use `timestamptz`/ISO UTC instants. Invalid Advisor timezones and local times
+  skipped by daylight-saving transitions are rejected rather than silently shifted.
 - Candidate start times follow the fixed 30-minute interval. Service and Trial durations need only
   be positive; a duration does not change the start-time grid. Availability is derived; it is not a
   client-managed list of independently bookable slot records.
 - A booking blocks the advisor across all of their Services and Profiles through its consultation
   range plus the configured buffer. Daily limits count consultation minutes only, not buffer time.
+- Booking creation takes a transaction-scoped advisory lock keyed by Advisor and rederives the
+  requested slot after acquiring it. This makes global/per-Service daily-limit decisions atomic
+  across simultaneous non-overlapping requests. The exclusion constraint remains the final guard
+  for overlapping ranges.
+- Specific-date windows add exceptional availability to the recurring weekly windows for that
+  date. Overlapping ranges are merged before candidate slots are derived. Blocked periods then
+  remove time from the combined result.
 - A cancellation reopens its original range only when the time remaining still satisfies the
   minimum booking notice. Otherwise it remains unavailable. Every reschedule is a cancellation
   followed by a new booking and refund flow.
@@ -577,9 +644,11 @@ the following agreed behavior.
 
 - A Service with `screeningRequired` requires submitted answers and an Advisor `ACCEPTED` decision
   before an Advisee can select a paid appointment time. A declined request notifies the Advisee.
-- Trial is independent from screening. An Advisee may receive one Trial per Service only after the
-  Advisor creates a direct grant; a grant has no request/approval status. A granted Trial uses the
-  Service's Availability Profile and configured Trial duration.
+- Trial is independent from screening. The 22 August meeting summary requires both an
+  Advisee-initiated Trial request that the Advisor can grant or decline and an Advisor-created
+  direct grant. An Advisee may use one Trial per Service. The exact request/decision DTOs and state
+  transitions are not implemented yet; a granted Trial uses the Service's Availability Profile and
+  configured Trial duration.
 
 ### Payment, payout, and refund
 
@@ -601,8 +670,11 @@ the following agreed behavior.
 
 ## 11. Not yet written
 
-categories & skills · services & availability · screening · booking · payments &
-payouts · refunds · chat files · notifications · trust & safety · admin console
+Public Service/advisor discovery · Availability Profile inline creation/automatic naming ·
+multi-session booking · cancellation/rescheduling · screening management · Trial request/direct
+grant workflow · payments & payouts · refunds · chat files · notifications · trust & safety ·
+remaining admin operations
 
-Booking is next — it is the one with the concurrency guarantee, the state machine and the payment
-gate, so it will stress this format hardest.
+The booking path is only partially complete. Its next gates are a real-Postgres concurrency test,
+the cancellation/rescheduling state transitions, multi-session request semantics, and the payment
+lifecycle.

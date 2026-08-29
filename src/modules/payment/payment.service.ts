@@ -2,7 +2,6 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
 import { SessionUser } from '@/modules/auth/auth.config';
 import { service as serviceMock } from '@/mock/services';
-// import { appointmentPendingPayment } from '@/mock/appointments';
 import { invoicePending } from '@/mock/invoices';
 import { IPaymentProvider } from '@/modules/payment/providers/interface';
 
@@ -32,24 +31,4 @@ export class PaymentService {
     // retrieve omise charge
     // update invoice
   }
-
-  // create(createPaymentDto: CreatePaymentDto) {
-  //   return 'This action adds a new payment';
-  // }
-
-  // findAll() {
-  //   return `This action returns all payment`;
-  // }
-
-  // findOne(id: number) {
-  //   return `This action returns a #${id} payment`;
-  // }
-
-  // update(id: number, updatePaymentDto: UpdatePaymentDto) {
-  //   return `This action updates a #${id} payment`;
-  // }
-
-  // remove(id: number) {
-  //   return `This action removes a #${id} payment`;
-  // }
 }

@@ -31,7 +31,7 @@ import { SkillsService } from './skills.service';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Skills')
-@Controller('api/v1/skills')
+@Controller('skills')
 export class SkillsController {
   constructor(private readonly skillsService: SkillsService) {}
 

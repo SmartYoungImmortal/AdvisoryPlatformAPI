@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InferSelectModel, eq } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { advisorProfiles, user as userSchema } from '@/database/schema';
+import {
+  advisorGlobalAvailability,
+  advisorProfiles,
+  user as userSchema,
+} from '@/database/schema';
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
 import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 
@@ -35,6 +39,11 @@ export class AdvisorsRepository {
         .values({ userId, ...dto })
         .onConflictDoNothing()
         .returning();
+
+      await tx
+        .insert(advisorGlobalAvailability)
+        .values({ advisorId: userId })
+        .onConflictDoNothing();
 
       await tx
         .update(userSchema)

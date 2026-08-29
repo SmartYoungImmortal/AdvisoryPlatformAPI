@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -13,6 +13,9 @@ import { TrustedOriginsIoAdapter } from './common/websocket/trusted-origins-io.a
 
 /** Applies every runtime HTTP behavior that endpoint tests must exercise. */
 export function configureApp(app: NestExpressApplication): void {
+  app.setGlobalPrefix('api/v1', {
+    exclude: [{ path: 'api/auth/(.*)', method: RequestMethod.ALL }],
+  });
   const jsonParser = json();
   const urlencodedParser = urlencoded({ extended: true });
   app.use(
@@ -56,5 +59,5 @@ export function configureSwagger(app: NestExpressApplication): void {
     .setVersion('0.0.1')
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('docs', app, document, { useGlobalPrefix: true });
 }

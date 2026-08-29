@@ -193,9 +193,47 @@ the delayed payment work.
 | Provider readiness | Omise payment setup and the self-hosted Jitsi setup are complete. Record their configuration decisions/evidence safely; payment and video APIs remain separate implementation work. |
 | Evidence | Complete the missing Progress report #2 only with the actual API contract, constraint test, coverage, risks, and measured results; otherwise record it as overdue. |
 
-**Next dependency gate:** After the above is complete, S7 starts screening, direct Trial grants,
-and the payment/webhook lifecycle. A Trial is independent from screening, is granted directly by
-the Advisor (not requested/approved), and is limited to one grant per Advisee/service.
+**Actual outcome (feature/time-scheduling-booking):** Advisor Global Availability and reusable
+Availability Profile HTTP APIs are implemented, including validation/replacement of weekly,
+specific-date, and blocked windows. Published services expose derived 30-minute slots to
+authenticated Advisees, who can create `PENDING_PAYMENT` bookings and view their own appointments;
+Advisors can view their received appointments. Booking rechecks the derived slot then relies on
+the existing Advisor-wide Postgres exclusion constraint and maps its conflict to HTTP 409. Build
+and lint pass. Slot derivation uses the Advisor's IANA timezone, applies buffer and both global and
+per-Service consultation-minute limits, and gates a screened Service before slot display and
+booking unless the Advisee has an accepted screening row.
+
+Public published-Service discovery is also delivered on this branch: Elasticsearch indexes the
+safe public Service projection, `GET /api/v1/services` supports documented text/category/price/
+Advisor filters, and `GET /api/v1/services/:serviceId` uses Postgres for final disclosure checks.
+Password reset now uses Better Auth's one-time tokens, SMTP delivery when configured, and session
+revocation after a successful reset. See [`HANDOFF.md`](./HANDOFF.md) for environment and
+verification details.
+
+Meeting-summary acceptance status for this branch:
+
+| 22 Aug decision | Status |
+|---|---|
+| One Global Availability, fixed 30-minute start grid, buffer, 60-day default horizon, minimum notice, and optional global daily limit | Implemented |
+| Multiple Profiles with non-overlapping weekly windows, additive specific-date windows, blocked full/partial periods, nested read responses, and soft delete | Implemented |
+| Service selects a Profile and can set an optional independent daily consultation limit | Implemented |
+| Create a Profile inline from Service creation and automatically name an unnamed Profile | Not implemented; the combined request shape and naming rule are not specified |
+| Advisor-wide blocking across Services/Profiles, with buffer excluded from daily-limit minutes | Implemented in derivation and backed by the Postgres exclusion constraint |
+| Advisee views slots before booking; screened Services require accepted screening first | Implemented; screening question/submission/decision HTTP APIs remain outstanding |
+| Advisor-local wall time persisted/exposed as timezone-safe instants | Implemented and unit-tested for Bangkok conversion, date boundaries, leap day, and nonexistent DST wall times |
+| Two concurrent requests for one Advisor time produce exactly one booking | Per-Advisor transactional scheduling lock, exclusion constraint, and HTTP 409 mapping implemented; a real-Postgres concurrent integration spec is added, but its local run requires the test Postgres service |
+| Multiple sessions in one booking | Not implemented; the meeting summary does not define whether sessions are contiguous or an explicit list of starts |
+| Cancellation/rescheduling reopens the old time only when minimum notice remains | Not implemented |
+| Trial request/decision plus Advisor direct grant, one Trial per Advisee/Service | Not implemented; this supersedes the earlier direct-grant-only wording |
+| Payment/refund behavior tied to booking and cancellation | Not implemented |
+
+This branch therefore matches the implemented scheduling subset, but it does **not** yet satisfy
+the entire 22 August booking agreement. It must not be marked complete until the outstanding rows
+above have contracts, implementation, and evidence.
+
+**Next dependency gate:** After the above is complete, S7 starts screening, Trial requests and
+Advisor direct grants, and the payment/webhook lifecycle. Trial remains independent from screening
+and is limited to one use per Advisee/service.
 
 ### S7 · 5–11 Sep — Chat and notifications (4.8, 4.11)
 

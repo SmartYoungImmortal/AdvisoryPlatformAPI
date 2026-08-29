@@ -24,6 +24,8 @@ about a particular client implementation.
 - No secrets, tokens, keys, or internal IPs in the repository. Use `.env.example` for names.
 - `any` is forbidden. Prefer Drizzle inference; use `unknown` and narrow it at external
   boundaries.
+- Do not use promise chaining (`.then()` or `.catch()`). Use `async`/`await` with `try`/`catch`
+  when error handling is required.
 - Junction tables have composite primary keys and no surrogate `id`.
 - Booking overlap must ultimately be a Postgres exclusion constraint, not an app-level check.
 
@@ -33,6 +35,20 @@ about a particular client implementation.
 - `src/database/schema/` is central because the schema is one connected FK graph.
 - Each feature lives in `src/modules/<feature>/` with controller, service, repository,
   module, DTOs, and focused tests.
+- Scheduling is split into `availability` (Advisor policy/profile ownership and derived slots) and
+  `bookings` (participant views and appointment creation). Keep slot eligibility calculation in
+  Availability; Booking must claim the resulting appointment through the Postgres exclusion
+  constraint instead of adding an application-only overlap check.
+- Availability Profile date/time windows are Advisor-local IANA wall-clock values. Convert them to
+  UTC only at the scheduling boundary; calculate horizon and daily limits in the Advisor's local
+  date, and reject invalid timezones or nonexistent daylight-saving local times.
+- Derived slots are authenticated Advisee data. For a Service with screening enabled, enforce an
+  accepted screening request before exposing slots as well as before creating the booking. Apply
+  both global and per-Service daily consultation-minute limits; buffers block time but never count
+  toward either limit.
+- Booking creation must take the per-Advisor transaction advisory lock and rederive eligibility
+  after acquiring it. This serializes daily-limit decisions; the Postgres exclusion constraint is
+  still the final overlap guarantee.
 - Use the `@/` alias for imports that cross directories or feature boundaries (for example,
   `@/database/schema`). Keep `./` relative imports for files inside the same feature or folder.
   Do not introduce new `../` imports.
@@ -44,10 +60,14 @@ about a particular client implementation.
   `CompositeKeyStore` for exact-key predicates and mechanical find/exists/create/delete operations;
   never expose the store to services or move authorization, joins, transactions, or relationship
   rules into it.
+- Prefer `EntityRepository`'s mechanical find, count, create, update, and delete methods for
+  `id`-primary-key tables; feature repositories retain only named domain or ownership queries.
 
 ## HTTP contract
 
-- Non-auth API routes use `/api/v1/*`; better-auth owns `/api/auth/*`.
+- Non-auth API routes use `/api/v1/*`, configured once through `configureApp()`'s Nest global
+  prefix; controller decorators must use relative resource paths. better-auth owns `/api/auth/*`
+  and is excluded from that prefix.
 - Every response must retain the envelope:
   `{ statusCode, message, data }`. Use the global interceptor/filter; controllers return
   plain values and never use Express `res` directly.
@@ -60,9 +80,11 @@ about a particular client implementation.
   `CursorPaginationDto` and return `{ items, limit, nextCursor, hasMore }`; clients must treat the
   cursor as opaque. Calendar availability uses a bounded date range rather than a third pagination
   type. The maximum `limit` is 100 for both pagination styles.
+- For ordinary offset lists, use `paginateQuery()` to keep the parallel list/count execution and
+  response mapping consistent; do not create generic feature services to do this.
 - User-facing messages come from the module's `*.constants.ts`; reuse `crudMessages()` for
   ordinary CRUD text.
-- Use the composed Swagger decorators (`ApiGetOne`, `ApiGetPaginated`, `ApiCreate`,
+- Use the composed Swagger decorators (`ApiGetOne`, `ApiGetMany`, `ApiGetPaginated`, `ApiCreate`,
   `ApiUpdate`, `ApiDelete`) rather than repeating response declarations or manually adding the
   session-cookie security scheme.
 
@@ -82,6 +104,17 @@ about a particular client implementation.
   sessions are cookies.
 - The better-auth user table is the domain user table. Keep its UUID schema and `additionalFields`
   aligned with `src/database/schema/auth.ts`.
+- Elasticsearch is cross-cutting infrastructure in `src/common/search/`, not a Service-only
+  dependency. It has no HTTP controller and is imported explicitly by each consuming feature.
+  The feature's existing service/repository own document mapping, indexing lifecycle, and its
+  resource controller; use the typed gateway and immutable query builder with allowlisted DTO
+  fields only. Never reflect arbitrary request keys into an index query. It is a derived public
+  read model, never an authorization source: recheck indexed Service hits against Postgres before
+  returning them and keep Elasticsearch failures from changing database write outcomes.
+- Local SeaweedFS uses the pinned `weed mini` Docker configuration with standard
+  `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET` environment variables. Keep its
+  S3 gateway and filer UI loopback-bound; application code accesses it only through
+  `SeaweedFsStorageService` using path-style S3 requests and stores object keys, never object URLs.
 
 ## Testing and delivery
 
@@ -98,7 +131,8 @@ about a particular client implementation.
 Auth is documented and covered by real cookie-preserving e2e tests. Preserve this baseline whenever
 auth or authorization changes:
 
-- Swagger deliberately excludes `/api/auth/*`; maintain its written contract in `docs/api-spec.md`.
+- Swagger is served at `/api/v1/docs` and deliberately excludes `/api/auth/*`; maintain Better
+  Auth's written contract in `docs/api-spec.md`.
 - E2e tests must use `configureApp()` so their middleware matches production, including the raw-body
   exception at `/api/auth/*`.
 - Keep coverage for signup/session, 401, Advisor upgrade, 403/allowed roles, and suspended-account

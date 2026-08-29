@@ -30,9 +30,9 @@ evidence held outside the repository is not treated as complete until it is link
 
 | Classification                                         | Issue IDs                                                  | Verification result                                                                                                                 |
 | ------------------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Delivered prerequisites — excluded from backlog        | Avatar storage; Socket.IO/chat core; Omise setup; self-hosted Jitsi setup | They are complete and intentionally have no issue entry. |
-| Partially prepared — remaining issue scope is not done | AP-002, AP-009–AP-011, AP-018, AP-021–AP-022, AP-035–AP-037, AP-046, AP-051, AP-062 | The meeting decisions, schema, migration, or an existing foundation are present, but each issue still needs its required endpoint/workflow/evidence. |
-| Not implemented                                        | AP-003–AP-008, AP-012–AP-015, AP-017, AP-019–AP-020, AP-023, AP-025, AP-028–AP-030, AP-032–AP-034, AP-038–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed module/workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature. |
+| Delivered prerequisites — excluded from new issues     | AP-005, AP-010; Avatar storage; Socket.IO/chat core; Omise setup; self-hosted Jitsi setup | AP-005 and AP-010 were implemented on `feature/time-scheduling-booking`; their entries below are retained only for traceability. |
+| Partially prepared — remaining issue scope is not done | AP-002, AP-009, AP-011–AP-012, AP-014, AP-018, AP-021–AP-022, AP-035–AP-037, AP-046, AP-051, AP-062 | The implementation or evidence is partial; use each issue's current status below rather than its original proposal wording. |
+| Not implemented                                        | AP-003–AP-004, AP-006–AP-008, AP-013, AP-015, AP-017, AP-019–AP-020, AP-023, AP-025, AP-028–AP-030, AP-032–AP-034, AP-038–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature. |
 | Recurring                                              | AP-068                                                     | Create one issue for each future sprint; prior governance activity does not complete future copies.                                 |
 
 This audit prevents completed work from being created again and distinguishes reusable foundations
@@ -130,7 +130,9 @@ only on code documented as complete in the current implementation audit. Referen
 - **Story points:** 5
 - **Dependencies:** AP-002, AP-004
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Delivered on `feature/time-scheduling-booking` — public Elasticsearch-backed search
+  and detail routes now enforce published, active, non-banned Advisor visibility and recheck
+  Elasticsearch hits against Postgres before responding. Ranking remains AP-006 work.
 
 ### AP-006 — Implement ranked public advisor search
 
@@ -188,11 +190,12 @@ only on code documented as complete in the current implementation audit. Referen
 - **Target:** API repository and API documentation
 - **Status:** Partially prepared; schema enums and ER rationale exist, but HTTP transitions and actor behavior are not finalized.
 
-### AP-010 — Implement Advisor Global Availability, Profiles, and derived public slots
+### AP-010 — Implement Advisor Global Availability, Profiles, and derived Advisee slots
 
 - **Description:** Add the one Advisor Global Availability configuration plus Advisor-owned
   create/list/update/block/soft-delete operations for reusable Availability Profiles, weekly
-  windows, specific-date windows, and full/partial blocked periods. Derive public 30-minute slots;
+  windows, specific-date windows, and full/partial blocked periods. Derive authenticated
+  30-minute Advisee slots;
   blocked periods override specific and weekly windows. Use `timestamptz` for appointments,
   validate ownership/future ranges, and derive booked status rather than storing client-managed
   timeslots.
@@ -201,7 +204,11 @@ only on code documented as complete in the current implementation audit. Referen
 - **Story points:** 5
 - **Dependencies:** AP-004, AP-009
 - **Target:** API repository
-- **Status:** Partially prepared; the complete schema and migration exist, but no module, derived-slot API, or behavior tests exist.
+- **Status:** Implemented on `feature/time-scheduling-booking`: module, typed HTTP responses,
+  timezone-safe derivation, screening gate, global/per-Service daily limits, buffer handling, and
+  focused unit tests exist. Profile responses include their weekly, specific-date, and blocked
+  windows. Inline Profile creation/automatic naming remains outside this issue's delivered HTTP
+  shape and is tracked in the sprint-plan gap table.
 
 ### AP-011 — Enforce non-overlapping live bookings in PostgreSQL
 
@@ -214,7 +221,10 @@ only on code documented as complete in the current implementation audit. Referen
 - **Story points:** 8
 - **Dependencies:** AP-009, AP-010
 - **Target:** API repository
-- **Status:** Partially prepared; the raw migration enables `btree_gist` and applies the required exclusion constraint, but booking code, stable conflict mapping, and direct Postgres concurrency evidence are missing.
+- **Status:** Implementation prepared: the raw migration enables `btree_gist`, booking maps `23P01`
+  to a stable HTTP 409, and a concurrent real-Postgres integration spec now asserts exactly one
+  insert succeeds. The local evidence run is still pending because the test Postgres service was
+  unavailable in the implementation environment.
 
 ### AP-012 — Implement atomic booking creation and party-specific appointment views
 
@@ -228,7 +238,10 @@ only on code documented as complete in the current implementation audit. Referen
 - **Story points:** 8
 - **Dependencies:** AP-009, AP-010, AP-011
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially implemented: authenticated single-session atomic booking and both
+  participant views exist. The per-Advisor transaction lock rechecks eligibility before insert.
+  Multi-session atomic semantics remain blocked on AP-009, and payment/state transitions remain
+  separate work.
 
 ### AP-013 — Implement cancellation, rescheduling, and appointment state transitions
 
@@ -255,7 +268,10 @@ only on code documented as complete in the current implementation audit. Referen
 - **Story points:** 5
 - **Dependencies:** AP-011, AP-012
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially implemented: timezone conversion, invalid timezone/date handling, buffer,
+  daily-limit, screening, and slot-range unit tests pass. The real-Postgres concurrent constraint
+  spec is written but could not run locally without the test database; broader state-conflict
+  integration/e2e evidence remains outstanding.
 
 ### AP-015 — Submit progress report #2 with booking evidence
 

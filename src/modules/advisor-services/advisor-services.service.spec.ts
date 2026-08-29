@@ -1,10 +1,13 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import type { services } from '@/database/schema';
+import type { ElasticsearchGateway } from '@/common/search/elasticsearch.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { AdvisorServicesRepository } from './advisor-services.repository';
 import { AdvisorServicesService } from './advisor-services.service';
+import type { PublicServiceSearchDocument } from './advisor-services.types';
 import { AdvisorServiceQueryDto } from './dtos/advisor-service-query.dto';
+import { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
 
@@ -12,6 +15,19 @@ const advisor = { id: '11111111-1111-1111-1111-111111111111' } as SessionUser;
 const serviceId = '22222222-2222-2222-2222-222222222222';
 const categoryId = '33333333-3333-3333-3333-333333333333';
 const profileId = '44444444-4444-4444-4444-444444444444';
+
+const publicService: PublicServiceSearchDocument = {
+  id: serviceId,
+  advisorId: advisor.id,
+  categoryId,
+  name: 'Career coaching',
+  description: 'Practical career planning',
+  priceSatang: 150000,
+  durationMinutes: 60,
+  screeningRequired: false,
+  trialEnabled: false,
+  trialDurationMinutes: null,
+};
 
 function makeService(overrides: Partial<AdvisorService> = {}): AdvisorService {
   return {
@@ -23,6 +39,7 @@ function makeService(overrides: Partial<AdvisorService> = {}): AdvisorService {
     description: 'Practical career planning',
     priceSatang: 150000,
     durationMinutes: 60,
+    dailyConsultationLimitMinutes: null,
     isPublished: false,
     screeningRequired: false,
     trialEnabled: false,
@@ -46,6 +63,21 @@ describe('AdvisorServicesService', () => {
       | 'create'
       | 'updateOwned'
       | 'deleteOwned'
+      | 'findPublishedByIds'
+      | 'findPublishedById'
+      | 'findAllPublished'
+    >
+  >;
+  let elasticsearch: jest.Mocked<
+    Pick<
+      ElasticsearchGateway,
+      | 'search'
+      | 'indexExists'
+      | 'createIndex'
+      | 'deleteIndex'
+      | 'indexDocument'
+      | 'deleteDocument'
+      | 'bulkIndex'
     >
   >;
 
@@ -59,9 +91,22 @@ describe('AdvisorServicesService', () => {
       create: jest.fn(),
       updateOwned: jest.fn(),
       deleteOwned: jest.fn(),
+      findPublishedByIds: jest.fn(),
+      findPublishedById: jest.fn(),
+      findAllPublished: jest.fn(),
+    };
+    elasticsearch = {
+      search: jest.fn(),
+      indexExists: jest.fn().mockResolvedValue(true),
+      createIndex: jest.fn(),
+      deleteIndex: jest.fn(),
+      indexDocument: jest.fn(),
+      deleteDocument: jest.fn(),
+      bulkIndex: jest.fn(),
     };
     service = new AdvisorServicesService(
       repository as unknown as AdvisorServicesRepository,
+      elasticsearch as ElasticsearchGateway,
     );
   });
 
@@ -106,6 +151,7 @@ describe('AdvisorServicesService', () => {
         advisorId: advisor.id,
         categoryId,
         availabilityProfileId: profileId,
+        dailyConsultationLimitMinutes: null,
         trialEnabled: false,
         trialDurationMinutes: null,
       }),
@@ -169,5 +215,53 @@ describe('AdvisorServicesService', () => {
         trialDurationMinutes: null,
       }),
     );
+  });
+
+  it('searches the Service index and rechecks hits in Postgres', async () => {
+    elasticsearch.search.mockResolvedValue({
+      documents: [publicService],
+      total: 1,
+    });
+    repository.findPublishedByIds.mockResolvedValue([publicService]);
+    const query = Object.assign(new PublicServiceQueryDto(), {
+      page: 1,
+      limit: 20,
+      q: 'career',
+      categoryId,
+    });
+
+    await expect(service.findPublished(query)).resolves.toEqual({
+      items: [expect.objectContaining({ id: serviceId })],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    expect(elasticsearch.search).toHaveBeenCalledTimes(1);
+    expect(repository.findPublishedByIds).toHaveBeenCalledWith([serviceId]);
+  });
+
+  it('does not disclose a stale public-search hit', async () => {
+    elasticsearch.search.mockResolvedValue({
+      documents: [publicService],
+      total: 1,
+    });
+    repository.findPublishedByIds.mockResolvedValue([]);
+
+    await expect(
+      service.findPublished(new PublicServiceQueryDto()),
+    ).resolves.toEqual(expect.objectContaining({ items: [] }));
+  });
+
+  it('rejects an inverted public service price range before searching', async () => {
+    const query = Object.assign(new PublicServiceQueryDto(), {
+      minPriceSatang: 200000,
+      maxPriceSatang: 100000,
+    });
+
+    await expect(service.findPublished(query)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(elasticsearch.search).not.toHaveBeenCalled();
   });
 });

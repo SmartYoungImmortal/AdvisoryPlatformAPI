@@ -1,4 +1,21 @@
 services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.0
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - '127.0.0.1:9200:9200'
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:9200/_cluster/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -17,21 +34,26 @@ services:
       retries: 5
 
   seaweedfs:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.41
     restart: unless-stopped
-    entrypoint: ['/bin/sh', '-ec']
-    command:
-      - >-
-        (until echo "s3.configure -access_key $${SEAWEEDFS_S3_ACCESS_KEY} -secret_key $${SEAWEEDFS_S3_SECRET_KEY} -user advisory-api -actions Read,Write,List,Tagging,Admin -apply" | weed shell -master=localhost:9333 >/dev/null; do sleep 1; done) & exec weed server -dir=/data -s3 -s3.port=8333
+    # The prior `weed server` setup may have left root-owned child metadata in the named
+    # volume. Repair it before the official entrypoint drops privileges to `seaweed`.
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - chown -R seaweed:seaweed /data && exec /entrypoint.sh mini -dir=/data
+    command: []
     environment:
-      SEAWEEDFS_S3_ACCESS_KEY: ${SEAWEEDFS_S3_ACCESS_KEY:-seaweedfsadmin}
-      SEAWEEDFS_S3_SECRET_KEY: ${SEAWEEDFS_S3_SECRET_KEY:-seaweedfsadmin}
+      AWS_ACCESS_KEY_ID: ${SEAWEEDFS_S3_ACCESS_KEY:-seaweedfsadmin}
+      AWS_SECRET_ACCESS_KEY: ${SEAWEEDFS_S3_SECRET_KEY:-seaweedfsadmin}
+      S3_BUCKET: ${SEAWEEDFS_S3_BUCKET:-advisory-platform}
     ports:
-      - '8333:8333'
-      - '8888:8888'
+      - '127.0.0.1:8333:8333'
+      - '127.0.0.1:8888:8888'
     volumes:
       - seaweedfs_data:/data
 
 volumes:
+  elasticsearch_data:
   postgres_data:
   seaweedfs_data:

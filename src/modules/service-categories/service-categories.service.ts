@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
-  PaginatedResult,
-  paginate,
+  paginateQuery,
+  type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
@@ -19,18 +19,12 @@ export class ServiceCategoriesService {
   async findMany(
     query: ServiceCategoryQueryDto,
   ): Promise<PaginatedResult<ServiceCategoryResponseDto>> {
-    const [items, total] = await Promise.all([
-      this.serviceCategoriesRepository.findMany(undefined, {
-        limit: query.limit,
-        offset: query.offset,
-      }),
-      this.serviceCategoriesRepository.count(),
-    ]);
-
-    return paginate(
-      items.map((category) => new ServiceCategoryResponseDto(category)),
-      total,
+    return paginateQuery(
       query,
+      (options) =>
+        this.serviceCategoriesRepository.findMany(undefined, options),
+      () => this.serviceCategoriesRepository.count(),
+      (category) => new ServiceCategoryResponseDto(category),
     );
   }
 

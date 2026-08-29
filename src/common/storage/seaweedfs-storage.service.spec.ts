@@ -41,6 +41,11 @@ function configService(): ConfigService<Env, true> {
     BETTER_AUTH_SECRET: 'a'.repeat(32),
     BETTER_AUTH_URL: 'http://localhost:3000',
     TRUSTED_ORIGINS: ['http://localhost:3001'],
+    SMTP_URL: undefined,
+    SMTP_FROM: undefined,
+    ELASTICSEARCH_NODE: 'http://localhost:9200',
+    ELASTICSEARCH_REQUEST_TIMEOUT_MS: 1000,
+    ELASTICSEARCH_API_KEY: undefined,
     SEAWEEDFS_S3_ENDPOINT: 'seaweedfs.test',
     SEAWEEDFS_S3_PORT: 8333,
     SEAWEEDFS_S3_USE_SSL: false,
@@ -48,6 +53,9 @@ function configService(): ConfigService<Env, true> {
     SEAWEEDFS_S3_SECRET_KEY: 'seaweedfsadmin',
     SEAWEEDFS_S3_BUCKET: 'advisory-platform',
     SEAWEEDFS_S3_REGION: 'us-east-1',
+    OMISE_PUBLIC_KEY: '',
+    OMISE_SECRET_KEY: '',
+    CURRENCY_CODE: 'thb',
   };
 
   return {

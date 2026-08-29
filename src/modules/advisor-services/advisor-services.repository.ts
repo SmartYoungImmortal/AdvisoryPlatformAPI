@@ -1,24 +1,24 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  and,
-  count,
-  eq,
-  type InferInsertModel,
-  type InferSelectModel,
-} from 'drizzle-orm';
+import { and, eq, inArray, type InferSelectModel, type SQL } from 'drizzle-orm';
+import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   availabilityProfiles,
   serviceCategories,
   services,
+  user,
 } from '@/database/schema';
+import type { PublicServiceSearchDocument } from './advisor-services.types';
 
 type AdvisorService = InferSelectModel<typeof services>;
-type NewAdvisorService = InferInsertModel<typeof services>;
-
 @Injectable()
-export class AdvisorServicesRepository {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+export class AdvisorServicesRepository extends EntityRepository<
+  typeof services
+> {
+  constructor(@Inject(DRIZZLE) db: DrizzleDB) {
+    super(db, services);
+  }
 
   async findManyByAdvisorId(
     advisorId: string,
@@ -34,23 +34,14 @@ export class AdvisorServicesRepository {
   }
 
   async countByAdvisorId(advisorId: string): Promise<number> {
-    const [result] = await this.db
-      .select({ value: count() })
-      .from(services)
-      .where(eq(services.advisorId, advisorId));
-    return result?.value ?? 0;
+    return this.count(eq(services.advisorId, advisorId));
   }
 
   async findOwnedById(
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.db
-      .select()
-      .from(services)
-      .where(and(eq(services.id, serviceId), eq(services.advisorId, advisorId)))
-      .limit(1);
-    return service;
+    return this.findOne(this.ownedWhere(advisorId, serviceId));
   }
 
   async categoryExists(categoryId: string): Promise<boolean> {
@@ -79,21 +70,15 @@ export class AdvisorServicesRepository {
     return profile !== undefined;
   }
 
-  async create(values: NewAdvisorService): Promise<AdvisorService> {
-    const [service] = await this.db.insert(services).values(values).returning();
-    return service;
-  }
-
   async updateOwned(
     advisorId: string,
     serviceId: string,
-    values: Partial<NewAdvisorService>,
+    values: PgUpdateSetSource<typeof services>,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.db
-      .update(services)
-      .set(values)
-      .where(and(eq(services.id, serviceId), eq(services.advisorId, advisorId)))
-      .returning();
+    const [service] = await this.updateWhere(
+      this.ownedWhere(advisorId, serviceId),
+      values,
+    );
     return service;
   }
 
@@ -101,10 +86,64 @@ export class AdvisorServicesRepository {
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.db
-      .delete(services)
-      .where(and(eq(services.id, serviceId), eq(services.advisorId, advisorId)))
-      .returning();
+    const [service] = await this.deleteWhere(
+      this.ownedWhere(advisorId, serviceId),
+    );
     return service;
+  }
+
+  async findPublishedByIds(
+    ids: string[],
+  ): Promise<PublicServiceSearchDocument[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    return this.findPublished(inArray(services.id, ids));
+  }
+
+  async findPublishedById(
+    serviceId: string,
+  ): Promise<PublicServiceSearchDocument | undefined> {
+    const [service] = await this.findPublished(eq(services.id, serviceId));
+    return service;
+  }
+
+  async findAllPublished(): Promise<PublicServiceSearchDocument[]> {
+    return this.findPublished();
+  }
+
+  private ownedWhere(advisorId: string, serviceId: string): SQL {
+    return and(
+      eq(services.id, serviceId),
+      eq(services.advisorId, advisorId),
+    ) as SQL;
+  }
+
+  private findPublished(
+    idPredicate?: SQL,
+  ): Promise<PublicServiceSearchDocument[]> {
+    return this.db
+      .select({
+        id: services.id,
+        advisorId: services.advisorId,
+        categoryId: services.categoryId,
+        name: services.name,
+        description: services.description,
+        priceSatang: services.priceSatang,
+        durationMinutes: services.durationMinutes,
+        screeningRequired: services.screeningRequired,
+        trialEnabled: services.trialEnabled,
+        trialDurationMinutes: services.trialDurationMinutes,
+      })
+      .from(services)
+      .innerJoin(user, eq(user.id, services.advisorId))
+      .where(
+        and(
+          eq(services.isPublished, true),
+          eq(user.status, 'ACTIVE'),
+          eq(user.banned, false),
+          idPredicate,
+        ),
+      );
   }
 }
