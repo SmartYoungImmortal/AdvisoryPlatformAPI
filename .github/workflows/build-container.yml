@@ -1,11 +1,5 @@
 name: Create and publish a Docker image
 
-permissions:
-  attestations: write
-  packages: write
-  id-token: write
-  contents: read
-
 on:
   workflow_call:
 
@@ -26,10 +20,10 @@ jobs:
           - amd64
           - arm64
     permissions:
-      contents: read
-      packages: write
       attestations: write
+      packages: write
       id-token: write
+      contents: read
       #
     steps:
       - name: Checkout repository

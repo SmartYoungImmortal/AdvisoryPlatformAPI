@@ -1,11 +1,5 @@
 name: CI
 
-permissions:
-  attestations: write
-  packages: write
-  id-token: write
-  contents: read
-
 on:
   push:
     branches: [main, develop, UAT]
@@ -68,4 +62,9 @@ jobs:
           OMISE_PUBLIC_KEY: ${{ secrets.OMISE_PUBLIC_KEY }}
 
   build-container:
+    permissions:
+      attestations: write
+      packages: write
+      id-token: write
+      contents: read
     uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@9733f2c73e5b5540edf835403d272ebd518dc855
