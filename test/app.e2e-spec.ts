@@ -501,4 +501,35 @@ describe('authentication and authorization (e2e)', () => {
       .where(eq(user.id, userId));
     await agent.get('/api/v1/advisors/me').expect(403);
   });
+
+  it('allows only Advisors and Admins to manage service categories', async () => {
+    const { agent } = await signUp();
+
+    await agent
+      .post('/api/v1/service-categories')
+      .send({ name: 'Blocked category' })
+      .expect(403);
+
+    await agent
+      .post('/api/v1/advisors/me')
+      .send({ headline: 'Category advisor' })
+      .expect(201);
+
+    const created = await agent
+      .post('/api/v1/service-categories')
+      .send({ name: `Advisor category ${crypto.randomUUID()}` })
+      .expect(201);
+    const categoryId = object(object(created.body).data).id;
+    if (typeof categoryId !== 'string') {
+      throw new Error('Category creation response did not include an id');
+    }
+    createdCategoryIds.push(categoryId);
+
+    await agent
+      .patch(`/api/v1/service-categories/${categoryId}`)
+      .send({ name: 'Updated advisor category' })
+      .expect(200);
+    await agent.delete(`/api/v1/service-categories/${categoryId}`).expect(200);
+    createdCategoryIds.splice(createdCategoryIds.indexOf(categoryId), 1);
+  });
 });

@@ -1,6 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import { S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Environment } from '@/config/environment.enum';
 import type { Env } from '@/config/env.schema';
 import { SeaweedFsStorageService } from './seaweedfs-storage.service';
 
@@ -34,7 +35,7 @@ const mockGetSignedUrl = jest.mocked(getSignedUrl);
 
 function configService(): ConfigService<Env, true> {
   const values: Env = {
-    NODE_ENV: 'test',
+    NODE_ENV: Environment.Test,
     PORT: 3000,
     DATABASE_URL: 'postgresql://advisory:password@localhost:5432/advisory',
     BETTER_AUTH_SECRET: 'a'.repeat(32),

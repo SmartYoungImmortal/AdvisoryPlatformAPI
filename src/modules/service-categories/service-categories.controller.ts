@@ -56,7 +56,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.findOne(id);
   }
 
-  @Roles(['admin'] as AuthRoles[])
+  @Roles(['admin', 'advisor'] as AuthRoles[])
   @Post()
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.created)
   @ApiCreate(ServiceCategoryResponseDto)
@@ -66,7 +66,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.create(dto);
   }
 
-  @Roles(['admin'] as AuthRoles[])
+  @Roles(['admin', 'advisor'] as AuthRoles[])
   @Patch(':id')
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.updated)
   @ApiUpdate(ServiceCategoryResponseDto)
@@ -77,7 +77,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.update(id, dto);
   }
 
-  @Roles(['admin'] as AuthRoles[])
+  @Roles(['admin', 'advisor'] as AuthRoles[])
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.deleted)

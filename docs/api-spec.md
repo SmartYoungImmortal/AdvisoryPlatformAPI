@@ -452,7 +452,47 @@ claim or any public badge.
 
 ---
 
-## 8. Module: Chat
+## 8. Module: Advisor services
+
+The following routes are for the authenticated Advisor who owns the services. A Service belongs to
+one existing Availability Profile owned by that same Advisor. Prices are integer satang. The
+availability profile is a scheduling configuration, not a client-managed list of slots.
+
+`POST /api/v1/advisors/me/services` creates a Service. `GET /api/v1/advisors/me/services` returns
+the standard offset-paginated own-Service list. `GET`, `PATCH`, and `DELETE`
+`/api/v1/advisors/me/services/:serviceId` read, update, and delete only an owned Service. A lookup
+outside the Advisor's ownership returns `404`.
+
+Create and update fields are `categoryId`, `availabilityProfileId`, `name`, `description`,
+`priceSatang`, `durationMinutes`, `isPublished`, `screeningRequired`, `trialEnabled`, and
+`trialDurationMinutes`. `trialDurationMinutes` is required only when `trialEnabled` is true and
+must otherwise be absent. The current module returns the owner-only allowlist:
+
+```jsonc
+{
+  "id": "uuid",
+  "advisorId": "uuid",
+  "categoryId": "uuid",
+  "availabilityProfileId": "uuid",
+  "name": "Career coaching",
+  "description": "Practical career planning",
+  "priceSatang": 150000,
+  "durationMinutes": 60,
+  "isPublished": false,
+  "screeningRequired": false,
+  "trialEnabled": true,
+  "trialDurationMinutes": 30,
+  "createdAt": "2026-08-29T00:00:00.000Z",
+  "modifiedAt": "2026-08-29T00:00:00.000Z",
+}
+```
+
+Public Service search/detail and public Advisor discovery are separate follow-on routes. They must
+return published Services only and must never reuse this owner DTO.
+
+---
+
+## 9. Module: Chat
 
 Chat rooms are created only by the appointment or granted-trial workflows. There is no public
 room-create or membership-management endpoint. Until those upstream workflows are implemented,
@@ -508,7 +548,7 @@ treated as durable acknowledgement.
 
 ---
 
-## 9. Agreed booking-domain rules pending endpoint design
+## 10. Agreed booking-domain rules pending endpoint design
 
 The booking, availability, screening, payment, payout, and refund endpoints are not yet written.
 Their paths and DTOs must be designed in the corresponding feature modules, but they must preserve
@@ -559,7 +599,7 @@ the following agreed behavior.
 
 ---
 
-## 10. Not yet written
+## 11. Not yet written
 
 categories & skills · services & availability · screening · booking · payments &
 payouts · refunds · chat files · notifications · trust & safety · admin console
