@@ -68,4 +68,4 @@ jobs:
           OMISE_PUBLIC_KEY: ${{ secrets.OMISE_PUBLIC_KEY }}
 
   build-container:
-    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@411dc148b1d28a65798e50b4b78804cb7699737c
+    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@9733f2c73e5b5540edf835403d272ebd518dc855
