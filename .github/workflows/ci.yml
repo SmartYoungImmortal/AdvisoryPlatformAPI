@@ -4,6 +4,7 @@ permissions:
   attestations: write
   packages: write
   id-token: write
+  contents: read
 
 on:
   push:
