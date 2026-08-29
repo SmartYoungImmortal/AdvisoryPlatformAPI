@@ -12,10 +12,14 @@ COPY pnpm-workspace.yaml ./
 RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh -
 
 # Install the application dependencies
-RUN pnpm install --ignore-scripts
+RUN pnpm install --ignore-scripts --frozen-lockfile
 
 # Copy the rest of the application files
-COPY . .
+COPY src/ .
+COPY nest-cli.json .
+COPY drizzle.config.js .
+COPY tsconfig.json .
+COPY eslint.config.mjs .
 
 # Build the NestJS application
 RUN pnpm run build
@@ -24,4 +28,5 @@ RUN pnpm run build
 EXPOSE 3000
 
 # Command to run the application
+USER node
 CMD ["node", "dist/main"]
