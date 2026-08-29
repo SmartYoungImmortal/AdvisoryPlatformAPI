@@ -1,11 +1,10 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import type { services } from '@/database/schema';
-import type { ElasticsearchGateway } from '@/common/search/elasticsearch.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { AdvisorServicesRepository } from './advisor-services.repository';
 import { AdvisorServicesService } from './advisor-services.service';
-import type { PublicServiceSearchDocument } from './advisor-services.types';
+import type { PublicServiceDocument } from './advisor-services.types';
 import { AdvisorServiceQueryDto } from './dtos/advisor-service-query.dto';
 import { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 
@@ -16,7 +15,7 @@ const serviceId = '22222222-2222-2222-2222-222222222222';
 const categoryId = '33333333-3333-3333-3333-333333333333';
 const profileId = '44444444-4444-4444-4444-444444444444';
 
-const publicService: PublicServiceSearchDocument = {
+const publicService: PublicServiceDocument = {
   id: serviceId,
   advisorId: advisor.id,
   categoryId,
@@ -63,21 +62,9 @@ describe('AdvisorServicesService', () => {
       | 'create'
       | 'updateOwned'
       | 'deleteOwned'
-      | 'findPublishedByIds'
+      | 'findPublished'
+      | 'countPublished'
       | 'findPublishedById'
-      | 'findAllPublished'
-    >
-  >;
-  let elasticsearch: jest.Mocked<
-    Pick<
-      ElasticsearchGateway,
-      | 'search'
-      | 'indexExists'
-      | 'createIndex'
-      | 'deleteIndex'
-      | 'indexDocument'
-      | 'deleteDocument'
-      | 'bulkIndex'
     >
   >;
 
@@ -91,22 +78,12 @@ describe('AdvisorServicesService', () => {
       create: jest.fn(),
       updateOwned: jest.fn(),
       deleteOwned: jest.fn(),
-      findPublishedByIds: jest.fn(),
+      findPublished: jest.fn(),
+      countPublished: jest.fn(),
       findPublishedById: jest.fn(),
-      findAllPublished: jest.fn(),
-    };
-    elasticsearch = {
-      search: jest.fn(),
-      indexExists: jest.fn().mockResolvedValue(true),
-      createIndex: jest.fn(),
-      deleteIndex: jest.fn(),
-      indexDocument: jest.fn(),
-      deleteDocument: jest.fn(),
-      bulkIndex: jest.fn(),
     };
     service = new AdvisorServicesService(
       repository as unknown as AdvisorServicesRepository,
-      elasticsearch as ElasticsearchGateway,
     );
   });
 
@@ -217,12 +194,9 @@ describe('AdvisorServicesService', () => {
     );
   });
 
-  it('searches the Service index and rechecks hits in Postgres', async () => {
-    elasticsearch.search.mockResolvedValue({
-      documents: [publicService],
-      total: 1,
-    });
-    repository.findPublishedByIds.mockResolvedValue([publicService]);
+  it('searches published Services directly in Postgres', async () => {
+    repository.findPublished.mockResolvedValue([publicService]);
+    repository.countPublished.mockResolvedValue(1);
     const query = Object.assign(new PublicServiceQueryDto(), {
       page: 1,
       limit: 20,
@@ -237,20 +211,11 @@ describe('AdvisorServicesService', () => {
       limit: 20,
       totalPages: 1,
     });
-    expect(elasticsearch.search).toHaveBeenCalledTimes(1);
-    expect(repository.findPublishedByIds).toHaveBeenCalledWith([serviceId]);
-  });
-
-  it('does not disclose a stale public-search hit', async () => {
-    elasticsearch.search.mockResolvedValue({
-      documents: [publicService],
-      total: 1,
+    expect(repository.findPublished).toHaveBeenCalledWith(query, {
+      limit: 20,
+      offset: 0,
     });
-    repository.findPublishedByIds.mockResolvedValue([]);
-
-    await expect(
-      service.findPublished(new PublicServiceQueryDto()),
-    ).resolves.toEqual(expect.objectContaining({ items: [] }));
+    expect(repository.countPublished).toHaveBeenCalledWith(query);
   });
 
   it('rejects an inverted public service price range before searching', async () => {
@@ -262,6 +227,6 @@ describe('AdvisorServicesService', () => {
     await expect(service.findPublished(query)).rejects.toThrow(
       BadRequestException,
     );
-    expect(elasticsearch.search).not.toHaveBeenCalled();
+    expect(repository.findPublished).not.toHaveBeenCalled();
   });
 });

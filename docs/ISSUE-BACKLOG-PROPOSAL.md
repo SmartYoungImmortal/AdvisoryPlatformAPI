@@ -28,12 +28,12 @@ Verified against registered Nest modules, controllers, tests, migrations, the me
 alignment commit, and `SPRINT-PLAN.md` on 2026-08-29. This is a repository audit: a report or
 evidence held outside the repository is not treated as complete until it is linked here.
 
-| Classification                                         | Issue IDs                                                  | Verification result                                                                                                                 |
-| ------------------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Delivered prerequisites — excluded from new issues     | AP-005, AP-010; Avatar storage; Socket.IO/chat core; Omise setup; self-hosted Jitsi setup | AP-005 and AP-010 were implemented on `feature/time-scheduling-booking`; their entries below are retained only for traceability. |
-| Partially prepared — remaining issue scope is not done | AP-002, AP-009, AP-011–AP-012, AP-014, AP-018, AP-021–AP-022, AP-035–AP-037, AP-046, AP-051, AP-062 | The implementation or evidence is partial; use each issue's current status below rather than its original proposal wording. |
-| Not implemented                                        | AP-003–AP-004, AP-006–AP-008, AP-013, AP-015, AP-017, AP-019–AP-020, AP-023, AP-025, AP-028–AP-030, AP-032–AP-034, AP-038–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature. |
-| Recurring                                              | AP-068                                                     | Create one issue for each future sprint; prior governance activity does not complete future copies.                                 |
+| Classification                                         | Issue IDs                                                                                                                                                      | Verification result                                                                                                              |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Delivered prerequisites — excluded from new issues     | AP-005, AP-010; Avatar storage; Socket.IO/chat core; Omise setup; self-hosted Jitsi setup                                                                      | AP-005 and AP-010 were implemented on `feature/time-scheduling-booking`; their entries below are retained only for traceability. |
+| Partially prepared — remaining issue scope is not done | AP-002, AP-009, AP-011–AP-012, AP-014, AP-018, AP-021–AP-022, AP-035–AP-037, AP-046, AP-051, AP-062                                                            | The implementation or evidence is partial; use each issue's current status below rather than its original proposal wording.      |
+| Not implemented                                        | AP-003–AP-004, AP-006–AP-008, AP-013, AP-015, AP-017, AP-019–AP-020, AP-023, AP-025, AP-028–AP-030, AP-032–AP-034, AP-038–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature.            |
+| Recurring                                              | AP-068                                                                                                                                                         | Create one issue for each future sprint; prior governance activity does not complete future copies.                              |
 
 This audit prevents completed work from being created again and distinguishes reusable foundations
 from finished features. Re-run it immediately before writing issues to GitHub in case the working
@@ -130,9 +130,9 @@ only on code documented as complete in the current implementation audit. Referen
 - **Story points:** 5
 - **Dependencies:** AP-002, AP-004
 - **Target:** API repository
-- **Status:** Delivered on `feature/time-scheduling-booking` — public Elasticsearch-backed search
-  and detail routes now enforce published, active, non-banned Advisor visibility and recheck
-  Elasticsearch hits against Postgres before responding. Ranking remains AP-006 work.
+- **Status:** Delivered on `feature/time-scheduling-booking` — public Postgres-backed search and
+  detail routes enforce published, active, non-banned Advisor visibility. Ranking remains AP-006
+  work.
 
 ### AP-006 — Implement ranked public advisor search
 
@@ -949,20 +949,20 @@ AP-014–AP-015 (43 points before splitting), which exceeds the normal sprint ca
 must be narrowed at planning rather than silently treated as deliverable. Omise is ready, but its
 payment implementation does not start until the booking gate is finished.
 
-| Sprint       |      Issues | One-time points | Main gate                                                              |
-| ------------ | ----------: | --------------: | ---------------------------------------------------------------------- |
-| S4 carry-over |          7 |              39 | Service CRUD is the first recovery dependency; discovery follows       |
-| S5 carry-over |          7 |              40 | Booking API/evidence and Progress report #2 remain outstanding         |
-| S6 recovery   |   candidate | 43 before split | Restore service → availability → booking; Omise is ready after booking |
-| S7           | 4 outstanding |              18 | Room provisioning, notifications, reminders, and chat evidence         |
-| S8           |           8 |              47 | Authorized video/files plus 30% report draft                           |
-| S9           |           9 |              53 | Trust/safety, Admin operations, and consultation-eligible reviews      |
-| S10          |           5 |              34 | Feature freeze with two proven end-to-end paths                        |
-| S11          |           5 |              34 | Functional/load/security results and 60% report draft                  |
-| S12          |           3 |              16 | Measured role-based UAT and approved fix list                          |
-| S13          |           5 |              29 | Necessary fixes, traceability, and validated release                   |
-| S14          |           3 |              18 | Final report, presentation, and demo contingency                       |
-| Standing     | 1 recurring |    2 per sprint | Governance and evidence remain current                                 |
+| Sprint        |        Issues | One-time points | Main gate                                                              |
+| ------------- | ------------: | --------------: | ---------------------------------------------------------------------- |
+| S4 carry-over |             7 |              39 | Service CRUD is the first recovery dependency; discovery follows       |
+| S5 carry-over |             7 |              40 | Booking API/evidence and Progress report #2 remain outstanding         |
+| S6 recovery   |     candidate | 43 before split | Restore service → availability → booking; Omise is ready after booking |
+| S7            | 4 outstanding |              18 | Room provisioning, notifications, reminders, and chat evidence         |
+| S8            |             8 |              47 | Authorized video/files plus 30% report draft                           |
+| S9            |             9 |              53 | Trust/safety, Admin operations, and consultation-eligible reviews      |
+| S10           |             5 |              34 | Feature freeze with two proven end-to-end paths                        |
+| S11           |             5 |              34 | Functional/load/security results and 60% report draft                  |
+| S12           |             3 |              16 | Measured role-based UAT and approved fix list                          |
+| S13           |             5 |              29 | Necessary fixes, traceability, and validated release                   |
+| S14           |             3 |              18 | Final report, presentation, and demo contingency                       |
+| Standing      |   1 recurring |    2 per sprint | Governance and evidence remain current                                 |
 
 The recovery schedule makes all post-S6 dates conditional. First defer AP-022, AP-034, AP-046,
 AP-064, AP-069, AP-070, and AP-071 if they threaten the S10 freeze; do not defer AP-011 or the booking

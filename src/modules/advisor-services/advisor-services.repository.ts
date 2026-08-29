@@ -1,5 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray, type InferSelectModel, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  ilike,
+  lte,
+  or,
+  type InferSelectModel,
+  type SQL,
+} from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
@@ -9,7 +19,8 @@ import {
   services,
   user,
 } from '@/database/schema';
-import type { PublicServiceSearchDocument } from './advisor-services.types';
+import type { PublicServiceDocument } from './advisor-services.types';
+import type { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
 @Injectable()
@@ -92,24 +103,28 @@ export class AdvisorServicesRepository extends EntityRepository<
     return service;
   }
 
-  async findPublishedByIds(
-    ids: string[],
-  ): Promise<PublicServiceSearchDocument[]> {
-    if (ids.length === 0) {
-      return [];
-    }
-    return this.findPublished(inArray(services.id, ids));
+  async findPublished(
+    query: PublicServiceQueryDto,
+    options: { limit: number; offset: number },
+  ): Promise<PublicServiceDocument[]> {
+    return this.selectPublished(query)
+      .orderBy(asc(services.createdAt), asc(services.id))
+      .limit(options.limit)
+      .offset(options.offset);
+  }
+
+  async countPublished(query: PublicServiceQueryDto): Promise<number> {
+    return this.count(this.publishedWhere(query));
   }
 
   async findPublishedById(
     serviceId: string,
-  ): Promise<PublicServiceSearchDocument | undefined> {
-    const [service] = await this.findPublished(eq(services.id, serviceId));
+  ): Promise<PublicServiceDocument | undefined> {
+    const [service] = await this.selectPublished(
+      undefined,
+      eq(services.id, serviceId),
+    );
     return service;
-  }
-
-  async findAllPublished(): Promise<PublicServiceSearchDocument[]> {
-    return this.findPublished();
   }
 
   private ownedWhere(advisorId: string, serviceId: string): SQL {
@@ -119,9 +134,7 @@ export class AdvisorServicesRepository extends EntityRepository<
     ) as SQL;
   }
 
-  private findPublished(
-    idPredicate?: SQL,
-  ): Promise<PublicServiceSearchDocument[]> {
+  private selectPublished(query?: PublicServiceQueryDto, extraPredicate?: SQL) {
     return this.db
       .select({
         id: services.id,
@@ -137,13 +150,35 @@ export class AdvisorServicesRepository extends EntityRepository<
       })
       .from(services)
       .innerJoin(user, eq(user.id, services.advisorId))
-      .where(
-        and(
-          eq(services.isPublished, true),
-          eq(user.status, 'ACTIVE'),
-          eq(user.banned, false),
-          idPredicate,
-        ),
-      );
+      .where(and(this.publishedWhere(query), extraPredicate));
+  }
+
+  private publishedWhere(query?: PublicServiceQueryDto): SQL {
+    const text = query?.q?.trim();
+    const textPredicate = text
+      ? or(
+          ilike(services.name, `%${this.escapeLikePattern(text)}%`),
+          ilike(services.description, `%${this.escapeLikePattern(text)}%`),
+        )
+      : undefined;
+
+    return and(
+      eq(services.isPublished, true),
+      eq(user.status, 'ACTIVE'),
+      eq(user.banned, false),
+      query?.categoryId ? eq(services.categoryId, query.categoryId) : undefined,
+      query?.advisorId ? eq(services.advisorId, query.advisorId) : undefined,
+      query?.minPriceSatang !== undefined
+        ? gte(services.priceSatang, query.minPriceSatang)
+        : undefined,
+      query?.maxPriceSatang !== undefined
+        ? lte(services.priceSatang, query.maxPriceSatang)
+        : undefined,
+      textPredicate,
+    ) as SQL;
+  }
+
+  private escapeLikePattern(value: string): string {
+    return value.replace(/[\\%_]/g, '\\$&');
   }
 }
