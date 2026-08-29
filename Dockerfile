@@ -18,11 +18,14 @@ RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --ignore-scripts --frozen-lockfile
 
 # Copy the rest of the application files
-COPY src/ ./src
+COPY src ./src
+COPY test ./test
 COPY nest-cli.json ./
 COPY drizzle.config.ts ./
 COPY tsconfig.json ./
+COPY tsconfig.build.json ./
 COPY eslint.config.mjs ./
+COPY .env.example ./.env
 
 # Build the NestJS application
 RUN pnpm run build
@@ -31,10 +34,9 @@ FROM node:lts-alpine AS runtime
 
 WORKDIR /app
 
-COPY --from=build --chown=appuser:appgroup /app/dist/main .
-
-RUN groupadd -g 1001 appgroup && \
-    useradd -u 1001 -g appgroup -m -d /app -s /bin/false appuser
+COPY --from=build --chown=node:node /app/package.json ./
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
 
 # Expose the application port
 EXPOSE 3000
@@ -42,5 +44,5 @@ EXPOSE 3000
 ENV NODE_ENV=production
 
 # Command to run the application
-USER appuser
+USER node
 CMD ["node", "."]
