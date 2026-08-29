@@ -2,6 +2,19 @@ name: Verify that the code runs, pass lint, pass unit test, pass e2e test, and g
 
 on:
   workflow_call:
+    secrets:
+      BETTER_AUTH_SECRET:
+        required: true
+      POSTGRES_PASSWORD:
+        required: true
+      DATABASE_URL:
+        required: true
+      SEAWEEDFS_S3_SECRET_KEY:
+        required: true
+      OMISE_SECRET_KEY:
+        required: true
+      OMISE_PUBLIC_KEY:
+        required: true
 
 jobs:
   verify:

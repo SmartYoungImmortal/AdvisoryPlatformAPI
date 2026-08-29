@@ -2,19 +2,6 @@ name: Create and publish a Docker image
 
 on:
   workflow_call:
-    secrets:
-      BETTER_AUTH_SECRET:
-        required: true
-      POSTGRES_PASSWORD:
-        required: true
-      DATABASE_URL:
-        required: true
-      SEAWEEDFS_S3_SECRET_KEY:
-        required: true
-      OMISE_SECRET_KEY:
-        required: true
-      OMISE_PUBLIC_KEY:
-        required: true
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
