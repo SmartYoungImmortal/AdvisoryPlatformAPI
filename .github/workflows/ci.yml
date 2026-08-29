@@ -8,7 +8,7 @@ on:
 
 jobs:
   verify:
-    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@45ca93faec9f4d9f81d58147cf43b90456cbac4b
+    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@289eca304fc6d08969c0e1f95c81e4cb524ef38d
     secrets:
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -24,4 +24,4 @@ jobs:
       packages: write
       id-token: write
       contents: read
-    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@dc91c13a900a6f70f86bbd2580fc3a9bebeab605
+    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@289eca304fc6d08969c0e1f95c81e4cb524ef38d
