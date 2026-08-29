@@ -63,6 +63,7 @@ jobs:
 
   build-container:
     permissions:
+      artifact-metadata: write
       attestations: write
       packages: write
       id-token: write
