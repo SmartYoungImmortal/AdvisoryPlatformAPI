@@ -18,11 +18,11 @@ RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --ignore-scripts --frozen-lockfile
 
 # Copy the rest of the application files
-COPY src/* .
-COPY nest-cli.json .
-COPY drizzle.config.ts .
-COPY tsconfig.json .
-COPY eslint.config.mjs .
+COPY src/ ./src
+COPY nest-cli.json ./
+COPY drizzle.config.ts ./
+COPY tsconfig.json ./
+COPY eslint.config.mjs ./
 
 # Build the NestJS application
 RUN pnpm run build
