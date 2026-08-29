@@ -9,7 +9,13 @@ on:
 jobs:
   verify:
     uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@e173d1f2133c84ced8eb3bb855730da4a6c1fad8
-    secrets: inherit
+    secrets:
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SEAWEEDFS_S3_SECRET_KEY: ${{ secrets.SEAWEEDFS_S3_SECRET_KEY }}
+      OMISE_SECRET_KEY: ${{ secrets.OMISE_SECRET_KEY }}
+      OMISE_PUBLIC_KEY: ${{ secrets.OMISE_PUBLIC_KEY }}
 
   build-container:
     permissions:
