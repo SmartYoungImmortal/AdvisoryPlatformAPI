@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
-import { Role } from '@/common/decorators/roles.decorator';
+import { Role } from '@/common/authorization/role.enum';
 import type { RoleResolver } from '@/common/authorization/role-resolver.service';
 import type { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { user } from '@/database/schema';

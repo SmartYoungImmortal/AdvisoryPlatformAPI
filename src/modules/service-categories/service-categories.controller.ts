@@ -28,8 +28,7 @@ import { ServiceCategoryResponseDto } from './dtos/service-category-response.dto
 import { UpdateServiceCategoryDto } from './dtos/update-service-category.dto';
 import { SERVICE_CATEGORY_MESSAGES } from './service-categories.constants';
 import { ServiceCategoriesService } from './service-categories.service';
-import { AuthRoles } from '@/modules/auth/auth.config';
-import { Roles } from '@thallesp/nestjs-better-auth';
+import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Service Categories')
 @Controller('api/v1/service-categories')
@@ -56,7 +55,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.findOne(id);
   }
 
-  @Roles(['admin'] as AuthRoles[])
+  @UserHasPermission({ permission: { serviceCategory: ['create'] } })
   @Post()
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.created)
   @ApiCreate(ServiceCategoryResponseDto)
@@ -66,7 +65,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.create(dto);
   }
 
-  @Roles(['admin'] as AuthRoles[])
+  @UserHasPermission({ permission: { serviceCategory: ['update'] } })
   @Patch(':id')
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.updated)
   @ApiUpdate(ServiceCategoryResponseDto)
@@ -77,7 +76,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.update(id, dto);
   }
 
-  @Roles(['admin'] as AuthRoles[])
+  @UserHasPermission({ permission: { serviceCategory: ['delete'] } })
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.deleted)

@@ -1,23 +1,22 @@
 # Advisory Platform — GitHub Issue Backlog Proposal
 
-**Prepared:** 2026-08-15  
-**Status:** Draft for team verification; no GitHub issues have been created from this file.  
+**Prepared:** 2026-08-29
+**Status:** Rebased after the 22 August meeting and repository audit; no GitHub issues have been created from this file.
 **Scope:** Remaining Project 1 API and course-delivery work for `AdvisoryPlatformAPI` from S4
-through S14, with AP-001 retained only as a completed dependency reference.
+through S14.
 
 ## 1. How to review this proposal
 
 This backlog is derived from the implemented modules, the canonical ER model, the API access
-matrix, the handoff, and the active sprint plan. S1 through S3 are delivered and must not be created
-as new issues. AP-001 remains in this document only because later storage issues refer to it as a
-completed prerequisite.
+matrix, the 22 August meeting summary, and the active sprint plan. S1 through S3 are delivered and
+must not be created as new issues.
 
 Before creating GitHub issues, the team should verify:
 
 - the issue boundaries and point estimates;
 - the provisional sprint dates against the course calendar;
 - the API contract decisions called out in AP-002;
-- the Omise and Jitsi integration decisions in AP-016 and AP-031;
+- the scope of the already completed Omise and self-hosted Jitsi integration decisions;
 - whether optional P3 items remain inside Project 1 capacity.
 
 No issue below authorizes behavior outside the documented product scope. Unspecified behavior must
@@ -25,14 +24,15 @@ be resolved in the API contract rather than invented during implementation.
 
 ### Current implementation audit
 
-Verified against the registered Nest modules, controllers, tests, migrations, `HANDOFF.md`, and
-`SPRINT-PLAN.md` on 2026-08-15:
+Verified against registered Nest modules, controllers, tests, migrations, the meeting-summary
+alignment commit, and `SPRINT-PLAN.md` on 2026-08-29. This is a repository audit: a report or
+evidence held outside the repository is not treated as complete until it is linked here.
 
 | Classification                                         | Issue IDs                                                  | Verification result                                                                                                                 |
 | ------------------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Completed — do not create                              | AP-001, AP-024, AP-026, AP-027                             | The avatar baseline and authenticated member-only chat core are delivered with documentation and tests.                           |
-| Partially prepared — remaining issue scope is not done | AP-002, AP-009, AP-046, AP-051, AP-062                     | These have some contract, schema, CORS, or documentation foundations, but each issue's stated final deliverable remains incomplete. |
-| Not implemented                                        | AP-003–AP-008, AP-010–AP-023, AP-025, AP-028–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed module/workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature. |
+| Delivered prerequisites — excluded from backlog        | Avatar storage; Socket.IO/chat core; Omise setup; self-hosted Jitsi setup | They are complete and intentionally have no issue entry. |
+| Partially prepared — remaining issue scope is not done | AP-002, AP-009–AP-011, AP-018, AP-021–AP-022, AP-035–AP-037, AP-046, AP-051, AP-062 | The meeting decisions, schema, migration, or an existing foundation are present, but each issue still needs its required endpoint/workflow/evidence. |
+| Not implemented                                        | AP-003–AP-008, AP-012–AP-015, AP-017, AP-019–AP-020, AP-023, AP-025, AP-028–AP-030, AP-032–AP-034, AP-038–AP-045, AP-047–AP-050, AP-052–AP-067 | No matching completed module/workflow/evidence exists. Canonical schema tables alone do not count as an implemented feature. |
 | Recurring                                              | AP-068                                                     | Create one issue for each future sprint; prior governance activity does not complete future copies.                                 |
 
 This audit prevents completed work from being created again and distinguishes reusable foundations
@@ -70,24 +70,10 @@ documentation.
 ### Dependency notation
 
 `None` means the issue can start from the delivered baseline. `Delivered baseline` means it depends
-only on code already recorded as complete in `docs/HANDOFF.md`. References such as `AP-012` are
-blocking issue dependencies, not merely related work.
+only on code documented as complete in the current implementation audit. References such as
+`AP-012` are blocking issue dependencies, not merely related work.
 
 ## 3. Issue inventory
-
-## Completed reference — do not create
-
-### AP-001 — Complete secure avatar upload and retrieval with SeaweedFS
-
-- **Description:** Implemented the owner-only avatar flow with JPEG/PNG/WebP MIME and 5 MiB size
-  validation, opaque SeaweedFS object keys, five-minute download URLs, safe replacement/deletion,
-  account-deletion cleanup, CI configuration, API documentation, and unit/e2e coverage.
-- **Priority:** P1
-- **Sprint:** S3
-- **Story points:** 5
-- **Dependencies:** Delivered user profile, storage schema, and session authorization baseline
-- **Target:** API repository
-- **Status:** Completed and locally verified; do not create a GitHub issue.
 
 ## S4 — advisor discovery and service management
 
@@ -111,8 +97,9 @@ blocking issue dependencies, not merely related work.
 ### AP-003 — Implement advisor-owned claimed-skill replacement
 
 - **Description:** Add `PUT /api/v1/advisors/me/skills` using a plain repository for the composite-key
-  junction. Preserve proof levels for retained skills, initialize new claims as `SELF_DECLARED`,
-  prevent unknown skill IDs, and ensure removed proof cannot be restored by re-adding a skill.
+  junction. Advisors search and select existing skills first; claims have no public proof level or
+  verification badge. Prevent unknown skill IDs, and ensure removing/re-adding a claim never
+  restores an old optional proof document.
 - **Priority:** P1
 - **Sprint:** S4
 - **Story points:** 5
@@ -161,7 +148,7 @@ blocking issue dependencies, not merely related work.
 ### AP-007 — Implement public advisor detail and review listing
 
 - **Description:** Add public advisor detail and paginated review endpoints. Expose only display
-  identity, headline/bio, claimed skills and proof levels, rating summary, published services, and
+  identity, headline/bio, claimed skills, identity-verification badge, rating summary, published services, and
   reviewer display names; hide inactive or never-published advisors with 404 responses.
 - **Priority:** P1
 - **Sprint:** S4
@@ -189,9 +176,11 @@ blocking issue dependencies, not merely related work.
 
 ### AP-009 — Specify booking states, transition rules, and HTTP contract
 
-- **Description:** Finalize the timeslot, booking, cancellation, rescheduling, and party-view API
+- **Description:** Finalize the derived-slot, booking, cancellation, rescheduling, and party-view API
   contract. Document actor permissions, payment-gated states, timezone behavior, allowed
-  transitions, conflict responses, and what is returned after each mutation.
+  transitions, conflict responses, and what is returned after each mutation. Resolve the agreed
+  multiple-session-in-one-checkout behavior without weakening the one-invoice-per-appointment
+  invariant or inventing client-managed slot records.
 - **Priority:** P0
 - **Sprint:** S5
 - **Story points:** 3
@@ -199,37 +188,40 @@ blocking issue dependencies, not merely related work.
 - **Target:** API repository and API documentation
 - **Status:** Partially prepared; schema enums and ER rationale exist, but HTTP transitions and actor behavior are not finalized.
 
-### AP-010 — Implement advisor-owned timeslot management
+### AP-010 — Implement Advisor Global Availability, Profiles, and derived public slots
 
-- **Description:** Add public availability reads and Advisor-owned create/list/update/block/delete
-  operations for timeslots. Use `timestamptz`, validate future ranges and service ownership, derive
-  booked status from appointments, and return audience-specific DTOs.
+- **Description:** Add the one Advisor Global Availability configuration plus Advisor-owned
+  create/list/update/block/soft-delete operations for reusable Availability Profiles, weekly
+  windows, specific-date windows, and full/partial blocked periods. Derive public 30-minute slots;
+  blocked periods override specific and weekly windows. Use `timestamptz` for appointments,
+  validate ownership/future ranges, and derive booked status rather than storing client-managed
+  timeslots.
 - **Priority:** P0
 - **Sprint:** S5
 - **Story points:** 5
 - **Dependencies:** AP-004, AP-009
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; the complete schema and migration exist, but no module, derived-slot API, or behavior tests exist.
 
 ### AP-011 — Enforce non-overlapping live bookings in PostgreSQL
 
-- **Description:** Design and apply the required raw SQL migration using a PostgreSQL exclusion
-  constraint so an Advisor cannot hold overlapping live appointments across their services, plus a
-  uniqueness guarantee so one timeslot cannot be booked twice. Define which appointment states
-  participate, map constraint failures to stable conflicts, and prove the invariant directly
-  against Postgres.
+- **Description:** Apply and verify the required raw SQL migration using a PostgreSQL exclusion
+  constraint so an Advisor cannot hold overlapping availability-blocking appointments across their
+  services. Define the participating rows through `blocksAvailability`, map constraint failures to
+  stable conflicts, and prove the invariant directly against Postgres.
 - **Priority:** P0
 - **Sprint:** S5
 - **Story points:** 8
 - **Dependencies:** AP-009, AP-010
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; the raw migration enables `btree_gist` and applies the required exclusion constraint, but booking code, stable conflict mapping, and direct Postgres concurrency evidence are missing.
 
 ### AP-012 — Implement atomic booking creation and party-specific appointment views
 
 - **Description:** Allow an Advisee to book eligible open availability in an atomic transaction,
-  create the appointment in `PENDING_PAYMENT`, and provide paginated own-booking views for Advisee
-  and Advisor participants. Reject self-booking, hidden services, unauthorized reads, and consumed
+  create `PENDING_PAYMENT` appointments (including the documented multi-session checkout once
+  AP-009 defines its atomic semantics), and provide paginated own-booking views for Advisee and
+  Advisor participants. Reject self-booking, hidden services, unauthorized reads, and consumed
   availability without disclosing other users' bookings.
 - **Priority:** P0
 - **Sprint:** S5
@@ -240,9 +232,11 @@ blocking issue dependencies, not merely related work.
 
 ### AP-013 — Implement cancellation, rescheduling, and appointment state transitions
 
-- **Description:** Implement the documented state machine for party-authorized cancellation,
-  Advisor status updates, and atomic rescheduling. Reject illegal or stale transitions and preserve
-  an auditable appointment record instead of deleting transactional history.
+- **Description:** Implement party-authorized cancellation, Advisor status updates, and atomic
+  rescheduling. A reschedule is cancellation followed by a new booking/refund flow; the original
+  range reopens only when the remaining time still meets minimum booking notice. Advisor-originated
+  cancellation also creates the behavior-penalty input. Reject illegal/stale transitions and
+  preserve auditable appointment history.
 - **Priority:** P1
 - **Sprint:** S5
 - **Story points:** 8
@@ -253,13 +247,13 @@ blocking issue dependencies, not merely related work.
 ### AP-014 — Prove booking concurrency and timezone behavior
 
 - **Description:** Add integration/e2e tests that submit simultaneous bookings for the same or
-  overlapping availability and prove exactly one succeeds. Cover timezone offsets, daylight-safe
-  serialization, reschedule races, and state conflicts; retain the output as project success
-  criterion evidence.
+  overlapping availability and prove exactly one succeeds. Cover timezone offsets, stable
+  `timestamptz` serialization, daily consultation limits (excluding buffer), and state conflicts.
+  Daylight-saving-time special handling is explicitly out of Project 1 scope.
 - **Priority:** P0
 - **Sprint:** S5
 - **Story points:** 5
-- **Dependencies:** AP-011, AP-012, AP-013
+- **Dependencies:** AP-011, AP-012
 - **Target:** API repository
 - **Status:** Proposed
 
@@ -273,22 +267,9 @@ blocking issue dependencies, not merely related work.
 - **Story points:** 3
 - **Dependencies:** AP-014
 - **Target:** Course deliverable
-- **Status:** Proposed
+- **Status:** Outstanding; no Progress report #2 or booking evidence artifact was found in this repository on 2026-08-29. Link an externally stored submission here if it exists; do not manufacture projected evidence.
 
 ## S6 — screening, payment, refunds, and payout records
-
-### AP-016 — Validate the Omise payment design and operational prerequisites
-
-- **Description:** Confirm the supported Omise test flow, redirect/3DS needs, webhook signing
-  method, credential/environment names, local webhook workflow, fee policy, and failure semantics.
-  Record an implementation decision without committing credentials or promising unsupported escrow
-  behavior.
-- **Priority:** P0
-- **Sprint:** S6
-- **Story points:** 3
-- **Dependencies:** AP-009
-- **Target:** API repository and external integration decision
-- **Status:** Proposed
 
 ### AP-017 — Implement advisor-owned screening question management
 
@@ -302,18 +283,19 @@ blocking issue dependencies, not merely related work.
 - **Target:** API repository
 - **Status:** Proposed
 
-### AP-018 — Implement screening submission, review, and optional trial eligibility
+### AP-018 — Implement screening submission, review, and direct Trial grants
 
 - **Description:** Let Advisees submit answers for services that require screening and let the
-  owning Advisor accept or decline them with a reason. Enforce one request/trial per Advisee and
-  service, keep screening independent from trial configuration, and expose only participant-
+  owning Advisor accept or decline them with a reason. Keep screening independent from Trial:
+  a Trial is a direct Advisor grant (not a request/approval state), is limited to one per
+  Advisee/service, and only then permits selection of a Trial time. Expose only participant-
   appropriate views.
 - **Priority:** P0
 - **Sprint:** S6
 - **Story points:** 8
 - **Dependencies:** AP-017
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; the screening and direct Trial-grant tables exist, but no workflow endpoint, authorization, or lifecycle tests exist.
 
 ### AP-019 — Create payment intents and immutable invoice amounts for bookings
 
@@ -324,7 +306,7 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P0
 - **Sprint:** S6
 - **Story points:** 8
-- **Dependencies:** AP-012, AP-016
+- **Dependencies:** AP-012; delivered Omise integration prerequisite
 - **Target:** API repository
 - **Status:** Proposed
 
@@ -336,33 +318,36 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P0
 - **Sprint:** S6
 - **Story points:** 8
-- **Dependencies:** AP-016, AP-019
+- **Dependencies:** Delivered Omise integration prerequisite; AP-019
 - **Target:** API repository
 - **Status:** Proposed
 
 ### AP-021 — Implement participant invoice views and refund cases
 
-- **Description:** Add own invoice reads, participant refund requests, and Admin review decisions
-  using the access matrix. Enforce invoice/appointment relationship checks, valid decision states,
-  reason requirements, provider refund idempotency, and synchronized invoice status.
+- **Description:** Add own invoice reads, participant refund requests with a written reason and
+  zero or more evidence files, and Admin review decisions using the access matrix. Require
+  appointment cancellation before the Omise refund, enforce relationship/decision checks and
+  idempotency, and synchronize invoice status.
 - **Priority:** P1
 - **Sprint:** S6
 - **Story points:** 8
 - **Dependencies:** AP-020
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; refund-evidence and payout/bank-account schema fields exist, but no endpoint, provider workflow, or authorization tests exist.
 
 ### AP-022 — Implement payout obligation records and Admin transaction views
 
-- **Description:** Record Advisor payout obligations from eligible released invoices, link them
-  through the composite-key junction, and expose own-Advisor and Admin views. Support manual Admin
-  status recording only; automated bank transfer remains explicitly outside Project 1.
+- **Description:** Record Advisor payout obligations from invoices eligible seven days after a
+  completed consultation, link them through the composite-key junction, and expose own-Advisor and
+  Admin views. Require the Advisor bank account number, account name, and bank name; record the
+  2,000-satang transfer fee on each payout. Support manual Admin status recording only; automated
+  bank transfer remains explicitly outside Project 1.
 - **Priority:** P2
 - **Sprint:** S6
 - **Story points:** 5
 - **Dependencies:** AP-020
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; refund-evidence and payout/bank-account schema fields exist, but no endpoint, provider workflow, or authorization tests exist.
 
 ### AP-023 — Prove screening and payment lifecycle correctness
 
@@ -378,54 +363,18 @@ blocking issue dependencies, not merely related work.
 
 ## S7 — chat, trial rooms, and notifications
 
-### AP-024 — Add session-authenticated Socket.IO infrastructure
-
-- **Description:** Add Socket.IO to the Nest application, authenticate the handshake from the same
-  Better Auth cookie/session model, reject inactive accounts, configure trusted origins, define
-  typed client/server events, and provide a testable gateway boundary without weakening the global
-  HTTP authorization baseline.
-- **Priority:** P0
-- **Sprint:** S7
-- **Story points:** 8
-- **Dependencies:** Delivered auth baseline
-- **Target:** API repository
-- **Status:** Completed and locally verified; do not create a GitHub issue.
-
 ### AP-025 — Provision appointment and trial chat rooms atomically
 
 - **Description:** Create chat rooms and composite-key memberships only for the two authorized
-  appointment participants or an accepted, trial-enabled screening request. Make provisioning
-  idempotent, enforce trial expiry, and prevent arbitrary room creation or membership changes.
+  appointment participants or a directly granted Trial. Make provisioning idempotent and prevent
+  arbitrary room creation or membership changes. Once created, member chat is available at all
+  times rather than only during a consultation window.
 - **Priority:** P0
 - **Sprint:** S7
 - **Story points:** 5
-- **Dependencies:** AP-012, AP-018, AP-024
+- **Dependencies:** AP-012, AP-018; delivered Socket.IO/chat core
 - **Target:** API repository
 - **Status:** Proposed
-
-### AP-026 — Implement member-only messages and paginated history
-
-- **Description:** Add persistent message sending, history pagination, and realtime delivery for
-  room members. Validate message content, authorize every HTTP/socket operation, order messages
-  deterministically, and return 404 for non-member resource probes.
-- **Priority:** P0
-- **Sprint:** S7
-- **Story points:** 8
-- **Dependencies:** AP-025
-- **Target:** API repository
-- **Status:** Completed and locally verified; production rooms remain blocked on AP-025.
-
-### AP-027 — Implement chat read state and unread counts
-
-- **Description:** Add monotonic `lastReadAt` updates and efficient unread-count queries for room
-  members. Prevent one user from updating another member's state and define reconnect behavior for
-  messages arriving around the read marker.
-- **Priority:** P1
-- **Sprint:** S7
-- **Story points:** 3
-- **Dependencies:** AP-026
-- **Target:** API repository
-- **Status:** Completed and locally verified; production rooms remain blocked on AP-025.
 
 ### AP-028 — Implement persistent notification inbox and event creation
 
@@ -435,7 +384,7 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P1
 - **Sprint:** S7
 - **Story points:** 5
-- **Dependencies:** AP-013, AP-020, AP-018, AP-026
+- **Dependencies:** AP-013, AP-020, AP-018; delivered Socket.IO/chat core
 - **Target:** API repository
 - **Status:** Proposed
 
@@ -459,23 +408,11 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P0
 - **Sprint:** S7
 - **Story points:** 5
-- **Dependencies:** AP-024, AP-025, AP-026, AP-027
+- **Dependencies:** AP-025; delivered Socket.IO/chat core
 - **Target:** API repository
 - **Status:** Proposed
 
 ## S8 — video and object-backed files
-
-### AP-031 — Validate the Jitsi hosting and access-control design
-
-- **Description:** Confirm hosted versus self-hosted Jitsi, token capabilities, room-name secrecy,
-  participant identity, meeting-window buffers, environment variables, and fallback behavior.
-  Record the decision and a test plan before implementing room access.
-- **Priority:** P0
-- **Sprint:** S8
-- **Story points:** 3
-- **Dependencies:** AP-009
-- **Target:** API repository and external integration decision
-- **Status:** Proposed
 
 ### AP-032 — Implement appointment-bound video room access
 
@@ -485,7 +422,7 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P0
 - **Sprint:** S8
 - **Story points:** 8
-- **Dependencies:** AP-013, AP-031
+- **Dependencies:** AP-013; delivered self-hosted Jitsi integration prerequisite
 - **Target:** API repository
 - **Status:** Proposed
 
@@ -497,7 +434,7 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P1
 - **Sprint:** S8
 - **Story points:** 8
-- **Dependencies:** AP-001, AP-025, AP-026
+- **Dependencies:** Delivered SeaweedFS storage and Socket.IO/chat prerequisites; AP-025
 - **Target:** API repository
 - **Status:** Proposed
 
@@ -509,7 +446,7 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P2
 - **Sprint:** S8
 - **Story points:** 5
-- **Dependencies:** AP-001, AP-004
+- **Dependencies:** Delivered SeaweedFS storage prerequisite; AP-004
 - **Target:** API repository
 - **Status:** Proposed
 
@@ -522,21 +459,22 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P0
 - **Sprint:** S8
 - **Story points:** 8
-- **Dependencies:** AP-001, AP-002
+- **Dependencies:** Delivered SeaweedFS storage prerequisite; AP-002
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; the identity data contract/schema foundation exists, but no submission endpoint, encryption boundary, or tests exist.
 
 ### AP-036 — Implement per-skill proof document submission
 
 - **Description:** Allow an Advisor to upload proof only for a currently claimed skill, persist
-  pending review metadata, move the claim to `DOCUMENT_SUBMITTED`, and return an allowlisted status.
-  Enforce 50 MB/type rules and safe replacement/cleanup without changing unrelated skill claims.
+  pending review metadata, and return an allowlisted status. Proof review does not change the skill
+  claim or create a public verification badge. Enforce 50 MB/type rules and safe
+  replacement/cleanup without changing unrelated skill claims.
 - **Priority:** P1
 - **Sprint:** S8
 - **Story points:** 5
-- **Dependencies:** AP-001, AP-003
+- **Dependencies:** Delivered SeaweedFS storage prerequisite; AP-003
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; proof metadata is modelled, but no submission endpoint, storage workflow, or tests exist.
 
 ### AP-037 — Harden and test shared object-storage behavior
 
@@ -547,9 +485,9 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P1
 - **Sprint:** S8
 - **Story points:** 5
-- **Dependencies:** AP-001, AP-033, AP-034, AP-035, AP-036
+- **Dependencies:** Delivered SeaweedFS avatar baseline; AP-033, AP-034, AP-035, AP-036
 - **Target:** API repository
-- **Status:** Proposed
+- **Status:** Partially prepared; the shared SeaweedFS avatar boundary is delivered, but the wider lifecycle and integration evidence are not.
 
 ### AP-038 — Capture video quality evidence and produce the 30% report draft
 
@@ -574,7 +512,7 @@ blocking issue dependencies, not merely related work.
 - **Priority:** P0
 - **Sprint:** S9
 - **Story points:** 8
-- **Dependencies:** AP-026
+- **Dependencies:** Delivered Socket.IO/chat core
 - **Target:** API repository
 - **Status:** Proposed
 
@@ -642,8 +580,9 @@ blocking issue dependencies, not merely related work.
 ### AP-045 — Implement Admin per-skill proof decisions
 
 - **Description:** Add Admin-only proof review endpoints that approve or reject a pending document,
-  require rejection reasons, update only the matching Advisor-skill proof level, preserve reviewer
-  evidence, reject stale decisions, and notify the Advisor.
+  require rejection reasons, update only the matching document review record, preserve reviewer
+  evidence, reject stale decisions, and notify the Advisor. The decision must not alter the skill
+  claim or a public badge.
 - **Priority:** P1
 - **Sprint:** S9
 - **Story points:** 5
@@ -680,7 +619,7 @@ blocking issue dependencies, not merely related work.
 ### AP-048 — Prove the complete Advisor end-to-end journey
 
 - **Description:** Add a reproducible e2e path for account upgrade/profile → claimed skill → service
-  → timeslot → screening decision → booking/payment → consultation → completion. Verify ownership,
+  → availability/derived slot → screening decision → booking/payment → consultation → completion. Verify ownership,
   private/public DTO separation, and the absence of self-service Admin promotion.
 - **Priority:** P0
 - **Sprint:** S10
@@ -715,9 +654,9 @@ blocking issue dependencies, not merely related work.
 
 ### AP-051 — Finalize Project 1 API contract, UAT scripts, and handoff
 
-- **Description:** Complete the remaining module sections of `docs/api-spec.md`, synchronize ER and
-  handoff/dev-log facts, prepare role-specific UAT scripts for both main flows, and link every script
-  step to implemented endpoints and expected evidence.
+- **Description:** Complete the remaining module sections of `docs/api-spec.md`, synchronize ER,
+  Sprint Plan, backlog, and implementation facts, prepare role-specific UAT scripts for both main
+  flows, and link every script step to implemented endpoints and expected evidence.
 - **Priority:** P1
 - **Sprint:** S10
 - **Story points:** 5
@@ -936,7 +875,8 @@ blocking issue dependencies, not merely related work.
 
 - **Description:** Hold and record the weekly advisor meeting and Saturday review/planning; update
   decisions, risks, progress evidence, traceability links, and the next sprint's issue readiness.
-  Keep `api-spec.md`, `dev-log.md`, `HANDOFF.md`, and this backlog aligned with substantive changes.
+  Keep `api-spec.md`, the ER documentation, Sprint Plan, and this backlog aligned with substantive
+  changes.
 - **Priority:** P1
 - **Sprint:** Standing, S4–S14
 - **Story points:** 2 per sprint
@@ -944,21 +884,63 @@ blocking issue dependencies, not merely related work.
 - **Target:** API repository and course delivery process
 - **Status:** Proposed recurring issue; create one copy per sprint rather than one issue spanning all milestones.
 
+## Meeting-decision gaps to add before GitHub issue creation
+
+### AP-069 — Implement consultation-eligible service reviews and Advisor replies
+
+- **Description:** Add Advisee review creation only after a completed consultation with that
+  Advisor, with one review per appointment and a one-time Advisor reply. Reviews may be submitted
+  after completion without an expiry window. Keep public listing and rating summaries allowlisted;
+  no review eligibility may be inferred merely from profile views or a Trial grant.
+- **Priority:** P1
+- **Sprint:** S9, after booking completion is proven
+- **Story points:** 5
+- **Dependencies:** AP-012, AP-013, AP-007
+- **Target:** API repository
+- **Status:** Proposed; the `service_reviews` table exists, but no workflow, authorization, or API is implemented.
+
+### AP-070 — Resolve the Advisor-created Skill fallback and anti-spam rule
+
+- **Description:** Turn the agreed fallback (Advisor searches existing Skills first, then may
+  create a missing Skill) into a bounded product/API rule. Confirm moderation, duplicate matching,
+  rate limits, ownership, and visibility before implementing it; preserve the already agreed
+  prohibition on self-service verification badges.
+- **Priority:** P1
+- **Sprint:** S6 decision; implementation only after the policy is confirmed
+- **Story points:** 3
+- **Dependencies:** AP-003 and advisor confirmation of the anti-spam policy
+- **Target:** API repository and API documentation
+- **Status:** Blocked on the meeting's unresolved spam-policy decision; do not implement from this issue yet.
+
+### AP-071 — Finalize the Google Calendar appointment-delivery contract
+
+- **Description:** Turn the meeting decision to send appointments to Google Calendar into a bounded
+  contract: event owner(s), OAuth/consent, create/update/cancel behavior, privacy fields, retry
+  and revocation rules, and whether it is Project 1 scope. This must remain distinct from Google
+  Calendar conflict checking, which is explicitly future work.
+- **Priority:** P1
+- **Sprint:** S8 decision; implementation only after the contract and provider prerequisites are confirmed
+- **Story points:** 3
+- **Dependencies:** AP-009, AP-013 and advisor confirmation of the intended Calendar behavior
+- **Target:** API repository and API documentation
+- **Status:** Blocked on missing API-level behavior; the meeting note alone does not authorize an OAuth or calendar-write design.
+
 ## 4. Sprint roll-up
 
-The totals below are planning signals, not a promise that points equal the sprint plan's feature
-hours. They intentionally expose the heaviest sprints so the team can split work across four people
-or move P2/P3 scope before GitHub issue creation.
+The table records the original course-sprint allocation; it is not the current commitment.
+S4 and S5 are carry-over. The current S6 recovery candidate is AP-002, AP-004, AP-009–AP-012, and
+AP-014–AP-015 (43 points before splitting), which exceeds the normal sprint capacity and therefore
+must be narrowed at planning rather than silently treated as deliverable. Omise is ready, but its
+payment implementation does not start until the booking gate is finished.
 
 | Sprint       |      Issues | One-time points | Main gate                                                              |
 | ------------ | ----------: | --------------: | ---------------------------------------------------------------------- |
-| S3 delivered |  0 proposed |     0 remaining | AP-001 is complete and retained only as a dependency reference         |
-| S4           |           7 |              39 | Public discovery and owned services follow the documented API contract |
-| S5           |           7 |              40 | Database-enforced no-overlap booking and progress report #2            |
-| S6           |           8 |              50 | Idempotent payment lifecycle and optional screening                    |
-| S7           |           7 |              39 | Participant-only realtime chat and notifications                       |
+| S4 carry-over |          7 |              39 | Service CRUD is the first recovery dependency; discovery follows       |
+| S5 carry-over |          7 |              40 | Booking API/evidence and Progress report #2 remain outstanding         |
+| S6 recovery   |   candidate | 43 before split | Restore service → availability → booking; Omise is ready after booking |
+| S7           | 4 outstanding |              18 | Room provisioning, notifications, reminders, and chat evidence         |
 | S8           |           8 |              47 | Authorized video/files plus 30% report draft                           |
-| S9           |           8 |              48 | Evidence-preserving trust/safety and Admin operations                  |
+| S9           |           9 |              53 | Trust/safety, Admin operations, and consultation-eligible reviews      |
 | S10          |           5 |              34 | Feature freeze with two proven end-to-end paths                        |
 | S11          |           5 |              34 | Functional/load/security results and 60% report draft                  |
 | S12          |           3 |              16 | Measured role-based UAT and approved fix list                          |
@@ -966,21 +948,21 @@ or move P2/P3 scope before GitHub issue creation.
 | S14          |           3 |              18 | Final report, presentation, and demo contingency                       |
 | Standing     | 1 recurring |    2 per sprint | Governance and evidence remain current                                 |
 
-S6, S8, and S9 are capacity risks. Recommended first adjustments are to move AP-022, AP-034, and
-AP-046 within their dependency windows or drop AP-064; do not defer AP-011, AP-020, AP-024, AP-035,
-AP-039, or AP-044 because they protect core correctness/security.
+The recovery schedule makes all post-S6 dates conditional. First defer AP-022, AP-034, AP-046,
+AP-064, AP-069, AP-070, and AP-071 if they threaten the S10 freeze; do not defer AP-011 or the booking
+concurrency evidence. Delivered prerequisites are intentionally absent from this backlog.
 
 ## 5. Dependency-critical path
 
 The main implementation path is:
 
-`AP-002 → AP-004 → AP-009 → AP-010/AP-011 → AP-012 → AP-019/AP-020 → AP-024/AP-025/AP-026 → AP-032 → AP-047/AP-048 → AP-050 → AP-055 → AP-058/AP-059 → AP-060 → AP-063 → AP-065/AP-066/AP-067`
+`AP-002 → AP-004 → AP-009 → AP-010/AP-011 → AP-012 → AP-019/AP-020 → AP-025 → AP-032 → AP-047/AP-048 → AP-050 → AP-055 → AP-058/AP-059 → AP-060 → AP-063 → AP-065/AP-066/AP-067`
 
 Parallel paths join it at these gates:
 
 - Advisor discovery: AP-003/AP-005/AP-006/AP-007 → AP-008 → AP-047.
-- Storage and verification: AP-001 → AP-033/AP-035/AP-036/AP-037 → AP-044/AP-045.
-- Trust and safety: AP-026 → AP-039 → AP-040 → AP-041.
+- Storage and verification: delivered SeaweedFS storage → AP-033/AP-035/AP-036/AP-037 → AP-044/AP-045.
+- Trust and safety: delivered Socket.IO/chat core → AP-039 → AP-040 → AP-041.
 - Evidence: AP-014/AP-023/AP-030/AP-038 → AP-051/AP-052 → AP-061.
 
 ## 6. Explicitly excluded from Project 1
@@ -1000,8 +982,8 @@ They may be collected in a separate Project 2 backlog after the Project 1 issues
 After approval, create milestones `S4` through `S14`, plus labels for priority, story points, target
 repository, and type. Create only the next ready sprint in the first batch, then preview later
 batches before writing them to GitHub. Preserve the AP identifiers in issue bodies so proposed
-dependencies can be replaced with actual GitHub issue links. References to completed AP-001 should
-instead be written as a delivered storage prerequisite, because AP-001 will not have a GitHub issue.
+dependencies can be replaced with actual GitHub issue links. Refer to delivered work by capability,
+not a retained completed-issue ID.
 
 Suggested labels:
 
