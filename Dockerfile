@@ -10,7 +10,7 @@ COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
 
 # Install the application dependencies
-RUN corepack enable pnpm@11 && pnpm install --ignore-scripts --frozen-lockfile
+RUN corepack prepare pnpm@11 --activate && corepack enable pnpm && pnpm install --ignore-scripts --frozen-lockfile
 
 # Copy the rest of the application files
 COPY src/ .
