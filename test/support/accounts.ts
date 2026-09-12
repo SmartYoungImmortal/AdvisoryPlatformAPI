@@ -7,6 +7,7 @@ import {
   adminProfiles,
   advisorGlobalAvailability,
   advisorProfiles,
+  pdpaConsents,
   session,
   user,
   verification,
@@ -85,6 +86,7 @@ export async function deleteUsers(
       .delete(advisorGlobalAvailability)
       .where(eq(advisorGlobalAvailability.advisorId, id));
     await db.delete(advisorProfiles).where(eq(advisorProfiles.userId, id));
+    await db.delete(pdpaConsents).where(eq(pdpaConsents.userId, id));
     await db.delete(session).where(eq(session.userId, id));
     await db.delete(account).where(eq(account.userId, id));
     await db.delete(verification).where(eq(verification.value, id));
