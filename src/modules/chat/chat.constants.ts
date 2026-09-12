@@ -17,6 +17,15 @@ export const CHAT_MESSAGES = {
   authenticationRequired: 'Socket authentication required',
   inactiveAccount: 'Socket connection requires an active account',
   internalError: 'Unable to process chat event',
+  filesFound: 'Chat files found',
+  fileUploaded: 'Chat file uploaded',
+  fileRemoved: 'Chat file removed',
+  fileNotFound: 'Chat file not found',
+  fileRequired: 'A file is required',
+  fileInvalidType: 'That file type is not accepted in chat',
+  fileTooLarge: 'A chat file must not exceed 50 MB',
+  fileNotSender: 'Only the sender can remove a chat file',
+  storageUnavailable: 'File storage is currently unavailable',
 } as const;
 
 export const CHAT_MESSAGE_MAX_LENGTH = 4_000;

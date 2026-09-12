@@ -534,6 +534,30 @@ exists.
   Markers only move forward: a delayed request for an older message cannot make later messages
   unread again.
 
+### Files
+
+Chat files are member-authorized. Every route below resolves the file inside the room from the
+path, so a member of one room cannot read a file id belonging to another; a non-member receives
+`404` on all four, matching the room-probing rule above.
+
+- `POST /api/v1/chat/rooms/:chatRoomId/files` takes `multipart/form-data` with one `file` part and
+  returns the stored metadata. A file must be 1 byte to 50 MB and carry an accepted content type;
+  anything else is `400`. The limit is enforced by Multer, again in the service, and finally by the
+  `chat_files_size_range` check constraint, so a bypassed application check still cannot persist an
+  oversized row. The accepted types are images (JPEG, PNG, WebP, GIF), PDF, plain text, CSV, the
+  OOXML Office formats, and ZIP. Executables are deliberately absent.
+- `GET /api/v1/chat/rooms/:chatRoomId/files?limit=20&cursor=<opaque>` returns the room file feed,
+  newest first, in the same cursor envelope as message history.
+- `GET /api/v1/chat/rooms/:chatRoomId/files/:fileId` returns `{ url, expiresInSeconds }`. The URL is
+  signed per request and expires in five minutes. Signed URLs are never persisted; only the object
+  key is stored, and the key is never exposed to clients.
+- `DELETE /api/v1/chat/rooms/:chatRoomId/files/:fileId` removes the row and its object and returns
+  the deleted metadata. Only the sender may delete: another member of the same room receives `403`,
+  because that member can legitimately see the file and the refusal is an ownership decision.
+
+`chat_files.expiry_date` is written on upload from a 180-day retention window. Nothing reads it
+yet — the sweep that acts on it is outstanding AP-037 work.
+
 Room listing uses the standard offset-pagination envelope. Message history uses the cursor envelope
 `{ items, limit, nextCursor, hasMore }`. Both retain the repository-wide maximum `limit` of 100.
 
@@ -725,7 +749,8 @@ and preserve the following agreed behavior.
 
 Public Service/advisor discovery · Availability Profile inline creation/automatic naming ·
 multi-session booking · screening management · Trial request/direct grant workflow · payments &
-payouts · refunds · chat files · notifications · trust & safety · remaining admin operations
+payouts · refunds · notifications · trust & safety · remaining admin operations
 
-The booking path still has open gates: a real-Postgres concurrency proof, multi-session request
-semantics, and the payment lifecycle that drives `PENDING_PAYMENT` to `BOOKED`.
+The booking path still has open gates: multi-session request semantics, and the payment lifecycle
+that drives `PENDING_PAYMENT` to `BOOKED`. Concurrency is proven against real Postgres by
+`test/booking-concurrency.e2e-spec.ts`.
