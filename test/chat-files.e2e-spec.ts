@@ -1,22 +1,17 @@
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
-import { eq } from 'drizzle-orm';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { eq } from 'drizzle-orm';
 import request from 'supertest';
-import { configureApp } from '@/app.factory';
-import { AppModule } from '@/app.module';
-import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
-import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
+import type { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
+import type { DrizzleDB } from '@/database/database.module';
 import {
-  account,
   chatFiles,
   chatMembers,
   chatMessages,
   chatRooms,
-  session,
-  user,
 } from '@/database/schema';
-import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
+import { deleteUsers, signUpUser } from './support/accounts';
+import { createE2eApp } from './support/e2e-app';
+import { object, stringField } from './support/response';
 
 /**
  * AP-033 and AP-037. Proves member-scoped authorization, the 50 MB type/size rule, and
@@ -29,36 +24,8 @@ describe('chat files (e2e)', () => {
   const createdUserIds: string[] = [];
   const createdRoomIds: string[] = [];
 
-  function object(value: unknown): Record<string, unknown> {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      throw new Error('Expected an object response');
-    }
-    return value as Record<string, unknown>;
-  }
-
-  function stringField(source: Record<string, unknown>, key: string): string {
-    const value = source[key];
-    if (typeof value !== 'string') {
-      throw new Error(`Expected ${key} to be a string`);
-    }
-    return value;
-  }
-
   beforeAll(async () => {
-    storage = new SeaweedFsStorageStub();
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(SeaweedFsStorageService)
-      .useValue(storage)
-      .compile();
-
-    app = moduleFixture.createNestApplication<NestExpressApplication>({
-      bodyParser: false,
-    });
-    configureApp(app);
-    await app.init();
-    db = app.get<DrizzleDB>(DRIZZLE);
+    ({ app, db, storage } = await createE2eApp());
   });
 
   afterEach(async () => {
@@ -69,31 +36,14 @@ describe('chat files (e2e)', () => {
       await db.delete(chatMembers).where(eq(chatMembers.chatRoomId, id));
       await db.delete(chatRooms).where(eq(chatRooms.id, id));
     }
-    for (const id of createdUserIds.splice(0)) {
-      await db.delete(session).where(eq(session.userId, id));
-      await db.delete(account).where(eq(account.userId, id));
-      await db.delete(user).where(eq(user.id, id));
-    }
+    await deleteUsers(db, createdUserIds);
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  async function signUp() {
-    const agent = request.agent(app.getHttpServer());
-    const response = await agent.post('/api/auth/sign-up/email').send({
-      name: 'Chat File E2E',
-      fullName: 'Chat File E2E User',
-      email: `chat-file-${crypto.randomUUID()}@example.test`,
-      password: 'E2e-test-password-123!',
-      timezone: 'Asia/Bangkok',
-    });
-    expect(response.status).toBe(200);
-    const userId = stringField(object(object(response.body).user), 'id');
-    createdUserIds.push(userId);
-    return { agent, userId };
-  }
+  const signUp = () => signUpUser(app, 'Chat file', createdUserIds);
 
   async function seedRoom() {
     const sender = await signUp();
