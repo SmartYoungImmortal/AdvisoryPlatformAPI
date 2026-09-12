@@ -587,6 +587,12 @@ The implemented scheduling contract uses these routes, all under the standard re
   creates a `PENDING_PAYMENT` consultation appointment. It rejects self-booking and any time that
   is not currently a derived slot. The Advisor-wide PostgreSQL exclusion constraint is the final
   atomic overlap guard and its violation is returned as `409 Timeslot already booked`.
+  A client must not treat `409` as the usual outcome of losing a race: because booking creation
+  takes the per-Advisor advisory lock and rederives eligibility under it, the loser of two
+  simultaneous requests normally sees `400 Timeslot is not available` instead. The `409` is the
+  guard behind that, reached only if the constraint itself is violated. Both are proven against
+  real Postgres by `test/booking-concurrency.e2e-spec.ts` and
+  `bookings.repository.integration-spec.ts`.
 - `GET /api/v1/bookings/me` and `GET /api/v1/advisors/me/bookings` return the respective
   paginated participant views.
 - `GET /api/v1/bookings/:bookingId` returns one appointment to either of its two participants and
