@@ -23,7 +23,7 @@ import {
   verification,
 } from '@/database/schema';
 import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
-import { deleteUsers } from './support/accounts';
+import { deleteUsers, signUpActiveUser } from './support/accounts';
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
@@ -84,35 +84,13 @@ describe('authentication and authorization (e2e)', () => {
     await app.close();
   });
 
-  async function signUp() {
-    const agent = request.agent(app.getHttpServer());
-    const email = `e2e-${crypto.randomUUID()}@example.test`;
-    const password = 'E2e-test-password-123!';
-    const response = await agent.post('/api/auth/sign-up/email').send({
+  // The payload asks for SUSPENDED so every signup also proves the server ignores it.
+  const signUp = () =>
+    signUpActiveUser({ app, db }, 'e2e', createdUserIds, {
       name: 'E2E User',
       fullName: 'E2E Test User',
-      email,
-      password,
-      timezone: 'Asia/Bangkok',
       status: 'SUSPENDED',
     });
-
-    expect(response.status).toBe(200);
-    const responseBody = object(response.body);
-    const responseUser = object(responseBody.user);
-    const userId = responseUser.id;
-    expect(userId).toEqual(expect.any(String));
-    if (typeof userId !== 'string') {
-      throw new Error('Signup response did not include a user id');
-    }
-    createdUserIds.push(userId);
-    const [createdUser] = await db
-      .select({ status: user.status })
-      .from(user)
-      .where(eq(user.id, userId));
-    expect(createdUser?.status).toBe('ACTIVE');
-    return { agent, email, password, userId };
-  }
 
   it('rejects a protected route without a session', async () => {
     await request(app.getHttpServer())
