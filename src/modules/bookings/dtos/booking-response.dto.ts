@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { InferSelectModel } from 'drizzle-orm';
-import { serviceAppointments } from '@/database/schema';
+import { appointmentStateEnum, serviceAppointments } from '@/database/schema';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
 
@@ -12,17 +12,14 @@ export class BookingResponseDto {
   @ApiProperty({ format: 'date-time' }) startTime: Date;
   @ApiProperty({ format: 'date-time' }) endTime: Date;
   @ApiProperty({ format: 'date-time' }) unavailableUntil: Date;
-  @ApiProperty({
-    enum: [
-      'PENDING_PAYMENT',
-      'BOOKED',
-      'IN_PROGRESS',
-      'COMPLETED',
-      'CANCELLED',
-      'NO_SHOW',
-    ],
-  })
+  @ApiProperty({ enum: appointmentStateEnum.enumValues })
   state: Appointment['state'];
+  /** False once a cancellation reopened the range for other Advisees. */
+  @ApiProperty() blocksAvailability: boolean;
+  @ApiProperty({ format: 'date-time', nullable: true, type: String })
+  cancelledAt: Date | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  cancelledByUserId: string | null;
   @ApiProperty() createdAt: Date;
 
   constructor(appointment: Appointment) {
@@ -34,6 +31,9 @@ export class BookingResponseDto {
     this.endTime = appointment.endTime;
     this.unavailableUntil = appointment.unavailableUntil;
     this.state = appointment.state;
+    this.blocksAvailability = appointment.blocksAvailability;
+    this.cancelledAt = appointment.cancelledAt;
+    this.cancelledByUserId = appointment.cancelledByUserId;
     this.createdAt = appointment.createdAt;
   }
 }

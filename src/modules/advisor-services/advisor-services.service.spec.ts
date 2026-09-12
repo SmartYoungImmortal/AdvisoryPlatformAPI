@@ -54,6 +54,8 @@ describe('AdvisorServicesService', () => {
   let repository: jest.Mocked<
     Pick<
       AdvisorServicesRepository,
+      | 'findMany'
+      | 'count'
       | 'findManyByAdvisorId'
       | 'countByAdvisorId'
       | 'findOwnedById'
@@ -70,6 +72,8 @@ describe('AdvisorServicesService', () => {
 
   beforeEach(() => {
     repository = {
+      findMany: jest.fn(),
+      count: jest.fn(),
       findManyByAdvisorId: jest.fn(),
       countByAdvisorId: jest.fn(),
       findOwnedById: jest.fn(),
@@ -228,5 +232,151 @@ describe('AdvisorServicesService', () => {
       BadRequestException,
     );
     expect(repository.findPublished).not.toHaveBeenCalled();
+  });
+
+  it('lists every Service for an Admin rather than one advisor', async () => {
+    repository.findMany.mockResolvedValue([makeService()]);
+    repository.count.mockResolvedValue(1);
+    const query = Object.assign(new AdvisorServiceQueryDto(), {
+      page: 1,
+      limit: 20,
+    });
+
+    await expect(service.findManyForAdmin(query)).resolves.toEqual({
+      items: [expect.objectContaining({ id: serviceId })],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    expect(repository.findMany).toHaveBeenCalledWith(undefined, {
+      limit: 20,
+      offset: 0,
+    });
+  });
+
+  it('returns a published Service through the public DTO', async () => {
+    repository.findPublishedById.mockResolvedValue(publicService);
+
+    await expect(service.findPublishedById(serviceId)).resolves.toEqual(
+      expect.objectContaining({ id: serviceId }),
+    );
+  });
+
+  it('hides an unpublished Service from the public detail route', async () => {
+    repository.findPublishedById.mockResolvedValue(undefined);
+
+    await expect(service.findPublishedById(serviceId)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('rejects service creation against a category that does not exist', async () => {
+    repository.categoryExists.mockResolvedValue(false);
+    repository.availabilityProfileOwned.mockResolvedValue(true);
+
+    await expect(
+      service.create(advisor, {
+        categoryId,
+        availabilityProfileId: profileId,
+        name: 'Career coaching',
+        priceSatang: 150000,
+        durationMinutes: 60,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a trial duration while trial is disabled', async () => {
+    repository.categoryExists.mockResolvedValue(true);
+    repository.availabilityProfileOwned.mockResolvedValue(true);
+
+    await expect(
+      service.create(advisor, {
+        categoryId,
+        availabilityProfileId: profileId,
+        name: 'Career coaching',
+        priceSatang: 150000,
+        durationMinutes: 60,
+        trialDurationMinutes: 30,
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('stores the trial duration when trial is enabled on create', async () => {
+    repository.categoryExists.mockResolvedValue(true);
+    repository.availabilityProfileOwned.mockResolvedValue(true);
+    repository.create.mockResolvedValue(
+      makeService({ trialEnabled: true, trialDurationMinutes: 30 }),
+    );
+
+    await service.create(advisor, {
+      categoryId,
+      availabilityProfileId: profileId,
+      name: 'Trial service',
+      priceSatang: 150000,
+      durationMinutes: 60,
+      trialEnabled: true,
+      trialDurationMinutes: 30,
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ trialEnabled: true, trialDurationMinutes: 30 }),
+    );
+  });
+
+  it('keeps the stored trial duration when an update leaves trial on', async () => {
+    repository.findOwnedById.mockResolvedValue(
+      makeService({ trialEnabled: true, trialDurationMinutes: 45 }),
+    );
+    repository.categoryExists.mockResolvedValue(true);
+    repository.availabilityProfileOwned.mockResolvedValue(true);
+    repository.updateOwned.mockResolvedValue(makeService());
+
+    await service.update(advisor, serviceId, { name: 'Renamed' });
+
+    expect(repository.updateOwned).toHaveBeenCalledWith(
+      advisor.id,
+      serviceId,
+      expect.objectContaining({ trialEnabled: true, trialDurationMinutes: 45 }),
+    );
+  });
+
+  it('requires an availability profile before a Service can be updated', async () => {
+    repository.findOwnedById.mockResolvedValue(
+      makeService({ availabilityProfileId: null }),
+    );
+
+    await expect(
+      service.update(advisor, serviceId, { name: 'Renamed' }),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+
+  it('reports a Service that disappeared between the read and the update', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    repository.categoryExists.mockResolvedValue(true);
+    repository.availabilityProfileOwned.mockResolvedValue(true);
+    repository.updateOwned.mockResolvedValue(undefined);
+
+    await expect(
+      service.update(advisor, serviceId, { name: 'Renamed' }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('returns the deleted Service so the caller can show what went', async () => {
+    repository.deleteOwned.mockResolvedValue(makeService());
+
+    await expect(service.delete(advisor, serviceId)).resolves.toEqual(
+      expect.objectContaining({ id: serviceId }),
+    );
+  });
+
+  it('does not delete a Service owned by another advisor', async () => {
+    repository.deleteOwned.mockResolvedValue(undefined);
+
+    await expect(service.delete(advisor, serviceId)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

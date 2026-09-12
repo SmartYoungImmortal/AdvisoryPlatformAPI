@@ -15,8 +15,15 @@ import {
 } from 'drizzle-orm';
 import type { KeysetCursor } from '@/common/pagination/cursor-pagination.dto';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { chatMembers, chatMessages, chatRooms, user } from '@/database/schema';
+import {
+  chatFiles,
+  chatMembers,
+  chatMessages,
+  chatRooms,
+  user,
+} from '@/database/schema';
 import { CompositeKeyStore } from '@/common/repositories/composite-key.store';
+import type { ChatFile } from './dtos/chat-file-response.dto';
 import type { ChatReadView } from './dtos/chat-read-response.dto';
 import type { ChatRoomView } from './dtos/chat-room-response.dto';
 
@@ -217,5 +224,91 @@ export class ChatRepository {
 
       return { ...updated, messageId, lastReadAt: updated.lastReadAt };
     });
+  }
+
+  /** Mirrors createMessageForMember: membership is rechecked inside the write. */
+  createFileForMember(
+    chatRoomId: string,
+    senderUserId: string,
+    values: {
+      objectKey: string;
+      originalFileName: string;
+      mimeType: string;
+      fileSizeBytes: number;
+      expiryDate: Date;
+    },
+  ): Promise<ChatFile | undefined> {
+    return this.db.transaction(async (tx) => {
+      const [membership] = await tx
+        .select({ chatRoomId: chatMembers.chatRoomId })
+        .from(chatMembers)
+        .innerJoin(user, eq(user.id, chatMembers.memberUserId))
+        .where(this.activeMembershipWhere(chatRoomId, senderUserId))
+        .limit(1);
+
+      if (!membership) {
+        return undefined;
+      }
+
+      const [created] = await tx
+        .insert(chatFiles)
+        .values({ chatRoomId, senderUserId, ...values })
+        .returning();
+      return created;
+    });
+  }
+
+  findFiles(
+    chatRoomId: string,
+    limit: number,
+    cursor?: KeysetCursor,
+  ): Promise<ChatFile[]> {
+    return this.db
+      .select()
+      .from(chatFiles)
+      .where(
+        and(
+          eq(chatFiles.chatRoomId, chatRoomId),
+          cursor
+            ? or(
+                lt(chatFiles.createdAt, cursor.createdAt),
+                and(
+                  eq(chatFiles.createdAt, cursor.createdAt),
+                  lt(chatFiles.id, cursor.id),
+                ),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(chatFiles.createdAt), desc(chatFiles.id))
+      .limit(limit);
+  }
+
+  /** Scoped by room so a member of one room cannot resolve another room file id. */
+  async findFileInRoom(
+    chatRoomId: string,
+    fileId: string,
+  ): Promise<ChatFile | undefined> {
+    const [file] = await this.db
+      .select()
+      .from(chatFiles)
+      .where(
+        and(eq(chatFiles.id, fileId), eq(chatFiles.chatRoomId, chatRoomId)),
+      )
+      .limit(1);
+    return file;
+  }
+
+  async deleteFileInRoom(
+    chatRoomId: string,
+    fileId: string,
+  ): Promise<ChatFile | undefined> {
+    const [deleted] = await this.db
+      .delete(chatFiles)
+      .where(
+        and(eq(chatFiles.id, fileId), eq(chatFiles.chatRoomId, chatRoomId)),
+      )
+      .returning();
+    return deleted;
   }
 }

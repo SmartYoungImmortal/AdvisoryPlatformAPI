@@ -9,5 +9,8 @@ import { BookingsService } from './bookings.service';
   imports: [AvailabilityModule],
   controllers: [BookingsController, AdvisorBookingsController],
   providers: [BookingsService, BookingsRepository],
+  // The payment module owns PENDING_PAYMENT -> BOOKED through BookingsService.confirmPayment;
+  // it must never write service_appointments.state itself.
+  exports: [BookingsService],
 })
 export class BookingsModule {}

@@ -534,6 +534,30 @@ exists.
   Markers only move forward: a delayed request for an older message cannot make later messages
   unread again.
 
+### Files
+
+Chat files are member-authorized. Every route below resolves the file inside the room from the
+path, so a member of one room cannot read a file id belonging to another; a non-member receives
+`404` on all four, matching the room-probing rule above.
+
+- `POST /api/v1/chat/rooms/:chatRoomId/files` takes `multipart/form-data` with one `file` part and
+  returns the stored metadata. A file must be 1 byte to 50 MB and carry an accepted content type;
+  anything else is `400`. The limit is enforced by Multer, again in the service, and finally by the
+  `chat_files_size_range` check constraint, so a bypassed application check still cannot persist an
+  oversized row. The accepted types are images (JPEG, PNG, WebP, GIF), PDF, plain text, CSV, the
+  OOXML Office formats, and ZIP. Executables are deliberately absent.
+- `GET /api/v1/chat/rooms/:chatRoomId/files?limit=20&cursor=<opaque>` returns the room file feed,
+  newest first, in the same cursor envelope as message history.
+- `GET /api/v1/chat/rooms/:chatRoomId/files/:fileId` returns `{ url, expiresInSeconds }`. The URL is
+  signed per request and expires in five minutes. Signed URLs are never persisted; only the object
+  key is stored, and the key is never exposed to clients.
+- `DELETE /api/v1/chat/rooms/:chatRoomId/files/:fileId` removes the row and its object and returns
+  the deleted metadata. Only the sender may delete: another member of the same room receives `403`,
+  because that member can legitimately see the file and the refusal is an ownership decision.
+
+`chat_files.expiry_date` is written on upload from a 180-day retention window. Nothing reads it
+yet — the sweep that acts on it is outstanding AP-037 work.
+
 Room listing uses the standard offset-pagination envelope. Message history uses the cursor envelope
 `{ items, limit, nextCursor, hasMore }`. Both retain the repository-wide maximum `limit` of 100.
 
@@ -587,8 +611,76 @@ The implemented scheduling contract uses these routes, all under the standard re
   creates a `PENDING_PAYMENT` consultation appointment. It rejects self-booking and any time that
   is not currently a derived slot. The Advisor-wide PostgreSQL exclusion constraint is the final
   atomic overlap guard and its violation is returned as `409 Timeslot already booked`.
+  A client must not treat `409` as the usual outcome of losing a race: because booking creation
+  takes the per-Advisor advisory lock and rederives eligibility under it, the loser of two
+  simultaneous requests normally sees `400 Timeslot is not available` instead. The `409` is the
+  guard behind that, reached only if the constraint itself is violated. Both are proven against
+  real Postgres by `test/booking-concurrency.e2e-spec.ts` and
+  `bookings.repository.integration-spec.ts`.
 - `GET /api/v1/bookings/me` and `GET /api/v1/advisors/me/bookings` return the respective
   paginated participant views.
+- `GET /api/v1/bookings/:bookingId` returns one appointment to either of its two participants and
+  `404` to anybody else, so an Advisor and an Advisee share one detail route.
+
+### Booking state machine
+
+`appointmentStateEnum` has six values. `PENDING_PAYMENT` is the only state `POST /api/v1/bookings`
+writes; every later value is reached through exactly one of the transitions below. `COMPLETED`,
+`CANCELLED`, and `NO_SHOW` are terminal.
+
+| From | To | Actor | Route |
+| --- | --- | --- | --- |
+| — | `PENDING_PAYMENT` | Advisee | `POST /api/v1/bookings` |
+| `PENDING_PAYMENT` | `BOOKED` | Payment module, in process | none — see the payment seam below |
+| `PENDING_PAYMENT`, `BOOKED` | `CANCELLED` | Advisee | `POST /api/v1/bookings/:bookingId/cancel` |
+| `PENDING_PAYMENT`, `BOOKED` | `CANCELLED` | Advisor | `POST /api/v1/advisors/me/bookings/:bookingId/cancel` |
+| `PENDING_PAYMENT`, `BOOKED` | `CANCELLED` plus a new appointment | Advisee | `POST /api/v1/bookings/:bookingId/reschedule` |
+| `BOOKED` | `IN_PROGRESS` | Advisor | `POST /api/v1/advisors/me/bookings/:bookingId/start` |
+| `BOOKED` | `NO_SHOW` | Advisor | `POST /api/v1/advisors/me/bookings/:bookingId/no-show` |
+| `IN_PROGRESS` | `COMPLETED` | Advisor | `POST /api/v1/advisors/me/bookings/:bookingId/complete` |
+
+Every transition route takes no request body except `reschedule`, which takes `{ startTime }`, and
+every one returns the appointment through `BookingResponseDto` under the standard envelope.
+
+**Errors.** `404` when the booking does not exist or the caller is not the party the route is
+written for — a non-participant must not be able to distinguish the two. `409` when the appointment
+is not in a state the transition accepts, including a repeated call on a terminal state. `400` for
+`no-show` before `startTime` has passed, and for a `reschedule` target that is not a currently
+derived slot. A `reschedule` whose new time loses the Advisor-wide exclusion race returns `409`
+exactly as `POST /api/v1/bookings` does.
+
+**Transitions are conditional updates.** Each one updates `WHERE id = :id AND state IN (:accepted)`
+and treats an empty result as the `409`, so two simultaneous calls cannot both succeed and no
+transition needs its own read-then-write lock.
+
+**Cancellation and availability.** A cancellation always writes `state`, `cancelledAt`, and
+`cancelledByUserId` together, which is what the existing
+`service_appointments_cancellation_metadata_consistent` check requires. It then applies the rule
+from the 22 August meeting through `blocksAvailability`: the range reopens
+(`blocksAvailability = false`) only when `startTime` is still at least the Advisor's
+`minimumBookingNoticeMinutes` away at the moment of cancellation. Otherwise the row keeps
+`blocksAvailability = true` and the time stays unavailable to everybody. Because the Advisor-wide
+exclusion constraint is declared `WHERE ("blocks_availability")` and slot derivation already filters
+on the same column, this one flag is the entire mechanism — no availability code changes.
+
+**Rescheduling** is a cancellation plus a new booking in one transaction, under the same per-Advisor
+advisory lock `POST /api/v1/bookings` takes. The old appointment is cancelled first, so a booking
+whose cancellation reopens its range can be moved within that same range. The new appointment keeps
+the original's `state` and `serviceId`; it is not a fresh `PENDING_PAYMENT` row, because an already
+paid appointment must not ask the Advisee to pay twice. Refunding a reschedule that crosses a
+payment boundary is the payment module's decision, not booking's.
+
+**The payment seam.** `BookingsModule` exports `BookingsService`, and
+`BookingsService.confirmPayment(bookingId)` owns `PENDING_PAYMENT` → `BOOKED`. The payment webhook
+calls that method in process; it never writes `service_appointments.state` itself, and booking
+exposes no HTTP route for the transition. The call is idempotent — an appointment already past
+`PENDING_PAYMENT` is returned unchanged rather than raising — because a signed webhook may be
+redelivered.
+
+**Deliberately unspecified.** Nothing auto-advances on a clock: `IN_PROGRESS`, `COMPLETED`, and
+`NO_SHOW` are all Advisor actions, and no scheduled job moves an appointment. `start` has no time
+window because the meeting summary never set one. Both are product decisions, not defaults to
+invent here.
 
 Screening-management, payment, payout, and refund endpoints are not yet written. Slot discovery
 and booking already enforce an accepted screening row when `screeningRequired` is enabled, but the
@@ -656,10 +748,9 @@ and preserve the following agreed behavior.
 ## 11. Not yet written
 
 Public Service/advisor discovery · Availability Profile inline creation/automatic naming ·
-multi-session booking · cancellation/rescheduling · screening management · Trial request/direct
-grant workflow · payments & payouts · refunds · chat files · notifications · trust & safety ·
-remaining admin operations
+multi-session booking · screening management · Trial request/direct grant workflow · payments &
+payouts · refunds · notifications · trust & safety · remaining admin operations
 
-The booking path is only partially complete. Its next gates are a real-Postgres concurrency test,
-the cancellation/rescheduling state transitions, multi-session request semantics, and the payment
-lifecycle.
+The booking path still has open gates: multi-session request semantics, and the payment lifecycle
+that drives `PENDING_PAYMENT` to `BOOKED`. Concurrency is proven against real Postgres by
+`test/booking-concurrency.e2e-spec.ts`.
