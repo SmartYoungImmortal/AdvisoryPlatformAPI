@@ -1,8 +1,20 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
   ApiCreate,
+  ApiGetOne,
   ApiGetPaginated,
+  ApiUpdate,
 } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
@@ -13,6 +25,7 @@ import { BOOKING_MESSAGES } from './bookings.constants';
 import { BookingsService } from './bookings.service';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
+import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
 
 @ApiTags('Bookings')
 @Controller('bookings')
@@ -34,5 +47,34 @@ export class BookingsController {
     @Query() query: OffsetPaginationDto,
   ): Promise<PaginatedResult<BookingResponseDto>> {
     return this.bookings.findMine(user, query);
+  }
+  @Get(':bookingId')
+  @ApiGetOne(BookingResponseDto, { name: 'Booking' })
+  findOne(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+  ): Promise<BookingResponseDto> {
+    return this.bookings.findOne(user, bookingId);
+  }
+  @Post(':bookingId/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage(BOOKING_MESSAGES.cancelled)
+  @ApiUpdate(BookingResponseDto, { name: 'Booking' })
+  cancel(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+  ): Promise<BookingResponseDto> {
+    return this.bookings.cancelAsAdvisee(user, bookingId);
+  }
+  @Post(':bookingId/reschedule')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage(BOOKING_MESSAGES.rescheduled)
+  @ApiUpdate(BookingResponseDto, { name: 'Booking' })
+  reschedule(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+    @Body() dto: RescheduleBookingDto,
+  ): Promise<BookingResponseDto> {
+    return this.bookings.reschedule(user, bookingId, dto);
   }
 }
