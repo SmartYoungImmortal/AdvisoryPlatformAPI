@@ -109,13 +109,23 @@ describe('ReviewsRepository (integration)', () => {
   });
 
   it('refuses a star rating outside 1..5', async () => {
-    await expect(
-      repository.create({
+    // Drizzle's own message is only the failed SQL; which constraint objected is on the
+    // pg error it wraps, and naming it here is the difference between proving the check
+    // constraint fired and proving merely that something went wrong.
+    let error: unknown;
+    try {
+      await repository.create({
         appointmentId: appointmentIds[0],
         stars: 6,
         comment: null,
-      }),
-    ).rejects.toThrow(/service_reviews_stars_range/);
+      });
+    } catch (thrown: unknown) {
+      error = thrown;
+    }
+
+    expect(error).toBeInstanceOf(Error);
+    const cause = (error as { cause?: { constraint?: string } }).cause;
+    expect(cause?.constraint).toBe('service_reviews_stars_range');
   });
 
   it('joins the consultation, its service and the reviewer into one card row', async () => {
