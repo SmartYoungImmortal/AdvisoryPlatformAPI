@@ -17,8 +17,22 @@ about a particular client implementation.
 
 ## Architecture and invariants
 
-- Stack: NestJS 11, Drizzle, self-hosted Postgres, better-auth. SeaweedFS, Socket.IO, Jitsi,
+- Stack: NestJS 11, Drizzle, Supabase Postgres, better-auth. SeaweedFS, Socket.IO, Jitsi,
   and Omise are planned integrations.
+- Two databases, and the difference is not cosmetic. `DATABASE_URL` is Supabase — shared, and the
+  only one the running API and `db:migrate` ever touch. `TEST_DATABASE_URL` is the Docker Compose
+  Postgres, which exists because the integration and e2e suites `TRUNCATE`, `DROP TABLE` and
+  `DELETE FROM user`. Never let a test path resolve `DATABASE_URL` on its own:
+  `test/setup-test-env.ts` redirects it and refuses any host that is not local. CI derives the
+  test URL from its service container instead of reading a secret, for the same reason.
+- Supabase publishes `public` over PostgREST with the anon key by default, which made every table
+  anonymously readable and writable — `account` holds better-auth's password hashes and tokens.
+  `20260907141856_lock-down-postgrest-exposure` revokes those grants and enables RLS everywhere.
+  Authorization lives in NestJS; a new table must never restore a grant to `anon` or
+  `authenticated`.
+- Connect through Supabase's session pooler (5432), never the transaction pooler (6543): the
+  latter breaks the session-level advisory lock `drizzle-kit migrate` takes and the per-Advisor
+  lock booking creation depends on.
 - Use UUID primary keys; every timestamp is `timestamptz`.
 - Monetary values are integer satang, never floats or baht; name fields `*Satang`.
 - No secrets, tokens, keys, or internal IPs in the repository. Use `.env.example` for names.
@@ -122,7 +136,8 @@ about a particular client implementation.
 - Unit tests are under `src/**/*.spec.ts`; database integration tests use
   `npm run test:integration`; e2e tests use `npm run test:e2e`.
 - `npm run test:cov` merges unit, integration, and e2e coverage. CI requires at least 80% for all
-  four aggregate metrics; the command needs the test Postgres database.
+  four aggregate metrics; the command needs the test Postgres database from `docker compose`,
+  migrated by running `db:migrate` with `DATABASE_URL` pointed at `TEST_DATABASE_URL`.
 - The working tree may contain intentional uncommitted work. Inspect `git status` and preserve
   unrelated changes.
 
