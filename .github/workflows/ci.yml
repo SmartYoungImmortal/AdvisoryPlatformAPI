@@ -27,3 +27,14 @@ jobs:
       id-token: write
       contents: read
     uses: ./.github/workflows/build-container.yml
+
+  # Pushes only — a pull request never deploys. The repository variable
+  # CLOUD_RUN_DEPLOY_ENABLED stays unset until docs/DEPLOY.md's one-time setup is done,
+  # so CI keeps passing before Google Cloud is ready.
+  deploy:
+    if: github.event_name == 'push' && vars.CLOUD_RUN_DEPLOY_ENABLED == 'true'
+    needs: verify
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-cloud-run.yml
