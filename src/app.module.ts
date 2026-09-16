@@ -11,6 +11,7 @@ import { AdvisorServicesModule } from './modules/advisor-services/advisor-servic
 import { PaymentModule } from './modules/payment/payment.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -26,6 +27,9 @@ import { BookingsModule } from './modules/bookings/bookings.module';
     PaymentModule,
     AvailabilityModule,
     BookingsModule,
+    // Last, so the literal `advisors/me/...` controllers register before this module's
+    // `advisors/:advisorId/reviews` and a request for `me` is never captured by the parameter.
+    ReviewsModule,
   ],
 })
 export class AppModule {}
