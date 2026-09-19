@@ -47,6 +47,7 @@ import type { Env } from '@/config/env.schema';
 import { ENV_KEYS } from '@/config/env.constants';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
+  adminProfiles,
   advisorGlobalAvailability,
   advisorProfiles,
   advisorSkills,
@@ -268,6 +269,25 @@ const ADVISEES = [
   },
 ] as const;
 
+/**
+ * The one admin, without whom the moderation queues cannot be used at all.
+ *
+ * Every ruling route writes a reviewer id that references
+ * `admin_profiles.user_id` — not `user.id` — so an admin with a session but no
+ * `admin_profiles` row fails the foreign key on approve, reject and resolve. That
+ * table was empty and nothing wrote to it, which made all six admin modules
+ * unreachable in practice however correct their code was.
+ *
+ * `role` is set directly rather than through better-auth's admin plugin: the
+ * plugin's `setRole` needs a signed-in admin to call it, and this is the account
+ * that would have to exist first.
+ */
+const ADMIN = {
+  email: 'admin@advisory.demo',
+  displayName: 'ผู้ดูแลระบบ',
+  fullName: 'ทีมผู้ดูแล Advisory',
+} as const;
+
 /** จันทร์ถึงศุกร์ 09:00-17:00, plus Saturday mornings. `dayOfWeek` is 0 = Sunday. */
 const WEEKLY_WINDOWS = [
   { dayOfWeek: 1, startTime: '09:00:00', endTime: '17:00:00' },
@@ -417,6 +437,23 @@ async function main(): Promise<void> {
 
     console.log('\nAdvisees');
     for (const person of ADVISEES) await signUp(person);
+
+    console.log('\nAdmin');
+    const adminId = await signUp(ADMIN);
+    // `role` is what better-auth's access control reads to resolve the admin
+    // statements; the `admin_profiles` row is what the moderation tables' foreign
+    // keys point at. Both are needed, and they are separate things.
+    await db.update(user).set({ role: 'admin' }).where(eq(user.id, adminId));
+    const [adminProfile] = await db
+      .select({ userId: adminProfiles.userId })
+      .from(adminProfiles)
+      .where(eq(adminProfiles.userId, adminId))
+      .limit(1);
+    if (adminProfile) note('admin profile', false);
+    else {
+      await db.insert(adminProfiles).values({ userId: adminId });
+      note('admin profile', true);
+    }
 
     for (const advisor of ADVISORS) {
       console.log(`\n${advisor.displayName}`);

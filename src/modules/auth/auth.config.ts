@@ -34,6 +34,42 @@ const permissions = {
     readAndCreate: ['read', 'create'],
     readOnly: ['read'],
   },
+  /**
+   * The moderation surfaces. Each one is a queue an admin works through, so the
+   * verb is `decide` rather than `update`: approving an identity, rejecting a
+   * refund and resolving a report are all one irreversible ruling, and naming
+   * them `update` would let a future role hold "can edit" without "can rule".
+   *
+   * An Advisor may `submit` their own identity and skill proofs and `read` the
+   * outcome; only an admin decides. An Advisee may `submit` a refund request and
+   * a report. Nobody but an admin reads another person's queue row.
+   */
+  identityVerification: {
+    moderated: ['read', 'decide'],
+    selfSubmit: ['submitSelf', 'readSelf'],
+  },
+  skillProof: {
+    moderated: ['read', 'decide'],
+    selfSubmit: ['submitSelf', 'readSelf'],
+  },
+  refund: {
+    moderated: ['read', 'decide'],
+    selfSubmit: ['submitSelf', 'readSelf'],
+  },
+  report: {
+    moderated: ['read', 'decide'],
+    selfSubmit: ['submitSelf', 'readSelf'],
+  },
+  offPlatformFlag: {
+    moderated: ['read', 'decide'],
+  },
+  payout: {
+    moderated: ['read', 'decide'],
+    readSelf: ['readSelf'],
+  },
+  auditLog: {
+    readOnly: ['read'],
+  },
 } as const;
 
 const statements = {
@@ -43,6 +79,22 @@ const statements = {
   advisorService: permissions.advisorService.selfManaged,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
+  // The union of every verb any role may hold on the moderation surfaces. A
+  // statement absent here cannot be granted to anyone, so this list is the
+  // vocabulary and the role blocks below are who speaks which part of it.
+  identityVerification: [
+    ...permissions.identityVerification.moderated,
+    ...permissions.identityVerification.selfSubmit,
+  ],
+  skillProof: [
+    ...permissions.skillProof.moderated,
+    ...permissions.skillProof.selfSubmit,
+  ],
+  refund: [...permissions.refund.moderated, ...permissions.refund.selfSubmit],
+  report: [...permissions.report.moderated, ...permissions.report.selfSubmit],
+  offPlatformFlag: permissions.offPlatformFlag.moderated,
+  payout: [...permissions.payout.moderated, ...permissions.payout.readSelf],
+  auditLog: permissions.auditLog.readOnly,
 } as const;
 
 const ac = createAccessControl(statements);
@@ -52,6 +104,16 @@ const adminStatements = {
   advisorService: permissions.advisorService.readOnly,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
+  // An admin rules on every queue and reads the log. They deliberately hold no
+  // `submitSelf`: an admin who could file the refund they then approve is the
+  // one combination this split exists to prevent.
+  identityVerification: permissions.identityVerification.moderated,
+  skillProof: permissions.skillProof.moderated,
+  refund: permissions.refund.moderated,
+  report: permissions.report.moderated,
+  offPlatformFlag: permissions.offPlatformFlag.moderated,
+  payout: permissions.payout.moderated,
+  auditLog: permissions.auditLog.readOnly,
 } as const;
 const advisorStatements = {
   ...userAc.statements,
@@ -60,6 +122,13 @@ const advisorStatements = {
   advisorService: permissions.advisorService.selfManaged,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.readAndCreate,
+  // An Advisor submits their own identity and proofs and watches the outcome,
+  // and reads their own payouts. They never decide, and they never see another
+  // Advisor's queue row.
+  identityVerification: permissions.identityVerification.selfSubmit,
+  skillProof: permissions.skillProof.selfSubmit,
+  report: permissions.report.selfSubmit,
+  payout: permissions.payout.readSelf,
 } as const;
 const adviseeStatements = {
   ...userAc.statements,
@@ -68,6 +137,12 @@ const adviseeStatements = {
   advisorService: permissions.advisorService.readOnly,
   serviceCategory: permissions.serviceCategory.readOnly,
   skills: permissions.skills.readOnly,
+  // An Advisee opens their own refund case and reports another user, and reads
+  // back only their own. Defining the statement without granting it to anybody is
+  // how `POST /api/v1/refunds` and `POST /api/v1/reports` come to 403 for the only
+  // role that is supposed to call them.
+  refund: permissions.refund.selfSubmit,
+  report: permissions.report.selfSubmit,
 } as const;
 const adminRole = ac.newRole(adminStatements);
 const advisorRole = ac.newRole(advisorStatements);
