@@ -45,6 +45,10 @@ class DatabaseLifecycle implements OnApplicationShutdown {
     },
     DatabaseLifecycle,
   ],
-  exports: [DRIZZLE],
+  // `@Global()` makes the module visible everywhere; it does not make an
+  // unexported provider injectable. `PG_POOL` is exported alongside `DRIZZLE`
+  // because the health check needs the pool itself to prove a connection can be
+  // taken and released, which the query builder cannot express.
+  exports: [DRIZZLE, PG_POOL],
 })
 export class DatabaseModule {}

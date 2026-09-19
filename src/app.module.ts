@@ -12,11 +12,13 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
     AppConfigModule,
     DatabaseModule,
+    HealthModule,
     AuthModule,
     AdvisorsModule,
     SkillsModule,
