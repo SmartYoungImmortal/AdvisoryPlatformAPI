@@ -1,20 +1,13 @@
-import {
-  IsUUID,
-  IsNotEmpty,
-  IsArray,
-  IsString,
-  IsDateString,
-} from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsUUID, IsNotEmpty, IsString } from 'class-validator';
 
 export class CheckoutDto {
+  @ApiProperty()
   @IsUUID()
   @IsNotEmpty()
-  serviceId!: string;
+  invoiceId!: string;
 
-  @IsArray()
-  @IsDateString({ strict: true }, { each: true })
-  startTimes!: string[];
-
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   cardToken!: string;

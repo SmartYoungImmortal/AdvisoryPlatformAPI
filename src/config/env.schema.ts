@@ -5,6 +5,7 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(Environment).default(Environment.Development),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.url(),
+  FRONTEND_URL: z.url(),
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.url(),
   // One list, two consumers: better-auth rejects any callbackURL/redirectTo/origin outside it
