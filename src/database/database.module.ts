@@ -10,11 +10,12 @@ import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { ENV_KEYS } from '@/config/env.constants';
 import { Env } from '@/config/env.schema';
+import { allRelations } from '@/database/schema/relations';
 
 export const DRIZZLE = Symbol('DRIZZLE');
 export const PG_POOL = Symbol('PG_POOL');
 
-export type DrizzleDB = NodePgDatabase;
+export type DrizzleDB = NodePgDatabase<typeof allRelations>;
 
 @Injectable()
 class DatabaseLifecycle implements OnApplicationShutdown {
@@ -39,7 +40,8 @@ class DatabaseLifecycle implements OnApplicationShutdown {
     {
       provide: DRIZZLE,
       inject: [PG_POOL],
-      useFactory: (pool: Pool): DrizzleDB => drizzle({ client: pool }),
+      useFactory: (pool: Pool): DrizzleDB =>
+        drizzle({ client: pool, relations: allRelations }),
     },
     DatabaseLifecycle,
   ],
