@@ -42,10 +42,6 @@ export const serviceInvoices = pgTable(
   'service_invoices',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    appointmentId: uuid('appointment_id')
-      .notNull()
-      .unique()
-      .references(() => serviceAppointments.id),
     amountSatang: integer('amount_satang').notNull(),
     platformFeeSatang: integer('platform_fee_satang').notNull(),
     providerChargeId: varchar('provider_charge_id'),
@@ -167,3 +163,21 @@ export const omiseBankAccounts = pgTable('omise_bank_accounts', {
   accountName: varchar('account_name'),
   isDefault: boolean().notNull().default(false),
 });
+
+export const serviceAppointmentsOnInvoice = pgTable(
+  'service_appointments_on_service_invoices',
+  {
+    serviceAppointmentId: uuid()
+      .references(() => serviceAppointments.id)
+      .unique()
+      .notNull(),
+    serviceInvoiceId: uuid()
+      .references(() => serviceInvoices.id)
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.serviceAppointmentId, table.serviceInvoiceId],
+    }),
+  ],
+);
