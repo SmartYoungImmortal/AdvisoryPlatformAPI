@@ -47,9 +47,9 @@
  * submissions and skill-proof documents. They are demo state, written on purpose:
  * each is keyed on something the script recognises (`seed-demo-*` room names, a
  * message's text, a file name) so a second run finds them instead of doubling them.
- * Document object keys point under `seed/`, which SeaweedFS does not hold — the
- * rows read correctly, but opening the document itself fails until a real upload
- * replaces it.
+ * Document keys are placeholder-image URLs (`demoDocument`) rather than SeaweedFS
+ * keys, so the console can show a document on the review pages; a real upload
+ * still stores a storage key.
  */
 
 import { NestFactory } from '@nestjs/core';
@@ -738,11 +738,23 @@ const IDENTITIES = [
   },
 ] as const;
 
+/**
+ * A viewable stand-in for an uploaded document: an A4-shaped placeholder image
+ * with the document's title on it. Demo keys are these URLs rather than
+ * SeaweedFS keys, because there is no object behind a made-up key to presign —
+ * the console draws a key that is already a URL, and a real upload's key still
+ * needs the storage path.
+ */
+function demoDocument(title: string): string {
+  return `https://placehold.co/1240x1754/f8fafc/334155/png?font=roboto&text=${encodeURIComponent(title)}`;
+}
+
 const SKILL_PROOFS = [
   {
     advisor: ARAYA,
     skill: 'บัญชีและงบการเงิน',
     file: 'ใบอนุญาตผู้สอบบัญชี.pdf',
+    title: 'Certified Public Accountant',
     status: 'APPROVED',
     day: -58,
   },
@@ -750,6 +762,7 @@ const SKILL_PROOFS = [
     advisor: KANYA,
     skill: 'สัญญาธุรกิจ',
     file: 'ใบอนุญาตว่าความ.pdf',
+    title: 'Lawyer License',
     status: 'APPROVED',
     day: -50,
   },
@@ -757,6 +770,7 @@ const SKILL_PROOFS = [
     advisor: THANAKRIT,
     skill: 'การตลาดดิจิทัล',
     file: 'Google-Ads-Certification.pdf',
+    title: 'Google Ads Certification',
     status: 'PENDING',
     day: -3,
   },
@@ -764,6 +778,7 @@ const SKILL_PROOFS = [
     advisor: PIMCHANOK,
     skill: 'จิตวิทยาการปรึกษา',
     file: 'ใบประกอบวิชาชีพจิตวิทยาคลินิก.pdf',
+    title: 'Clinical Psychology License',
     status: 'PENDING',
     day: -2,
   },
@@ -771,6 +786,7 @@ const SKILL_PROOFS = [
     advisor: SARAWUT,
     skill: 'พัฒนาเว็บแอปพลิเคชัน',
     file: 'AWS-Solutions-Architect.pdf',
+    title: 'AWS Solutions Architect',
     status: 'PENDING',
     day: -1,
   },
@@ -778,6 +794,7 @@ const SKILL_PROOFS = [
     advisor: SARAWUT,
     skill: 'วิทยาการข้อมูล',
     file: 'screenshot-linkedin.png',
+    title: 'LinkedIn Screenshot',
     status: 'REJECTED',
     day: -8,
   },
@@ -1190,18 +1207,30 @@ async function seedActivity(
   console.log('\nDemo identity submissions');
   for (const i of IDENTITIES) {
     const advisorId = userId(i.advisor);
+    const document = demoDocument('National ID Card');
     const [found] = await db
-      .select({ advisorId: advisorIdentity.advisorId })
+      .select({
+        advisorId: advisorIdentity.advisorId,
+        key: advisorIdentity.documentObjectKey,
+      })
       .from(advisorIdentity)
       .where(eq(advisorIdentity.advisorId, advisorId))
       .limit(1);
     if (found) {
-      note(`identity ${i.advisor}`, false);
+      // Rows from the first demo run pointed at `seed/…`, a key with nothing
+      // behind it; move those, and only those, to the viewable stand-in.
+      if (found.key?.startsWith('seed/')) {
+        await db
+          .update(advisorIdentity)
+          .set({ documentObjectKey: document })
+          .where(eq(advisorIdentity.advisorId, advisorId));
+        note(`identity document ${i.advisor}`, true);
+      } else note(`identity ${i.advisor}`, false);
       continue;
     }
     await db.insert(advisorIdentity).values({
       advisorId,
-      documentObjectKey: `seed/identity/${i.advisor.split('@')[0]}.jpg`,
+      documentObjectKey: document,
       verificationStatus: i.status,
       verifiedByAdminId: i.decided === null ? null : ctx.adminId,
       rejectionReason: i.reason,
@@ -1222,8 +1251,12 @@ async function seedActivity(
       throw new Error(
         `demo proof names skill "${s.skill}", which was not seeded`,
       );
+    const document = demoDocument(s.title);
     const [found] = await db
-      .select({ id: skillProofDocuments.id })
+      .select({
+        id: skillProofDocuments.id,
+        key: skillProofDocuments.objectKey,
+      })
       .from(skillProofDocuments)
       .where(
         and(
@@ -1234,14 +1267,20 @@ async function seedActivity(
       )
       .limit(1);
     if (found) {
-      note(`proof ${s.file}`, false);
+      if (found.key.startsWith('seed/')) {
+        await db
+          .update(skillProofDocuments)
+          .set({ objectKey: document })
+          .where(eq(skillProofDocuments.id, found.id));
+        note(`proof document ${s.file}`, true);
+      } else note(`proof ${s.file}`, false);
       continue;
     }
     const decided = s.status !== 'PENDING';
     await db.insert(skillProofDocuments).values({
       advisorId,
       skillId,
-      objectKey: `seed/skill-proofs/${s.advisor.split('@')[0]}-${s.day}`,
+      objectKey: document,
       originalFileName: s.file,
       reviewStatus: s.status,
       reviewedByAdminId: decided ? ctx.adminId : null,
