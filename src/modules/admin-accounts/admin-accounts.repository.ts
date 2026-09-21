@@ -18,8 +18,7 @@ import type { AccountQueryDto } from './dtos/account-query.dto';
  *
  * Declared once so the list, the detail read, the suspension and the reinstatement cannot
  * drift apart — and so that adding a column to `user` does not silently add it to four admin
- * responses. `image` is absent on purpose: `auth.config.ts` leaves it unused in favour of
- * `avatarKey`.
+ * responses. `image` rides beside `avatarKey` as the drawable URL; see `admin-accounts.types.ts`.
  */
 const accountColumns = {
   id: user.id,
@@ -28,6 +27,7 @@ const accountColumns = {
   emailVerified: user.emailVerified,
   fullName: user.fullName,
   avatarKey: user.avatarKey,
+  image: user.image,
   timezone: user.timezone,
   status: user.status,
   role: user.role,

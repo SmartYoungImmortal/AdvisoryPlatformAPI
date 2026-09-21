@@ -116,6 +116,24 @@ const SKILLS = [
 /** A password every demo account shares. It is a demo credential, not a secret. */
 const DEMO_PASSWORD = 'AdvisoryDemo!2026';
 
+/**
+ * Stock portraits for the demo accounts, written to better-auth's `image` — a plain
+ * URL the admin console draws as-is. Uploaded avatars still go to `avatar_key`; this
+ * only fills an `image` that is empty, so it never overwrites a real one.
+ */
+const PORTRAITS: Readonly<Record<string, string>> = {
+  'araya.s@advisory.demo': 'https://randomuser.me/api/portraits/women/44.jpg',
+  'kanya.p@advisory.demo': 'https://randomuser.me/api/portraits/women/65.jpg',
+  'thanakrit.w@advisory.demo': 'https://randomuser.me/api/portraits/men/32.jpg',
+  'pimchanok.r@advisory.demo':
+    'https://randomuser.me/api/portraits/women/68.jpg',
+  'sarawut.k@advisory.demo': 'https://randomuser.me/api/portraits/men/75.jpg',
+  'nattapong.d@advisory.demo': 'https://randomuser.me/api/portraits/men/46.jpg',
+  'supaporn.t@advisory.demo':
+    'https://randomuser.me/api/portraits/women/90.jpg',
+  'admin@advisory.demo': 'https://randomuser.me/api/portraits/men/11.jpg',
+};
+
 interface AdvisorSeed {
   readonly email: string;
   readonly displayName: string;
@@ -1301,6 +1319,21 @@ async function main(): Promise<void> {
       return created.id;
     };
 
+    /** Fills `image` from `PORTRAITS` where it is still empty. */
+    const ensurePortrait = async (email: string): Promise<void> => {
+      const url = PORTRAITS[email];
+      const id = userIdByEmail.get(email);
+      if (!url || !id) return;
+      const [row] = await db
+        .select({ image: user.image })
+        .from(user)
+        .where(eq(user.id, id))
+        .limit(1);
+      if (row?.image) return;
+      await db.update(user).set({ image: url }).where(eq(user.id, id));
+      note(`portrait ${email}`, true);
+    };
+
     console.log('Categories');
     const categoryIds = new Map<string, string>();
     for (const [name, description] of CATEGORIES) {
@@ -1469,6 +1502,9 @@ async function main(): Promise<void> {
         });
       }
     }
+
+    console.log('\nPortraits');
+    for (const email of Object.keys(PORTRAITS)) await ensurePortrait(email);
 
     await seedActivity(db, {
       adminId,

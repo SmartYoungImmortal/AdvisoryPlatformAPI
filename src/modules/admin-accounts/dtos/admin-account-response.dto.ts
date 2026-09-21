@@ -20,6 +20,9 @@ export class AdminAccountResponseDto {
   @ApiProperty() emailVerified: boolean;
   @ApiProperty() fullName: string;
   @ApiProperty({ nullable: true, type: String }) avatarKey: string | null;
+  /** A drawable profile-picture URL, unlike the storage key in `avatarKey`. */
+  @ApiProperty({ nullable: true, type: String, format: 'uri' }) image:
+    string | null;
   @ApiProperty() timezone: string;
   @ApiProperty({ enum: userStatusEnum.enumValues }) status: string;
   @ApiProperty({ enum: ACCOUNT_ROLES, nullable: true, type: String })
@@ -38,6 +41,7 @@ export class AdminAccountResponseDto {
     this.emailVerified = row.emailVerified;
     this.fullName = row.fullName;
     this.avatarKey = row.avatarKey;
+    this.image = row.image;
     this.timezone = row.timezone;
     this.status = row.status;
     this.role = row.role;
