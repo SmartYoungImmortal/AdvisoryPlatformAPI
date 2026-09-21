@@ -25,6 +25,7 @@ function makeAccount(
     emailVerified: true,
     fullName: 'Nam Example',
     avatarKey: null,
+    image: null,
     timezone: 'Asia/Bangkok',
     status: 'ACTIVE',
     role: 'advisee',

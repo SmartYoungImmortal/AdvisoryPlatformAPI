@@ -73,6 +73,7 @@ import {
   offPlatformFlags,
   payoutInvoices,
   payouts,
+  refundCaseEvidence,
   refundCases,
   serviceAppointments,
   serviceCategories,
@@ -360,6 +361,8 @@ interface BookingSeed {
   readonly invoice: 'RELEASED' | 'HELD_IN_ESCROW' | 'REFUNDED';
   readonly review?: { readonly stars: number; readonly comment: string };
   readonly chat: readonly (readonly [Side, string])[];
+  /** Lines sent after the session ended — where a dispute usually starts. */
+  readonly afterSession?: readonly (readonly [Side, string])[];
 }
 
 const ARAYA = 'araya.s@advisory.demo';
@@ -506,6 +509,17 @@ const BOOKINGS: readonly BookingSeed[] = [
         'ขึ้นกับว่าการลาออกนั้นเกิดจากอะไรค่ะ เดี๋ยวคุยรายละเอียดกันในนัด',
       ],
     ],
+    afterSession: [
+      [
+        'advisee',
+        'ผมแจ้งไว้ตอนจองว่าพนักงานลาออกเอง แต่ในนัดคุยเรื่องเลิกจ้างเกือบทั้งชั่วโมงเลยครับ',
+      ],
+      [
+        'advisor',
+        'ที่ถามเรื่องเลิกจ้างเพราะหนังสือที่แนบมาเขียนว่า "บริษัทขอให้ออก" ค่ะ ถ้าเป็นแบบนั้นต้องจ่ายค่าชดเชยนะคะ',
+      ],
+      ['advisee', 'แต่เขาเขียนเองนะครับ ผมจะขอคืนเงินแล้วกัน'],
+    ],
   },
   {
     key: 'b08',
@@ -538,6 +552,13 @@ const BOOKINGS: readonly BookingSeed[] = [
       ],
       ['advisor', 'ชำระผ่านแพลตฟอร์มเท่านั้นนะคะ'],
     ],
+    afterSession: [
+      [
+        'advisor',
+        'ส่งสรุปแผน 90 วันกับแบบประเมินจุดแข็งให้แล้วนะคะ ลองทำก่อนนัดครั้งหน้าค่ะ',
+      ],
+      ['advisee', 'ขอบคุณครับ แต่ส่วนใหญ่ผมเคยอ่านเจอมาแล้ว'],
+    ],
   },
   {
     key: 'b10',
@@ -551,6 +572,15 @@ const BOOKINGS: readonly BookingSeed[] = [
     chat: [
       ['advisee', 'จะทำแอปจองคิวร้านเสริมสวยค่ะ'],
       ['advisor', 'เริ่มจากเว็บก่อนดีกว่าครับ เดี๋ยวอธิบายเหตุผลในนัด'],
+    ],
+    afterSession: [
+      ['advisee', 'สายหลุดไปสามรอบเลยค่ะ รอบสุดท้ายหายไปสิบกว่านาที'],
+      [
+        'advisor',
+        'ขออภัยครับ เน็ตบ้านผมล่มช่วงนั้น กลับมาได้ก็เหลือไม่กี่นาทีแล้ว',
+      ],
+      ['advisee', 'ได้คุยจริงๆ ไม่ถึงครึ่งเลยค่ะ ขอยื่นเรื่องคืนเงินนะคะ'],
+      ['advisor', 'ได้ครับ ถ้าสะดวกผมนัดชดเชยให้ฟรีอีก 30 นาทีก็ได้ครับ'],
     ],
   },
   {
@@ -602,27 +632,62 @@ const BOOKINGS: readonly BookingSeed[] = [
   },
 ];
 
-/** Refunds, against the booking whose invoice they claim. */
+/**
+ * The frontend serves the demo documents itself, from `public/demo-docs/` —
+ * specimen certificates, ID cards and screenshots, each watermarked and naming
+ * a fictional issuer. A key under this path is same-origin to the console; a
+ * real upload's key is still a SeaweedFS key.
+ */
+const DEMO_DOCS = '/demo-docs';
+
+/** Refunds, against the booking whose invoice they claim, with what was attached. */
 const REFUNDS = [
   {
     booking: 'b07',
     status: 'OPEN',
     reason: 'คำแนะนำไม่ตรงกับปัญหาที่แจ้งไว้ตอนจอง ขอคืนเงินค่าปรึกษา',
+    evidence: [
+      {
+        key: 'refunds/booking-note-nattapong.png',
+        name: 'รายละเอียดการจอง.png',
+        mime: 'image/png',
+      },
+    ],
   },
   {
     booking: 'b08',
     status: 'APPROVED',
     reason: 'ที่ปรึกษายกเลิกนัดก่อนเวลาเพียงหนึ่งชั่วโมง',
+    evidence: [
+      {
+        key: 'refunds/cancel-notice-supaporn.png',
+        name: 'แจ้งเตือนยกเลิกนัด.png',
+        mime: 'image/png',
+      },
+    ],
   },
   {
     booking: 'b09',
     status: 'REJECTED',
     reason: 'รู้สึกว่าไม่ได้อะไรใหม่จากการปรึกษา',
+    evidence: [],
   },
   {
     booking: 'b10',
     status: 'OPEN',
     reason: 'สัญญาณเสียงหลุดเกือบครึ่งชั่วโมง ปรึกษาไม่ครบเวลา',
+    evidence: [
+      {
+        key: 'refunds/call-dropped-supaporn.jpg',
+        name: 'ภาพหน้าจอสายหลุด.jpg',
+        mime: 'image/jpeg',
+      },
+      {
+        key: 'refunds/call-log-seed-demo-b10.png',
+        name: 'บันทึกการเชื่อมต่อ.png',
+        mime: 'image/png',
+      },
+    ],
   },
 ] as const;
 
@@ -739,22 +804,21 @@ const IDENTITIES = [
 ] as const;
 
 /**
- * A viewable stand-in for an uploaded document: a placeholder image with the
- * document's title on it, A4-shaped by default, card-shaped for an ID. Demo keys
- * are these URLs rather than SeaweedFS keys, because there is no object behind a
- * made-up key to presign — the console draws a key that is already a URL, and a
- * real upload's key still needs the storage path.
+ * Whether a key is a demo stand-in: a specimen under `DEMO_DOCS`, an older
+ * placeholder image, or the first run's dead `seed/` key.
  */
-function demoDocument(title: string, size = '1240x1754'): string {
-  return `https://placehold.co/${size}/f8fafc/334155/png?font=roboto&text=${encodeURIComponent(title)}`;
-}
-
-/** Whether a key is a demo stand-in (or the first run's dead `seed/` key). */
 function isDemoKey(key: string | null | undefined): boolean {
   return (
     !!key &&
-    (key.startsWith('seed/') || key.startsWith('https://placehold.co/'))
+    (key.startsWith('seed/') ||
+      key.startsWith('https://placehold.co/') ||
+      key.startsWith(`${DEMO_DOCS}/`))
   );
+}
+
+/** The specimen ID card for a demo advisor: `araya.s@…` → `id-card-araya.jpg`. */
+function demoIdCard(email: string): string {
+  return `${DEMO_DOCS}/identity/id-card-${email.split(/[.@]/)[0]}.jpg`;
 }
 
 const SKILL_PROOFS = [
@@ -762,7 +826,7 @@ const SKILL_PROOFS = [
     advisor: ARAYA,
     skill: 'บัญชีและงบการเงิน',
     file: 'ใบอนุญาตผู้สอบบัญชี.pdf',
-    title: 'Certified Public Accountant',
+    doc: 'skill-proofs/cpa-license-araya.pdf',
     status: 'APPROVED',
     day: -58,
   },
@@ -770,7 +834,7 @@ const SKILL_PROOFS = [
     advisor: KANYA,
     skill: 'สัญญาธุรกิจ',
     file: 'ใบอนุญาตว่าความ.pdf',
-    title: 'Lawyer License',
+    doc: 'skill-proofs/lawyer-license-kanya.pdf',
     status: 'APPROVED',
     day: -50,
   },
@@ -778,7 +842,7 @@ const SKILL_PROOFS = [
     advisor: THANAKRIT,
     skill: 'การตลาดดิจิทัล',
     file: 'Google-Ads-Certification.pdf',
-    title: 'Google Ads Certification',
+    doc: 'skill-proofs/ads-certificate-thanakrit.pdf',
     status: 'PENDING',
     day: -3,
   },
@@ -786,7 +850,7 @@ const SKILL_PROOFS = [
     advisor: PIMCHANOK,
     skill: 'จิตวิทยาการปรึกษา',
     file: 'ใบประกอบวิชาชีพจิตวิทยาคลินิก.pdf',
-    title: 'Clinical Psychology License',
+    doc: 'skill-proofs/psychology-license-pimchanok.pdf',
     status: 'PENDING',
     day: -2,
   },
@@ -794,7 +858,7 @@ const SKILL_PROOFS = [
     advisor: SARAWUT,
     skill: 'พัฒนาเว็บแอปพลิเคชัน',
     file: 'AWS-Solutions-Architect.pdf',
-    title: 'AWS Solutions Architect',
+    doc: 'skill-proofs/cloud-architect-sarawut.pdf',
     status: 'PENDING',
     day: -1,
   },
@@ -802,7 +866,7 @@ const SKILL_PROOFS = [
     advisor: SARAWUT,
     skill: 'วิทยาการข้อมูล',
     file: 'screenshot-linkedin.png',
-    title: 'LinkedIn Screenshot',
+    doc: 'skill-proofs/profile-screenshot-sarawut.png',
     status: 'REJECTED',
     day: -8,
   },
@@ -999,9 +1063,25 @@ async function seedActivity(
         .where(eq(serviceAppointments.id, appointment.id));
     }
 
-    // Chat lines land in the two days before the session, never in the future.
+    // Chat lines land in the two days before the session, never in the future;
+    // the after-session lines start ten minutes after it ends.
     const chatStart = Math.min(start.getTime() - 2 * DAY, Date.now() - DAY);
-    for (const [index, [side, message]] of b.chat.entries()) {
+    const lines = [
+      ...b.chat.map(([side, message], index) => ({
+        side,
+        message,
+        at: chatStart + index * 7 * MINUTE,
+      })),
+      ...(b.afterSession ?? []).map(([side, message], index) => ({
+        side,
+        message,
+        at: Math.min(
+          end.getTime() + (10 + index * 6) * MINUTE,
+          Date.now() - MINUTE,
+        ),
+      })),
+    ];
+    for (const { side, message, at } of lines) {
       const [line] = await db
         .select({ id: chatMessages.id })
         .from(chatMessages)
@@ -1017,7 +1097,7 @@ async function seedActivity(
         chatRoomId,
         senderUserId: side === 'advisee' ? adviseeId : advisorId,
         message,
-        createdAt: new Date(chatStart + index * 7 * MINUTE),
+        createdAt: new Date(at),
       });
     }
 
@@ -1076,27 +1156,53 @@ async function seedActivity(
   for (const r of REFUNDS) {
     const b = booked.get(r.booking);
     if (!b) continue;
-    const [found] = await db
-      .select({ id: refundCases.id })
+    let [refund] = await db
+      .select({ id: refundCases.id, createdAt: refundCases.createdAt })
       .from(refundCases)
       .where(eq(refundCases.invoiceId, b.invoiceId))
       .limit(1);
-    if (found) {
-      note(`refund on ${r.booking}`, false);
-      continue;
+    if (refund) note(`refund on ${r.booking}`, false);
+    else {
+      const createdAt = new Date(b.end.getTime() + DAY);
+      const decided = r.status !== 'OPEN';
+      [refund] = await db
+        .insert(refundCases)
+        .values({
+          invoiceId: b.invoiceId,
+          requestedByUserId: b.adviseeId,
+          reviewedByAdminId: decided ? ctx.adminId : null,
+          reason: r.reason,
+          status: r.status,
+          createdAt,
+          resolvedAt: decided ? new Date(createdAt.getTime() + DAY) : null,
+        })
+        .returning({ id: refundCases.id, createdAt: refundCases.createdAt });
+      note(`refund on ${r.booking}`, true);
     }
-    const createdAt = new Date(b.end.getTime() + DAY);
-    const decided = r.status !== 'OPEN';
-    await db.insert(refundCases).values({
-      invoiceId: b.invoiceId,
-      requestedByUserId: b.adviseeId,
-      reviewedByAdminId: decided ? ctx.adminId : null,
-      reason: r.reason,
-      status: r.status,
-      createdAt,
-      resolvedAt: decided ? new Date(createdAt.getTime() + DAY) : null,
-    });
-    note(`refund on ${r.booking}`, true);
+
+    // Attached with the request; the composite key makes a re-run a no-op.
+    for (const file of r.evidence) {
+      const objectKey = `${DEMO_DOCS}/${file.key}`;
+      const [attached] = await db
+        .select({ key: refundCaseEvidence.objectKey })
+        .from(refundCaseEvidence)
+        .where(
+          and(
+            eq(refundCaseEvidence.refundCaseId, refund.id),
+            eq(refundCaseEvidence.objectKey, objectKey),
+          ),
+        )
+        .limit(1);
+      if (attached) continue;
+      await db.insert(refundCaseEvidence).values({
+        refundCaseId: refund.id,
+        objectKey,
+        originalFileName: file.name,
+        mimeType: file.mime,
+        createdAt: refund.createdAt,
+      });
+      note(`evidence ${file.name}`, true);
+    }
   }
 
   console.log('\nDemo payouts');
@@ -1215,8 +1321,7 @@ async function seedActivity(
   console.log('\nDemo identity submissions');
   for (const i of IDENTITIES) {
     const advisorId = userId(i.advisor);
-    // An ID card is landscape — 85.6 x 54 mm — not a page.
-    const document = demoDocument('National ID Card', '1012x638');
+    const document = demoIdCard(i.advisor);
     const [found] = await db
       .select({
         advisorId: advisorIdentity.advisorId,
@@ -1260,7 +1365,7 @@ async function seedActivity(
       throw new Error(
         `demo proof names skill "${s.skill}", which was not seeded`,
       );
-    const document = demoDocument(s.title);
+    const document = `${DEMO_DOCS}/${s.doc}`;
     const [found] = await db
       .select({
         id: skillProofDocuments.id,
