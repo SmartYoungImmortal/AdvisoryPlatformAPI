@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
+import { AdminCaseContextController } from './admin-case-context.controller';
 import { AdminOffPlatformFlagsController } from './admin-off-platform-flags.controller';
 import { AdminProfilesRepository } from './admin-profiles.repository';
 import { AdminReportsController } from './admin-reports.controller';
+import { CaseContextRepository } from './case-context.repository';
+import { CaseContextService } from './case-context.service';
 import { OffPlatformFlagsRepository } from './off-platform-flags.repository';
 import { OffPlatformFlagsService } from './off-platform-flags.service';
 import { ReportsController } from './reports.controller';
@@ -21,12 +24,15 @@ import { UserReportsRepository } from './user-reports.repository';
     ReportsController,
     AdminReportsController,
     AdminOffPlatformFlagsController,
+    AdminCaseContextController,
   ],
   providers: [
     ReportsService,
     OffPlatformFlagsService,
+    CaseContextService,
     UserReportsRepository,
     OffPlatformFlagsRepository,
+    CaseContextRepository,
     AdminProfilesRepository,
   ],
 })

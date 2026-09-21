@@ -1,5 +1,33 @@
 import type { UserReportStatus } from './safety.constants';
 
+/** One chat line in a case's conversation, with the sender's names. */
+export interface CaseMessageRow {
+  id: string;
+  senderUserId: string;
+  senderDisplayName: string;
+  senderFullName: string;
+  message: string;
+  createdAt: Date;
+}
+
+/** The consultation a case's conversation belongs to, with its invoice. */
+export interface CaseAppointmentRow {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  advisorId: string;
+  adviseeId: string;
+  type: string;
+  state: string;
+  startTime: Date;
+  endTime: Date;
+  cancelledAt: Date | null;
+  cancelledByUserId: string | null;
+  jitsiRoomName: string | null;
+  invoiceAmountSatang: number | null;
+  invoiceStatus: string | null;
+}
+
 /**
  * One row of the admin report queue. A report names two real people, so the join selects
  * exactly `id` and `displayName` for each of them and nothing else: no `email`, no
