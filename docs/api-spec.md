@@ -272,7 +272,7 @@ Returns a fresh private download URL for the authenticated owner's current avata
   "statusCode": 200,
   "message": "Success",
   "data": {
-    "url": "http://localhost:9000/advisory-platform/...signed-query...",
+    "url": "http://localhost:8333/advisory-platform/...signed-query...",
     "expiresInSeconds": 300
   }
 }
@@ -360,7 +360,8 @@ Suspension returns 404 rather than 403 — a 403 confirms the account exists.
 
 ### `GET /api/v1/advisors/:id/reviews` — `Public`
 
-Paginated. Reviewer identified by `displayName` only. Includes `advisorReply` when present.
+Paginated. Reviewer identified by their public display identity only. Includes `advisorReply` when
+present. Written up with the rest of the module in section 11.
 
 ### `POST /api/v1/advisors/me` — `Advisee`
 
@@ -464,9 +465,11 @@ the standard offset-paginated own-Service list. `GET`, `PATCH`, and `DELETE`
 outside the Advisor's ownership returns `404`.
 
 Create and update fields are `categoryId`, `availabilityProfileId`, `name`, `description`,
-`priceSatang`, `durationMinutes`, `isPublished`, `screeningRequired`, `trialEnabled`, and
-`trialDurationMinutes`. `trialDurationMinutes` is required only when `trialEnabled` is true and
-must otherwise be absent. The current module returns the owner-only allowlist:
+`priceSatang`, `durationMinutes`, `dailyConsultationLimitMinutes`, `isPublished`,
+`screeningRequired`, `trialEnabled`, and `trialDurationMinutes`.
+`dailyConsultationLimitMinutes` is nullable, where `null` means unlimited.
+`trialDurationMinutes` is required only when `trialEnabled` is true and must otherwise be absent.
+The current module returns the owner-only allowlist:
 
 ```jsonc
 {
@@ -478,6 +481,7 @@ must otherwise be absent. The current module returns the owner-only allowlist:
   "description": "Practical career planning",
   "priceSatang": 150000,
   "durationMinutes": 60,
+  "dailyConsultationLimitMinutes": 120,
   "isPublished": false,
   "screeningRequired": false,
   "trialEnabled": true,
@@ -487,8 +491,22 @@ must otherwise be absent. The current module returns the owner-only allowlist:
 }
 ```
 
-Public Service search/detail and public Advisor discovery are separate follow-on routes. They must
-return published Services only and must never reuse this owner DTO.
+### Public service search and detail
+
+`GET /api/v1/services` and `GET /api/v1/services/:serviceId` are `Public`. They return published
+Services from active, non-banned Advisors only; unavailable, unpublished, suspended, banned, and
+deleted services return `404` for the detail route. The search route uses normal offset pagination
+and accepts optional `q` (text), `categoryId`, `advisorId`, `minPriceSatang`, and `maxPriceSatang`
+filters. An inverted price range is `400`.
+
+Search queries Postgres directly. The public allowlist is `id`, `advisorId`,
+`categoryId`, `name`, `description`, `priceSatang`, `durationMinutes`, `screeningRequired`,
+`trialEnabled`, and `trialDurationMinutes`. It never reuses the owner DTO or exposes availability
+profile, daily-limit, publishing, or other owner-only fields.
+
+`GET /api/v1/admin/services?page=1&limit=20` is an Admin-only offset-paginated view of all
+Services. It returns the same administrative allowlist above, including unpublished Services, so
+operational staff can review ownership and publishing state without using an Advisor's own route.
 
 ---
 
@@ -516,6 +534,30 @@ exists.
   `{ chatRoomId, memberUserId, messageId, lastReadAt }`. The message must belong to that room.
   Markers only move forward: a delayed request for an older message cannot make later messages
   unread again.
+
+### Files
+
+Chat files are member-authorized. Every route below resolves the file inside the room from the
+path, so a member of one room cannot read a file id belonging to another; a non-member receives
+`404` on all four, matching the room-probing rule above.
+
+- `POST /api/v1/chat/rooms/:chatRoomId/files` takes `multipart/form-data` with one `file` part and
+  returns the stored metadata. A file must be 1 byte to 50 MB and carry an accepted content type;
+  anything else is `400`. The limit is enforced by Multer, again in the service, and finally by the
+  `chat_files_size_range` check constraint, so a bypassed application check still cannot persist an
+  oversized row. The accepted types are images (JPEG, PNG, WebP, GIF), PDF, plain text, CSV, the
+  OOXML Office formats, and ZIP. Executables are deliberately absent.
+- `GET /api/v1/chat/rooms/:chatRoomId/files?limit=20&cursor=<opaque>` returns the room file feed,
+  newest first, in the same cursor envelope as message history.
+- `GET /api/v1/chat/rooms/:chatRoomId/files/:fileId` returns `{ url, expiresInSeconds }`. The URL is
+  signed per request and expires in five minutes. Signed URLs are never persisted; only the object
+  key is stored, and the key is never exposed to clients.
+- `DELETE /api/v1/chat/rooms/:chatRoomId/files/:fileId` removes the row and its object and returns
+  the deleted metadata. Only the sender may delete: another member of the same room receives `403`,
+  because that member can legitimately see the file and the refusal is an ownership decision.
+
+`chat_files.expiry_date` is written on upload from a 180-day retention window. Nothing reads it
+yet — the sweep that acts on it is outstanding AP-037 work.
 
 Room listing uses the standard offset-pagination envelope. Message history uses the cursor envelope
 `{ items, limit, nextCursor, hasMore }`. Both retain the repository-wide maximum `limit` of 100.
@@ -548,11 +590,104 @@ treated as durable acknowledgement.
 
 ---
 
-## 10. Agreed booking-domain rules pending endpoint design
+## 10. Availability and booking
 
-The booking, availability, screening, payment, payout, and refund endpoints are not yet written.
-Their paths and DTOs must be designed in the corresponding feature modules, but they must preserve
-the following agreed behavior.
+The implemented scheduling contract uses these routes, all under the standard response envelope:
+
+- `GET` / `PUT /api/v1/advisors/me/availability/global` reads or updates the Advisor's one Global
+  Availability record. The slot interval stays fixed at 30 minutes; the mutable values are buffer,
+  horizon, minimum booking notice, and optional daily consultation-minute limit.
+- `GET` / `POST /api/v1/advisors/me/availability/profiles`, plus `PATCH` / `DELETE`
+  `/api/v1/advisors/me/availability/profiles/:profileId`, manage Advisor-owned reusable Profiles.
+  A write replaces the supplied weekly, specific-date, and blocked windows atomically. Deletes are
+  soft deletes. Profile responses include `weeklyWindows`, `specificWindows`, and `blockedPeriods`
+  so clients can reconstruct the full Advisor-local scheduling configuration.
+- `GET /api/v1/services/:serviceId/slots?from=YYYY-MM-DD&to=YYYY-MM-DD` requires an authenticated
+  Advisee and returns derived candidate `{ startTime, endTime }` pairs for a published Service.
+  For a screened Service, the Advisee must have an `ACCEPTED` screening request before this route
+  exposes slots. The inclusive date range is bounded to 90 days. Blocked periods, existing
+  availability-blocking appointments, global notice/horizon, service duration, and both global
+  and per-Service daily consultation limits are applied.
+- `POST /api/v1/bookings` accepts `{ serviceId, startTime }` from an authenticated Advisee and
+  creates a `PENDING_PAYMENT` consultation appointment. It rejects self-booking and any time that
+  is not currently a derived slot. The Advisor-wide PostgreSQL exclusion constraint is the final
+  atomic overlap guard and its violation is returned as `409 Timeslot already booked`.
+  A client must not treat `409` as the usual outcome of losing a race: because booking creation
+  takes the per-Advisor advisory lock and rederives eligibility under it, the loser of two
+  simultaneous requests normally sees `400 Timeslot is not available` instead. The `409` is the
+  guard behind that, reached only if the constraint itself is violated. Both are proven against
+  real Postgres by `test/booking-concurrency.e2e-spec.ts` and
+  `bookings.repository.integration-spec.ts`.
+- `GET /api/v1/bookings/me` and `GET /api/v1/advisors/me/bookings` return the respective
+  paginated participant views.
+- `GET /api/v1/bookings/:bookingId` returns one appointment to either of its two participants and
+  `404` to anybody else, so an Advisor and an Advisee share one detail route.
+
+### Booking state machine
+
+`appointmentStateEnum` has six values. `PENDING_PAYMENT` is the only state `POST /api/v1/bookings`
+writes; every later value is reached through exactly one of the transitions below. `COMPLETED`,
+`CANCELLED`, and `NO_SHOW` are terminal.
+
+| From | To | Actor | Route |
+| --- | --- | --- | --- |
+| — | `PENDING_PAYMENT` | Advisee | `POST /api/v1/bookings` |
+| `PENDING_PAYMENT` | `BOOKED` | Payment module, in process | none — see the payment seam below |
+| `PENDING_PAYMENT`, `BOOKED` | `CANCELLED` | Advisee | `POST /api/v1/bookings/:bookingId/cancel` |
+| `PENDING_PAYMENT`, `BOOKED` | `CANCELLED` | Advisor | `POST /api/v1/advisors/me/bookings/:bookingId/cancel` |
+| `PENDING_PAYMENT`, `BOOKED` | `CANCELLED` plus a new appointment | Advisee | `POST /api/v1/bookings/:bookingId/reschedule` |
+| `BOOKED` | `IN_PROGRESS` | Advisor | `POST /api/v1/advisors/me/bookings/:bookingId/start` |
+| `BOOKED` | `NO_SHOW` | Advisor | `POST /api/v1/advisors/me/bookings/:bookingId/no-show` |
+| `IN_PROGRESS` | `COMPLETED` | Advisor | `POST /api/v1/advisors/me/bookings/:bookingId/complete` |
+
+Every transition route takes no request body except `reschedule`, which takes `{ startTime }`, and
+every one returns the appointment through `BookingResponseDto` under the standard envelope.
+
+**Errors.** `404` when the booking does not exist or the caller is not the party the route is
+written for — a non-participant must not be able to distinguish the two. `409` when the appointment
+is not in a state the transition accepts, including a repeated call on a terminal state. `400` for
+`no-show` before `startTime` has passed, and for a `reschedule` target that is not a currently
+derived slot. A `reschedule` whose new time loses the Advisor-wide exclusion race returns `409`
+exactly as `POST /api/v1/bookings` does.
+
+**Transitions are conditional updates.** Each one updates `WHERE id = :id AND state IN (:accepted)`
+and treats an empty result as the `409`, so two simultaneous calls cannot both succeed and no
+transition needs its own read-then-write lock.
+
+**Cancellation and availability.** A cancellation always writes `state`, `cancelledAt`, and
+`cancelledByUserId` together, which is what the existing
+`service_appointments_cancellation_metadata_consistent` check requires. It then applies the rule
+from the 22 August meeting through `blocksAvailability`: the range reopens
+(`blocksAvailability = false`) only when `startTime` is still at least the Advisor's
+`minimumBookingNoticeMinutes` away at the moment of cancellation. Otherwise the row keeps
+`blocksAvailability = true` and the time stays unavailable to everybody. Because the Advisor-wide
+exclusion constraint is declared `WHERE ("blocks_availability")` and slot derivation already filters
+on the same column, this one flag is the entire mechanism — no availability code changes.
+
+**Rescheduling** is a cancellation plus a new booking in one transaction, under the same per-Advisor
+advisory lock `POST /api/v1/bookings` takes. The old appointment is cancelled first, so a booking
+whose cancellation reopens its range can be moved within that same range. The new appointment keeps
+the original's `state` and `serviceId`; it is not a fresh `PENDING_PAYMENT` row, because an already
+paid appointment must not ask the Advisee to pay twice. Refunding a reschedule that crosses a
+payment boundary is the payment module's decision, not booking's.
+
+**The payment seam.** `BookingsModule` exports `BookingsService`, and
+`BookingsService.confirmPayment(bookingId)` owns `PENDING_PAYMENT` → `BOOKED`. The payment webhook
+calls that method in process; it never writes `service_appointments.state` itself, and booking
+exposes no HTTP route for the transition. The call is idempotent — an appointment already past
+`PENDING_PAYMENT` is returned unchanged rather than raising — because a signed webhook may be
+redelivered.
+
+**Deliberately unspecified.** Nothing auto-advances on a clock: `IN_PROGRESS`, `COMPLETED`, and
+`NO_SHOW` are all Advisor actions, and no scheduled job moves an appointment. `start` has no time
+window because the meeting summary never set one. Both are product decisions, not defaults to
+invent here.
+
+Screening-management, payment, payout, and refund endpoints are not yet written. Slot discovery
+and booking already enforce an accepted screening row when `screeningRequired` is enabled, but the
+HTTP workflow that creates questions, submits answers, and records the Advisor decision remains
+outstanding. The remaining paths and DTOs must be designed in the corresponding feature modules
+and preserve the following agreed behavior.
 
 ### Availability and slots
 
@@ -564,11 +699,21 @@ the following agreed behavior.
   profile remains soft-deleted rather than erased when it has historical use.
 - A Profile has non-overlapping weekly windows, specific-date windows, and full-day or partial-day
   blocked periods. A blocked period always overrides specific-date and weekly availability.
+- Profile dates and wall-clock window times are interpreted in the Advisor's IANA `timezone`.
+  Slot responses use `timestamptz`/ISO UTC instants. Invalid Advisor timezones and local times
+  skipped by daylight-saving transitions are rejected rather than silently shifted.
 - Candidate start times follow the fixed 30-minute interval. Service and Trial durations need only
   be positive; a duration does not change the start-time grid. Availability is derived; it is not a
   client-managed list of independently bookable slot records.
 - A booking blocks the advisor across all of their Services and Profiles through its consultation
   range plus the configured buffer. Daily limits count consultation minutes only, not buffer time.
+- Booking creation takes a transaction-scoped advisory lock keyed by Advisor and rederives the
+  requested slot after acquiring it. This makes global/per-Service daily-limit decisions atomic
+  across simultaneous non-overlapping requests. The exclusion constraint remains the final guard
+  for overlapping ranges.
+- Specific-date windows add exceptional availability to the recurring weekly windows for that
+  date. Overlapping ranges are merged before candidate slots are derived. Blocked periods then
+  remove time from the combined result.
 - A cancellation reopens its original range only when the time remaining still satisfies the
   minimum booking notice. Otherwise it remains unavailable. Every reschedule is a cancellation
   followed by a new booking and refund flow.
@@ -577,9 +722,11 @@ the following agreed behavior.
 
 - A Service with `screeningRequired` requires submitted answers and an Advisor `ACCEPTED` decision
   before an Advisee can select a paid appointment time. A declined request notifies the Advisee.
-- Trial is independent from screening. An Advisee may receive one Trial per Service only after the
-  Advisor creates a direct grant; a grant has no request/approval status. A granted Trial uses the
-  Service's Availability Profile and configured Trial duration.
+- Trial is independent from screening. The 22 August meeting summary requires both an
+  Advisee-initiated Trial request that the Advisor can grant or decline and an Advisor-created
+  direct grant. An Advisee may use one Trial per Service. The exact request/decision DTOs and state
+  transitions are not implemented yet; a granted Trial uses the Service's Availability Profile and
+  configured Trial duration.
 
 ### Payment, payout, and refund
 
@@ -599,10 +746,62 @@ the following agreed behavior.
 
 ---
 
-## 11. Not yet written
+## 11. Module: Reviews
 
-categories & skills · services & availability · screening · booking · payments &
-payouts · refunds · chat files · notifications · trust & safety · admin console
+A review belongs to one consultation, so `service_reviews` takes the appointment's id as its
+primary key and every route addresses it as that booking's subresource. There is no review id.
 
-Booking is next — it is the one with the concurrency guarantee, the state machine and the payment
-gate, so it will stress this format hardest.
+| Route                                                | Role      | Purpose                             |
+| ---------------------------------------------------- | --------- | ----------------------------------- |
+| `POST /api/v1/bookings/:bookingId/review`            | `Advisee` | Rate a consultation you attended    |
+| `PUT /api/v1/bookings/:bookingId/review`             | `Advisee` | Rewrite your own rating and comment |
+| `GET /api/v1/bookings/:bookingId/review`             | Either participant | Read one review            |
+| `GET /api/v1/advisors/me/reviews`                    | `Advisor` | Paginated list of reviews received  |
+| `PATCH /api/v1/advisors/me/reviews/:bookingId/reply` | `Advisor` | Write or rewrite the reply          |
+| `GET /api/v1/advisors/:advisorId/reviews`            | `Public`  | Paginated public list               |
+| `GET /api/v1/advisors/:advisorId/reviews/summary`    | `Public`  | Score and star distribution         |
+
+**What may be reviewed.** Only an appointment in `COMPLETED`, and only by its Advisee — a
+consultation is rated after it has happened. `stars` is an integer 1–5, enforced both by the DTO
+and by the `service_reviews_stars_range` check constraint. `comment` is optional; the rating stands
+without one. `comment` and `advisorReply` are each capped at 4,000 characters, the same bound
+`chat:send` already uses.
+
+**Errors.** `404` when the booking does not exist, when the caller is not the party the route is
+written for, or when a reply is attempted on a consultation carrying no review — a non-participant
+must not be able to tell those apart. `409` in two distinct shapes, because the clients show them
+differently: `This consultation has already been reviewed` for a second `POST`, and
+`A consultation can only be reviewed once it is completed` for one that has not finished.
+
+**The two sides do not overwrite each other.** `PUT` writes `stars` and `comment` only, leaving
+`advisorReply` where it is; `PATCH .../reply` writes `advisorReply` only. An Advisee correcting
+their rating therefore never erases the Advisor's answer.
+
+**Response.** Every route returns `ReviewResponseDto`: the review, plus the consultation it came
+from (`serviceName`, `serviceDurationMinutes`, `appointmentStartTime`) and its author's public
+display identity (`reviewerDisplayName`, `reviewerAvatarKey`). No route — the Advisor's own list
+included — carries `fullName`, `email`, or anything else from the field-level rules in section 4.
+
+**Summary.** `average` is rounded to one decimal, the precision the score is displayed at, and is
+null when nothing has been rated. `distribution` always holds five entries ordered 5 to 1, so a
+star nobody has given reads as a zero rather than a missing key. The route is public and the
+Advisor's own screen reads it with their own id, so the number on a public profile and the number
+above their own list cannot drift apart.
+
+A suspended or banned Advisor is `404` on both public routes, not `403` — consistent with
+`GET /api/v1/advisors/:id`.
+
+**Not covered here.** The access matrix gives Admin `RD` on reviews; the delete belongs with the
+rest of the admin operations and is not written yet.
+
+---
+
+## 12. Not yet written
+
+Public Service/advisor discovery · Availability Profile inline creation/automatic naming ·
+multi-session booking · screening management · Trial request/direct grant workflow · payments &
+payouts · refunds · notifications · trust & safety · remaining admin operations
+
+The booking path still has open gates: multi-session request semantics, and the payment lifecycle
+that drives `PENDING_PAYMENT` to `BOOKED`. Concurrency is proven against real Postgres by
+`test/booking-concurrency.e2e-spec.ts`.

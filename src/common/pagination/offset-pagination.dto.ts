@@ -44,3 +44,17 @@ export function paginate<T>(
     totalPages: Math.ceil(total / pagination.limit),
   };
 }
+
+/** Executes the standard offset list/count pair and maps rows into an allowlisted response. */
+export async function paginateQuery<TRow, TResult>(
+  pagination: OffsetPaginationDto,
+  find: (options: { limit: number; offset: number }) => Promise<TRow[]>,
+  count: () => Promise<number>,
+  map: (row: TRow) => TResult,
+): Promise<PaginatedResult<TResult>> {
+  const [items, total] = await Promise.all([
+    find({ limit: pagination.limit, offset: pagination.offset }),
+    count(),
+  ]);
+  return paginate(items.map(map), total, pagination);
+}

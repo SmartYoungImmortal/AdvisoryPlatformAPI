@@ -19,7 +19,9 @@ import {
   ApiGetPaginated,
   ApiUpdate,
 } from '@/common/decorators/api-docs.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import type { SessionUser } from '@/modules/auth/auth.config';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import { CreateSkillDto } from './dtos/create-skill.dto';
@@ -31,7 +33,7 @@ import { SkillsService } from './skills.service';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Skills')
-@Controller('api/v1/skills')
+@Controller('skills')
 export class SkillsController {
   constructor(private readonly skillsService: SkillsService) {}
 
@@ -59,8 +61,11 @@ export class SkillsController {
   @Post()
   @ResponseMessage(SKILL_MESSAGES.created)
   @ApiCreate(SkillResponseDto)
-  create(@Body() dto: CreateSkillDto): Promise<SkillResponseDto> {
-    return this.skillsService.create(dto);
+  create(
+    @CurrentUser() actor: SessionUser,
+    @Body() dto: CreateSkillDto,
+  ): Promise<SkillResponseDto> {
+    return this.skillsService.create(dto, actor.id);
   }
 
   @UserHasPermission({
@@ -72,10 +77,11 @@ export class SkillsController {
   @ResponseMessage(SKILL_MESSAGES.updated)
   @ApiUpdate(SkillResponseDto)
   update(
+    @CurrentUser() actor: SessionUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSkillDto,
   ): Promise<SkillResponseDto> {
-    return this.skillsService.update(id, dto);
+    return this.skillsService.update(id, dto, actor.id);
   }
 
   @UserHasPermission({

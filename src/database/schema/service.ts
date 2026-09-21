@@ -10,13 +10,17 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { advisorProfiles } from '@/database/schema';
+import { advisorProfiles, user } from '@/database/schema';
 import { availabilityProfiles } from './availability';
 
 export const serviceCategories = pgTable('service_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name').notNull(),
   description: text('description'),
+  // Who created and who last changed the row — the admin console's Created by /
+  // Updated by. Nullable: rows written before these columns existed have no author.
+  createdByUserId: uuid('created_by_user_id').references(() => user.id),
+  updatedByUserId: uuid('updated_by_user_id').references(() => user.id),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -45,6 +49,8 @@ export const services = pgTable(
     description: text('description'),
     priceSatang: integer('price_satang').notNull(),
     durationMinutes: integer('duration_minutes').notNull(),
+    // Null means no per-Service daily consultation-minute limit.
+    dailyConsultationLimitMinutes: integer('daily_consultation_limit_minutes'),
     isPublished: boolean('is_published').notNull().default(false),
     // Independent switches — booking requires neither. See docs/ER.README.md.
     screeningRequired: boolean('screening_required').notNull().default(false),
@@ -64,6 +70,10 @@ export const services = pgTable(
     check(
       'services_duration_minutes_positive',
       sql`${table.durationMinutes} > 0`,
+    ),
+    check(
+      'services_daily_limit_positive',
+      sql`${table.dailyConsultationLimitMinutes} IS NULL OR ${table.dailyConsultationLimitMinutes} > 0`,
     ),
     check(
       'services_trial_duration_consistent',

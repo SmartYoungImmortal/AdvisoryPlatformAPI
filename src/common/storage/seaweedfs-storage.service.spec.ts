@@ -48,6 +48,9 @@ function configService(): ConfigService<Env, true> {
     SEAWEEDFS_S3_SECRET_KEY: 'seaweedfsadmin',
     SEAWEEDFS_S3_BUCKET: 'advisory-platform',
     SEAWEEDFS_S3_REGION: 'us-east-1',
+    OMISE_PUBLIC_KEY: '',
+    OMISE_SECRET_KEY: '',
+    CURRENCY_CODE: 'thb',
   };
 
   return {

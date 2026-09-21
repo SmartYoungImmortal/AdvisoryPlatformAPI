@@ -16,7 +16,7 @@ import { AdvisorsService } from './advisors.service';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Advisors')
-@Controller('api/v1/advisors')
+@Controller('advisors')
 export class AdvisorsController {
   constructor(private readonly advisorsService: AdvisorsService) {}
 

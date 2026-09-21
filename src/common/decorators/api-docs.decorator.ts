@@ -54,6 +54,22 @@ function envelopeSchema(model: Type): ResponseSchema {
   };
 }
 
+function listEnvelopeSchema(model: Type): ResponseSchema {
+  return {
+    allOf: [
+      { $ref: getSchemaPath(ApiEnvelopeDto) },
+      {
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: getSchemaPath(model) },
+          },
+        },
+      },
+    ],
+  };
+}
+
 function paginatedEnvelopeSchema(model: Type): ResponseSchema {
   return {
     allOf: [
@@ -189,6 +205,22 @@ export function ApiGetPaginated(
     ApiOkResponse({
       description: `Paginated list of ${name}`,
       schema: paginatedEnvelopeSchema(model),
+    }),
+    ...authDecorators(options.public),
+  );
+}
+
+export function ApiGetMany(
+  model: Type,
+  options: ApiReadOptions = {},
+): MethodDecorator {
+  const name = modelName(model, options.name);
+
+  return applyDecorators(
+    ApiExtraModels(ApiEnvelopeDto, model),
+    ApiOkResponse({
+      description: `List of ${name}`,
+      schema: listEnvelopeSchema(model),
     }),
     ...authDecorators(options.public),
   );

@@ -32,7 +32,7 @@ import { CreateAdvisorServiceDto } from './dtos/create-advisor-service.dto';
 import { UpdateAdvisorServiceDto } from './dtos/update-advisor-service.dto';
 
 @ApiTags('Advisor Services')
-@Controller('api/v1/advisors/me/services')
+@Controller('advisors/me/services')
 export class AdvisorServicesController {
   constructor(private readonly services: AdvisorServicesService) {}
 

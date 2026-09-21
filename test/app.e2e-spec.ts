@@ -23,6 +23,7 @@ import {
   verification,
 } from '@/database/schema';
 import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
+import { deleteUsers } from './support/accounts';
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
@@ -76,15 +77,7 @@ describe('authentication and authorization (e2e)', () => {
         .splice(0)
         .map((id) => db.delete(skills).where(eq(skills.id, id))),
     );
-    await Promise.all(
-      createdUserIds.splice(0).map(async (id) => {
-        await db.delete(adminProfiles).where(eq(adminProfiles.userId, id));
-        await db.delete(advisorProfiles).where(eq(advisorProfiles.userId, id));
-        await db.delete(session).where(eq(session.userId, id));
-        await db.delete(account).where(eq(account.userId, id));
-        await db.delete(user).where(eq(user.id, id));
-      }),
-    );
+    await deleteUsers(db, createdUserIds);
   });
 
   afterAll(async () => {

@@ -34,6 +34,42 @@ const permissions = {
     readAndCreate: ['read', 'create'],
     readOnly: ['read'],
   },
+  /**
+   * The moderation surfaces. Each one is a queue an admin works through, so the
+   * verb is `decide` rather than `update`: approving an identity, rejecting a
+   * refund and resolving a report are all one irreversible ruling, and naming
+   * them `update` would let a future role hold "can edit" without "can rule".
+   *
+   * An Advisor may `submit` their own identity and skill proofs and `read` the
+   * outcome; only an admin decides. An Advisee may `submit` a refund request and
+   * a report. Nobody but an admin reads another person's queue row.
+   */
+  identityVerification: {
+    moderated: ['read', 'decide'],
+    selfSubmit: ['submitSelf', 'readSelf'],
+  },
+  skillProof: {
+    moderated: ['read', 'decide'],
+    selfSubmit: ['submitSelf', 'readSelf'],
+  },
+  refund: {
+    moderated: ['read', 'decide'],
+    selfSubmit: ['submitSelf', 'readSelf'],
+  },
+  report: {
+    moderated: ['read', 'decide'],
+    selfSubmit: ['submitSelf', 'readSelf'],
+  },
+  offPlatformFlag: {
+    moderated: ['read', 'decide'],
+  },
+  payout: {
+    moderated: ['read', 'decide'],
+    readSelf: ['readSelf'],
+  },
+  auditLog: {
+    readOnly: ['read'],
+  },
 } as const;
 
 const statements = {
@@ -43,14 +79,41 @@ const statements = {
   advisorService: permissions.advisorService.selfManaged,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
+  // The union of every verb any role may hold on the moderation surfaces. A
+  // statement absent here cannot be granted to anyone, so this list is the
+  // vocabulary and the role blocks below are who speaks which part of it.
+  identityVerification: [
+    ...permissions.identityVerification.moderated,
+    ...permissions.identityVerification.selfSubmit,
+  ],
+  skillProof: [
+    ...permissions.skillProof.moderated,
+    ...permissions.skillProof.selfSubmit,
+  ],
+  refund: [...permissions.refund.moderated, ...permissions.refund.selfSubmit],
+  report: [...permissions.report.moderated, ...permissions.report.selfSubmit],
+  offPlatformFlag: permissions.offPlatformFlag.moderated,
+  payout: [...permissions.payout.moderated, ...permissions.payout.readSelf],
+  auditLog: permissions.auditLog.readOnly,
 } as const;
 
 const ac = createAccessControl(statements);
 const adminStatements = {
   ...adminAc.statements,
   profile: permissions.profile.selfManaged,
+  advisorService: permissions.advisorService.readOnly,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
+  // An admin rules on every queue and reads the log. They deliberately hold no
+  // `submitSelf`: an admin who could file the refund they then approve is the
+  // one combination this split exists to prevent.
+  identityVerification: permissions.identityVerification.moderated,
+  skillProof: permissions.skillProof.moderated,
+  refund: permissions.refund.moderated,
+  report: permissions.report.moderated,
+  offPlatformFlag: permissions.offPlatformFlag.moderated,
+  payout: permissions.payout.moderated,
+  auditLog: permissions.auditLog.readOnly,
 } as const;
 const advisorStatements = {
   ...userAc.statements,
@@ -59,6 +122,13 @@ const advisorStatements = {
   advisorService: permissions.advisorService.selfManaged,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.readAndCreate,
+  // An Advisor submits their own identity and proofs and watches the outcome,
+  // and reads their own payouts. They never decide, and they never see another
+  // Advisor's queue row.
+  identityVerification: permissions.identityVerification.selfSubmit,
+  skillProof: permissions.skillProof.selfSubmit,
+  report: permissions.report.selfSubmit,
+  payout: permissions.payout.readSelf,
 } as const;
 const adviseeStatements = {
   ...userAc.statements,
@@ -67,6 +137,12 @@ const adviseeStatements = {
   advisorService: permissions.advisorService.readOnly,
   serviceCategory: permissions.serviceCategory.readOnly,
   skills: permissions.skills.readOnly,
+  // An Advisee opens their own refund case and reports another user, and reads
+  // back only their own. Defining the statement without granting it to anybody is
+  // how `POST /api/v1/refunds` and `POST /api/v1/reports` come to 403 for the only
+  // role that is supposed to call them.
+  refund: permissions.refund.selfSubmit,
+  report: permissions.report.selfSubmit,
 } as const;
 const adminRole = ac.newRole(adminStatements);
 const advisorRole = ac.newRole(advisorStatements);
@@ -82,9 +158,11 @@ export const appRoles = {
  * better-auth owns the `user` table's base fields (id, email, emailVerified, name, image,
  * createdAt, updatedAt). `fields.name` repoints better-auth's base "name" concept at our
  * `displayName` Drizzle property (the ER's "what everyone else sees" field) instead of
- * adding a redundant column. `image` is left unused in favor of a separate `avatarKey`
- * additionalField, matching the domain schema's four (fullName, avatarKey, timezone,
- * status) and this repo's `objectKey`-style naming for SeaweedFS references.
+ * adding a redundant column. Uploads go to a separate `avatarKey` additionalField,
+ * matching the domain schema's four (fullName, avatarKey, timezone, status) and this
+ * repo's `objectKey`-style naming for SeaweedFS references; better-auth's own `image`
+ * holds a plain picture URL, which the demo seed fills and the admin accounts routes
+ * return beside the key.
  *
  * Note: `additionalFields[key].fieldName`, if set, must name the *Drizzle schema property*
  * (see @better-auth/core's getFieldName, which indexes straight into the passed-in Drizzle
@@ -99,6 +177,23 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
     trustedOrigins: config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
     emailAndPassword: {
       enabled: true,
+    },
+    /**
+     * Five minutes of the session in a signed cookie, so the guard on every route
+     * reads it from the request instead of querying `session` first. Against the
+     * Supabase pooler that query was a full round trip on every request — about a
+     * third of a second each — and it was the same answer every time.
+     *
+     * The trade: a suspension or revocation can take up to `maxAge` to reach a
+     * browser that already holds the cookie, because the cached copy is trusted
+     * until it expires. Five minutes is that window; shorten it here if it ever
+     * needs to be tighter. Chosen deliberately, 2026-09-21.
+     */
+    session: {
+      cookieCache: {
+        enabled: true,
+        maxAge: 5 * 60,
+      },
     },
     advanced: {
       database: {

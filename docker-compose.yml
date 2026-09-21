@@ -1,4 +1,52 @@
 services:
+  # The API itself. Its data is in the shared Supabase project, reached over the
+  # Postgres wire protocol on the way out — there is no application database in
+  # this file and there must not be one. A container needs nothing but outbound
+  # access to the session pooler, which the default bridge network already gives
+  # it, so nothing about running here changes where the data lives.
+  api:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    # Every value comes from .env, which is gitignored. Secrets are never written
+    # into this file, never passed as build args, and never baked into the image.
+    env_file: .env
+    environment:
+      # .env's default is `localhost`, which inside this container is this
+      # container. SeaweedFS is a sibling service, and its published ports are
+      # bound to the host's loopback, so it has to be addressed by service name
+      # on the compose network instead.
+      SEAWEEDFS_S3_ENDPOINT: seaweedfs
+      SEAWEEDFS_S3_PORT: '8333'
+      SEAWEEDFS_S3_USE_SSL: 'false'
+    ports:
+      - '3000:3000'
+    depends_on:
+      seaweedfs:
+        condition: service_started
+      # Deliberately absent: the postgres service below. It is the throwaway test
+      # database, and an API that waited on it would be an API one edit away from
+      # writing application data into it.
+    healthcheck:
+      # /api/v1/health opens a pooled connection and runs one statement, so this
+      # reports whether the container can serve a request rather than only whether
+      # the process booted. Alpine has no curl; wget is in busybox.
+      test:
+        [
+          'CMD-SHELL',
+          'wget --quiet --tries=1 --spider http://127.0.0.1:3000/api/v1/health || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      # The first connection to the pooler is the slow one, and a failing
+      # healthcheck during it would restart the container before it ever answered.
+      start_period: 40s
+
+  # The TEST database, not the application's. The API reads Supabase (DATABASE_URL);
+  # this instance exists so the integration and e2e suites have something they are
+  # allowed to TRUNCATE and DROP. It is addressed by TEST_DATABASE_URL.
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -17,18 +65,22 @@ services:
       retries: 5
 
   seaweedfs:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.41
     restart: unless-stopped
-    entrypoint: ['/bin/sh', '-ec']
-    command:
-      - >-
-        (until echo "s3.configure -access_key $${SEAWEEDFS_S3_ACCESS_KEY} -secret_key $${SEAWEEDFS_S3_SECRET_KEY} -user advisory-api -actions Read,Write,List,Tagging,Admin -apply" | weed shell -master=localhost:9333 >/dev/null; do sleep 1; done) & exec weed server -dir=/data -s3 -s3.port=8333
+    # The prior `weed server` setup may have left root-owned child metadata in the named
+    # volume. Repair it before the official entrypoint drops privileges to `seaweed`.
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - chown -R seaweed:seaweed /data && exec /entrypoint.sh mini -dir=/data
+    command: []
     environment:
-      SEAWEEDFS_S3_ACCESS_KEY: ${SEAWEEDFS_S3_ACCESS_KEY:-seaweedfsadmin}
-      SEAWEEDFS_S3_SECRET_KEY: ${SEAWEEDFS_S3_SECRET_KEY:-seaweedfsadmin}
+      AWS_ACCESS_KEY_ID: ${SEAWEEDFS_S3_ACCESS_KEY:-seaweedfsadmin}
+      AWS_SECRET_ACCESS_KEY: ${SEAWEEDFS_S3_SECRET_KEY:-seaweedfsadmin}
+      S3_BUCKET: ${SEAWEEDFS_S3_BUCKET:-advisory-platform}
     ports:
-      - '8333:8333'
-      - '8888:8888'
+      - '127.0.0.1:8333:8333'
+      - '127.0.0.1:8888:8888'
     volumes:
       - seaweedfs_data:/data
 

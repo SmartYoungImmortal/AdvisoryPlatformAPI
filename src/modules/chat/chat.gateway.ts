@@ -59,11 +59,20 @@ export class ChatGateway implements OnGatewayInit<ChatServer> {
 
   afterInit(server: ChatServer): void {
     server.use((client, next) => {
-      void this.socketSession
-        .authenticate(client)
-        .then(() => next())
-        .catch((error: unknown) => next(this.toConnectError(error)));
+      void this.authenticateConnection(client, next);
     });
+  }
+
+  private async authenticateConnection(
+    client: ChatSocket,
+    next: (error?: Error) => void,
+  ): Promise<void> {
+    try {
+      await this.socketSession.authenticate(client);
+      next();
+    } catch (error: unknown) {
+      next(this.toConnectError(error));
+    }
   }
 
   @SubscribeMessage(CHAT_EVENTS.join)

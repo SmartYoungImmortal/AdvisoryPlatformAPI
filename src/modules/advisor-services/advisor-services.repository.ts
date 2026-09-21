@@ -1,24 +1,36 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   and,
+  asc,
   count,
   eq,
-  type InferInsertModel,
+  gte,
+  ilike,
+  lte,
+  or,
   type InferSelectModel,
+  type SQL,
 } from 'drizzle-orm';
+import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   availabilityProfiles,
   serviceCategories,
   services,
+  user,
 } from '@/database/schema';
+import type { PublicServiceDocument } from './advisor-services.types';
+import type { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
-type NewAdvisorService = InferInsertModel<typeof services>;
-
 @Injectable()
-export class AdvisorServicesRepository {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+export class AdvisorServicesRepository extends EntityRepository<
+  typeof services
+> {
+  constructor(@Inject(DRIZZLE) db: DrizzleDB) {
+    super(db, services);
+  }
 
   async findManyByAdvisorId(
     advisorId: string,
@@ -34,23 +46,14 @@ export class AdvisorServicesRepository {
   }
 
   async countByAdvisorId(advisorId: string): Promise<number> {
-    const [result] = await this.db
-      .select({ value: count() })
-      .from(services)
-      .where(eq(services.advisorId, advisorId));
-    return result?.value ?? 0;
+    return this.count(eq(services.advisorId, advisorId));
   }
 
   async findOwnedById(
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.db
-      .select()
-      .from(services)
-      .where(and(eq(services.id, serviceId), eq(services.advisorId, advisorId)))
-      .limit(1);
-    return service;
+    return this.findOne(this.ownedWhere(advisorId, serviceId));
   }
 
   async categoryExists(categoryId: string): Promise<boolean> {
@@ -79,21 +82,15 @@ export class AdvisorServicesRepository {
     return profile !== undefined;
   }
 
-  async create(values: NewAdvisorService): Promise<AdvisorService> {
-    const [service] = await this.db.insert(services).values(values).returning();
-    return service;
-  }
-
   async updateOwned(
     advisorId: string,
     serviceId: string,
-    values: Partial<NewAdvisorService>,
+    values: PgUpdateSetSource<typeof services>,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.db
-      .update(services)
-      .set(values)
-      .where(and(eq(services.id, serviceId), eq(services.advisorId, advisorId)))
-      .returning();
+    const [service] = await this.updateWhere(
+      this.ownedWhere(advisorId, serviceId),
+      values,
+    );
     return service;
   }
 
@@ -101,10 +98,106 @@ export class AdvisorServicesRepository {
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.db
-      .delete(services)
-      .where(and(eq(services.id, serviceId), eq(services.advisorId, advisorId)))
-      .returning();
+    const [service] = await this.deleteWhere(
+      this.ownedWhere(advisorId, serviceId),
+    );
     return service;
+  }
+
+  async findPublished(
+    query: PublicServiceQueryDto,
+    options: { limit: number; offset: number },
+  ): Promise<PublicServiceDocument[]> {
+    return this.selectPublished(query)
+      .orderBy(asc(services.createdAt), asc(services.id))
+      .limit(options.limit)
+      .offset(options.offset);
+  }
+
+  /**
+   * Counted over the same join `selectPublished` uses, not through the inherited
+   * `count()`.
+   *
+   * `publishedWhere` filters on `user.status` and `user.banned` as well as on the
+   * service, and the inherited `count()` selects `from(services)` alone. That made
+   * every call emit `select count(*) from "services" where ... "user"."status" ...`
+   * with no `user` in the FROM clause, which Postgres rejects outright — so
+   * `GET /api/v1/services` answered 500 for every request, while
+   * `GET /api/v1/services/:id` worked because it goes through `selectPublished`.
+   * A suspended advisor's services have to disappear from the count as well as
+   * from the page, or the last page of results is empty.
+   */
+  async countPublished(query: PublicServiceQueryDto): Promise<number> {
+    const [row] = await this.db
+      .select({ value: count() })
+      .from(services)
+      .innerJoin(user, eq(user.id, services.advisorId))
+      .where(this.publishedWhere(query));
+    return row?.value ?? 0;
+  }
+
+  async findPublishedById(
+    serviceId: string,
+  ): Promise<PublicServiceDocument | undefined> {
+    const [service] = await this.selectPublished(
+      undefined,
+      eq(services.id, serviceId),
+    );
+    return service;
+  }
+
+  private ownedWhere(advisorId: string, serviceId: string): SQL {
+    return and(
+      eq(services.id, serviceId),
+      eq(services.advisorId, advisorId),
+    ) as SQL;
+  }
+
+  private selectPublished(query?: PublicServiceQueryDto, extraPredicate?: SQL) {
+    return this.db
+      .select({
+        id: services.id,
+        advisorId: services.advisorId,
+        categoryId: services.categoryId,
+        name: services.name,
+        description: services.description,
+        priceSatang: services.priceSatang,
+        durationMinutes: services.durationMinutes,
+        screeningRequired: services.screeningRequired,
+        trialEnabled: services.trialEnabled,
+        trialDurationMinutes: services.trialDurationMinutes,
+      })
+      .from(services)
+      .innerJoin(user, eq(user.id, services.advisorId))
+      .where(and(this.publishedWhere(query), extraPredicate));
+  }
+
+  private publishedWhere(query?: PublicServiceQueryDto): SQL {
+    const text = query?.q?.trim();
+    const textPredicate = text
+      ? or(
+          ilike(services.name, `%${this.escapeLikePattern(text)}%`),
+          ilike(services.description, `%${this.escapeLikePattern(text)}%`),
+        )
+      : undefined;
+
+    return and(
+      eq(services.isPublished, true),
+      eq(user.status, 'ACTIVE'),
+      eq(user.banned, false),
+      query?.categoryId ? eq(services.categoryId, query.categoryId) : undefined,
+      query?.advisorId ? eq(services.advisorId, query.advisorId) : undefined,
+      query?.minPriceSatang !== undefined
+        ? gte(services.priceSatang, query.minPriceSatang)
+        : undefined,
+      query?.maxPriceSatang !== undefined
+        ? lte(services.priceSatang, query.maxPriceSatang)
+        : undefined,
+      textPredicate,
+    ) as SQL;
+  }
+
+  private escapeLikePattern(value: string): string {
+    return value.replace(/[\\%_]/g, '\\$&');
   }
 }

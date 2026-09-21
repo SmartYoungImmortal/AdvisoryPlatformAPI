@@ -27,7 +27,7 @@ import { ChatReadResponseDto } from './dtos/chat-read-response.dto';
 import { ChatRoomResponseDto } from './dtos/chat-room-response.dto';
 
 @ApiTags('Chat')
-@Controller('api/v1/chat/rooms')
+@Controller('chat/rooms')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 

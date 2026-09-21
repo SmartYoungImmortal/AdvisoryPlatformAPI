@@ -19,7 +19,9 @@ import {
   ApiGetPaginated,
   ApiUpdate,
 } from '@/common/decorators/api-docs.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import type { SessionUser } from '@/modules/auth/auth.config';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
@@ -31,7 +33,7 @@ import { ServiceCategoriesService } from './service-categories.service';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Service Categories')
-@Controller('api/v1/service-categories')
+@Controller('service-categories')
 export class ServiceCategoriesController {
   constructor(
     private readonly serviceCategoriesService: ServiceCategoriesService,
@@ -60,9 +62,10 @@ export class ServiceCategoriesController {
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.created)
   @ApiCreate(ServiceCategoryResponseDto)
   create(
+    @CurrentUser() actor: SessionUser,
     @Body() dto: CreateServiceCategoryDto,
   ): Promise<ServiceCategoryResponseDto> {
-    return this.serviceCategoriesService.create(dto);
+    return this.serviceCategoriesService.create(dto, actor.id);
   }
 
   @UserHasPermission({ permission: { serviceCategory: ['update'] } })
@@ -70,10 +73,11 @@ export class ServiceCategoriesController {
   @ResponseMessage(SERVICE_CATEGORY_MESSAGES.updated)
   @ApiUpdate(ServiceCategoryResponseDto)
   update(
+    @CurrentUser() actor: SessionUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateServiceCategoryDto,
   ): Promise<ServiceCategoryResponseDto> {
-    return this.serviceCategoriesService.update(id, dto);
+    return this.serviceCategoriesService.update(id, dto, actor.id);
   }
 
   @UserHasPermission({ permission: { serviceCategory: ['delete'] } })

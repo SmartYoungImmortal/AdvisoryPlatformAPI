@@ -7,4 +7,5 @@ export const ADVISOR_SERVICE_MESSAGES = {
   trialDurationRequired: 'Trial duration is required when trial is enabled',
   trialDurationForbidden:
     'Trial duration is only allowed when trial is enabled',
+  publicSearchInvalidPriceRange: 'Minimum price must not exceed maximum price',
 } as const;

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
-  PaginatedResult,
-  paginate,
+  paginateQuery,
+  type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { CreateServiceCategoryDto } from './dtos/create-service-category.dto';
 import { ServiceCategoryQueryDto } from './dtos/service-category-query.dto';
@@ -19,18 +19,12 @@ export class ServiceCategoriesService {
   async findMany(
     query: ServiceCategoryQueryDto,
   ): Promise<PaginatedResult<ServiceCategoryResponseDto>> {
-    const [items, total] = await Promise.all([
-      this.serviceCategoriesRepository.findMany(undefined, {
-        limit: query.limit,
-        offset: query.offset,
-      }),
-      this.serviceCategoriesRepository.count(),
-    ]);
-
-    return paginate(
-      items.map((category) => new ServiceCategoryResponseDto(category)),
-      total,
+    return paginateQuery(
       query,
+      (options) =>
+        this.serviceCategoriesRepository.findMany(undefined, options),
+      () => this.serviceCategoriesRepository.count(),
+      (category) => new ServiceCategoryResponseDto(category),
     );
   }
 
@@ -44,18 +38,28 @@ export class ServiceCategoriesService {
     return new ServiceCategoryResponseDto(category);
   }
 
+  /** `actorId` is the signed-in admin, from the session — never from the body. */
   async create(
     dto: CreateServiceCategoryDto,
+    actorId: string,
   ): Promise<ServiceCategoryResponseDto> {
-    const category = await this.serviceCategoriesRepository.create(dto);
+    const category = await this.serviceCategoriesRepository.create({
+      ...dto,
+      createdByUserId: actorId,
+      updatedByUserId: actorId,
+    });
     return new ServiceCategoryResponseDto(category);
   }
 
   async update(
     id: string,
     dto: UpdateServiceCategoryDto,
+    actorId: string,
   ): Promise<ServiceCategoryResponseDto> {
-    const category = await this.serviceCategoriesRepository.updateById(id, dto);
+    const category = await this.serviceCategoriesRepository.updateById(id, {
+      ...dto,
+      updatedByUserId: actorId,
+    });
 
     if (!category) {
       throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);

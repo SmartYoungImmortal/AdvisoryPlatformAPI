@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import {
-  paginate,
+  paginateQuery,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { services } from '@/database/schema';
@@ -15,6 +15,8 @@ import { AdvisorServicesRepository } from './advisor-services.repository';
 import { AdvisorServiceQueryDto } from './dtos/advisor-service-query.dto';
 import { AdvisorServiceResponseDto } from './dtos/advisor-service-response.dto';
 import { CreateAdvisorServiceDto } from './dtos/create-advisor-service.dto';
+import { PublicServiceQueryDto } from './dtos/public-service-query.dto';
+import { PublicServiceResponseDto } from './dtos/public-service-response.dto';
 import { UpdateAdvisorServiceDto } from './dtos/update-advisor-service.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
@@ -27,18 +29,11 @@ export class AdvisorServicesService {
     user: SessionUser,
     query: AdvisorServiceQueryDto,
   ): Promise<PaginatedResult<AdvisorServiceResponseDto>> {
-    const [items, total] = await Promise.all([
-      this.repository.findManyByAdvisorId(user.id, {
-        limit: query.limit,
-        offset: query.offset,
-      }),
-      this.repository.countByAdvisorId(user.id),
-    ]);
-
-    return paginate(
-      items.map((service) => new AdvisorServiceResponseDto(service)),
-      total,
+    return paginateQuery(
       query,
+      (options) => this.repository.findManyByAdvisorId(user.id, options),
+      () => this.repository.countByAdvisorId(user.id),
+      (service) => new AdvisorServiceResponseDto(service),
     );
   }
 
@@ -49,6 +44,48 @@ export class AdvisorServicesService {
     return new AdvisorServiceResponseDto(
       await this.getOwned(user.id, serviceId),
     );
+  }
+
+  async findManyForAdmin(
+    query: AdvisorServiceQueryDto,
+  ): Promise<PaginatedResult<AdvisorServiceResponseDto>> {
+    return paginateQuery(
+      query,
+      (options) => this.repository.findMany(undefined, options),
+      () => this.repository.count(),
+      (service) => new AdvisorServiceResponseDto(service),
+    );
+  }
+
+  async findPublished(
+    query: PublicServiceQueryDto,
+  ): Promise<PaginatedResult<PublicServiceResponseDto>> {
+    if (
+      query.minPriceSatang !== undefined &&
+      query.maxPriceSatang !== undefined &&
+      query.minPriceSatang > query.maxPriceSatang
+    ) {
+      throw new BadRequestException(
+        ADVISOR_SERVICE_MESSAGES.publicSearchInvalidPriceRange,
+      );
+    }
+
+    return paginateQuery(
+      query,
+      (options) => this.repository.findPublished(query, options),
+      () => this.repository.countPublished(query),
+      (service) => new PublicServiceResponseDto(service),
+    );
+  }
+
+  async findPublishedById(
+    serviceId: string,
+  ): Promise<PublicServiceResponseDto> {
+    const service = await this.repository.findPublishedById(serviceId);
+    if (!service) {
+      throw new NotFoundException(ADVISOR_SERVICE_MESSAGES.notFound);
+    }
+    return new PublicServiceResponseDto(service);
   }
 
   async create(
@@ -73,6 +110,7 @@ export class AdvisorServicesService {
       description: dto.description,
       priceSatang: dto.priceSatang,
       durationMinutes: dto.durationMinutes,
+      dailyConsultationLimitMinutes: dto.dailyConsultationLimitMinutes ?? null,
       isPublished: dto.isPublished ?? false,
       screeningRequired: dto.screeningRequired ?? false,
       trialEnabled: dto.trialEnabled ?? false,

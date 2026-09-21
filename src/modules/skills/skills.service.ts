@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
-  PaginatedResult,
-  paginate,
+  paginateQuery,
+  type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { CreateSkillDto } from './dtos/create-skill.dto';
 import { SkillQueryDto } from './dtos/skill-query.dto';
@@ -17,18 +17,11 @@ export class SkillsService {
   async findMany(
     query: SkillQueryDto,
   ): Promise<PaginatedResult<SkillResponseDto>> {
-    const [items, total] = await Promise.all([
-      this.skillsRepository.findMany(undefined, {
-        limit: query.limit,
-        offset: query.offset,
-      }),
-      this.skillsRepository.count(),
-    ]);
-
-    return paginate(
-      items.map((skill) => new SkillResponseDto(skill)),
-      total,
+    return paginateQuery(
       query,
+      (options) => this.skillsRepository.findMany(undefined, options),
+      () => this.skillsRepository.count(),
+      (skill) => new SkillResponseDto(skill),
     );
   }
 
@@ -42,13 +35,28 @@ export class SkillsService {
     return new SkillResponseDto(skill);
   }
 
-  async create(dto: CreateSkillDto): Promise<SkillResponseDto> {
-    const skill = await this.skillsRepository.create(dto);
+  /** `actorId` is the signed-in admin, from the session — never from the body. */
+  async create(
+    dto: CreateSkillDto,
+    actorId: string,
+  ): Promise<SkillResponseDto> {
+    const skill = await this.skillsRepository.create({
+      ...dto,
+      createdByUserId: actorId,
+      updatedByUserId: actorId,
+    });
     return new SkillResponseDto(skill);
   }
 
-  async update(id: string, dto: UpdateSkillDto): Promise<SkillResponseDto> {
-    const skill = await this.skillsRepository.updateById(id, dto);
+  async update(
+    id: string,
+    dto: UpdateSkillDto,
+    actorId: string,
+  ): Promise<SkillResponseDto> {
+    const skill = await this.skillsRepository.updateById(id, {
+      ...dto,
+      updatedByUserId: actorId,
+    });
 
     if (!skill) {
       throw new NotFoundException(SKILL_MESSAGES.notFound);
