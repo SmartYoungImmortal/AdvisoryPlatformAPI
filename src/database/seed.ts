@@ -35,8 +35,21 @@
  * Writing the frontend's R2 URLs into that column would produce keys that cannot
  * be presigned and reads that fail, so images are left out: they need SeaweedFS up
  * and a real upload. The frontend keeps serving covers from its own R2 bucket
- * until then. Bookings, invoices, payouts, reports and chat are also left alone —
- * they are the output of flows, and seeding them would fake state no flow produced.
+ * until then.
+ *
+ * ## Demo activity
+ *
+ * The admin console is a set of queues, and an empty queue shows nothing about how
+ * it reads. So the script also writes the rows the flows would have produced — a
+ * run of past and upcoming bookings with their invoices, chat rooms and reviews,
+ * refund cases against some of them, payouts for the settled ones, reports,
+ * off-platform flags on messages that leaked a phone number or a LINE id, identity
+ * submissions and skill-proof documents. They are demo state, written on purpose:
+ * each is keyed on something the script recognises (`seed-demo-*` room names, a
+ * message's text, a file name) so a second run finds them instead of doubling them.
+ * Document object keys point under `seed/`, which SeaweedFS does not hold — the
+ * rows read correctly, but opening the document itself fails until a real upload
+ * replaces it.
  */
 
 import { NestFactory } from '@nestjs/core';
@@ -49,14 +62,27 @@ import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   adminProfiles,
   advisorGlobalAvailability,
+  advisorIdentity,
   advisorProfiles,
   advisorSkills,
   availabilityProfiles,
   availabilityWeeklyWindows,
+  chatMembers,
+  chatMessages,
+  chatRooms,
+  offPlatformFlags,
+  payoutInvoices,
+  payouts,
+  refundCases,
+  serviceAppointments,
   serviceCategories,
+  serviceInvoices,
+  serviceReviews,
   services,
+  skillProofDocuments,
   skills,
   user,
+  userReports,
 } from '@/database/schema';
 import { createAuth } from '@/modules/auth/auth.config';
 
@@ -298,6 +324,447 @@ const WEEKLY_WINDOWS = [
   { dayOfWeek: 6, startTime: '09:00:00', endTime: '12:00:00' },
 ] as const;
 
+/* ------------------------------------------------------------ demo activity */
+
+type Side = 'advisee' | 'advisor';
+
+interface BookingSeed {
+  /** `jitsi_room_name` is `seed-demo-<key>`: how a re-run recognises the row. */
+  readonly key: string;
+  readonly advisor: string;
+  readonly service: string;
+  readonly advisee: string;
+  /** Days from the day the script runs; negative is in the past. */
+  readonly day: number;
+  /** Bangkok hour the session starts. */
+  readonly hour: number;
+  readonly state: 'COMPLETED' | 'BOOKED' | 'CANCELLED';
+  readonly invoice: 'RELEASED' | 'HELD_IN_ESCROW' | 'REFUNDED';
+  readonly review?: { readonly stars: number; readonly comment: string };
+  readonly chat: readonly (readonly [Side, string])[];
+}
+
+const ARAYA = 'araya.s@advisory.demo';
+const KANYA = 'kanya.p@advisory.demo';
+const THANAKRIT = 'thanakrit.w@advisory.demo';
+const PIMCHANOK = 'pimchanok.r@advisory.demo';
+const SARAWUT = 'sarawut.k@advisory.demo';
+const NATTAPONG = 'nattapong.d@advisory.demo';
+const SUPAPORN = 'supaporn.t@advisory.demo';
+
+const BOOKINGS: readonly BookingSeed[] = [
+  {
+    key: 'b01',
+    advisor: ARAYA,
+    service: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+    advisee: NATTAPONG,
+    day: -40,
+    hour: 10,
+    state: 'COMPLETED',
+    invoice: 'RELEASED',
+    review: {
+      stars: 5,
+      comment: 'อธิบายเรื่องลดหย่อนเข้าใจง่ายมาก ได้แผนกลับไปใช้จริง',
+    },
+    chat: [
+      [
+        'advisee',
+        'สวัสดีครับ รายได้ผมมาจากหลายแพลตฟอร์ม ควรเตรียมเอกสารอะไรบ้างครับ',
+      ],
+      [
+        'advisor',
+        'เตรียมสรุปรายได้รายเดือนกับหนังสือรับรองการหักภาษีมาได้เลยค่ะ',
+      ],
+      ['advisee', 'ได้ครับ แล้วเจอกันตามนัดนะครับ'],
+    ],
+  },
+  {
+    key: 'b02',
+    advisor: KANYA,
+    service: 'ตรวจสัญญาก่อนเซ็น',
+    advisee: SUPAPORN,
+    day: -35,
+    hour: 14,
+    state: 'COMPLETED',
+    invoice: 'RELEASED',
+    review: {
+      stars: 4,
+      comment: 'ชี้จุดเสี่ยงในสัญญาเช่าได้ละเอียด แต่อยากให้มีสรุปเป็นเอกสาร',
+    },
+    chat: [
+      ['advisee', 'ส่งร่างสัญญาเช่าอาคารให้ดูก่อนได้ไหมคะ'],
+      ['advisor', 'ส่งอีเมลมาที่ kanya.law@gmail.com ก็ได้ค่ะ'],
+      ['advisee', 'แนบในแชทนี้แทนนะคะ'],
+    ],
+  },
+  {
+    key: 'b03',
+    advisor: THANAKRIT,
+    service: 'ตรวจสุขภาพการตลาดของร้าน',
+    advisee: NATTAPONG,
+    day: -30,
+    hour: 11,
+    state: 'COMPLETED',
+    invoice: 'RELEASED',
+    review: {
+      stars: 5,
+      comment:
+        'ได้รายการสิ่งที่ต้องหยุดทำทันทีกับสิ่งที่ควรลงเงินเพิ่ม คุ้มมาก',
+    },
+    chat: [
+      ['advisee', 'ร้านผมยอดตกมาสามเดือนแล้วครับ อยากให้ช่วยดูแคมเปญโฆษณา'],
+      ['advisee', 'ขอเบอร์ติดต่อได้ไหมครับ 089-123-4567 จะได้คุยนอกแอป'],
+      ['advisor', 'คุยกันในแชทนี้ได้เลยครับ ข้อมูลจะได้อยู่ครบในที่เดียว'],
+    ],
+  },
+  {
+    key: 'b04',
+    advisor: PIMCHANOK,
+    service: 'คุยเรื่องความเครียดจากงาน',
+    advisee: SUPAPORN,
+    day: -28,
+    hour: 19,
+    state: 'COMPLETED',
+    invoice: 'RELEASED',
+    review: {
+      stars: 5,
+      comment: 'รู้สึกว่ามีคนฟังจริงๆ และได้วิธีแบ่งงานที่ใช้ได้เลย',
+    },
+    chat: [
+      ['advisee', 'ช่วงนี้นอนไม่หลับเพราะงานค่ะ'],
+      ['advisor', 'เดี๋ยวเราค่อยๆ ไล่ดูกันว่าอะไรกินพลังเราที่สุดนะคะ'],
+    ],
+  },
+  {
+    key: 'b05',
+    advisor: SARAWUT,
+    service: 'ซ้อมสัมภาษณ์งานสายเทค',
+    advisee: NATTAPONG,
+    day: -25,
+    hour: 13,
+    state: 'COMPLETED',
+    invoice: 'RELEASED',
+    review: {
+      stars: 4,
+      comment: 'ซ้อม system design ได้ตรงจุด คำถามเหมือนสัมภาษณ์จริง',
+    },
+    chat: [
+      ['advisee', 'สัมภาษณ์ตำแหน่ง backend สัปดาห์หน้าครับ'],
+      ['advisor', 'แอดไลน์มาได้เลยครับ LINE: @sarawut.dev จะส่งโจทย์ให้ก่อน'],
+      ['advisee', 'ส่งในนี้ได้ไหมครับ'],
+    ],
+  },
+  {
+    key: 'b06',
+    advisor: ARAYA,
+    service: 'ตรวจแผนภาษีก่อนยื่น',
+    advisee: SUPAPORN,
+    day: -21,
+    hour: 10,
+    state: 'COMPLETED',
+    invoice: 'RELEASED',
+    review: {
+      stars: 5,
+      comment: 'เจอค่าลดหย่อนที่ตกไปสองรายการ ประหยัดภาษีไปเยอะ',
+    },
+    chat: [
+      ['advisee', 'แนบแบบ ภ.ง.ด.90 ที่กรอกไว้แล้วค่ะ'],
+      ['advisor', 'ได้รับแล้วค่ะ ขอดูใบเสร็จประกันด้วยนะคะ'],
+    ],
+  },
+  {
+    key: 'b07',
+    advisor: KANYA,
+    service: 'ปัญหาลูกจ้างและกฎหมายแรงงาน',
+    advisee: NATTAPONG,
+    day: -18,
+    hour: 15,
+    state: 'COMPLETED',
+    invoice: 'HELD_IN_ESCROW',
+    chat: [
+      ['advisee', 'พนักงานขอค่าชดเชยหลังลาออกเอง ต้องจ่ายไหมครับ'],
+      [
+        'advisor',
+        'ขึ้นกับว่าการลาออกนั้นเกิดจากอะไรค่ะ เดี๋ยวคุยรายละเอียดกันในนัด',
+      ],
+    ],
+  },
+  {
+    key: 'b08',
+    advisor: THANAKRIT,
+    service: 'วางแผนเปิดธุรกิจใหม่',
+    advisee: SUPAPORN,
+    day: -15,
+    hour: 10,
+    state: 'CANCELLED',
+    invoice: 'REFUNDED',
+    chat: [
+      ['advisee', 'อยากเปิดร้านกาแฟเล็กๆ ค่ะ'],
+      ['advisor', 'ขอเลื่อนนัดนะครับ ติดธุระด่วน'],
+      ['advisee', 'แจ้งก่อนนัดแค่ชั่วโมงเดียวเองนะคะ'],
+    ],
+  },
+  {
+    key: 'b09',
+    advisor: PIMCHANOK,
+    service: 'ทบทวนเส้นทางอาชีพ',
+    advisee: NATTAPONG,
+    day: -12,
+    hour: 18,
+    state: 'COMPLETED',
+    invoice: 'HELD_IN_ESCROW',
+    chat: [
+      [
+        'advisee',
+        'โอนตรงเข้าบัญชีได้ไหมครับ กสิกร 123-4-56789-0 จะได้ไม่เสียค่าธรรมเนียม',
+      ],
+      ['advisor', 'ชำระผ่านแพลตฟอร์มเท่านั้นนะคะ'],
+    ],
+  },
+  {
+    key: 'b10',
+    advisor: SARAWUT,
+    service: 'เลือกสแตกให้โปรเจกต์แรก',
+    advisee: SUPAPORN,
+    day: -9,
+    hour: 20,
+    state: 'COMPLETED',
+    invoice: 'HELD_IN_ESCROW',
+    chat: [
+      ['advisee', 'จะทำแอปจองคิวร้านเสริมสวยค่ะ'],
+      ['advisor', 'เริ่มจากเว็บก่อนดีกว่าครับ เดี๋ยวอธิบายเหตุผลในนัด'],
+    ],
+  },
+  {
+    key: 'b11',
+    advisor: ARAYA,
+    service: 'ปิดงบบริษัทเล็กครั้งแรก',
+    advisee: NATTAPONG,
+    day: -5,
+    hour: 10,
+    state: 'COMPLETED',
+    invoice: 'HELD_IN_ESCROW',
+    chat: [
+      ['advisee', 'บริษัทเพิ่งจดปีแรกครับ ยังไม่เคยปิดงบ'],
+      ['advisor', 'เตรียมสมุดบัญชีธนาคารทั้งปีมาได้เลยค่ะ'],
+    ],
+  },
+  {
+    key: 'b12',
+    advisor: KANYA,
+    service: 'ตรวจสัญญาก่อนเซ็น',
+    advisee: NATTAPONG,
+    day: 3,
+    hour: 13,
+    state: 'BOOKED',
+    invoice: 'HELD_IN_ESCROW',
+    chat: [['advisee', 'สัญญาจ้างฟรีแลนซ์ครับ ส่งไฟล์ให้ก่อนนัดนะครับ']],
+  },
+  {
+    key: 'b13',
+    advisor: PIMCHANOK,
+    service: 'คุยเรื่องความเครียดจากงาน',
+    advisee: NATTAPONG,
+    day: 5,
+    hour: 19,
+    state: 'BOOKED',
+    invoice: 'HELD_IN_ESCROW',
+    chat: [['advisee', 'ขอคุยต่อจากครั้งก่อนครับ']],
+  },
+  {
+    key: 'b14',
+    advisor: SARAWUT,
+    service: 'ซ้อมสัมภาษณ์งานสายเทค',
+    advisee: SUPAPORN,
+    day: 7,
+    hour: 14,
+    state: 'BOOKED',
+    invoice: 'HELD_IN_ESCROW',
+    chat: [['advisee', 'สัมภาษณ์ตำแหน่ง frontend ค่ะ']],
+  },
+];
+
+/** Refunds, against the booking whose invoice they claim. */
+const REFUNDS = [
+  {
+    booking: 'b07',
+    status: 'OPEN',
+    reason: 'คำแนะนำไม่ตรงกับปัญหาที่แจ้งไว้ตอนจอง ขอคืนเงินค่าปรึกษา',
+  },
+  {
+    booking: 'b08',
+    status: 'APPROVED',
+    reason: 'ที่ปรึกษายกเลิกนัดก่อนเวลาเพียงหนึ่งชั่วโมง',
+  },
+  {
+    booking: 'b09',
+    status: 'REJECTED',
+    reason: 'รู้สึกว่าไม่ได้อะไรใหม่จากการปรึกษา',
+  },
+  {
+    booking: 'b10',
+    status: 'OPEN',
+    reason: 'สัญญาณเสียงหลุดเกือบครึ่งชั่วโมง ปรึกษาไม่ครบเวลา',
+  },
+] as const;
+
+/** Settled invoices, bundled per advisor the way a payout run would bundle them. */
+const PAYOUTS = [
+  {
+    key: 'araya',
+    bookings: ['b01', 'b06'],
+    status: 'PAID',
+    transferId: 'trsf_demo_araya_0001',
+  },
+  { key: 'kanya', bookings: ['b02'], status: 'PENDING', transferId: null },
+  { key: 'thanakrit', bookings: ['b03'], status: 'PENDING', transferId: null },
+  { key: 'pimchanok', bookings: ['b04'], status: 'FAILED', transferId: null },
+  { key: 'sarawut', bookings: ['b05'], status: 'PENDING', transferId: null },
+] as const;
+
+/** Flags on the chat lines above that leaked a way to leave the platform. */
+const FLAGS = [
+  {
+    booking: 'b03',
+    text: 'ขอเบอร์ติดต่อได้ไหมครับ 089-123-4567 จะได้คุยนอกแอป',
+    pattern: 'phone number',
+    status: 'PENDING_REVIEW',
+  },
+  {
+    booking: 'b05',
+    text: 'แอดไลน์มาได้เลยครับ LINE: @sarawut.dev จะส่งโจทย์ให้ก่อน',
+    pattern: 'line id',
+    status: 'PENDING_REVIEW',
+  },
+  {
+    booking: 'b09',
+    text: 'โอนตรงเข้าบัญชีได้ไหมครับ กสิกร 123-4-56789-0 จะได้ไม่เสียค่าธรรมเนียม',
+    pattern: 'bank account',
+    status: 'CONFIRMED',
+  },
+  {
+    booking: 'b02',
+    text: 'ส่งอีเมลมาที่ kanya.law@gmail.com ก็ได้ค่ะ',
+    pattern: 'email address',
+    status: 'DISMISSED',
+  },
+] as const;
+
+const REPORTS = [
+  {
+    booking: 'b05',
+    reporter: NATTAPONG,
+    reported: SARAWUT,
+    status: 'OPEN',
+    reason: 'ชวนไปคุยนอกแพลตฟอร์มและขอให้ติดต่อทางไลน์ส่วนตัว',
+  },
+  {
+    booking: 'b08',
+    reporter: SUPAPORN,
+    reported: THANAKRIT,
+    status: 'OPEN',
+    reason: 'ยกเลิกนัดกระชั้นชิดโดยไม่แจ้งล่วงหน้า',
+  },
+  {
+    booking: 'b09',
+    reporter: PIMCHANOK,
+    reported: NATTAPONG,
+    status: 'ACTIONED',
+    reason: 'ขอให้โอนเงินนอกระบบระหว่างแชท',
+  },
+  {
+    booking: 'b07',
+    reporter: NATTAPONG,
+    reported: KANYA,
+    status: 'DISMISSED',
+    reason: 'คำแนะนำไม่ตรงกับที่ตกลงกันไว้',
+  },
+] as const;
+
+/** Identity submissions: two cleared, two waiting, one sent back. */
+const IDENTITIES = [
+  {
+    advisor: ARAYA,
+    status: 'VERIFIED',
+    submitted: -62,
+    decided: -60,
+    reason: null,
+  },
+  {
+    advisor: KANYA,
+    status: 'VERIFIED',
+    submitted: -55,
+    decided: -54,
+    reason: null,
+  },
+  {
+    advisor: THANAKRIT,
+    status: 'SUBMITTED',
+    submitted: -2,
+    decided: null,
+    reason: null,
+  },
+  {
+    advisor: PIMCHANOK,
+    status: 'SUBMITTED',
+    submitted: -1,
+    decided: null,
+    reason: null,
+  },
+  {
+    advisor: SARAWUT,
+    status: 'REJECTED',
+    submitted: -6,
+    decided: -5,
+    reason: 'รูปบัตรประชาชนไม่ชัด กรุณาถ่ายใหม่ให้เห็นเลขครบทุกหลัก',
+  },
+] as const;
+
+const SKILL_PROOFS = [
+  {
+    advisor: ARAYA,
+    skill: 'บัญชีและงบการเงิน',
+    file: 'ใบอนุญาตผู้สอบบัญชี.pdf',
+    status: 'APPROVED',
+    day: -58,
+  },
+  {
+    advisor: KANYA,
+    skill: 'สัญญาธุรกิจ',
+    file: 'ใบอนุญาตว่าความ.pdf',
+    status: 'APPROVED',
+    day: -50,
+  },
+  {
+    advisor: THANAKRIT,
+    skill: 'การตลาดดิจิทัล',
+    file: 'Google-Ads-Certification.pdf',
+    status: 'PENDING',
+    day: -3,
+  },
+  {
+    advisor: PIMCHANOK,
+    skill: 'จิตวิทยาการปรึกษา',
+    file: 'ใบประกอบวิชาชีพจิตวิทยาคลินิก.pdf',
+    status: 'PENDING',
+    day: -2,
+  },
+  {
+    advisor: SARAWUT,
+    skill: 'พัฒนาเว็บแอปพลิเคชัน',
+    file: 'AWS-Solutions-Architect.pdf',
+    status: 'PENDING',
+    day: -1,
+  },
+  {
+    advisor: SARAWUT,
+    skill: 'วิทยาการข้อมูล',
+    file: 'screenshot-linkedin.png',
+    status: 'REJECTED',
+    day: -8,
+  },
+] as const;
+
 /* ------------------------------------------------------------------- guards */
 
 function assertAllowedToRun(databaseUrl: string): string {
@@ -355,6 +822,420 @@ async function ensureNamed(
     .returning({ id: table.id });
   note(name, true);
   return row.id;
+}
+
+/** A Bangkok wall-clock time `day` days from today. */
+function bangkok(day: number, hour: number, minute = 0): Date {
+  const today = new Date(Date.now() + 7 * 3_600_000);
+  return new Date(
+    Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate() + day,
+      hour - 7,
+      minute,
+    ),
+  );
+}
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+/** The platform's cut, as the checkout takes it. */
+const FEE_RATE = 0.05;
+
+/** Postgres' exclusion-violation code: the advisor already has that hour. */
+function isSlotTaken(error: unknown): boolean {
+  const code = (e: unknown) => (e as { code?: string } | undefined)?.code;
+  return (
+    code(error) === '23P01' ||
+    code((error as { cause?: unknown } | undefined)?.cause) === '23P01'
+  );
+}
+
+interface SeededBooking {
+  readonly appointmentId: string;
+  readonly invoiceId: string;
+  readonly chatRoomId: string;
+  readonly advisorId: string;
+  readonly adviseeId: string;
+  readonly amountSatang: number;
+  readonly feeSatang: number;
+  readonly end: Date;
+}
+
+async function seedActivity(
+  db: DrizzleDB,
+  ctx: {
+    readonly adminId: string;
+    readonly userIdByEmail: ReadonlyMap<string, string>;
+    readonly skillIds: ReadonlyMap<string, string>;
+    readonly serviceByKey: ReadonlyMap<
+      string,
+      { id: string; priceSatang: number; durationMinutes: number }
+    >;
+  },
+): Promise<void> {
+  const userId = (email: string): string => {
+    const found = ctx.userIdByEmail.get(email);
+    if (!found)
+      throw new Error(`demo activity names ${email}, who was not seeded`);
+    return found;
+  };
+  const booked = new Map<string, SeededBooking>();
+
+  console.log('\nDemo bookings');
+  for (const b of BOOKINGS) {
+    const service = ctx.serviceByKey.get(`${b.advisor}|${b.service}`);
+    if (!service) throw new Error(`no service "${b.service}" for ${b.advisor}`);
+    const advisorId = userId(b.advisor);
+    const adviseeId = userId(b.advisee);
+    const roomName = `seed-demo-${b.key}`;
+    const start = bangkok(b.day, b.hour);
+    const end = new Date(start.getTime() + service.durationMinutes * MINUTE);
+    const cancelled = b.state === 'CANCELLED';
+
+    let [appointment] = await db
+      .select({
+        id: serviceAppointments.id,
+        chatRoomId: serviceAppointments.chatRoomId,
+      })
+      .from(serviceAppointments)
+      .where(eq(serviceAppointments.jitsiRoomName, roomName))
+      .limit(1);
+
+    if (appointment) note(`booking ${b.key}`, false);
+    else {
+      try {
+        [appointment] = await db
+          .insert(serviceAppointments)
+          .values({
+            serviceId: service.id,
+            advisorId,
+            adviseeId,
+            startTime: start,
+            endTime: end,
+            unavailableUntil: new Date(end.getTime() + 15 * MINUTE),
+            blocksAvailability: !cancelled,
+            cancelledByUserId: cancelled ? advisorId : null,
+            cancelledAt: cancelled ? new Date(start.getTime() - HOUR) : null,
+            jitsiRoomName: roomName,
+            state: b.state,
+            createdAt: new Date(start.getTime() - 3 * DAY),
+          })
+          .returning({
+            id: serviceAppointments.id,
+            chatRoomId: serviceAppointments.chatRoomId,
+          });
+      } catch (error) {
+        if (!isSlotTaken(error)) throw error;
+        console.log(
+          `  skipped  booking ${b.key}: ${b.advisor} is already booked then`,
+        );
+        continue;
+      }
+      note(`booking ${b.key}`, true);
+    }
+
+    // The room is made after the booking, so a booking the slot refused never
+    // leaves an empty room behind it.
+    let chatRoomId = appointment.chatRoomId;
+    if (!chatRoomId) {
+      const [room] = await db
+        .insert(chatRooms)
+        .values({ createdAt: new Date(start.getTime() - 3 * DAY) })
+        .returning({ id: chatRooms.id });
+      chatRoomId = room.id;
+      await db.insert(chatMembers).values([
+        { chatRoomId, memberUserId: adviseeId },
+        { chatRoomId, memberUserId: advisorId },
+      ]);
+      await db
+        .update(serviceAppointments)
+        .set({ chatRoomId })
+        .where(eq(serviceAppointments.id, appointment.id));
+    }
+
+    // Chat lines land in the two days before the session, never in the future.
+    const chatStart = Math.min(start.getTime() - 2 * DAY, Date.now() - DAY);
+    for (const [index, [side, message]] of b.chat.entries()) {
+      const [line] = await db
+        .select({ id: chatMessages.id })
+        .from(chatMessages)
+        .where(
+          and(
+            eq(chatMessages.chatRoomId, chatRoomId),
+            eq(chatMessages.message, message),
+          ),
+        )
+        .limit(1);
+      if (line) continue;
+      await db.insert(chatMessages).values({
+        chatRoomId,
+        senderUserId: side === 'advisee' ? adviseeId : advisorId,
+        message,
+        createdAt: new Date(chatStart + index * 7 * MINUTE),
+      });
+    }
+
+    const amountSatang = service.priceSatang;
+    const feeSatang = Math.round(amountSatang * FEE_RATE);
+    let [invoice] = await db
+      .select({ id: serviceInvoices.id })
+      .from(serviceInvoices)
+      .where(eq(serviceInvoices.appointmentId, appointment.id))
+      .limit(1);
+    if (!invoice) {
+      [invoice] = await db
+        .insert(serviceInvoices)
+        .values({
+          appointmentId: appointment.id,
+          amountSatang,
+          platformFeeSatang: feeSatang,
+          providerChargeId: `chrg_demo_${b.key}`,
+          status: b.invoice,
+          payoutEligibleAt:
+            b.state === 'COMPLETED' ? new Date(end.getTime() + 7 * DAY) : null,
+          createdAt: new Date(start.getTime() - 3 * DAY + MINUTE),
+        })
+        .returning({ id: serviceInvoices.id });
+    }
+
+    if (b.review) {
+      const [review] = await db
+        .select({ id: serviceReviews.appointmentId })
+        .from(serviceReviews)
+        .where(eq(serviceReviews.appointmentId, appointment.id))
+        .limit(1);
+      if (!review) {
+        await db.insert(serviceReviews).values({
+          appointmentId: appointment.id,
+          stars: b.review.stars,
+          comment: b.review.comment,
+          createdAt: new Date(end.getTime() + HOUR),
+        });
+      }
+    }
+
+    booked.set(b.key, {
+      appointmentId: appointment.id,
+      invoiceId: invoice.id,
+      chatRoomId,
+      advisorId,
+      adviseeId,
+      amountSatang,
+      feeSatang,
+      end,
+    });
+  }
+
+  console.log('\nDemo refunds');
+  for (const r of REFUNDS) {
+    const b = booked.get(r.booking);
+    if (!b) continue;
+    const [found] = await db
+      .select({ id: refundCases.id })
+      .from(refundCases)
+      .where(eq(refundCases.invoiceId, b.invoiceId))
+      .limit(1);
+    if (found) {
+      note(`refund on ${r.booking}`, false);
+      continue;
+    }
+    const createdAt = new Date(b.end.getTime() + DAY);
+    const decided = r.status !== 'OPEN';
+    await db.insert(refundCases).values({
+      invoiceId: b.invoiceId,
+      requestedByUserId: b.adviseeId,
+      reviewedByAdminId: decided ? ctx.adminId : null,
+      reason: r.reason,
+      status: r.status,
+      createdAt,
+      resolvedAt: decided ? new Date(createdAt.getTime() + DAY) : null,
+    });
+    note(`refund on ${r.booking}`, true);
+  }
+
+  console.log('\nDemo payouts');
+  for (const p of PAYOUTS) {
+    const settled = p.bookings.map((key) => booked.get(key));
+    if (settled.some((b) => !b)) continue;
+    const rows = settled as SeededBooking[];
+    const [linked] = await db
+      .select({ payoutId: payoutInvoices.payoutId })
+      .from(payoutInvoices)
+      .where(eq(payoutInvoices.invoiceId, rows[0].invoiceId))
+      .limit(1);
+    if (linked) {
+      note(`payout ${p.key}`, false);
+      continue;
+    }
+    const lastEnd = Math.max(...rows.map((b) => b.end.getTime()));
+    const createdAt = new Date(Math.min(lastEnd + 8 * DAY, Date.now() - HOUR));
+    const [payout] = await db
+      .insert(payouts)
+      .values({
+        advisorId: rows[0].advisorId,
+        amountSatang: rows.reduce(
+          (sum, b) => sum + b.amountSatang - b.feeSatang,
+          0,
+        ),
+        providerTransferId: p.transferId,
+        status: p.status,
+        createdAt,
+        paidAt:
+          p.status === 'PAID' ? new Date(createdAt.getTime() + 2 * HOUR) : null,
+      })
+      .returning({ id: payouts.id });
+    await db
+      .insert(payoutInvoices)
+      .values(
+        rows.map((b) => ({ payoutId: payout.id, invoiceId: b.invoiceId })),
+      );
+    note(`payout ${p.key}`, true);
+  }
+
+  console.log('\nDemo off-platform flags');
+  for (const f of FLAGS) {
+    const b = booked.get(f.booking);
+    if (!b) continue;
+    const [message] = await db
+      .select({ id: chatMessages.id, createdAt: chatMessages.createdAt })
+      .from(chatMessages)
+      .where(
+        and(
+          eq(chatMessages.chatRoomId, b.chatRoomId),
+          eq(chatMessages.message, f.text),
+        ),
+      )
+      .limit(1);
+    if (!message) continue;
+    const [found] = await db
+      .select({ id: offPlatformFlags.id })
+      .from(offPlatformFlags)
+      .where(eq(offPlatformFlags.messageId, message.id))
+      .limit(1);
+    if (found) {
+      note(`flag on ${f.booking}`, false);
+      continue;
+    }
+    const decided = f.status !== 'PENDING_REVIEW';
+    await db.insert(offPlatformFlags).values({
+      messageId: message.id,
+      matchedPattern: f.pattern,
+      status: f.status,
+      reviewedByAdminId: decided ? ctx.adminId : null,
+      createdAt: new Date(message.createdAt.getTime() + MINUTE),
+      reviewedAt: decided ? new Date(message.createdAt.getTime() + DAY) : null,
+    });
+    note(`flag on ${f.booking}`, true);
+  }
+
+  console.log('\nDemo reports');
+  for (const r of REPORTS) {
+    const b = booked.get(r.booking);
+    if (!b) continue;
+    const reporterUserId = userId(r.reporter);
+    const reportedUserId = userId(r.reported);
+    const [found] = await db
+      .select({ id: userReports.id })
+      .from(userReports)
+      .where(
+        and(
+          eq(userReports.reporterUserId, reporterUserId),
+          eq(userReports.reportedUserId, reportedUserId),
+          eq(userReports.reason, r.reason),
+        ),
+      )
+      .limit(1);
+    if (found) {
+      note(`report on ${r.booking}`, false);
+      continue;
+    }
+    const createdAt = new Date(
+      Math.min(b.end.getTime() + 2 * HOUR, Date.now() - HOUR),
+    );
+    const decided = r.status !== 'OPEN';
+    await db.insert(userReports).values({
+      reporterUserId,
+      reportedUserId,
+      chatRoomId: b.chatRoomId,
+      reason: r.reason,
+      status: r.status,
+      reviewedByAdminId: decided ? ctx.adminId : null,
+      createdAt,
+      resolvedAt: decided ? new Date(createdAt.getTime() + DAY) : null,
+    });
+    note(`report on ${r.booking}`, true);
+  }
+
+  console.log('\nDemo identity submissions');
+  for (const i of IDENTITIES) {
+    const advisorId = userId(i.advisor);
+    const [found] = await db
+      .select({ advisorId: advisorIdentity.advisorId })
+      .from(advisorIdentity)
+      .where(eq(advisorIdentity.advisorId, advisorId))
+      .limit(1);
+    if (found) {
+      note(`identity ${i.advisor}`, false);
+      continue;
+    }
+    await db.insert(advisorIdentity).values({
+      advisorId,
+      documentObjectKey: `seed/identity/${i.advisor.split('@')[0]}.jpg`,
+      verificationStatus: i.status,
+      verifiedByAdminId: i.decided === null ? null : ctx.adminId,
+      rejectionReason: i.reason,
+      submittedAt: bangkok(i.submitted, 9, 12),
+      verifiedAt:
+        i.status === 'VERIFIED' && i.decided !== null
+          ? bangkok(i.decided, 14)
+          : null,
+    });
+    note(`identity ${i.advisor}`, true);
+  }
+
+  console.log('\nDemo skill proofs');
+  for (const s of SKILL_PROOFS) {
+    const advisorId = userId(s.advisor);
+    const skillId = ctx.skillIds.get(s.skill);
+    if (!skillId)
+      throw new Error(
+        `demo proof names skill "${s.skill}", which was not seeded`,
+      );
+    const [found] = await db
+      .select({ id: skillProofDocuments.id })
+      .from(skillProofDocuments)
+      .where(
+        and(
+          eq(skillProofDocuments.advisorId, advisorId),
+          eq(skillProofDocuments.skillId, skillId),
+          eq(skillProofDocuments.originalFileName, s.file),
+        ),
+      )
+      .limit(1);
+    if (found) {
+      note(`proof ${s.file}`, false);
+      continue;
+    }
+    const decided = s.status !== 'PENDING';
+    await db.insert(skillProofDocuments).values({
+      advisorId,
+      skillId,
+      objectKey: `seed/skill-proofs/${s.advisor.split('@')[0]}-${s.day}`,
+      originalFileName: s.file,
+      reviewStatus: s.status,
+      reviewedByAdminId: decided ? ctx.adminId : null,
+      rejectionReason:
+        s.status === 'REJECTED'
+          ? 'ภาพหน้าจอโปรไฟล์ไม่ใช่เอกสารรับรอง กรุณาแนบใบรับรองตัวจริง'
+          : null,
+      createdAt: bangkok(s.day, 11),
+      reviewedAt: decided ? bangkok(s.day + 1, 15) : null,
+    });
+    note(`proof ${s.file}`, true);
+  }
 }
 
 /* ---------------------------------------------------------------------- main */
@@ -455,6 +1336,12 @@ async function main(): Promise<void> {
       note('admin profile', true);
     }
 
+    /** `email|service name` → the row the demo bookings are made against. */
+    const serviceByKey = new Map<
+      string,
+      { id: string; priceSatang: number; durationMinutes: number }
+    >();
+
     for (const advisor of ADVISORS) {
       console.log(`\n${advisor.displayName}`);
       const advisorId = await signUp(advisor);
@@ -536,6 +1423,10 @@ async function main(): Promise<void> {
       }
 
       for (const service of advisor.services) {
+        const shape = {
+          priceSatang: service.priceBaht * 100,
+          durationMinutes: service.durationMinutes,
+        };
         const [found] = await db
           .select({ id: services.id })
           .from(services)
@@ -548,25 +1439,43 @@ async function main(): Promise<void> {
           .limit(1);
         if (found) {
           note(`service ${service.name}`, false);
+          serviceByKey.set(`${advisor.email}|${service.name}`, {
+            id: found.id,
+            ...shape,
+          });
           continue;
         }
-        await db.insert(services).values({
-          advisorId,
-          categoryId: categoryIds.get(service.category)!,
-          availabilityProfileId: availability.id,
-          name: service.name,
-          description: service.description,
-          // Satang, integer, as the column and the API both hold it.
-          priceSatang: service.priceBaht * 100,
-          durationMinutes: service.durationMinutes,
-          isPublished: true,
-          screeningRequired: service.screeningRequired ?? false,
-          trialEnabled: service.trialMinutes !== undefined,
-          trialDurationMinutes: service.trialMinutes ?? null,
-        });
+        const [inserted] = await db
+          .insert(services)
+          .values({
+            advisorId,
+            categoryId: categoryIds.get(service.category)!,
+            availabilityProfileId: availability.id,
+            name: service.name,
+            description: service.description,
+            // Satang, integer, as the column and the API both hold it.
+            priceSatang: service.priceBaht * 100,
+            durationMinutes: service.durationMinutes,
+            isPublished: true,
+            screeningRequired: service.screeningRequired ?? false,
+            trialEnabled: service.trialMinutes !== undefined,
+            trialDurationMinutes: service.trialMinutes ?? null,
+          })
+          .returning({ id: services.id });
         note(`service ${service.name}`, true);
+        serviceByKey.set(`${advisor.email}|${service.name}`, {
+          id: inserted.id,
+          ...shape,
+        });
       }
     }
+
+    await seedActivity(db, {
+      adminId,
+      userIdByEmail,
+      skillIds,
+      serviceByKey,
+    });
 
     console.log('');
     console.log(
