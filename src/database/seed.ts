@@ -739,14 +739,22 @@ const IDENTITIES = [
 ] as const;
 
 /**
- * A viewable stand-in for an uploaded document: an A4-shaped placeholder image
- * with the document's title on it. Demo keys are these URLs rather than
- * SeaweedFS keys, because there is no object behind a made-up key to presign —
- * the console draws a key that is already a URL, and a real upload's key still
- * needs the storage path.
+ * A viewable stand-in for an uploaded document: a placeholder image with the
+ * document's title on it, A4-shaped by default, card-shaped for an ID. Demo keys
+ * are these URLs rather than SeaweedFS keys, because there is no object behind a
+ * made-up key to presign — the console draws a key that is already a URL, and a
+ * real upload's key still needs the storage path.
  */
-function demoDocument(title: string): string {
-  return `https://placehold.co/1240x1754/f8fafc/334155/png?font=roboto&text=${encodeURIComponent(title)}`;
+function demoDocument(title: string, size = '1240x1754'): string {
+  return `https://placehold.co/${size}/f8fafc/334155/png?font=roboto&text=${encodeURIComponent(title)}`;
+}
+
+/** Whether a key is a demo stand-in (or the first run's dead `seed/` key). */
+function isDemoKey(key: string | null | undefined): boolean {
+  return (
+    !!key &&
+    (key.startsWith('seed/') || key.startsWith('https://placehold.co/'))
+  );
 }
 
 const SKILL_PROOFS = [
@@ -1207,7 +1215,8 @@ async function seedActivity(
   console.log('\nDemo identity submissions');
   for (const i of IDENTITIES) {
     const advisorId = userId(i.advisor);
-    const document = demoDocument('National ID Card');
+    // An ID card is landscape — 85.6 x 54 mm — not a page.
+    const document = demoDocument('National ID Card', '1012x638');
     const [found] = await db
       .select({
         advisorId: advisorIdentity.advisorId,
@@ -1217,9 +1226,9 @@ async function seedActivity(
       .where(eq(advisorIdentity.advisorId, advisorId))
       .limit(1);
     if (found) {
-      // Rows from the first demo run pointed at `seed/…`, a key with nothing
-      // behind it; move those, and only those, to the viewable stand-in.
-      if (found.key?.startsWith('seed/')) {
+      // Demo keys from an earlier run (dead `seed/…` keys, or an older
+      // stand-in) move to the current one; a real upload's key is never touched.
+      if (isDemoKey(found.key) && found.key !== document) {
         await db
           .update(advisorIdentity)
           .set({ documentObjectKey: document })
@@ -1267,7 +1276,7 @@ async function seedActivity(
       )
       .limit(1);
     if (found) {
-      if (found.key.startsWith('seed/')) {
+      if (isDemoKey(found.key) && found.key !== document) {
         await db
           .update(skillProofDocuments)
           .set({ objectKey: document })
