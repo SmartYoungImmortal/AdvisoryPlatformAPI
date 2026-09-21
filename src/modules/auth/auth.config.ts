@@ -178,6 +178,23 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
     emailAndPassword: {
       enabled: true,
     },
+    /**
+     * Five minutes of the session in a signed cookie, so the guard on every route
+     * reads it from the request instead of querying `session` first. Against the
+     * Supabase pooler that query was a full round trip on every request — about a
+     * third of a second each — and it was the same answer every time.
+     *
+     * The trade: a suspension or revocation can take up to `maxAge` to reach a
+     * browser that already holds the cookie, because the cached copy is trusted
+     * until it expires. Five minutes is that window; shorten it here if it ever
+     * needs to be tighter. Chosen deliberately, 2026-09-21.
+     */
+    session: {
+      cookieCache: {
+        enabled: true,
+        maxAge: 5 * 60,
+      },
+    },
     advanced: {
       database: {
         // Repo-wide non-negotiable: uuid PKs everywhere, including better-auth's tables.

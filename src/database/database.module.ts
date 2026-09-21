@@ -32,9 +32,19 @@ class DatabaseLifecycle implements OnApplicationShutdown {
     {
       provide: PG_POOL,
       inject: [ConfigService],
+      /**
+       * Connections are kept for five minutes idle, not `pg`'s default ten
+       * seconds. Opening one to the Supabase pooler is TCP, TLS and auth across
+       * the region — measured at ~0.9 s against ~0.1 s for a query on a warm
+       * connection — so a ten-second idle window made the first request after
+       * any pause pay that again. `keepAlive` stops a NAT or load balancer from
+       * silently dropping the socket in between.
+       */
       useFactory: (config: ConfigService<Env, true>): Pool =>
         new Pool({
           connectionString: config.get(ENV_KEYS.DATABASE_URL, { infer: true }),
+          idleTimeoutMillis: 5 * 60_000,
+          keepAlive: true,
         }),
     },
     {
