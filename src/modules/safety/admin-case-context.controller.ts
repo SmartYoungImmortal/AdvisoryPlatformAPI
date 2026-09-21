@@ -32,4 +32,13 @@ export class AdminCaseContextController {
   ): Promise<CaseContextResponseDto> {
     return this.context.forFlag(flagId);
   }
+
+  @UserHasPermission({ permission: { refund: ['read'] } })
+  @Get('refunds/:refundCaseId/context')
+  @ApiGetOne(CaseContextResponseDto, { name: 'Refund case context' })
+  forRefund(
+    @Param('refundCaseId', ParseUUIDPipe) refundCaseId: string,
+  ): Promise<CaseContextResponseDto> {
+    return this.context.forRefund(refundCaseId);
+  }
 }

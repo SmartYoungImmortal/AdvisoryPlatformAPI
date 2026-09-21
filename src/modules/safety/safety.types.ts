@@ -24,6 +24,8 @@ export interface CaseAppointmentRow {
   cancelledAt: Date | null;
   cancelledByUserId: string | null;
   jitsiRoomName: string | null;
+  /** The appointment's own room — how a refund reaches its conversation. */
+  chatRoomId: string | null;
   invoiceAmountSatang: number | null;
   invoiceStatus: string | null;
 }

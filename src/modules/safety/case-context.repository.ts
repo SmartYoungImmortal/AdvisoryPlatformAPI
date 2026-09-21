@@ -3,6 +3,7 @@ import { asc, desc, eq } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   chatMessages,
+  refundCases,
   serviceAppointments,
   serviceInvoices,
   services,
@@ -72,7 +73,30 @@ export class CaseContextRepository {
   async appointmentForRoom(
     chatRoomId: string,
   ): Promise<CaseAppointmentRow | undefined> {
-    const [row] = await this.db
+    const [row] = await this.selectAppointment()
+      .where(eq(serviceAppointments.chatRoomId, chatRoomId))
+      .orderBy(desc(serviceAppointments.startTime))
+      .limit(1);
+    return row;
+  }
+
+  /**
+   * The consultation a refund claims against: refund → invoice → appointment.
+   * Carries the appointment's room too, so the conversation can follow.
+   */
+  async appointmentForRefund(
+    refundCaseId: string,
+  ): Promise<CaseAppointmentRow | undefined> {
+    const [row] = await this.selectAppointment()
+      .innerJoin(refundCases, eq(refundCases.invoiceId, serviceInvoices.id))
+      .where(eq(refundCases.id, refundCaseId))
+      .limit(1);
+    return row;
+  }
+
+  /** One field list for every appointment read, invoice left-joined. */
+  private selectAppointment() {
+    return this.db
       .select({
         id: serviceAppointments.id,
         serviceId: serviceAppointments.serviceId,
@@ -86,6 +110,7 @@ export class CaseContextRepository {
         cancelledAt: serviceAppointments.cancelledAt,
         cancelledByUserId: serviceAppointments.cancelledByUserId,
         jitsiRoomName: serviceAppointments.jitsiRoomName,
+        chatRoomId: serviceAppointments.chatRoomId,
         invoiceAmountSatang: serviceInvoices.amountSatang,
         invoiceStatus: serviceInvoices.status,
       })
@@ -95,9 +120,6 @@ export class CaseContextRepository {
         serviceInvoices,
         eq(serviceInvoices.appointmentId, serviceAppointments.id),
       )
-      .where(eq(serviceAppointments.chatRoomId, chatRoomId))
-      .orderBy(desc(serviceAppointments.startTime))
-      .limit(1);
-    return row;
+      .$dynamic();
   }
 }

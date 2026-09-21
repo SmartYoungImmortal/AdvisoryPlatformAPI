@@ -10,13 +10,17 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { advisorProfiles } from '@/database/schema';
+import { advisorProfiles, user } from '@/database/schema';
 import { availabilityProfiles } from './availability';
 
 export const serviceCategories = pgTable('service_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name').notNull(),
   description: text('description'),
+  // Who created and who last changed the row — the admin console's Created by /
+  // Updated by. Nullable: rows written before these columns existed have no author.
+  createdByUserId: uuid('created_by_user_id').references(() => user.id),
+  updatedByUserId: uuid('updated_by_user_id').references(() => user.id),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

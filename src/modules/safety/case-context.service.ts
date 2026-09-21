@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { REFUND_MESSAGES } from '@/modules/refunds/refunds.constants';
 import { CaseContextRepository } from './case-context.repository';
 import { OffPlatformFlagsRepository } from './off-platform-flags.repository';
 import {
@@ -32,6 +33,19 @@ export class CaseContextService {
       this.context.conversation(report.chatRoomId),
       this.context.appointmentForRoom(report.chatRoomId),
     ]);
+    return new CaseContextResponseDto(conversation, appointment);
+  }
+
+  /**
+   * A refund always has an appointment behind it (refund → invoice →
+   * appointment, all non-null), so no row means no refund case.
+   */
+  async forRefund(refundCaseId: string): Promise<CaseContextResponseDto> {
+    const appointment = await this.context.appointmentForRefund(refundCaseId);
+    if (!appointment) throw new NotFoundException(REFUND_MESSAGES.notFound);
+    const conversation = appointment.chatRoomId
+      ? await this.context.conversation(appointment.chatRoomId)
+      : [];
     return new CaseContextResponseDto(conversation, appointment);
   }
 

@@ -54,7 +54,7 @@
 
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { AppModule } from '@/app.module';
 import type { Env } from '@/config/env.schema';
 import { ENV_KEYS } from '@/config/env.constants';
@@ -1406,6 +1406,19 @@ async function main(): Promise<void> {
     else {
       await db.insert(adminProfiles).values({ userId: adminId });
       note('admin profile', true);
+    }
+
+    // The seed sets the catalogue up on the admin's behalf, so the categories and
+    // skills it wrote before the audit columns existed are the admin's. Only rows
+    // with no author are touched — anything an admin created since keeps its own.
+    for (const table of [serviceCategories, skills]) {
+      const stamped = await db
+        .update(table)
+        .set({ createdByUserId: adminId, updatedByUserId: adminId })
+        .where(isNull(table.createdByUserId))
+        .returning({ id: table.id });
+      if (stamped.length > 0)
+        note(`authored ${stamped.length} catalogue rows`, true);
     }
 
     /** `email|service name` → the row the demo bookings are made against. */
