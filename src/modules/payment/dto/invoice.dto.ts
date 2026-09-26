@@ -23,3 +23,16 @@ export class CreateInvoiceDto {
   @IsNotEmpty()
   cardToken!: string;
 }
+
+export class InvoiceDto {
+  @ApiProperty()
+  id!: string;
+  @ApiProperty()
+  createdAt!: Date;
+  @ApiProperty()
+  status!: 'PENDING' | 'HELD_IN_ESCROW' | 'RELEASED' | 'REFUNDED' | 'FAILED';
+  @ApiProperty()
+  amountSatang!: number;
+  @ApiProperty()
+  platformFeeSatang!: number;
+}

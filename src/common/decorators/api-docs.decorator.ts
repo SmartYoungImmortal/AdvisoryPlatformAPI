@@ -7,6 +7,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiProperty,
+  ApiSeeOtherResponse,
   ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
@@ -293,6 +294,17 @@ export function ApiDelete(
     ApiNotFoundResponse({
       description: `${name} not found`,
       type: ApiNullDataEnvelopeDto,
+    }),
+    ...authDecorators(false),
+  );
+}
+
+export function ApiSeeOther(model: Type): MethodDecorator {
+  return applyDecorators(
+    ApiExtraModels(ApiEnvelopeDto, ApiNullDataEnvelopeDto, model),
+    ApiSeeOtherResponse({
+      description: 'See other',
+      schema: envelopeSchema(model),
     }),
     ...authDecorators(false),
   );

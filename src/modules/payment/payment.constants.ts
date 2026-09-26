@@ -2,7 +2,7 @@ import { crudMessages } from '@/common/constants/crud-messages';
 
 export const PaymentConfig = {
   messages: {
-    ...crudMessages('Payment'),
+    crudInvoice: crudMessages('Invoice'),
     duplicateStartTimes: 'Duplicate start times.',
     exceedPendingInvoiceLimit:
       'Your active invoices reached a limit. You cannot create more invoices.',

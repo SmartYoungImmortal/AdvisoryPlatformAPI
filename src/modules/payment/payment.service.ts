@@ -3,13 +3,14 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
 import { SessionUser } from '@/modules/auth/auth.config';
 import { service as serviceMock } from '@/mock/services';
 import { invoicePending } from '@/mock/invoices';
 import { IPaymentProvider } from '@/modules/payment/providers/interface';
-import { CreateInvoiceDto } from '@/modules/payment/dto/create-invoice.dto';
+import { CreateInvoiceDto } from '@/modules/payment/dto/invoice.dto';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   serviceAppointments,
@@ -21,6 +22,7 @@ import { and, count, countDistinct, eq, gt, lt, sql } from 'drizzle-orm';
 import { PaymentConfig } from '@/modules/payment/payment.constants';
 import { ConfigService } from '@nestjs/config';
 import { ENV_KEYS } from '@/config/env.constants';
+import { InvoiceDto } from '@/modules/payment/dto/invoice.dto';
 
 @Injectable()
 export class PaymentService {
@@ -157,8 +159,28 @@ export class PaymentService {
     });
 
     return {
-      url: `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.invoice.createRedirectPath}${invoice.id}`,
+      url: `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.invoice.createRedirectPath}?invoiceId=${invoice.id}`,
     };
+  }
+
+  async getInvoiceById(user: SessionUser, id: string): Promise<InvoiceDto> {
+    const invoice = await this.database.query.serviceInvoices.findFirst({
+      columns: {
+        id: true,
+        amountSatang: true,
+        createdAt: true,
+        platformFeeSatang: true,
+        status: true,
+      },
+      where: {
+        id: id,
+      },
+    });
+
+    if (!invoice)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+
+    return invoice;
   }
 
   async checkout(user: SessionUser, dto: CheckoutDto) {

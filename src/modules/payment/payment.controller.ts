@@ -1,16 +1,27 @@
-import { Controller, Post, Body, HttpStatus, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpStatus,
+  Res,
+  Get,
+  Param,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { Response } from 'express';
-import { CreateInvoiceDto } from '@/modules/payment/dto/create-invoice.dto';
+import { CreateInvoiceDto } from '@/modules/payment/dto/invoice.dto';
+import { InvoiceDto } from '@/modules/payment/dto/invoice.dto';
+import { ApiGetOne, ApiSeeOther } from '@/common/decorators/api-docs.decorator';
 
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post('checkout')
+  @ApiSeeOther(class {})
   async postCheckout(
     @CurrentUser() user: SessionUser,
     @Body() dto: CheckoutDto,
@@ -30,5 +41,14 @@ export class PaymentController {
     const result = await this.paymentService.createInvoice(user, dto);
 
     return res.redirect(HttpStatus.SEE_OTHER, result.url);
+  }
+
+  @Get('invoice/:id')
+  @ApiGetOne(InvoiceDto)
+  async getInvoice(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+  ): Promise<InvoiceDto> {
+    return this.paymentService.getInvoiceById(user, id);
   }
 }
