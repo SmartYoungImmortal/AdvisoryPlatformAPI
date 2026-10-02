@@ -7,12 +7,14 @@ on:
     branches: [main, develop, UAT]
 
 jobs:
+  # Both reusable workflows are referenced by path, not by commit SHA. Pinned to a SHA they
+  # kept running the version frozen at that commit, so editing verify.yml changed nothing
+  # until someone remembered to bump two pins in a second file.
   verify:
-    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/verify.yml@289eca304fc6d08969c0e1f95c81e4cb524ef38d
+    uses: ./.github/workflows/verify.yml
     secrets:
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SEAWEEDFS_S3_SECRET_KEY: ${{ secrets.SEAWEEDFS_S3_SECRET_KEY }}
       OMISE_SECRET_KEY: ${{ secrets.OMISE_SECRET_KEY }}
       OMISE_PUBLIC_KEY: ${{ secrets.OMISE_PUBLIC_KEY }}
@@ -24,4 +26,15 @@ jobs:
       packages: write
       id-token: write
       contents: read
-    uses: SmartYoungImmortal/AdvisoryPlatformAPI/.github/workflows/build-container.yml@289eca304fc6d08969c0e1f95c81e4cb524ef38d
+    uses: ./.github/workflows/build-container.yml
+
+  # Pushes only — a pull request never deploys. The repository variable
+  # CLOUD_RUN_DEPLOY_ENABLED stays unset until docs/DEPLOY.md's one-time setup is done,
+  # so CI keeps passing before Google Cloud is ready.
+  deploy:
+    if: github.event_name == 'push' && vars.CLOUD_RUN_DEPLOY_ENABLED == 'true'
+    needs: verify
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-cloud-run.yml

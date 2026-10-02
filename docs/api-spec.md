@@ -360,7 +360,8 @@ Suspension returns 404 rather than 403 — a 403 confirms the account exists.
 
 ### `GET /api/v1/advisors/:id/reviews` — `Public`
 
-Paginated. Reviewer identified by `displayName` only. Includes `advisorReply` when present.
+Paginated. Reviewer identified by their public display identity only. Includes `advisorReply` when
+present. Written up with the rest of the module in section 11.
 
 ### `POST /api/v1/advisors/me` — `Advisee`
 
@@ -745,7 +746,57 @@ and preserve the following agreed behavior.
 
 ---
 
-## 11. Not yet written
+## 11. Module: Reviews
+
+A review belongs to one consultation, so `service_reviews` takes the appointment's id as its
+primary key and every route addresses it as that booking's subresource. There is no review id.
+
+| Route                                                | Role      | Purpose                             |
+| ---------------------------------------------------- | --------- | ----------------------------------- |
+| `POST /api/v1/bookings/:bookingId/review`            | `Advisee` | Rate a consultation you attended    |
+| `PUT /api/v1/bookings/:bookingId/review`             | `Advisee` | Rewrite your own rating and comment |
+| `GET /api/v1/bookings/:bookingId/review`             | Either participant | Read one review            |
+| `GET /api/v1/advisors/me/reviews`                    | `Advisor` | Paginated list of reviews received  |
+| `PATCH /api/v1/advisors/me/reviews/:bookingId/reply` | `Advisor` | Write or rewrite the reply          |
+| `GET /api/v1/advisors/:advisorId/reviews`            | `Public`  | Paginated public list               |
+| `GET /api/v1/advisors/:advisorId/reviews/summary`    | `Public`  | Score and star distribution         |
+
+**What may be reviewed.** Only an appointment in `COMPLETED`, and only by its Advisee — a
+consultation is rated after it has happened. `stars` is an integer 1–5, enforced both by the DTO
+and by the `service_reviews_stars_range` check constraint. `comment` is optional; the rating stands
+without one. `comment` and `advisorReply` are each capped at 4,000 characters, the same bound
+`chat:send` already uses.
+
+**Errors.** `404` when the booking does not exist, when the caller is not the party the route is
+written for, or when a reply is attempted on a consultation carrying no review — a non-participant
+must not be able to tell those apart. `409` in two distinct shapes, because the clients show them
+differently: `This consultation has already been reviewed` for a second `POST`, and
+`A consultation can only be reviewed once it is completed` for one that has not finished.
+
+**The two sides do not overwrite each other.** `PUT` writes `stars` and `comment` only, leaving
+`advisorReply` where it is; `PATCH .../reply` writes `advisorReply` only. An Advisee correcting
+their rating therefore never erases the Advisor's answer.
+
+**Response.** Every route returns `ReviewResponseDto`: the review, plus the consultation it came
+from (`serviceName`, `serviceDurationMinutes`, `appointmentStartTime`) and its author's public
+display identity (`reviewerDisplayName`, `reviewerAvatarKey`). No route — the Advisor's own list
+included — carries `fullName`, `email`, or anything else from the field-level rules in section 4.
+
+**Summary.** `average` is rounded to one decimal, the precision the score is displayed at, and is
+null when nothing has been rated. `distribution` always holds five entries ordered 5 to 1, so a
+star nobody has given reads as a zero rather than a missing key. The route is public and the
+Advisor's own screen reads it with their own id, so the number on a public profile and the number
+above their own list cannot drift apart.
+
+A suspended or banned Advisor is `404` on both public routes, not `403` — consistent with
+`GET /api/v1/advisors/:id`.
+
+**Not covered here.** The access matrix gives Admin `RD` on reviews; the delete belongs with the
+rest of the admin operations and is not written yet.
+
+---
+
+## 12. Not yet written
 
 Public Service/advisor discovery · Availability Profile inline creation/automatic naming ·
 multi-session booking · screening management · Trial request/direct grant workflow · payments &

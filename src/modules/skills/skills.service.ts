@@ -35,13 +35,28 @@ export class SkillsService {
     return new SkillResponseDto(skill);
   }
 
-  async create(dto: CreateSkillDto): Promise<SkillResponseDto> {
-    const skill = await this.skillsRepository.create(dto);
+  /** `actorId` is the signed-in admin, from the session — never from the body. */
+  async create(
+    dto: CreateSkillDto,
+    actorId: string,
+  ): Promise<SkillResponseDto> {
+    const skill = await this.skillsRepository.create({
+      ...dto,
+      createdByUserId: actorId,
+      updatedByUserId: actorId,
+    });
     return new SkillResponseDto(skill);
   }
 
-  async update(id: string, dto: UpdateSkillDto): Promise<SkillResponseDto> {
-    const skill = await this.skillsRepository.updateById(id, dto);
+  async update(
+    id: string,
+    dto: UpdateSkillDto,
+    actorId: string,
+  ): Promise<SkillResponseDto> {
+    const skill = await this.skillsRepository.updateById(id, {
+      ...dto,
+      updatedByUserId: actorId,
+    });
 
     if (!skill) {
       throw new NotFoundException(SKILL_MESSAGES.notFound);

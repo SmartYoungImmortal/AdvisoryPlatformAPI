@@ -73,6 +73,9 @@ export const skills = pgTable('skills', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name').notNull(),
   description: text('description'),
+  // The admin console's Created by / Updated by; nullable for rows that predate them.
+  createdByUserId: uuid('created_by_user_id').references(() => user.id),
+  updatedByUserId: uuid('updated_by_user_id').references(() => user.id),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

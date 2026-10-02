@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   and,
   asc,
+  count,
   eq,
   gte,
   ilike,
@@ -113,8 +114,26 @@ export class AdvisorServicesRepository extends EntityRepository<
       .offset(options.offset);
   }
 
+  /**
+   * Counted over the same join `selectPublished` uses, not through the inherited
+   * `count()`.
+   *
+   * `publishedWhere` filters on `user.status` and `user.banned` as well as on the
+   * service, and the inherited `count()` selects `from(services)` alone. That made
+   * every call emit `select count(*) from "services" where ... "user"."status" ...`
+   * with no `user` in the FROM clause, which Postgres rejects outright — so
+   * `GET /api/v1/services` answered 500 for every request, while
+   * `GET /api/v1/services/:id` worked because it goes through `selectPublished`.
+   * A suspended advisor's services have to disappear from the count as well as
+   * from the page, or the last page of results is empty.
+   */
   async countPublished(query: PublicServiceQueryDto): Promise<number> {
-    return this.count(this.publishedWhere(query));
+    const [row] = await this.db
+      .select({ value: count() })
+      .from(services)
+      .innerJoin(user, eq(user.id, services.advisorId))
+      .where(this.publishedWhere(query));
+    return row?.value ?? 0;
   }
 
   async findPublishedById(
