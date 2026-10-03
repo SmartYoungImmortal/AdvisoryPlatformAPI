@@ -15,4 +15,16 @@ export const PaymentConfig = {
     platformFeeFraction: 0.2,
     createRedirectPath: '/checkout/',
   },
+  checkout: {
+    redirectPaths: {
+      callback: '/api/v1/payment/callback',
+    },
+  },
+  checkoutCallback: {
+    redirectPaths: {
+      success: '/checkout/success',
+      failed: '/checkout/failed',
+      pending: '/checkout/unconfirmed',
+    },
+  },
 } as const;

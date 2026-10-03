@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsUUID,
-  IsNotEmpty,
-  IsArray,
-  IsString,
-  IsDateString,
-} from 'class-validator';
+import { IsUUID, IsNotEmpty, IsArray, IsDateString } from 'class-validator';
 
 export class CreateInvoiceDto {
   @ApiProperty()
@@ -17,11 +11,6 @@ export class CreateInvoiceDto {
   @IsArray()
   @IsDateString({ strict: true }, { each: true })
   startTimes!: string[];
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  cardToken!: string;
 }
 
 export class InvoiceDto {

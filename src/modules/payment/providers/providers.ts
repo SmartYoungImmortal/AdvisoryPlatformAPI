@@ -36,7 +36,11 @@ export const FailureCodeEnum = FailureCodeKeys.transform(
 
 export const chargeStatus = z.discriminatedUnion('status', [
   z.object({ status: z.literal('pending') }),
-  z.object({ status: z.literal('success'), redirectUrl: z.url() }),
+  z.object({
+    status: z.literal('success'),
+    redirectUrl: z.url(),
+    chargeId: z.string(),
+  }),
   z.object({
     status: z.literal('failed'),
     errorCode: FailureCodeKeys,

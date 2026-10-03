@@ -7,8 +7,6 @@ import {
 } from '@nestjs/common';
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
 import { SessionUser } from '@/modules/auth/auth.config';
-import { service as serviceMock } from '@/mock/services';
-import { invoicePending } from '@/mock/invoices';
 import { IPaymentProvider } from '@/modules/payment/providers/interface';
 import { CreateInvoiceDto } from '@/modules/payment/dto/invoice.dto';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
@@ -23,16 +21,21 @@ import { PaymentConfig } from '@/modules/payment/payment.constants';
 import { ConfigService } from '@nestjs/config';
 import { ENV_KEYS } from '@/config/env.constants';
 import { InvoiceDto } from '@/modules/payment/dto/invoice.dto';
+import { PaymentServiceInvoicesRepository } from '@/modules/payment/payment.repository';
 
 @Injectable()
 export class PaymentService {
   constructor(
     private readonly config: ConfigService,
     private readonly paymentProvider: IPaymentProvider,
+    private readonly serviceInvoiceRepository: PaymentServiceInvoicesRepository,
     @Inject(DRIZZLE) private readonly database: DrizzleDB,
   ) {}
 
-  async createInvoice(user: SessionUser, dto: CreateInvoiceDto) {
+  async createInvoice(
+    user: SessionUser,
+    dto: CreateInvoiceDto,
+  ): Promise<InvoiceDto> {
     if (new Set(dto.startTimes).size !== dto.startTimes.length)
       throw new BadRequestException(PaymentConfig.messages.duplicateStartTimes);
 
@@ -159,23 +162,22 @@ export class PaymentService {
     });
 
     return {
-      url: `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.invoice.createRedirectPath}?invoiceId=${invoice.id}`,
+      id: invoice.id,
+      amountSatang: invoice.amountSatang,
+      createdAt: invoice.createdAt,
+      platformFeeSatang: invoice.platformFeeSatang,
+      status: invoice.status,
     };
   }
 
-  async getInvoiceById(user: SessionUser, id: string): Promise<InvoiceDto> {
-    const invoice = await this.database.query.serviceInvoices.findFirst({
-      columns: {
-        id: true,
-        amountSatang: true,
-        createdAt: true,
-        platformFeeSatang: true,
-        status: true,
-      },
-      where: {
-        id: id,
-      },
-    });
+  async getInvoiceById(
+    user: SessionUser,
+    invoiceId: string,
+  ): Promise<InvoiceDto> {
+    const invoice = await this.serviceInvoiceRepository.findPublicById(
+      invoiceId,
+      user.id,
+    );
 
     if (!invoice)
       throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
@@ -183,23 +185,43 @@ export class PaymentService {
     return invoice;
   }
 
+  async paymentCallback(user: SessionUser, id: string) {
+    const invoice = await this.serviceInvoiceRepository.findById(id);
+
+    if (!invoice || !invoice.providerChargeId)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+
+    const chargeResult = await this.paymentProvider.getChargeStatus(
+      invoice.providerChargeId,
+    );
+
+    return {
+      url: `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.checkoutCallback.redirectPaths[chargeResult.status]}?invoiceId=${invoice.id}`,
+    };
+  }
+
   async checkout(user: SessionUser, dto: CheckoutDto) {
-    // get price
-    // TODO: replace
-    const service = serviceMock;
-    // create service booking
-    // const booking = appointmentPendingPayment;
-    // create invoice w/ omise charge id
-    const invoice = invoicePending;
+    // get invoice
+    const invoice = await this.serviceInvoiceRepository.findPublicById(
+      dto.invoiceId,
+      user.id,
+    );
+    if (!invoice)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
     // create omise charge
+    const redirectUrl = `${this.config.get(ENV_KEYS.BACKEND_PUBLIC_URL)}${PaymentConfig.checkout.redirectPaths.callback}/${invoice.id}`;
     const chargeResult = await this.paymentProvider.chargeSpecificCard(
       user,
-      service.priceSatang,
+      invoice.amountSatang,
       dto.cardToken,
-      `http://localhost:3000/payments/verify/${invoice.invoiceId}`,
+      redirectUrl,
     );
     if (chargeResult.status !== 'success')
       throw new InternalServerErrorException(chargeResult);
+    // save omise charge id
+    await this.serviceInvoiceRepository.updateById(dto.invoiceId, {
+      providerChargeId: chargeResult.chargeId,
+    });
     // redirect to 3ds w/ redirect uri to service booking
     return { url: chargeResult.redirectUrl };
     // retrieve omise charge
