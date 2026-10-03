@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AdvisorServicesModule } from './modules/advisor-services/advisor-services.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { PdpaModule } from './modules/pdpa/pdpa.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
@@ -33,6 +34,7 @@ import { AdminAccountsModule } from './modules/admin-accounts/admin-accounts.mod
     ChatModule,
     AdvisorServicesModule,
     PaymentModule,
+    PdpaModule,
     AvailabilityModule,
     BookingsModule,
     // The moderation queues. Each one owns an `admin/<queue>` prefix plus, where an
