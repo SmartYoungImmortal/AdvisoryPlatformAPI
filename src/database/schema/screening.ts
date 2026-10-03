@@ -1,4 +1,5 @@
 import {
+  boolean,
   check,
   integer,
   pgEnum,
@@ -16,6 +17,8 @@ export const screeningStatusEnum = pgEnum('screening_status', [
   'PENDING',
   'ACCEPTED',
   'DECLINED',
+  // An acceptance given against questions the Advisor has since replaced.
+  'EXPIRED',
 ]);
 
 export const serviceScreeningQuestions = pgTable(
@@ -26,10 +29,13 @@ export const serviceScreeningQuestions = pgTable(
       .notNull()
       .references(() => services.id),
     question: text('question').notNull(),
+    isRequired: boolean('is_required').notNull().default(true),
     displayOrder: integer('display_order').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // Replaced questions are kept, not deleted: past answers still reference them.
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => [
     check(
@@ -55,13 +61,14 @@ export const screeningRequests = pgTable(
       .notNull()
       .defaultNow(),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
+    // When the Advisor first opened the request; null drives the unread dot.
+    viewedAt: timestamp('viewed_at', { withTimezone: true }),
   },
-  // One trial per advisee per service, ever — see docs/ER.README.md.
+  // An Advisee may apply again after a decline, but only one request waits at a time.
   (table) => [
-    uniqueIndex('screening_requests_advisee_service_key').on(
-      table.adviseeId,
-      table.serviceId,
-    ),
+    uniqueIndex('screening_requests_pending_advisee_service_key')
+      .on(table.adviseeId, table.serviceId)
+      .where(sql`${table.status} = 'PENDING'`),
   ],
 );
 
@@ -74,6 +81,8 @@ export const screeningAnswers = pgTable(
     questionId: uuid('question_id')
       .notNull()
       .references(() => serviceScreeningQuestions.id),
+    // The question as it was worded when answered, so later edits never rewrite history.
+    questionText: text('question_text').notNull(),
     answer: text('answer').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
