@@ -122,7 +122,7 @@ export class SkillProofsRepository extends EntityRepository<
    * applicant says they have the skill. The claim is idempotent — a second proof for
    * the same skill adds a document, not a second claim.
    */
-  async createForAdvisor(document: {
+  createForAdvisor(document: {
     advisorId: string;
     skillId: string;
     objectKey: string;

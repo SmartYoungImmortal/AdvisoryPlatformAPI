@@ -1,5 +1,5 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@/database/database.module';
 import {
   adminProfiles,
@@ -17,6 +17,11 @@ import {
 } from './support/booking-fixtures';
 import { createE2eApp } from './support/e2e-app';
 import { data, object, stringField } from './support/response';
+
+async function roles(applicant: SignedUpUser): Promise<unknown> {
+  const me = await applicant.agent.get('/api/v1/users/me').expect(200);
+  return data(me.body).roles;
+}
 
 /**
  * Becoming an Advisor, end to end over HTTP against real Postgres: apply, upload the
@@ -44,8 +49,9 @@ describe('advisor onboarding (e2e)', () => {
   afterEach(async () => {
     storage.clear();
     await deleteBookingFixtures(db, ids);
-    for (const id of skillIds.splice(0)) {
-      await db.delete(skills).where(eq(skills.id, id));
+    const created = skillIds.splice(0);
+    if (created.length > 0) {
+      await db.delete(skills).where(inArray(skills.id, created));
     }
   });
 
@@ -72,11 +78,6 @@ describe('advisor onboarding (e2e)', () => {
       .returning({ id: skills.id });
     skillIds.push(skill.id);
     return skill.id;
-  }
-
-  async function roles(applicant: SignedUpUser): Promise<unknown> {
-    const me = await applicant.agent.get('/api/v1/users/me').expect(200);
-    return data(me.body).roles;
   }
 
   function submitIdentity(applicant: SignedUpUser, name = 'id-card.jpg') {
@@ -131,9 +132,9 @@ describe('advisor onboarding (e2e)', () => {
 
     const submitted = await submitIdentity(applicant).expect(201);
     // Status and time only: never the key, never a URL.
-    expect(Object.keys(data(submitted.body)).sort()).toEqual([
-      'submittedAt',
+    expect(Object.keys(data(submitted.body))).toEqual([
       'verificationStatus',
+      'submittedAt',
     ]);
     expect(data(submitted.body).verificationStatus).toBe('SUBMITTED');
     const firstKey = await documentKey(applicant.userId);

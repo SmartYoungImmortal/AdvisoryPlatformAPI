@@ -282,11 +282,14 @@ describe('authentication and authorization (e2e)', () => {
       objectKey: `proofs/${userId}.pdf`,
       originalFileName: 'personal-proof.pdf',
     });
+    // Approved, as an admin's approval would leave it: a verified identity and the
+    // Advisor role, so this deletes a working Advisor rather than an applicant.
     await db.insert(advisorIdentity).values({
       advisorId: userId,
       nationalIdHash: crypto.randomUUID(),
-      verificationStatus: 'SUBMITTED',
+      verificationStatus: 'VERIFIED',
     });
+    await db.update(user).set({ role: 'advisor' }).where(eq(user.id, userId));
     await db.insert(notifications).values({
       ownerId: userId,
       type: 'POLICY_WARNING',

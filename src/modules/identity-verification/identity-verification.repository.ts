@@ -136,7 +136,7 @@ export class IdentityVerificationRepository {
    * The previous document's key is returned so the service can delete the object it
    * replaces — an ID-card scan nothing references any more must not linger.
    */
-  async submit(
+  submit(
     advisorId: string,
     documentObjectKey: string,
     acceptedStatuses: readonly IdentityVerificationStatus[],
@@ -210,7 +210,7 @@ export class IdentityVerificationRepository {
    * user, and `RoleResolver` derives the Advisor membership from the verified identity
    * regardless.
    */
-  async approve(
+  approve(
     advisorId: string,
     acceptedStatuses: readonly IdentityVerificationStatus[],
     decision: IdentityDecision,

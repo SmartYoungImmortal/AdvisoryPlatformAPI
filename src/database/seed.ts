@@ -54,7 +54,7 @@
 
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { and, eq, isNull, ne, or } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import { AppModule } from '@/app.module';
 import type { Env } from '@/config/env.schema';
 import { ENV_KEYS } from '@/config/env.constants';
@@ -1375,11 +1375,16 @@ async function seedActivity(
         or(isNull(user.role), ne(user.role, 'advisor')),
       ),
     );
-  for (const { advisorId } of verified) {
+  if (verified.length > 0) {
     await db
       .update(user)
       .set({ role: 'advisor' })
-      .where(eq(user.id, advisorId));
+      .where(
+        inArray(
+          user.id,
+          verified.map((row) => row.advisorId),
+        ),
+      );
   }
   note(
     `advisor role on ${verified.length} verified accounts`,
