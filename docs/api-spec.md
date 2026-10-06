@@ -153,14 +153,20 @@ safely paste an HttpOnly cookie into Swagger's JavaScript request.
 
 ## 3. Roles
 
-| Role      | Who                                        | How you get it                                                       |
-| --------- | ------------------------------------------ | -------------------------------------------------------------------- |
-| `Guest`   | no session                                 | default                                                              |
-| `Advisee` | any signed-up user                         | **default on signup**                                                |
-| `Advisor` | advisee who explicitly upgraded to advisor | creates an advisor profile; verification is a separate trust process |
-| `Admin`   | platform staff                             | seeded, never self-service                                           |
+| Role      | Who                                                 | How you get it                                                          |
+| --------- | --------------------------------------------------- | ----------------------------------------------------------------------- |
+| `Guest`   | no session                                          | default                                                                 |
+| `Advisee` | any signed-up user                                  | **default on signup**                                                   |
+| `Advisor` | advisee whose advisor application an admin approved | applies (`POST /advisors/me`), uploads an ID card; an admin verifies it |
+| `Admin`   | platform staff                                      | seeded, never self-service                                              |
 
 An Advisor **is** an Advisee — the roles stack. An advisor can book other advisors.
+
+**Applying is not becoming.** `POST /advisors/me` opens an application; the account stays an
+Advisee until an admin approves its identity (`POST /admin/identity-verifications/:id/approve`),
+which writes `VERIFIED` and `user.role = 'advisor'` in one transaction. Until then the Advisor
+workspace (availability, own services, own bookings, payouts) answers `403`, and nothing the
+applicant owns appears in discovery or can be booked.
 
 ---
 
@@ -355,58 +361,72 @@ Public profile: headline, bio, all claimed skills, published services, rating su
 
 Never includes `fullName`, `email`, `nationalId`, `penaltyPoints`, or any document.
 
-`404` if the advisor does not exist, is `SUSPENDED`, or has never published a service.
-Suspension returns 404 rather than 403 — a 403 confirms the account exists.
+`404` if the advisor does not exist, is `SUSPENDED`, is not identity-verified, or has never
+published a service. Suspension returns 404 rather than 403 — a 403 confirms the account exists.
 
 ### `GET /api/v1/advisors/:id/reviews` — `Public`
 
 Paginated. Reviewer identified by their public display identity only. Includes `advisorReply` when
 present. Written up with the rest of the module in section 11.
 
+### Becoming an Advisor — the onboarding flow
+
+Matches Figma's "Advisor onboarding" stages. Every route below is held by any **Advisee**, because
+an applicant is still one.
+
+| Step    | Route                                                    | Result                                                      |
+| ------- | -------------------------------------------------------- | ----------------------------------------------------------- |
+| Stage 1 | `POST /api/v1/advisors/me`                               | profile created, `verificationStatus: NONE`, role unchanged |
+| Stage 2 | `POST /api/v1/advisors/me/identity-verification`         | ID card stored, `SUBMITTED`                                 |
+| Stage 3 | `POST /api/v1/advisors/me/skill-proofs` (once per skill) | proof `PENDING`, skill claimed                              |
+| Pending | `GET /api/v1/advisors/me` → `verificationStatus`         | `SUBMITTED` → pending screen                                |
+| Admin   | `POST /api/v1/admin/identity-verifications/:id/approve`  | `VERIFIED` + Advisor role                                   |
+| Admin   | `POST /api/v1/admin/identity-verifications/:id/reject`   | `REJECTED` + reason; may resubmit                           |
+
+The role change applies on the applicant's next request: permission checks read `user.role` from
+the database, not from the session cookie.
+
 ### `POST /api/v1/advisors/me` — `Advisee`
 
-Upgrade self to advisor. Every new account starts as an Advisee; there is no role selector or
-onboarding wizard. This creates `ADVISOR_PROFILES` for the current user. Identity and skill
-verification are separate from receiving the Advisor role.
+Opens the caller's Advisor application by creating `ADVISOR_PROFILES`. It does **not** grant the
+Advisor role — see the flow above. There is no role selector at signup.
 
-Body: `headline`, `bio`.
-`409` if already an advisor. This means the request is **not** idempotent; the endpoint wording and
-its implementation must remain aligned on this policy.
+Body: `headline`, `bio`. Response: the own-profile DTO with `verificationStatus: "NONE"`.
+`409` if the caller has already applied. The request is **not** idempotent.
 
-### `GET /api/v1/advisors/me` — `Advisor`
+### `GET /api/v1/advisors/me` — `Advisee` (own application)
 
 Own profile response only. It has a dedicated allowlist and is not reused for public discovery or
-admin lists, which each receive their own response DTO.
+admin lists, which each receive their own response DTO. `404` if the caller has not applied.
 
-Eventually includes everything the public view hides **except** `nationalId`: identity verification
-status, own documents, optional skill-proof documents, unpublished services.
+Includes `verificationStatus` (`NONE` | `SUBMITTED` | `VERIFIED` | `REJECTED`) so one call tells a
+client which onboarding screen to show. Only `VERIFIED` means the account is an Advisor.
 
 Deliberately excludes `penaltyPoints` — an advisor who can see their score will optimise against
 the detector rather than stop.
 
-### `PATCH /api/v1/advisors/me` — `Advisor`
+### `PATCH /api/v1/advisors/me` — `Advisee` (own application)
 
-Body: `headline`, `bio`. Both optional.
+Body: `headline`, `bio`. Both optional. Allowed while the application is pending as well.
 
-### `PUT /api/v1/advisors/me/skills` — `Advisor`
+### `PUT /api/v1/advisors/me/skills` — `Advisor` — _not implemented yet_
 
 Replaces the claimed skill set. Body: `{ "skillIds": ["uuid", ...] }`.
 
 Removing a skill soft-deletes its proof documents. Re-adding it restores only the skill claim, not
-previous proof documents.
+previous proof documents. `400` if any `skillId` is unknown. Until this exists, a skill is claimed
+by uploading its proof (below).
 
-`400` if any `skillId` is unknown.
+### `POST /api/v1/advisors/me/identity-verification` — `Advisee` (own application)
 
-### `POST /api/v1/advisors/me/identity` — `Advisor`
+Uploads the ID-card scan for review. `multipart/form-data` with one `document` part: JPG or PNG,
+at most 50 MB (Figma Stage 2 rejects anything else).
 
-Submit เลขบัตรประชาชน + document scan. `multipart/form-data`.
+The national ID **number is not submitted**: Figma's form never asks for it — the reviewer reads it
+off the card. Storing `nationalIdEncrypted` / `nationalIdHash` (and the duplicate-identity check
+they enable) is still open; it needs an encryption key in the environment.
 
-Fields: `nationalId` (13 digits, checksum-validated), `document` (image/pdf, ≤50MB).
-
-Server: validates checksum → hashes → checks `nationalIdHash` uniqueness → encrypts → stores the
-scan in SeaweedFS → sets `verificationStatus = SUBMITTED`.
-
-Response echoes **status only**. Never the ID, never a document URL.
+Response echoes **status only**. Never the ID, never a document key or URL.
 
 ```jsonc
 {
@@ -414,42 +434,50 @@ Response echoes **status only**. Never the ID, never a document URL.
   "message": "Identity submitted for review",
   "data": {
     "verificationStatus": "SUBMITTED",
-    "submittedAt": "2026-08-06T14:22:00+07:00",
+    "submittedAt": "2026-08-06T07:22:00.000Z",
   },
 }
 ```
 
-| Code | When                                                                         |
-| ---- | ---------------------------------------------------------------------------- |
-| 400  | Checksum fails, or file too large / wrong type                               |
-| 409  | `nationalIdHash` already used by another account                             |
-| 409  | Current status is `SUBMITTED` or `VERIFIED` — resubmit only after `REJECTED` |
+| Code | When                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------- |
+| 400  | no file, empty file, not JPG/PNG, or over 50 MB                                             |
+| 404  | the caller has not applied (`POST /advisors/me` first)                                      |
+| 409  | current status is `SUBMITTED` (under review) or `VERIFIED` — resubmit only after `REJECTED` |
+| 503  | object storage is unavailable                                                               |
 
-### `POST /api/v1/advisors/me/skills/:skillId/proof` — `Advisor`
+A resubmission after `REJECTED` clears the old ruling and deletes the replaced scan from storage.
 
-Upload a certificate for one claimed skill. `multipart/form-data`, ≤50MB.
-Creates an optional proof-document record with `PENDING` review status. It does not change the
-claimed skill or public profile.
+### `GET /api/v1/advisors/me/identity-verification` — `Advisee` (own application)
 
-`404` if the advisor has not claimed that skill.
+Status, document key, rejection reason and times. `404` until something has been submitted.
 
-### `GET /api/v1/admin/advisors/pending` — `Admin`
+### `POST /api/v1/advisors/me/skill-proofs` — `Advisee` (own application)
 
-Verification queue: identity submissions and skill proofs awaiting review, oldest first.
-Includes `fullName` and a **masked** national ID. Includes signed, short-lived document URLs.
+Uploads a certificate for one catalogue skill and claims that skill. `multipart/form-data`:
+`skillId` (uuid) and `file` (JPG, PNG or PDF, at most 50 MB). Creates a `PENDING` proof record.
+Approving or rejecting a proof does not change the skill claim or any public badge — identity is
+the only verification (docs/ER.README.md). Thai file names are stored as sent.
 
-### `PATCH /api/v1/admin/advisors/:id/identity` — `Admin`
+`400` bad file or unknown `skillId` · `404` not applied · `503` storage unavailable.
 
-Body: `{ "decision": "VERIFIED" | "REJECTED", "rejectionReason": "string" }`
-`rejectionReason` required when rejecting. Emits a `VERIFICATION_DECIDED` notification.
+### `GET /api/v1/advisors/me/skill-proofs` — `Advisee` (own application)
 
-`409` if the current status is not `SUBMITTED`.
+The caller's proof documents and their outcomes, paginated. An empty page, never a 404.
 
-### `PATCH /api/v1/admin/advisors/:id/skills/:skillId/proof` — `Admin`
+### Admin review queues — `Admin`
 
-Body: `{ "decision": "APPROVED" | "REJECTED", "rejectionReason": "string" }`
-The decision updates the submitted document's review status only. It does not change the skill
-claim or any public badge.
+| Route                                                                                     |                                 |
+| ----------------------------------------------------------------------------------------- | ------------------------------- |
+| `GET /api/v1/admin/identity-verifications?status=SUBMITTED`                               | identity queue, oldest first    |
+| `GET /api/v1/admin/identity-verifications/:advisorId`                                     | one record                      |
+| `POST /api/v1/admin/identity-verifications/:advisorId/approve`                            | `200`; grants the Advisor role  |
+| `POST /api/v1/admin/identity-verifications/:advisorId/reject`                             | `200`; body `{ "reason": "…" }` |
+| `GET /api/v1/admin/skill-proofs` · `/:proofId` · `/:proofId/approve` · `/:proofId/reject` | proof queue                     |
+
+A ruling is accepted only from `SUBMITTED` (identity) or `PENDING` (proof); anything else is `409`.
+Not yet: masked national ID in the queue, signed document URLs, and a `VERIFICATION_DECIDED`
+notification.
 
 ---
 
