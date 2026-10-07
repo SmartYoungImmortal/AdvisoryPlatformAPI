@@ -14,6 +14,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'PAYMENT_SUCCEEDED',
   'SESSION_REMINDER',
   'NEW_MESSAGE',
+  'SCREENING_REQUESTED',
   'SCREENING_DECIDED',
   'VERIFICATION_DECIDED',
   'POLICY_WARNING',
