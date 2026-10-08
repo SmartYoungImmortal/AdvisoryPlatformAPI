@@ -20,6 +20,7 @@ import {
   ApiUpdate,
 } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { ClearSessionCookiesInterceptor } from '@/common/interceptors/clear-session-cookies.interceptor';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
@@ -127,6 +128,7 @@ export class UsersController {
     },
   })
   @Delete('me')
+  @UseInterceptors(ClearSessionCookiesInterceptor)
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(USER_MESSAGES.deleted)
   @ApiDelete(UserOwnProfileResponseDto, { name: 'Account' })

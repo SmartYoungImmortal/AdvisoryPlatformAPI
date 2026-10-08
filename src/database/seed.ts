@@ -54,7 +54,7 @@
 
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import { AppModule } from '@/app.module';
 import type { Env } from '@/config/env.schema';
 import { ENV_KEYS } from '@/config/env.constants';
@@ -1356,6 +1356,40 @@ async function seedActivity(
     });
     note(`identity ${i.advisor}`, true);
   }
+
+  // Approval is what makes an applicant an Advisor: better-auth's access control
+  // reads `user.role`, and the admin console's approve writes it in the same
+  // transaction as `VERIFIED`. The demo's verified identities were inserted rather
+  // than approved, so their role is written here to match. The applicants still
+  // awaiting review (or sent back) stay Advisees until somebody approves them in
+  // the console — their services stay out of discovery until then.
+  console.log('\nDemo advisor roles');
+  const verified = await db
+    .select({ advisorId: advisorIdentity.advisorId })
+    .from(advisorIdentity)
+    .innerJoin(user, eq(user.id, advisorIdentity.advisorId))
+    .where(
+      and(
+        eq(advisorIdentity.verificationStatus, 'VERIFIED'),
+        or(isNull(user.role), ne(user.role, 'admin')),
+        or(isNull(user.role), ne(user.role, 'advisor')),
+      ),
+    );
+  if (verified.length > 0) {
+    await db
+      .update(user)
+      .set({ role: 'advisor' })
+      .where(
+        inArray(
+          user.id,
+          verified.map((row) => row.advisorId),
+        ),
+      );
+  }
+  note(
+    `advisor role on ${verified.length} verified accounts`,
+    verified.length > 0,
+  );
 
   console.log('\nDemo skill proofs');
   for (const s of SKILL_PROOFS) {

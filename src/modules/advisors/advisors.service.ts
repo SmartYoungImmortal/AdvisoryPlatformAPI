@@ -25,10 +25,18 @@ export class AdvisorsService {
     if (!advisor) {
       throw new NotFoundException(ADVISOR_MESSAGES.notFound);
     }
-    return new AdvisorOwnProfileResponseDto(user, advisor);
+    return new AdvisorOwnProfileResponseDto(
+      user,
+      advisor,
+      await this.advisorsRepository.findVerificationStatus(user.id),
+    );
   }
 
-  async upgrade(
+  /**
+   * Opens the caller's Advisor application. It does not make them an Advisor: that
+   * happens when an admin approves the identity document they submit next.
+   */
+  async apply(
     user: SessionUser,
     dto: CreateAdvisorProfileDto,
   ): Promise<AdvisorOwnProfileResponseDto> {
@@ -37,7 +45,8 @@ export class AdvisorsService {
       throw new ConflictException(ADVISOR_MESSAGES.alreadyExists);
     }
 
-    return new AdvisorOwnProfileResponseDto(user, advisor);
+    // A profile created a moment ago has nothing submitted against it.
+    return new AdvisorOwnProfileResponseDto(user, advisor, 'NONE');
   }
 
   async updateMe(
@@ -48,7 +57,11 @@ export class AdvisorsService {
     if (!advisor) {
       throw new NotFoundException(ADVISOR_MESSAGES.notFound);
     }
-    return new AdvisorOwnProfileResponseDto(user, advisor);
+    return new AdvisorOwnProfileResponseDto(
+      user,
+      advisor,
+      await this.advisorsRepository.findVerificationStatus(user.id),
+    );
   }
 
   /* ---------------------------------------------------------------- discovery */

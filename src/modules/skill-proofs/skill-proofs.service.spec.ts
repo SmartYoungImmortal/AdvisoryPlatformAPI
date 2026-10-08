@@ -1,14 +1,23 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import type { skillProofDocuments } from '@/database/schema';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
+import type { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { OwnSkillProofRow } from './dtos/own-skill-proof-response.dto';
 import { SkillProofQueryDto } from './dtos/skill-proof-query.dto';
 import type { SkillProofRow } from './dtos/skill-proof-response.dto';
 import { SKILL_PROOF_MESSAGES } from './skill-proofs.constants';
 import type { SkillProofsRepository } from './skill-proofs.repository';
-import { SkillProofsService } from './skill-proofs.service';
+import {
+  SkillProofsService,
+  type SkillProofUpload,
+} from './skill-proofs.service';
 
 type SkillProofDocument = InferSelectModel<typeof skillProofDocuments>;
 
@@ -83,7 +92,13 @@ describe('SkillProofsService', () => {
       | 'countForAdvisor'
       | 'review'
       | 'findById'
+      | 'applicationExists'
+      | 'skillExists'
+      | 'createForAdvisor'
     >
+  >;
+  let storage: jest.Mocked<
+    Pick<SeaweedFsStorageService, 'putObject' | 'removeObject'>
   >;
   let service: SkillProofsService;
 
@@ -96,10 +111,134 @@ describe('SkillProofsService', () => {
       countForAdvisor: jest.fn(),
       review: jest.fn(),
       findById: jest.fn(),
+      applicationExists: jest.fn().mockResolvedValue(true),
+      skillExists: jest.fn().mockResolvedValue(true),
+      createForAdvisor: jest.fn(),
+    };
+    storage = {
+      putObject: jest.fn().mockResolvedValue(undefined),
+      removeObject: jest.fn().mockResolvedValue(undefined),
     };
     service = new SkillProofsService(
       repository as unknown as SkillProofsRepository,
+      storage as unknown as SeaweedFsStorageService,
     );
+  });
+
+  describe('submit', () => {
+    function file(overrides: Partial<SkillProofUpload> = {}): SkillProofUpload {
+      return {
+        buffer: Buffer.from('%PDF-1.7'),
+        mimetype: 'application/pdf',
+        size: 8,
+        originalname: 'certificate.pdf',
+        ...overrides,
+      };
+    }
+
+    it('stores the document under the applicant and files it, claiming the skill', async () => {
+      repository.createForAdvisor.mockResolvedValue(ownRow());
+
+      const result = await service.submit(advisor, { skillId }, file());
+
+      const stored = storage.putObject.mock.calls[0][0];
+      expect(stored.key).toMatch(
+        new RegExp(`^skill-proofs/${advisor.id}/[0-9a-f-]{36}\\.pdf$`),
+      );
+      expect(repository.createForAdvisor).toHaveBeenCalledWith({
+        advisorId: advisor.id,
+        skillId,
+        objectKey: stored.key,
+        originalFileName: 'certificate.pdf',
+      });
+      expect(result.reviewStatus).toBe('PENDING');
+    });
+
+    it('stores a Thai file name as Thai, not as the Latin-1 bytes multer hands over', async () => {
+      repository.createForAdvisor.mockResolvedValue(ownRow());
+      const thai = 'ใบอนุญาตผู้สอบบัญชี.pdf';
+      // What multer produces from a UTF-8 multipart filename.
+      const asMulterSeesIt = Buffer.from(thai, 'utf8').toString('latin1');
+
+      await service.submit(
+        advisor,
+        { skillId },
+        file({ originalname: asMulterSeesIt }),
+      );
+
+      expect(
+        repository.createForAdvisor.mock.calls[0][0].originalFileName,
+      ).toBe(thai);
+    });
+
+    it.each([
+      ['no file', undefined, SKILL_PROOF_MESSAGES.fileRequired],
+      ['an empty file', file({ size: 0 }), SKILL_PROOF_MESSAGES.fileRequired],
+      [
+        'a Word document',
+        file({
+          mimetype:
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }),
+        SKILL_PROOF_MESSAGES.fileInvalidType,
+      ],
+      [
+        'a file over 50 MB',
+        file({ size: 50 * 1024 * 1024 + 1 }),
+        SKILL_PROOF_MESSAGES.fileTooLarge,
+      ],
+    ])(
+      'refuses %s before touching storage',
+      async (_label, upload, message) => {
+        await expect(
+          service.submit(advisor, { skillId }, upload),
+        ).rejects.toThrow(new BadRequestException(message));
+        expect(storage.putObject).not.toHaveBeenCalled();
+      },
+    );
+
+    it('404s for a user who has not applied', async () => {
+      repository.applicationExists.mockResolvedValue(false);
+
+      await expect(
+        service.submit(advisor, { skillId }, file()),
+      ).rejects.toThrow(
+        new NotFoundException(SKILL_PROOF_MESSAGES.applicationRequired),
+      );
+      expect(storage.putObject).not.toHaveBeenCalled();
+    });
+
+    it('400s for a skill that is not in the catalogue', async () => {
+      repository.skillExists.mockResolvedValue(false);
+
+      await expect(
+        service.submit(advisor, { skillId }, file()),
+      ).rejects.toThrow(
+        new BadRequestException(SKILL_PROOF_MESSAGES.skillNotFound),
+      );
+      expect(storage.putObject).not.toHaveBeenCalled();
+    });
+
+    it('503s when storage is down, and writes no record', async () => {
+      storage.putObject.mockRejectedValue(new Error('connection refused'));
+
+      await expect(
+        service.submit(advisor, { skillId }, file()),
+      ).rejects.toThrow(ServiceUnavailableException);
+      expect(repository.createForAdvisor).not.toHaveBeenCalled();
+    });
+
+    it('removes the stored object when the record write fails', async () => {
+      repository.createForAdvisor.mockRejectedValue(new Error('database down'));
+      storage.removeObject.mockRejectedValue(new Error('and storage too'));
+
+      await expect(
+        service.submit(advisor, { skillId }, file()),
+      ).rejects.toThrow('database down');
+      expect(storage.removeObject).toHaveBeenCalledWith(
+        storage.putObject.mock.calls[0][0].key,
+      );
+    });
   });
 
   describe('the queue', () => {

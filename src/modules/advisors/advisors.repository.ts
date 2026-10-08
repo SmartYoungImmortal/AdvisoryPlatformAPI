@@ -12,9 +12,11 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
+import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   advisorGlobalAvailability,
+  advisorIdentity,
   advisorProfiles,
   advisorSkills,
   services,
@@ -26,6 +28,9 @@ import { PublicAdvisorQueryDto } from './dtos/public-advisor-query.dto';
 import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 
 type AdvisorProfile = InferSelectModel<typeof advisorProfiles>;
+type IdentityVerificationStatus = InferSelectModel<
+  typeof advisorIdentity
+>['verificationStatus'];
 
 /** A discoverable Advisor, before skill names are attached. */
 export interface PublicAdvisorRow {
@@ -55,6 +60,26 @@ export class AdvisorsRepository {
     return advisor;
   }
 
+  /**
+   * Where the applicant's identity review stands. No `advisor_identity` row means
+   * nothing has been submitted yet, which is `NONE` in the status vocabulary.
+   */
+  async findVerificationStatus(
+    userId: string,
+  ): Promise<IdentityVerificationStatus> {
+    const [row] = await this.db
+      .select({ status: advisorIdentity.verificationStatus })
+      .from(advisorIdentity)
+      .where(eq(advisorIdentity.advisorId, userId))
+      .limit(1);
+    return row?.status ?? 'NONE';
+  }
+
+  /**
+   * Opens an application. The profile and default availability are created now so
+   * the applicant has something to attach documents to, but `user.role` is left
+   * alone: it becomes `advisor` only when an admin approves the identity.
+   */
   async createIfAbsent(
     userId: string,
     dto: CreateAdvisorProfileDto,
@@ -70,11 +95,6 @@ export class AdvisorsRepository {
         .insert(advisorGlobalAvailability)
         .values({ advisorId: userId })
         .onConflictDoNothing();
-
-      await tx
-        .update(userSchema)
-        .set({ role: 'advisor' })
-        .where(eq(userSchema.id, userId));
 
       return advisor;
     });
@@ -97,8 +117,11 @@ export class AdvisorsRepository {
   /* ---------------------------------------------------------------- discovery */
 
   /**
-   * Who is discoverable: an Advisor with a profile, an active unbanned account,
-   * and at least one published service.
+   * Who is discoverable: an Advisor with a profile, a verified identity, an active
+   * unbanned account, and at least one published service.
+   *
+   * The identity clause keeps applicants out: they have a profile from the moment
+   * they apply, but they are not Advisors until an admin approves them.
    *
    * The last clause is the one worth stating. An Advisor with nothing on sale is
    * not a listing, and leaving them in produces rows a visitor cannot act on. It
@@ -114,6 +137,7 @@ export class AdvisorsRepository {
     return and(
       eq(userSchema.status, 'ACTIVE'),
       eq(userSchema.banned, false),
+      isVerifiedAdvisor(advisorProfiles.userId),
       exists(
         this.db
           .select({ one: sql`1` })

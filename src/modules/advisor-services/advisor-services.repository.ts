@@ -12,6 +12,7 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
@@ -185,6 +186,7 @@ export class AdvisorServicesRepository extends EntityRepository<
       eq(services.isPublished, true),
       eq(user.status, 'ACTIVE'),
       eq(user.banned, false),
+      isVerifiedAdvisor(services.advisorId),
       query?.categoryId ? eq(services.categoryId, query.categoryId) : undefined,
       query?.advisorId ? eq(services.advisorId, query.advisorId) : undefined,
       query?.minPriceSatang !== undefined

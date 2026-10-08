@@ -4,7 +4,7 @@ import type request from 'supertest';
 import type { DrizzleDB } from '@/database/database.module';
 import { serviceAppointments } from '@/database/schema';
 import { BookingsService } from '@/modules/bookings/bookings.service';
-import { signUpUser } from './support/accounts';
+import { approveAsAdvisor, signUpUser } from './support/accounts';
 import {
   createBookingFixtureIds,
   deleteBookingFixtures,
@@ -237,10 +237,10 @@ describe('booking lifecycle (e2e)', () => {
     it('hides another Advisor booking from every transition', async () => {
       const { serviceId, first } = await seedService();
       const otherAdvisor = await signUp();
-      await otherAdvisor.agent
-        .post('/api/v1/advisors/me')
-        .send({ headline: 'Other', bio: 'Other advisor' })
-        .expect(201);
+      await approveAsAdvisor(db, otherAdvisor, {
+        headline: 'Other',
+        bio: 'Other advisor',
+      });
       const advisee = await signUp();
       const booking = await book(advisee.agent, serviceId, first);
       const bookingId = stringField(booking, 'id');

@@ -1,11 +1,23 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, eq, inArray, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  eq,
+  inArray,
+  isNull,
+  ne,
+  or,
+  type SQL,
+} from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { advisorIdentity, user } from '@/database/schema';
+import { advisorIdentity, advisorProfiles, user } from '@/database/schema';
 import type { IdentityVerificationQueryDto } from './dtos/identity-verification-query.dto';
 import type { IdentityVerificationRow } from './dtos/identity-verification-response.dto';
 import type { OwnIdentityVerificationRow } from './dtos/own-identity-verification-response.dto';
 import type { IdentityVerificationStatus } from './identity-verification.constants';
+
+type Transaction = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0];
 
 /**
  * The columns a ruling writes, spelled out rather than taken as a
@@ -103,6 +115,73 @@ export class IdentityVerificationRepository {
     return row;
   }
 
+  /** Whether the user has applied — the profile an identity record hangs off. */
+  async applicationExists(advisorId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ userId: advisorProfiles.userId })
+      .from(advisorProfiles)
+      .where(eq(advisorProfiles.userId, advisorId))
+      .limit(1);
+    return row !== undefined;
+  }
+
+  /**
+   * Puts a new document up for review, but only from a status that accepts one.
+   *
+   * The record is created as `NONE` first if it is missing, then locked, so two
+   * submissions racing for the same applicant serialize on that row instead of both
+   * believing they were first. `undefined` means the current status refused the
+   * submission; the service reads the row back to say why.
+   *
+   * The previous document's key is returned so the service can delete the object it
+   * replaces — an ID-card scan nothing references any more must not linger.
+   */
+  submit(
+    advisorId: string,
+    documentObjectKey: string,
+    acceptedStatuses: readonly IdentityVerificationStatus[],
+  ): Promise<
+    { submittedAt: Date; previousDocumentObjectKey: string | null } | undefined
+  > {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .insert(advisorIdentity)
+        .values({ advisorId })
+        .onConflictDoNothing();
+
+      const [current] = await tx
+        .select({
+          verificationStatus: advisorIdentity.verificationStatus,
+          documentObjectKey: advisorIdentity.documentObjectKey,
+        })
+        .from(advisorIdentity)
+        .where(eq(advisorIdentity.advisorId, advisorId))
+        .for('update');
+      if (!current || !acceptedStatuses.includes(current.verificationStatus)) {
+        return undefined;
+      }
+
+      const submittedAt = new Date();
+      await tx
+        .update(advisorIdentity)
+        .set({
+          verificationStatus: 'SUBMITTED',
+          documentObjectKey,
+          submittedAt,
+          // A resubmission starts a fresh review: the last ruling no longer applies.
+          rejectionReason: null,
+          verifiedByAdminId: null,
+          verifiedAt: null,
+        })
+        .where(eq(advisorIdentity.advisorId, advisorId));
+
+      return {
+        submittedAt,
+        previousDocumentObjectKey: current.documentObjectKey,
+      };
+    });
+  }
+
   /**
    * Applies a ruling only while the record is still in a status that accepts one, so
    * two admins clicking approve at the same moment cannot both win and no decision
@@ -117,7 +196,54 @@ export class IdentityVerificationRepository {
     acceptedStatuses: readonly IdentityVerificationStatus[],
     decision: IdentityDecision,
   ): Promise<boolean> {
-    const rows = await this.db
+    return this.db.transaction((tx) =>
+      this.applyDecision(tx, advisorId, acceptedStatuses, decision),
+    );
+  }
+
+  /**
+   * An approval, and the Advisor role it grants, in one transaction: the identity is
+   * never `VERIFIED` without `user.role = 'advisor'`, nor the other way round. That
+   * column is what better-auth's access control reads for every Advisor route.
+   *
+   * An admin who is also an Advisor keeps `admin` — better-auth holds one role per
+   * user, and `RoleResolver` derives the Advisor membership from the verified identity
+   * regardless.
+   */
+  approve(
+    advisorId: string,
+    acceptedStatuses: readonly IdentityVerificationStatus[],
+    decision: IdentityDecision,
+  ): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const decided = await this.applyDecision(
+        tx,
+        advisorId,
+        acceptedStatuses,
+        decision,
+      );
+      if (decided) {
+        await tx
+          .update(user)
+          .set({ role: 'advisor' })
+          .where(
+            and(
+              eq(user.id, advisorId),
+              or(isNull(user.role), ne(user.role, 'admin')),
+            ),
+          );
+      }
+      return decided;
+    });
+  }
+
+  private async applyDecision(
+    tx: Transaction,
+    advisorId: string,
+    acceptedStatuses: readonly IdentityVerificationStatus[],
+    decision: IdentityDecision,
+  ): Promise<boolean> {
+    const rows = await tx
       .update(advisorIdentity)
       .set(decision)
       .where(

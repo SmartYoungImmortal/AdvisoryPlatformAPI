@@ -2,11 +2,30 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, count, eq, inArray, type SQL } from 'drizzle-orm';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { skillProofDocuments, skills, user } from '@/database/schema';
+import {
+  advisorProfiles,
+  advisorSkills,
+  skillProofDocuments,
+  skills,
+  user,
+} from '@/database/schema';
 import type { OwnSkillProofRow } from './dtos/own-skill-proof-response.dto';
 import type { SkillProofQueryDto } from './dtos/skill-proof-query.dto';
 import type { SkillProofRow } from './dtos/skill-proof-response.dto';
 import type { SkillProofReviewStatus } from './skill-proofs.constants';
+
+/** The owner's view of a document, shared by their list and by a fresh upload. */
+const OWN_COLUMNS = {
+  id: skillProofDocuments.id,
+  skillId: skillProofDocuments.skillId,
+  skillName: skills.name,
+  objectKey: skillProofDocuments.objectKey,
+  originalFileName: skillProofDocuments.originalFileName,
+  reviewStatus: skillProofDocuments.reviewStatus,
+  rejectionReason: skillProofDocuments.rejectionReason,
+  reviewedAt: skillProofDocuments.reviewedAt,
+  createdAt: skillProofDocuments.createdAt,
+};
 
 /** The columns a review writes. Nothing else about the document is a reviewer's to change. */
 export interface SkillProofReview {
@@ -77,6 +96,56 @@ export class SkillProofsRepository extends EntityRepository<
       .offset(options.offset);
   }
 
+  /** Whether the user has applied — the profile a proof document hangs off. */
+  async applicationExists(advisorId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ userId: advisorProfiles.userId })
+      .from(advisorProfiles)
+      .where(eq(advisorProfiles.userId, advisorId))
+      .limit(1);
+    return row !== undefined;
+  }
+
+  async skillExists(skillId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: skills.id })
+      .from(skills)
+      .where(eq(skills.id, skillId))
+      .limit(1);
+    return row !== undefined;
+  }
+
+  /**
+   * Files a proof document for review and claims the skill it proves, together.
+   *
+   * Figma's Stage 3 pairs each skill with its proof, so uploading one is also how the
+   * applicant says they have the skill. The claim is idempotent — a second proof for
+   * the same skill adds a document, not a second claim.
+   */
+  createForAdvisor(document: {
+    advisorId: string;
+    skillId: string;
+    objectKey: string;
+    originalFileName: string;
+  }): Promise<OwnSkillProofRow> {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .insert(advisorSkills)
+        .values({ advisorId: document.advisorId, skillId: document.skillId })
+        .onConflictDoNothing();
+      const [created] = await tx
+        .insert(skillProofDocuments)
+        .values(document)
+        .returning({ id: skillProofDocuments.id });
+      const [row] = await tx
+        .select(OWN_COLUMNS)
+        .from(skillProofDocuments)
+        .innerJoin(skills, eq(skills.id, skillProofDocuments.skillId))
+        .where(eq(skillProofDocuments.id, created.id));
+      return row;
+    });
+  }
+
   /** Counted over the same join the owner's page uses, for the same reason as above. */
   async countForAdvisor(advisorId: string): Promise<number> {
     const [row] = await this.db
@@ -135,17 +204,7 @@ export class SkillProofsRepository extends EntityRepository<
   /** The owner's shape: the skill name is joined, the submitter is not. */
   private selectForAdvisor(where: SQL | undefined) {
     return this.db
-      .select({
-        id: skillProofDocuments.id,
-        skillId: skillProofDocuments.skillId,
-        skillName: skills.name,
-        objectKey: skillProofDocuments.objectKey,
-        originalFileName: skillProofDocuments.originalFileName,
-        reviewStatus: skillProofDocuments.reviewStatus,
-        rejectionReason: skillProofDocuments.rejectionReason,
-        reviewedAt: skillProofDocuments.reviewedAt,
-        createdAt: skillProofDocuments.createdAt,
-      })
+      .select(OWN_COLUMNS)
       .from(skillProofDocuments)
       .innerJoin(skills, eq(skills.id, skillProofDocuments.skillId))
       .where(where)

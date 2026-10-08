@@ -10,6 +10,7 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import { serviceAppointments, services } from '@/database/schema';
@@ -28,11 +29,18 @@ export class BookingsRepository extends EntityRepository<
     super(db, serviceAppointments);
   }
 
+  /** A Service an Advisee may book: published, by an Advisor an admin has verified. */
   async findPublishedService(serviceId: string) {
     const [service] = await this.db
       .select()
       .from(services)
-      .where(and(eq(services.id, serviceId), eq(services.isPublished, true)))
+      .where(
+        and(
+          eq(services.id, serviceId),
+          eq(services.isPublished, true),
+          isVerifiedAdvisor(services.advisorId),
+        ),
+      )
       .limit(1);
     return service;
   }
