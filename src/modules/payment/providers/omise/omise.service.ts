@@ -127,12 +127,14 @@ export class OmisePaymentProvider implements IPaymentProvider {
       if (chargeRes.failure_code) {
         return {
           status: 'failed',
+          lastDigits: chargeRes.card.last_digits,
           errorCode: FailureCodeKeys.parse(chargeRes.failure_code),
           message: FailureCodeEnum.parse(chargeRes.failure_code),
         };
       }
       return {
         status: 'success',
+        lastDigits: chargeRes.card.last_digits,
         redirectUrl: chargeRes.authorize_uri,
         chargeId: chargeRes.id,
       };
@@ -140,6 +142,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
       console.error(error);
       return {
         status: 'failed',
+        lastDigits: '',
         errorCode: 'unspecified',
         message: FailureCodeEnum.parse('unspecified'),
       };
@@ -152,12 +155,14 @@ export class OmisePaymentProvider implements IPaymentProvider {
       if (chargeRes.failure_code) {
         return {
           status: 'failed',
+          lastDigits: chargeRes.card.last_digits,
           errorCode: FailureCodeKeys.parse(chargeRes.failure_code),
           message: FailureCodeEnum.parse(chargeRes.failure_code),
         };
       }
       return {
         status: 'success',
+        lastDigits: chargeRes.card.last_digits,
         redirectUrl: chargeRes.authorize_uri,
         chargeId: chargeRes.id,
       };
@@ -165,6 +170,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
       console.error(error);
       return {
         status: 'failed',
+        lastDigits: '',
         errorCode: 'unspecified',
         message: FailureCodeEnum.parse('unspecified'),
       };

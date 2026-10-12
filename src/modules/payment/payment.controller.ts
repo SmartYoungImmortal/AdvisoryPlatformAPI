@@ -15,7 +15,10 @@ import {
   CheckoutResponse,
 } from '@/modules/payment/dto/checkout.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
-import { CreateInvoiceDto } from '@/modules/payment/dto/invoice.dto';
+import {
+  CreateInvoiceDto,
+  PaymentStatusDto,
+} from '@/modules/payment/dto/invoice.dto';
 import { InvoiceDto } from '@/modules/payment/dto/invoice.dto';
 import { ApiCreate, ApiGetOne } from '@/common/decorators/api-docs.decorator';
 import { ApiSeeOtherResponse } from '@nestjs/swagger';
@@ -55,6 +58,15 @@ export class PaymentController {
     @Param('id') id: string,
   ): Promise<InvoiceDto> {
     return this.paymentService.getInvoiceById(user, id);
+  }
+
+  @Get('invoice/:id/paymentStatus')
+  @ApiGetOne(PaymentStatusDto)
+  async getPaymentStatus(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+  ): Promise<PaymentStatusDto> {
+    return this.paymentService.getPaymentStatus(user, id);
   }
 
   @Get('callback/:id')

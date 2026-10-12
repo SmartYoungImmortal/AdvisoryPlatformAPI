@@ -8,7 +8,10 @@ import {
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
 import { SessionUser } from '@/modules/auth/auth.config';
 import { IPaymentProvider } from '@/modules/payment/providers/interface';
-import { CreateInvoiceDto } from '@/modules/payment/dto/invoice.dto';
+import {
+  CreateInvoiceDto,
+  PaymentStatusDto,
+} from '@/modules/payment/dto/invoice.dto';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   serviceAppointments,
@@ -183,6 +186,38 @@ export class PaymentService {
       throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
 
     return invoice;
+  }
+
+  async getPaymentStatus(
+    user: SessionUser,
+    invoiceId: string,
+  ): Promise<PaymentStatusDto> {
+    const privateInvoicePromise =
+      this.serviceInvoiceRepository.findById(invoiceId);
+
+    const dataPromise = this.serviceInvoiceRepository.findPublicWithServiceById(
+      invoiceId,
+      user.id,
+    );
+
+    const [privateInvoice, data] = await Promise.all([
+      privateInvoicePromise,
+      dataPromise,
+    ]);
+
+    if (!privateInvoice || !privateInvoice.providerChargeId)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+    if (!data)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+
+    const chargeStatusPromise = this.paymentProvider.getChargeStatus(
+      privateInvoice.providerChargeId,
+    );
+
+    return {
+      ...data,
+      chargeStatus: await chargeStatusPromise,
+    };
   }
 
   async paymentCallback(user: SessionUser, id: string) {
