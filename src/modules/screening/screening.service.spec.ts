@@ -250,10 +250,7 @@ describe('ScreeningService', () => {
           ownerId: advisor.id,
           type: 'SCREENING_REQUESTED',
           title: SCREENING_NOTIFICATIONS.requestedTitle,
-          content: SCREENING_NOTIFICATIONS.requestedContent(
-            'ณัฐพงษ์ ส.',
-            service.name,
-          ),
+          content: SCREENING_NOTIFICATIONS.requestedContent('ณัฐพงษ์ ส.', 1),
         },
       );
     });
@@ -429,8 +426,9 @@ describe('ScreeningService', () => {
         {
           ownerId: advisee.id,
           type: 'SCREENING_DECIDED',
+          resourceId: serviceId,
           title: SCREENING_NOTIFICATIONS.acceptedTitle,
-          content: service.name,
+          content: SCREENING_NOTIFICATIONS.acceptedContent(advisor.name),
         },
       );
     });
@@ -451,7 +449,9 @@ describe('ScreeningService', () => {
           decisionReason: 'Full this month',
         }),
         expect.objectContaining({
+          resourceId: serviceId,
           title: SCREENING_NOTIFICATIONS.declinedTitle,
+          content: service.name,
         }),
       );
 

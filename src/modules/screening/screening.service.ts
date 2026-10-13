@@ -183,7 +183,7 @@ export class ScreeningService {
           title: SCREENING_NOTIFICATIONS.requestedTitle,
           content: SCREENING_NOTIFICATIONS.requestedContent(
             adviseeName,
-            service.name,
+            answers.length,
           ),
         },
       );
@@ -236,17 +236,24 @@ export class ScreeningService {
       throw new ConflictException(SCREENING_MESSAGES.alreadyDecided);
     }
 
+    const advisorName =
+      (await this.repository.findDisplayName(user.id)) ?? user.name;
     const decided = await this.repository.decidePending(
       requestId,
       { status, decisionReason, decidedAt: new Date() },
       {
         ownerId: current.adviseeId,
         type: 'SCREENING_DECIDED',
-        title:
-          status === 'ACCEPTED'
-            ? SCREENING_NOTIFICATIONS.acceptedTitle
-            : SCREENING_NOTIFICATIONS.declinedTitle,
-        content: current.serviceName,
+        resourceId: current.serviceId,
+        ...(status === 'ACCEPTED'
+          ? {
+              title: SCREENING_NOTIFICATIONS.acceptedTitle,
+              content: SCREENING_NOTIFICATIONS.acceptedContent(advisorName),
+            }
+          : {
+              title: SCREENING_NOTIFICATIONS.declinedTitle,
+              content: current.serviceName,
+            }),
       },
     );
     if (!decided) {

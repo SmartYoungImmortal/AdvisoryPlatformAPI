@@ -33,14 +33,16 @@ export const SCREENING_DECLINE_MESSAGE_MAX_LENGTH = 1_000;
 export const SCREENING_PENDING_STATUS = 'PENDING';
 
 /**
- * Notification text is shown to Thai users, so it is Thai. The request title and the two
- * decision titles are the Figma copy (`notifications.screeningRequestTitle`,
- * `screening.acceptedTitle`, `screening.declinedTitle` in the frontend's `messages/th.json`).
+ * Notification text is shown to Thai users, so it is Thai. The request and acceptance wording is
+ * the Figma notification center's copy; the decline title is the declined screen's
+ * (`screening.declinedTitle` in the frontend's `messages/th.json`).
  */
 export const SCREENING_NOTIFICATIONS = {
   requestedTitle: 'มีคำขอคัดกรองใหม่',
-  requestedContent: (adviseeName: string, serviceName: string) =>
-    `${adviseeName} ส่งคำตอบคัดกรองสำหรับ ${serviceName}`,
-  acceptedTitle: 'ที่ปรึกษาตอบรับแล้ว',
+  requestedContent: (adviseeName: string, answerCount: number) =>
+    `${adviseeName} ส่งคำตอบคัดกรอง ${answerCount} ข้อ`,
+  acceptedTitle: 'อนุมัติคำขอปรึกษาแล้ว',
+  acceptedContent: (advisorName: string) =>
+    `${advisorName} รับคำขอ จองเวลาได้เลย`,
   declinedTitle: 'ที่ปรึกษาคนนี้ยังไม่ว่าง',
 } as const;

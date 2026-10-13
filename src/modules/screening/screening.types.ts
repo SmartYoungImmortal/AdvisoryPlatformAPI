@@ -57,4 +57,6 @@ export interface ScreeningNotification {
   type: 'SCREENING_REQUESTED' | 'SCREENING_DECIDED';
   title: string;
   content: string | null;
+  /** The request for the Advisor; the Service for the Advisee, whose status is per Service. */
+  resourceId?: string;
 }

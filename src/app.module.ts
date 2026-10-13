@@ -21,6 +21,7 @@ import { PayoutsModule } from './modules/payouts/payouts.module';
 import { SafetyModule } from './modules/safety/safety.module';
 import { AdminAccountsModule } from './modules/admin-accounts/admin-accounts.module';
 import { ScreeningModule } from './modules/screening/screening.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ScreeningModule } from './modules/screening/screening.module';
     SafetyModule,
     AdminAccountsModule,
     ScreeningModule,
+    NotificationsModule,
     // Last, so the literal `advisors/me/...` controllers register before this module's
     // `advisors/:advisorId/reviews` and a request for `me` is never captured by the parameter.
     ReviewsModule,
