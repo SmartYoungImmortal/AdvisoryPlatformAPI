@@ -1,0 +1,85 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  decodeKeysetCursor,
+  encodeKeysetCursor,
+  type CursorPaginatedResult,
+  type CursorPaginationDto,
+} from '@/common/pagination/cursor-pagination.dto';
+import { NotificationCountResponseDto } from './dtos/notification-count-response.dto';
+import { NotificationResponseDto } from './dtos/notification-response.dto';
+import { NOTIFICATION_MESSAGES } from './notifications.constants';
+import { NotificationsRepository } from './notifications.repository';
+import type { NotifyInput } from './notifications.types';
+
+@Injectable()
+export class NotificationsService {
+  constructor(private readonly repository: NotificationsRepository) {}
+
+  async findMine(
+    ownerId: string,
+    query: CursorPaginationDto,
+  ): Promise<CursorPaginatedResult<NotificationResponseDto>> {
+    const cursor = query.cursor ? decodeKeysetCursor(query.cursor) : undefined;
+    if (query.cursor && !cursor) {
+      throw new BadRequestException(NOTIFICATION_MESSAGES.invalidCursor);
+    }
+
+    const rows = await this.repository.findPageForOwner(
+      ownerId,
+      query.limit + 1,
+      cursor,
+    );
+    const hasMore = rows.length > query.limit;
+    const page = rows.slice(0, query.limit);
+    const last = page.at(-1);
+
+    return {
+      items: page.map((row) => new NotificationResponseDto(row)),
+      limit: query.limit,
+      hasMore,
+      nextCursor:
+        hasMore && last
+          ? encodeKeysetCursor({ createdAt: last.createdAt, id: last.id })
+          : null,
+    };
+  }
+
+  async countUnread(ownerId: string): Promise<NotificationCountResponseDto> {
+    return new NotificationCountResponseDto(
+      await this.repository.countUnread(ownerId),
+    );
+  }
+
+  async markRead(
+    ownerId: string,
+    notificationId: string,
+  ): Promise<NotificationResponseDto> {
+    const row = await this.repository.markRead(notificationId, ownerId);
+    if (!row) {
+      throw new NotFoundException(NOTIFICATION_MESSAGES.notFound);
+    }
+    return new NotificationResponseDto(row);
+  }
+
+  async markAllRead(ownerId: string): Promise<NotificationCountResponseDto> {
+    return new NotificationCountResponseDto(
+      await this.repository.markAllRead(ownerId),
+    );
+  }
+
+  /**
+   * The one way other features add to someone's feed. A new chat message with a room id
+   * refreshes that conversation's unread notification rather than adding another.
+   */
+  async notify(input: NotifyInput): Promise<NotificationResponseDto> {
+    const row =
+      input.type === 'NEW_MESSAGE' && input.resourceId
+        ? await this.repository.upsertUnreadMessage(input)
+        : await this.repository.create(input);
+    return new NotificationResponseDto(row);
+  }
+}

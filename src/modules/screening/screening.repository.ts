@@ -182,7 +182,9 @@ export class ScreeningRepository extends EntityRepository<
           answer: answer.answer,
         })),
       );
-      await tx.insert(notifications).values(notification);
+      await tx
+        .insert(notifications)
+        .values({ ...notification, resourceId: request.id });
 
       return request;
     });
