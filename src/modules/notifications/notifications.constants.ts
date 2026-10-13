@@ -1,8 +1,8 @@
 import { crudMessages } from '@/common/constants/crud-messages';
 
 /**
- * The notification center (Figma: Notifications) — the in-app feed every user has. Other features
- * write into it through `NotificationsService.notify()`; this module only reads and marks.
+ * Messages for the notifications module. Other modules create notifications with
+ * `NotificationsService.notify()`; this module lists them and marks them as read.
  */
 export const NOTIFICATION_MESSAGES = {
   ...crudMessages('Notification'),

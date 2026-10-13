@@ -6,8 +6,8 @@ import type {
 } from '@/modules/screening/screening.types';
 
 /**
- * The Advisee's own view of a request. `viewedAt` is withheld: whether the Advisor has opened it
- * yet is the Advisor's inbox state, not the Advisee's business.
+ * A request as the Advisee sees it. `viewedAt` is left out because it is only used in the Advisor's
+ * list.
  */
 export class ScreeningRequestResponseDto {
   @ApiProperty({ format: 'uuid' }) id: string;

@@ -4,7 +4,10 @@ import { Trim } from '@/common/decorators/trim.decorator';
 import { SCREENING_DECLINE_MESSAGE_MAX_LENGTH } from '@/modules/screening/screening.constants';
 
 export class DeclineScreeningRequestDto {
-  /** Optional note to the Advisee, shown on their declined screen only when written. */
+  /**
+   * Optional message to the Advisee. It is shown on their declined screen only if the Advisor
+   * writes one.
+   */
   @ApiPropertyOptional({ maxLength: SCREENING_DECLINE_MESSAGE_MAX_LENGTH })
   @IsOptional()
   @Trim()

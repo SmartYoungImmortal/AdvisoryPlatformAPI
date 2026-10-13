@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-/** Unread notifications, or how many a mark-all-read changed. */
+/** A count: unread notifications, or how many were just marked as read. */
 export class NotificationCountResponseDto {
   @ApiProperty() count: number;
 

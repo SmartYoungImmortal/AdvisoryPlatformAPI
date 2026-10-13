@@ -15,8 +15,8 @@ import {
 import { ScreeningRepository } from './screening.repository';
 
 /**
- * The repository's work is transactions, joins and a partial unique index, which a mocked
- * Drizzle cannot tell you anything about. These run against real Postgres.
+ * These tests use a real Postgres database because the repository depends on transactions, joins
+ * and a partial unique index.
  */
 describe('ScreeningRepository (integration)', () => {
   let pool: Pool;
@@ -152,7 +152,8 @@ describe('ScreeningRepository (integration)', () => {
       notify(advisorId),
     );
 
-    // A second pending request for the same pair loses to the partial unique index.
+    // A second pending request for the same Advisee and Service is blocked by the partial unique
+    // index.
     await expect(
       repository.createWithAnswers(
         { serviceId, adviseeId },

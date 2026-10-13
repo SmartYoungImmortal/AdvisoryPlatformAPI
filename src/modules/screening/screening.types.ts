@@ -10,7 +10,7 @@ export type ScreeningQuestion = InferSelectModel<
   typeof serviceScreeningQuestions
 >;
 
-/** The little a Service has to give up for screening to be checked against it. */
+/** The Service fields that screening needs. */
 export interface ScreeningService {
   id: string;
   name: string;
@@ -18,20 +18,20 @@ export interface ScreeningService {
   screeningRequired: boolean;
 }
 
-/** A question as the Advisor submits it, before it has an id or an order. */
+/** A question sent by the Advisor, before it is saved. */
 export interface ScreeningQuestionInput {
   question: string;
   isRequired: boolean;
 }
 
-/** An answer ready to store, with the question text snapshotted beside it. */
+/** An answer ready to save, with a copy of the question text. */
 export interface ScreeningAnswerInput {
   questionId: string;
   questionText: string;
   answer: string;
 }
 
-/** One row of the Advisor's request list: who asked, for which service, and where it stands. */
+/** One row of the Advisor's request list. */
 export interface AdvisorScreeningRequestRow {
   id: string;
   serviceId: string;
@@ -51,12 +51,15 @@ export interface ScreeningAnswerRow {
   answer: string;
 }
 
-/** A notification row to write in the same transaction as the event that caused it. */
+/** A notification saved in the same transaction as the action that caused it. */
 export interface ScreeningNotification {
   ownerId: string;
   type: 'SCREENING_REQUESTED' | 'SCREENING_DECIDED';
   title: string;
   content: string | null;
-  /** The request for the Advisor; the Service for the Advisee, whose status is per Service. */
+  /**
+   * The request id in the Advisor's notification; the Service id in the Advisee's, because their
+   * status is per Service.
+   */
   resourceId?: string;
 }

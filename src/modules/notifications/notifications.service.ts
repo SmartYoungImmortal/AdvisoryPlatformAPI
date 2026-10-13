@@ -72,8 +72,8 @@ export class NotificationsService {
   }
 
   /**
-   * The one way other features add to someone's feed. A new chat message with a room id
-   * refreshes that conversation's unread notification rather than adding another.
+   * Creates a notification; other modules call this. For a new chat message with a room id, the
+   * room's unread notification is updated instead of adding a new one.
    */
   async notify(input: NotifyInput): Promise<NotificationResponseDto> {
     const row =

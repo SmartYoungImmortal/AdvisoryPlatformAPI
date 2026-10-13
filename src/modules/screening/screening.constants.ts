@@ -1,8 +1,8 @@
 import { crudMessages } from '@/common/constants/crud-messages';
 
 /**
- * Screening is a per-Service gate: an Advisee answers the Advisor's questions and may only see
- * slots and book once the Advisor accepts (`AvailabilityService` already enforces the gate).
+ * Screening lets an Advisor ask questions before a booking. The Advisee answers, and can only see
+ * time slots and book after the Advisor accepts (`AvailabilityService` checks this).
  */
 export const SCREENING_MESSAGES = {
   ...crudMessages('Screening request'),
@@ -23,19 +23,15 @@ export const SCREENING_MESSAGES = {
     'Answer every required question, once each, and only the questions asked',
 } as const;
 
-/** Copper's decisions of 2026-10-03: at most five text questions, answers up to 1,000 chars. */
+/** At most five text questions per Service; answers up to 1,000 characters. */
 export const SCREENING_MAX_QUESTIONS = 5;
 export const SCREENING_QUESTION_MAX_LENGTH = 500;
 export const SCREENING_ANSWER_MAX_LENGTH = 1_000;
 export const SCREENING_DECLINE_MESSAGE_MAX_LENGTH = 1_000;
 
-/** The one status a decision may be applied from; the others are terminal. */
-export const SCREENING_PENDING_STATUS = 'PENDING';
-
 /**
- * Notification text is shown to Thai users, so it is Thai. The request and acceptance wording is
- * the Figma notification center's copy; the decline title is the declined screen's
- * (`screening.declinedTitle` in the frontend's `messages/th.json`).
+ * Notification text. It is in Thai because users see it, and the wording comes from the Figma
+ * designs.
  */
 export const SCREENING_NOTIFICATIONS = {
   requestedTitle: 'มีคำขอคัดกรองใหม่',

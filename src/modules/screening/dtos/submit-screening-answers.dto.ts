@@ -28,7 +28,10 @@ export class ScreeningAnswerInputDto {
   answer!: string;
 }
 
-/** Optional questions are answered by leaving them out; every required one must be present. */
+/**
+ * Answers to the questions. Optional questions can be left out; every required question must be
+ * answered.
+ */
 export class SubmitScreeningAnswersDto {
   @ApiProperty({
     type: () => [ScreeningAnswerInputDto],

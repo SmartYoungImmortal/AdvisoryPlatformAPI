@@ -5,7 +5,10 @@ import type { DrizzleDB } from '@/database/database.module';
 import { notifications, user } from '@/database/schema';
 import { NotificationsRepository } from './notifications.repository';
 
-/** Keyset paging, owner scoping and the chat-message upsert need real Postgres. */
+/**
+ * These tests use a real Postgres database to check paging, owner checks and the chat-message
+ * upsert.
+ */
 describe('NotificationsRepository (integration)', () => {
   let pool: Pool;
   let db: DrizzleDB;

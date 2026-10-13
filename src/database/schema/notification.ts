@@ -37,9 +37,9 @@ export const notifications = pgTable(
     title: varchar('title').notNull(),
     content: text('content'),
     /**
-     * The record a notification is about, so a client can open it. What it points at follows from
-     * `type` (a screening request, a Service, a chat room, a booking…); there is no foreign key
-     * because the target table varies.
+     * The id of the record the notification is about, so the app can open it. The `type` tells
+     * which table it belongs to (screening request, Service, chat room, booking…), so there is no
+     * foreign key.
      */
     resourceId: uuid('resource_id'),
     isRead: boolean('is_read').notNull().default(false),
@@ -53,7 +53,7 @@ export const notifications = pgTable(
       table.createdAt,
       table.id,
     ),
-    // New chat messages collapse into one unread notification per conversation.
+    // A chat room has at most one unread NEW_MESSAGE notification per user.
     uniqueIndex('notifications_unread_message_owner_resource_key')
       .on(table.ownerId, table.resourceId)
       .where(sql`${table.type} = 'NEW_MESSAGE' AND ${table.isRead} = false`),

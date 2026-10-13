@@ -77,7 +77,7 @@ export class ScreeningService {
     );
   }
 
-  /** Opening a request is what clears its unread dot. */
+  /** Opening a request marks it as viewed, which removes its unread dot. */
   async findRequest(
     user: SessionUser,
     requestId: string,
@@ -109,7 +109,7 @@ export class ScreeningService {
 
   /* ----------------------------------------------------------------- advisee */
 
-  /** The questions to answer and the caller's latest request, for the Advisee's screens. */
+  /** The Service's questions and the caller's latest request, for the Advisee's screens. */
   async findForService(
     user: SessionUser,
     serviceId: string,
@@ -135,8 +135,8 @@ export class ScreeningService {
   }
 
   /**
-   * Submits answers. Allowed again after a decline or an expiry (decision 5), refused while a
-   * request is still pending or already accepted.
+   * Submits answers. The Advisee can submit again after a decline or an expiry, but not while a
+   * request is pending or accepted.
    */
   async submit(
     user: SessionUser,
@@ -189,7 +189,8 @@ export class ScreeningService {
       );
       return new ScreeningRequestResponseDto(request);
     } catch (error: unknown) {
-      // A simultaneous submission lost the race to the pending-request unique index.
+      // Another request for the same Service was saved at the same moment and the unique index
+      // blocked this one.
       if (isUniqueViolation(error)) {
         throw new ConflictException(SCREENING_MESSAGES.alreadyPending);
       }
@@ -222,8 +223,8 @@ export class ScreeningService {
   }
 
   /**
-   * One decision, once. Read first so a request nobody owns is a 404 and an already-decided one
-   * is a 409; the write itself is still conditional on the request being pending.
+   * Accepts or declines a request. The request is read first so we can return 404 (not found) or
+   * 409 (already decided). The update itself also checks that the request is still pending.
    */
   private async decide(
     user: SessionUser,
@@ -238,6 +239,16 @@ export class ScreeningService {
 
     const advisorName =
       (await this.repository.findDisplayName(user.id)) ?? user.name;
+    const message =
+      status === 'ACCEPTED'
+        ? {
+            title: SCREENING_NOTIFICATIONS.acceptedTitle,
+            content: SCREENING_NOTIFICATIONS.acceptedContent(advisorName),
+          }
+        : {
+            title: SCREENING_NOTIFICATIONS.declinedTitle,
+            content: current.serviceName,
+          };
     const decided = await this.repository.decidePending(
       requestId,
       { status, decisionReason, decidedAt: new Date() },
@@ -245,15 +256,7 @@ export class ScreeningService {
         ownerId: current.adviseeId,
         type: 'SCREENING_DECIDED',
         resourceId: current.serviceId,
-        ...(status === 'ACCEPTED'
-          ? {
-              title: SCREENING_NOTIFICATIONS.acceptedTitle,
-              content: SCREENING_NOTIFICATIONS.acceptedContent(advisorName),
-            }
-          : {
-              title: SCREENING_NOTIFICATIONS.declinedTitle,
-              content: current.serviceName,
-            }),
+        ...message,
       },
     );
     if (!decided) {
@@ -269,8 +272,9 @@ export class ScreeningService {
   }
 
   /**
-   * Pairs each answer with its question and snapshots the wording. Every answer must name a
-   * current question of this Service, at most once, and every required question needs one.
+   * Matches each answer to its question and keeps a copy of the question text. Each answer must
+   * belong to a current question of this Service, only once, and every required question must be
+   * answered.
    */
   private matchAnswers(
     questions: ScreeningQuestion[],
@@ -303,7 +307,9 @@ export class ScreeningService {
   }
 }
 
-/** Postgres `unique_violation`, whether Drizzle surfaces it directly or as the cause. */
+/**
+ * True if the error is a Postgres unique violation (code 23505), either directly or in its `cause`.
+ */
 function isUniqueViolation(error: unknown): boolean {
   const code = (value: unknown): unknown =>
     typeof value === 'object' && value !== null && 'code' in value

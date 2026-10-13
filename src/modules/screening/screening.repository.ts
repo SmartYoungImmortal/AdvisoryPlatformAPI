@@ -11,7 +11,6 @@ import {
   services,
   user,
 } from '@/database/schema';
-import { SCREENING_PENDING_STATUS } from './screening.constants';
 import type {
   AdvisorScreeningRequestRow,
   ScreeningAnswerInput,
@@ -46,8 +45,8 @@ export class ScreeningRepository extends EntityRepository<
   }
 
   /**
-   * A Service an Advisee may apply to: published, by an active and unbanned Advisor — the same
-   * visibility rule `GET /services/:serviceId` applies.
+   * A Service an Advisee can apply to: it is published and its Advisor is active and not banned.
+   * This is the same rule `GET /services/:serviceId` uses.
    */
   async findPublishedService(
     serviceId: string,
@@ -82,9 +81,9 @@ export class ScreeningRepository extends EntityRepository<
   }
 
   /**
-   * Replaces the whole question list. The old questions are soft-deleted because past answers
-   * still reference them, and every acceptance given against the old questions expires — the
-   * Advisee has to answer the new ones (decision 6). Pending requests keep their snapshot answers.
+   * Replaces all questions of a Service. Old questions are soft-deleted because old answers still
+   * point to them. Accepted requests become EXPIRED, so the Advisee has to answer the new
+   * questions. Pending requests keep their saved answers.
    */
   replaceQuestions(
     serviceId: string,
@@ -159,9 +158,9 @@ export class ScreeningRepository extends EntityRepository<
   }
 
   /**
-   * Writes the request, its answers and the Advisor's notification together. The partial unique
-   * index on pending requests is what stops two simultaneous submissions; the service maps its
-   * violation to a 409.
+   * Saves the request, its answers and the Advisor's notification in one transaction. If two
+   * requests are sent at the same time, the partial unique index rejects the second one, and the
+   * service turns that error into a 409.
    */
   createWithAnswers(
     values: { serviceId: string; adviseeId: string },
@@ -204,7 +203,9 @@ export class ScreeningRepository extends EntityRepository<
       .offset(options.offset);
   }
 
-  /** Counted over the same joins the page uses, so the WHERE never names a missing table. */
+  /**
+   * Uses the same joins as the list query, because the WHERE clause refers to the joined tables.
+   */
   async countForAdvisor(
     advisorId: string,
     status?: ScreeningStatus,
@@ -231,7 +232,7 @@ export class ScreeningRepository extends EntityRepository<
     return row;
   }
 
-  /** Answers in the order the questions were asked, worded as they were when answered. */
+  /** Answers in question order, with the question text as it was when answered. */
   findAnswers(requestId: string): Promise<ScreeningAnswerRow[]> {
     return this.db
       .select({
@@ -248,7 +249,7 @@ export class ScreeningRepository extends EntityRepository<
       .orderBy(asc(serviceScreeningQuestions.displayOrder));
   }
 
-  /** Stamps the first time the Advisor opened the request; later opens change nothing. */
+  /** Saves the time the Advisor first opened the request. Opening it again does not change it. */
   async markViewed(requestId: string): Promise<Date> {
     const viewedAt = new Date();
     await this.db
@@ -264,8 +265,8 @@ export class ScreeningRepository extends EntityRepository<
   }
 
   /**
-   * Applies a decision only while the request is still pending, and notifies the Advisee in the
-   * same transaction. `undefined` means another decision got there first.
+   * Saves the decision only if the request is still pending, and creates the Advisee's notification
+   * in the same transaction. Returns `undefined` if another decision was saved first.
    */
   decidePending(
     requestId: string,
@@ -279,7 +280,7 @@ export class ScreeningRepository extends EntityRepository<
         .where(
           and(
             eq(screeningRequests.id, requestId),
-            eq(screeningRequests.status, SCREENING_PENDING_STATUS),
+            eq(screeningRequests.status, 'PENDING'),
           ),
         )
         .returning();

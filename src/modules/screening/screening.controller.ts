@@ -17,7 +17,7 @@ import { SubmitScreeningAnswersDto } from './dtos/submit-screening-answers.dto';
 import { SCREENING_MESSAGES } from './screening.constants';
 import { ScreeningService } from './screening.service';
 
-/** The Advisee's side: read a Service's questions and their own status, then answer. */
+/** Advisee routes: read a Service's questions and your own request status, and submit answers. */
 @ApiTags('Screening')
 @Controller('services/:serviceId')
 export class ScreeningController {
