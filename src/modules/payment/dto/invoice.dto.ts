@@ -1,4 +1,3 @@
-import { ChargeStatus } from '@/modules/payment/providers/providers';
 import { IsUUID, IsNotEmpty, IsArray, IsDateString } from 'class-validator';
 
 export class CreateInvoiceDto {
@@ -37,9 +36,40 @@ export class PaymentStatusService {
   name!: string;
 }
 
+export type ChargeStatusDto =
+  | {
+      status: 'pending';
+    }
+  | {
+      status: 'success';
+      lastDigits: string;
+      redirectUrl: string;
+    }
+  | {
+      status: 'failed';
+      lastDigits: string;
+      errorCode:
+        | 'confirmed_amount_mismatch'
+        | 'failed_fraud_check'
+        | 'failed_processing'
+        | 'insufficient_balance/insufficient_fund'
+        | 'invalid_account_number/invalid_account'
+        | 'insufficient_balance'
+        | 'insufficient_fund'
+        | 'invalid_account_number'
+        | 'invalid_account'
+        | 'payment_cancelled'
+        | 'payment_rejected'
+        | 'expired_card'
+        | 'stolen_or_lost_card'
+        | 'timeout'
+        | 'unspecified';
+      message: string;
+    };
+
 export class PaymentStatusDto {
   appointments!: PaymentStatusAppointments[];
   invoice!: PaymentStatusInvoice;
   service!: PaymentStatusService;
-  chargeStatus!: ChargeStatus;
+  chargeStatus!: ChargeStatusDto;
 }

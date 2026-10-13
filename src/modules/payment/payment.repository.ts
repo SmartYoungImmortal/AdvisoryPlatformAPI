@@ -50,7 +50,7 @@ export class PaymentServiceInvoicesRepository extends EntityRepository<
     )[0];
   }
 
-  async findPublicWithServiceById(id: string, userId: string) {
+  async findWithServiceById(id: string, userId: string) {
     const invoicePromise = this.db
       .select({
         invoice: {
@@ -59,6 +59,7 @@ export class PaymentServiceInvoicesRepository extends EntityRepository<
           createdAt: serviceInvoices.createdAt,
           platformFeeSatang: serviceInvoices.platformFeeSatang,
           status: serviceInvoices.status,
+          providerChargeId: serviceInvoices.providerChargeId,
         },
         service: {
           advisorFullName: user.fullName,

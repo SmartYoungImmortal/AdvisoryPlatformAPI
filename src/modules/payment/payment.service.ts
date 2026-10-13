@@ -192,31 +192,32 @@ export class PaymentService {
     user: SessionUser,
     invoiceId: string,
   ): Promise<PaymentStatusDto> {
-    const privateInvoicePromise =
-      this.serviceInvoiceRepository.findById(invoiceId);
-
-    const dataPromise = this.serviceInvoiceRepository.findPublicWithServiceById(
+    const data = await this.serviceInvoiceRepository.findWithServiceById(
       invoiceId,
       user.id,
     );
 
-    const [privateInvoice, data] = await Promise.all([
-      privateInvoicePromise,
-      dataPromise,
-    ]);
-
-    if (!privateInvoice || !privateInvoice.providerChargeId)
-      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
-    if (!data)
+    if (!data || !data.invoice.providerChargeId)
       throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
 
-    const chargeStatusPromise = this.paymentProvider.getChargeStatus(
-      privateInvoice.providerChargeId,
-    );
+    const { providerChargeId, ...publicInvoice } = data.invoice;
+
+    const chargeStatus =
+      await this.paymentProvider.getChargeStatus(providerChargeId);
+
+    const publicChargeStatus =
+      chargeStatus.status === 'success'
+        ? (({ chargeId: _chargeId, ...status }) => {
+            void _chargeId;
+            return status;
+          })(chargeStatus)
+        : chargeStatus;
 
     return {
-      ...data,
-      chargeStatus: await chargeStatusPromise,
+      appointments: data.appointments,
+      service: data.service,
+      invoice: publicInvoice,
+      chargeStatus: publicChargeStatus,
     };
   }
 
