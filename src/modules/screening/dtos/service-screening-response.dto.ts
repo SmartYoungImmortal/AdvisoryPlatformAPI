@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ScreeningQuestionResponseDto } from './screening-question-response.dto';
 import { ScreeningRequestResponseDto } from './screening-request-response.dto';
 
-/** Everything the Advisee's screening screens need for one Service, in one read. */
+/** Everything the Advisee's screening screens need for one Service. */
 export class ServiceScreeningResponseDto {
   @ApiProperty({ format: 'uuid' }) serviceId: string;
   @ApiProperty() screeningRequired: boolean;

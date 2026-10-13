@@ -7,7 +7,7 @@ import { AdvisorScreeningRequestResponseDto } from './advisor-screening-request-
 
 export class ScreeningAnswerResponseDto {
   @ApiProperty({ format: 'uuid' }) questionId: string;
-  /** The question as worded when it was answered. */
+  /** The question text at the time it was answered. */
   @ApiProperty() questionText: string;
   @ApiProperty() answer: string;
 
@@ -18,7 +18,7 @@ export class ScreeningAnswerResponseDto {
   }
 }
 
-/** Figma "Advisor - Review answers": the request plus every answer, in question order. */
+/** One request with all its answers, in question order (Figma "Advisor - Review answers"). */
 export class AdvisorScreeningRequestDetailResponseDto extends AdvisorScreeningRequestResponseDto {
   @ApiProperty({ type: () => [ScreeningAnswerResponseDto] })
   answers: ScreeningAnswerResponseDto[];

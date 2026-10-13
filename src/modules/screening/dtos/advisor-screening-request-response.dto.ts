@@ -6,8 +6,8 @@ import type {
 } from '@/modules/screening/screening.types';
 
 /**
- * One row of the Advisor's request list (Figma "Advisor - Screening requests"): the Advisee's
- * name, the Service name under it, and `viewedAt` null for the unread dot.
+ * One row in the Advisor's request list (Figma "Advisor - Screening requests"). `viewedAt` is null
+ * until the Advisor opens the request; the list shows an unread dot for those.
  */
 export class AdvisorScreeningRequestResponseDto {
   @ApiProperty({ format: 'uuid' }) id: string;

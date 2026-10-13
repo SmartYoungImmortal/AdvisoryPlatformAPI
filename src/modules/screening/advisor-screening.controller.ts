@@ -32,8 +32,8 @@ import { SCREENING_MESSAGES } from './screening.constants';
 import { ScreeningService } from './screening.service';
 
 /**
- * The Advisor's side of screening: the questions on each of their Services, and the requests
- * that come in. Ownership is checked in the service, so another Advisor's rows are a 404.
+ * Advisor routes: manage the screening questions of each Service and handle incoming requests. The
+ * service checks ownership, so another Advisor's data returns 404.
  */
 @ApiTags('Screening')
 @Controller('advisors/me')

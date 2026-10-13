@@ -14,7 +14,7 @@ export class NotificationsRepository extends EntityRepository<
     super(db, notifications);
   }
 
-  /** Newest first, keyset-paged on (createdAt, id). */
+  /** Newest first. Paged with a cursor on (createdAt, id). */
   findPageForOwner(
     ownerId: string,
     limit: number,
@@ -45,7 +45,7 @@ export class NotificationsRepository extends EntityRepository<
     return this.count(this.unreadWhere(ownerId));
   }
 
-  /** `undefined` when the notification is not the owner's. */
+  /** Returns `undefined` if the notification does not belong to the owner. */
   async markRead(
     id: string,
     ownerId: string,
@@ -66,9 +66,9 @@ export class NotificationsRepository extends EntityRepository<
   }
 
   /**
-   * A new chat message refreshes the conversation's unread notification instead of adding
-   * another, and moves it to the top. The partial unique index makes this safe under concurrent
-   * messages.
+   * For a new chat message: if the chat room already has an unread notification, update it and move
+   * it to the top instead of adding a new one. The partial unique index keeps this correct when two
+   * messages arrive at the same time.
    */
   async upsertUnreadMessage(values: NotifyInput): Promise<Notification> {
     const [row] = await this.db

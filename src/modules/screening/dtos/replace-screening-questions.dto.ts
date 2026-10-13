@@ -31,8 +31,8 @@ export class ScreeningQuestionInputDto {
 }
 
 /**
- * The whole ordered list, replacing whatever was there. At least one question, because a
- * screened Service with none could never be booked (decision 2).
+ * The full, ordered list of questions; it replaces the old list. At least one question is required,
+ * because a Service that needs screening cannot be booked without questions.
  */
 export class ReplaceScreeningQuestionsDto {
   @ApiProperty({

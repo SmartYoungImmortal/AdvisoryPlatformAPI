@@ -5,7 +5,7 @@ import { screeningStatusEnum } from '@/database/schema';
 import type { ScreeningStatus } from '@/modules/screening/screening.types';
 
 export class ScreeningRequestQueryDto extends OffsetPaginationDto {
-  /** Omitted means every request; the values are the `screening_status` enum's own. */
+  /** Filter by status. Leave it out to get all requests. */
   @ApiPropertyOptional({ enum: screeningStatusEnum.enumValues })
   @IsOptional()
   @IsIn(screeningStatusEnum.enumValues)

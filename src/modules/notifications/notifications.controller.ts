@@ -24,7 +24,10 @@ import { NotificationResponseDto } from './dtos/notification-response.dto';
 import { NOTIFICATION_MESSAGES } from './notifications.constants';
 import { NotificationsService } from './notifications.service';
 
-/** The signed-in user's own feed; every route is scoped to them. */
+/**
+ * Routes for the signed-in user's notifications. Every route only reads or changes that user's own
+ * notifications.
+ */
 @ApiTags('Notifications')
 @Controller('notifications')
 export class NotificationsController {
