@@ -1,24 +1,17 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import * as request from 'supertest';
 import { AppModule } from '@/app.module';
 import { ConfigService } from '@nestjs/config';
 import { ENV_KEYS } from '@/config/env.constants';
 import * as crypto from 'crypto';
-import { eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@/database/database.module';
 import { DRIZZLE } from '@/database/database.module';
 import { user } from '@/database/schema';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { configureApp } from '@/app.factory';
 import type Omise from 'omise';
-
-function object(value: unknown): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new Error('Expected an object response');
-  }
-  return value as Record<string, unknown>;
-}
+import { signUpActiveUser } from './support/accounts';
 
 describe('PaymentController (e2e)', () => {
   let app: NestExpressApplication;
@@ -54,41 +47,11 @@ describe('PaymentController (e2e)', () => {
     await app.close();
   });
 
-  async function signUp() {
-    const agent = request.agent(app.getHttpServer());
-    const email = `e2e-${crypto.randomUUID()}@example.test`;
-    const password = 'E2e-test-password-123!';
-
-    const response = await agent.post('/api/auth/sign-up/email').send({
+  const signUp = () =>
+    signUpActiveUser({ app, db }, 'e2e', createdUserIds, {
       name: 'E2E User',
       fullName: 'E2E Test User',
-      email,
-      password,
-      timezone: 'Asia/Bangkok',
     });
-
-    expect(response.status).toBe(200);
-
-    const responseBody = object(response.body);
-    const responseUser = object(responseBody.user);
-    const userId = responseUser.id;
-
-    expect(userId).toEqual(expect.any(String));
-    if (typeof userId !== 'string') {
-      throw new Error('Signup response did not include a user id');
-    }
-
-    createdUserIds.push(userId);
-
-    const [createdUser] = await db
-      .select({ status: user.status })
-      .from(user)
-      .where(eq(user.id, userId));
-
-    expect(createdUser?.status).toBe('ACTIVE');
-
-    return { agent, email, password, userId };
-  }
 
   async function getOmiseToken(publicKey: string): Promise<string> {
     const url = 'https://vault.omise.co/tokens';

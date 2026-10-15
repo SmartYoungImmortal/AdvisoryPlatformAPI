@@ -7,6 +7,8 @@ import { ServiceCategoriesService } from './service-categories.service';
 
 type ServiceCategory = InferSelectModel<typeof serviceCategories>;
 
+const ACTOR_ID = '99999999-9999-9999-9999-999999999999';
+
 function makeCategory(
   overrides: Partial<ServiceCategory> = {},
 ): ServiceCategory {
@@ -14,6 +16,8 @@ function makeCategory(
     id: '22222222-2222-2222-2222-222222222222',
     name: 'Marketing',
     description: null,
+    createdByUserId: null,
+    updatedByUserId: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     modifiedAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
@@ -92,9 +96,13 @@ describe('ServiceCategoriesService', () => {
     it('creates and returns the mapped category', async () => {
       repository.create.mockResolvedValue(makeCategory({ name: 'Legal' }));
 
-      const result = await service.create({ name: 'Legal' });
+      const result = await service.create({ name: 'Legal' }, ACTOR_ID);
 
-      expect(repository.create).toHaveBeenCalledWith({ name: 'Legal' });
+      expect(repository.create).toHaveBeenCalledWith({
+        name: 'Legal',
+        createdByUserId: ACTOR_ID,
+        updatedByUserId: ACTOR_ID,
+      });
       expect(result.name).toBe('Legal');
     });
   });
@@ -105,19 +113,25 @@ describe('ServiceCategoriesService', () => {
         makeCategory({ name: 'Updated' }),
       );
 
-      const result = await service.update(makeCategory().id, {
-        name: 'Updated',
-      });
+      const result = await service.update(
+        makeCategory().id,
+        { name: 'Updated' },
+        ACTOR_ID,
+      );
 
+      expect(repository.updateById).toHaveBeenCalledWith(makeCategory().id, {
+        name: 'Updated',
+        updatedByUserId: ACTOR_ID,
+      });
       expect(result.name).toBe('Updated');
     });
 
     it('throws NotFoundException when the category does not exist', async () => {
       repository.updateById.mockResolvedValue(undefined);
 
-      await expect(service.update('missing-id', { name: 'X' })).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.update('missing-id', { name: 'X' }, ACTOR_ID),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

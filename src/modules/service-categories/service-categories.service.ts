@@ -38,18 +38,28 @@ export class ServiceCategoriesService {
     return new ServiceCategoryResponseDto(category);
   }
 
+  /** `actorId` is the signed-in admin, from the session — never from the body. */
   async create(
     dto: CreateServiceCategoryDto,
+    actorId: string,
   ): Promise<ServiceCategoryResponseDto> {
-    const category = await this.serviceCategoriesRepository.create(dto);
+    const category = await this.serviceCategoriesRepository.create({
+      ...dto,
+      createdByUserId: actorId,
+      updatedByUserId: actorId,
+    });
     return new ServiceCategoryResponseDto(category);
   }
 
   async update(
     id: string,
     dto: UpdateServiceCategoryDto,
+    actorId: string,
   ): Promise<ServiceCategoryResponseDto> {
-    const category = await this.serviceCategoriesRepository.updateById(id, dto);
+    const category = await this.serviceCategoriesRepository.updateById(id, {
+      ...dto,
+      updatedByUserId: actorId,
+    });
 
     if (!category) {
       throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);
