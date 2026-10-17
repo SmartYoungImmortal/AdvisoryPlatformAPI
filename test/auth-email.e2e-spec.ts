@@ -177,6 +177,131 @@ describe('authentication email delivery (e2e)', () => {
     expect(createdUser?.emailVerified).toBe(false);
   });
 
+  it('changes a verified email only after confirmation at the old and new addresses', async () => {
+    const signedUp = await signUpUser(app, 'Email change', createdUserIds);
+    const secondAccount = await signUpUser(
+      app,
+      'Email duplicate',
+      createdUserIds,
+    );
+    const newEmail = `changed-${crypto.randomUUID()}@example.test`;
+    const originalVerification = await waitForMessages(
+      signedUp.email,
+      'Verify your Advisory Platform email',
+      1,
+    );
+    const originalVerificationMail = await readMessage(
+      originalVerification[0].ID,
+    );
+    const originalVerificationLink = new URL(
+      originalVerificationMail.Text.match(/https?:\/\/[^\s]+/)?.[0] ?? '',
+    );
+    await signedUp.agent
+      .get(
+        `${originalVerificationLink.pathname}${originalVerificationLink.search}`,
+      )
+      .redirects(0)
+      .expect(302);
+
+    await signedUp.agent
+      .post('/api/auth/change-email')
+      .send({ newEmail, callbackURL: '/account/email-updated' })
+      .expect(200)
+      .expect(({ body }) => expect(object(body).status).toBe(true));
+
+    const confirmationBatch = await waitForMessages(
+      signedUp.email,
+      'Confirm your Advisory Platform email change',
+      1,
+    );
+    const confirmation = await readMessage(confirmationBatch[0].ID);
+    expect(confirmation.Text).toContain(newEmail);
+    const confirmationLink = new URL(
+      confirmation.Text.match(/https?:\/\/[^\s]+/)?.[0] ?? '',
+    );
+    expect(confirmationLink.pathname).toBe('/api/auth/verify-email');
+    expect(confirmationLink.searchParams.get('callbackURL')).toBe(
+      '/account/email-updated',
+    );
+
+    const [unchangedUser] = await db
+      .select({ email: user.email })
+      .from(user)
+      .where(eq(user.id, signedUp.userId));
+    expect(unchangedUser?.email).toBe(signedUp.email);
+
+    await signedUp.agent
+      .get(`${confirmationLink.pathname}${confirmationLink.search}`)
+      .redirects(0)
+      .expect(302)
+      .expect(({ headers }) =>
+        expect(headers.location).toBe('/account/email-updated'),
+      );
+
+    const verificationBatch = await waitForMessages(
+      newEmail,
+      'Verify your Advisory Platform email',
+      1,
+    );
+    const verificationMail = await readMessage(verificationBatch[0].ID);
+    const verificationLink = new URL(
+      verificationMail.Text.match(/https?:\/\/[^\s]+/)?.[0] ?? '',
+    );
+    await signedUp.agent
+      .get(`${verificationLink.pathname}${verificationLink.search}`)
+      .redirects(0)
+      .expect(302)
+      .expect(({ headers }) =>
+        expect(headers.location).toBe('/account/email-updated'),
+      );
+
+    const [changedUser] = await db
+      .select({ email: user.email, emailVerified: user.emailVerified })
+      .from(user)
+      .where(eq(user.id, signedUp.userId));
+    expect(changedUser).toEqual({ email: newEmail, emailVerified: true });
+
+    await signedUp.agent
+      .post('/api/auth/change-email')
+      .send({ newEmail: secondAccount.email })
+      .expect(200)
+      .expect(({ body }) => expect(object(body).status).toBe(true));
+    const [stillChangedUser] = await db
+      .select({ email: user.email })
+      .from(user)
+      .where(eq(user.id, signedUp.userId));
+    expect(stillChangedUser?.email).toBe(newEmail);
+  });
+
+  it('changes a password only with the current password and the new password signs in', async () => {
+    const signedUp = await signUpUser(app, 'Password change', createdUserIds);
+    const newPassword = 'Changed-password-987!';
+    await signedUp.agent
+      .post('/api/auth/change-password')
+      .send({ currentPassword: 'Wrong-current-password-123!', newPassword })
+      .expect(400);
+
+    await signedUp.agent
+      .post('/api/auth/change-password')
+      .send({
+        currentPassword: signedUp.password,
+        newPassword,
+        revokeOtherSessions: true,
+      })
+      .expect(200);
+
+    await request
+      .agent(app.getHttpServer())
+      .post('/api/auth/sign-in/email')
+      .send({ email: signedUp.email, password: signedUp.password })
+      .expect(401);
+    await request
+      .agent(app.getHttpServer())
+      .post('/api/auth/sign-in/email')
+      .send({ email: signedUp.email, password: newPassword })
+      .expect(200);
+  });
+
   it('delivers a working password reset link and rejects it after expiry', async () => {
     const signedUp = await signUpUser(app, 'Password reset', createdUserIds);
     const resetEndpoint = '/api/auth/request-password-reset';
@@ -208,6 +333,17 @@ describe('authentication email delivery (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/auth/reset-password')
       .send({ token: workingToken, newPassword: 'New-password-987!' })
+      .expect(200);
+
+    await request
+      .agent(app.getHttpServer())
+      .post('/api/auth/sign-in/email')
+      .send({ email: signedUp.email, password: signedUp.password })
+      .expect(401);
+    await request
+      .agent(app.getHttpServer())
+      .post('/api/auth/sign-in/email')
+      .send({ email: signedUp.email, password: 'New-password-987!' })
       .expect(200);
 
     await request(app.getHttpServer())

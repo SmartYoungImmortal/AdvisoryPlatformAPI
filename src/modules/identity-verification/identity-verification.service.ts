@@ -11,6 +11,10 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
+import {
+  SIGNED_DOWNLOAD_URL_EXPIRY_SECONDS,
+  SignedDownloadUrlResponseDto,
+} from '@/common/storage/signed-download-url-response.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { IdentitySubmissionResponseDto } from './dtos/identity-submission-response.dto';
 import { IdentityVerificationQueryDto } from './dtos/identity-verification-query.dto';
@@ -63,6 +67,30 @@ export class IdentityVerificationService {
       throw new NotFoundException(IDENTITY_VERIFICATION_MESSAGES.notFound);
     }
     return new IdentityVerificationResponseDto(row);
+  }
+
+  async createAdminDocumentDownloadUrl(
+    advisorId: string,
+  ): Promise<SignedDownloadUrlResponseDto> {
+    const row = await this.repository.findOneForAdmin(advisorId);
+    if (!row?.documentObjectKey) {
+      throw new NotFoundException(IDENTITY_VERIFICATION_MESSAGES.notFound);
+    }
+
+    try {
+      const url = await this.storage.createDownloadUrl(
+        row.documentObjectKey,
+        SIGNED_DOWNLOAD_URL_EXPIRY_SECONDS,
+      );
+      return new SignedDownloadUrlResponseDto(
+        url,
+        SIGNED_DOWNLOAD_URL_EXPIRY_SECONDS,
+      );
+    } catch {
+      throw new ServiceUnavailableException(
+        IDENTITY_VERIFICATION_MESSAGES.storageUnavailable,
+      );
+    }
   }
 
   /**

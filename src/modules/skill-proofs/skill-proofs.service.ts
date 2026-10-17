@@ -12,6 +12,10 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
+import {
+  SIGNED_DOWNLOAD_URL_EXPIRY_SECONDS,
+  SignedDownloadUrlResponseDto,
+} from '@/common/storage/signed-download-url-response.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { OwnSkillProofResponseDto } from './dtos/own-skill-proof-response.dto';
 import { RejectSkillProofDto } from './dtos/reject-skill-proof.dto';
@@ -65,6 +69,30 @@ export class SkillProofsService {
       throw new NotFoundException(SKILL_PROOF_MESSAGES.notFound);
     }
     return new SkillProofResponseDto(row);
+  }
+
+  async createAdminDocumentDownloadUrl(
+    proofId: string,
+  ): Promise<SignedDownloadUrlResponseDto> {
+    const row = await this.repository.findOneForAdmin(proofId);
+    if (!row) {
+      throw new NotFoundException(SKILL_PROOF_MESSAGES.notFound);
+    }
+
+    try {
+      const url = await this.storage.createDownloadUrl(
+        row.objectKey,
+        SIGNED_DOWNLOAD_URL_EXPIRY_SECONDS,
+      );
+      return new SignedDownloadUrlResponseDto(
+        url,
+        SIGNED_DOWNLOAD_URL_EXPIRY_SECONDS,
+      );
+    } catch {
+      throw new ServiceUnavailableException(
+        SKILL_PROOF_MESSAGES.storageUnavailable,
+      );
+    }
   }
 
   /**

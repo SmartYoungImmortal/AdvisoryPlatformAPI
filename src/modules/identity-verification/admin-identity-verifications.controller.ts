@@ -19,6 +19,7 @@ import {
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import type { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
+import { SignedDownloadUrlResponseDto } from '@/common/storage/signed-download-url-response.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { IdentityVerificationQueryDto } from './dtos/identity-verification-query.dto';
 import { IdentityVerificationResponseDto } from './dtos/identity-verification-response.dto';
@@ -58,6 +59,15 @@ export class AdminIdentityVerificationsController {
     @Param('advisorId', ParseUUIDPipe) advisorId: string,
   ): Promise<IdentityVerificationResponseDto> {
     return this.identityVerifications.findOneForAdmin(advisorId);
+  }
+
+  @UserHasPermission({ permission: { identityVerification: ['read'] } })
+  @Get(':advisorId/document')
+  @ApiGetOne(SignedDownloadUrlResponseDto, { name: 'Identity document URL' })
+  createDocumentDownloadUrl(
+    @Param('advisorId', ParseUUIDPipe) advisorId: string,
+  ): Promise<SignedDownloadUrlResponseDto> {
+    return this.identityVerifications.createAdminDocumentDownloadUrl(advisorId);
   }
 
   @UserHasPermission({ permission: { identityVerification: ['decide'] } })

@@ -78,7 +78,10 @@ describe('IdentityVerificationService', () => {
     >
   >;
   let storage: jest.Mocked<
-    Pick<SeaweedFsStorageService, 'putObject' | 'removeObject'>
+    Pick<
+      SeaweedFsStorageService,
+      'putObject' | 'removeObject' | 'createDownloadUrl'
+    >
   >;
   let service: IdentityVerificationService;
 
@@ -96,6 +99,9 @@ describe('IdentityVerificationService', () => {
     storage = {
       putObject: jest.fn().mockResolvedValue(undefined),
       removeObject: jest.fn().mockResolvedValue(undefined),
+      createDownloadUrl: jest
+        .fn()
+        .mockResolvedValue('https://storage.test/signed'),
     };
     service = new IdentityVerificationService(
       repository as unknown as IdentityVerificationRepository,
@@ -281,6 +287,44 @@ describe('IdentityVerificationService', () => {
       await expect(service.findOneForAdmin(advisor.id)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('createAdminDocumentDownloadUrl', () => {
+    it('signs the stored key for five minutes without returning the key', async () => {
+      repository.findOneForAdmin.mockResolvedValue(queueRow());
+
+      const result = await service.createAdminDocumentDownloadUrl(advisor.id);
+
+      expect(storage.createDownloadUrl).toHaveBeenCalledWith(
+        'identity/advisor/scan.jpg',
+        300,
+      );
+      expect(result).toEqual({
+        url: 'https://storage.test/signed',
+        expiresInSeconds: 300,
+      });
+      expect(Object.keys(result)).toEqual(['url', 'expiresInSeconds']);
+    });
+
+    it('404s when no identity document is available', async () => {
+      repository.findOneForAdmin.mockResolvedValue(
+        queueRow({ documentObjectKey: null }),
+      );
+
+      await expect(
+        service.createAdminDocumentDownloadUrl(advisor.id),
+      ).rejects.toThrow(NotFoundException);
+      expect(storage.createDownloadUrl).not.toHaveBeenCalled();
+    });
+
+    it('reports storage failure without exposing the object key', async () => {
+      repository.findOneForAdmin.mockResolvedValue(queueRow());
+      storage.createDownloadUrl.mockRejectedValue(new Error('storage down'));
+
+      await expect(
+        service.createAdminDocumentDownloadUrl(advisor.id),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
   });
 

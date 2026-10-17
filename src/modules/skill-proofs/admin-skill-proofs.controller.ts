@@ -19,6 +19,7 @@ import {
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import type { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
+import { SignedDownloadUrlResponseDto } from '@/common/storage/signed-download-url-response.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { RejectSkillProofDto } from './dtos/reject-skill-proof.dto';
 import { SkillProofQueryDto } from './dtos/skill-proof-query.dto';
@@ -52,6 +53,15 @@ export class AdminSkillProofsController {
     @Param('proofId', ParseUUIDPipe) proofId: string,
   ): Promise<SkillProofResponseDto> {
     return this.skillProofs.findOneForAdmin(proofId);
+  }
+
+  @UserHasPermission({ permission: { skillProof: ['read'] } })
+  @Get(':proofId/document')
+  @ApiGetOne(SignedDownloadUrlResponseDto, { name: 'Skill proof document URL' })
+  createDocumentDownloadUrl(
+    @Param('proofId', ParseUUIDPipe) proofId: string,
+  ): Promise<SignedDownloadUrlResponseDto> {
+    return this.skillProofs.createAdminDocumentDownloadUrl(proofId);
   }
 
   @UserHasPermission({ permission: { skillProof: ['decide'] } })

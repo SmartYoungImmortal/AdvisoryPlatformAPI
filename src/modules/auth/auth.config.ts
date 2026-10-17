@@ -253,6 +253,18 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
       },
     },
     user: {
+      changeEmail: {
+        enabled: true,
+        updateEmailWithoutVerification: false,
+        sendChangeEmailConfirmation: ({ user, newEmail, url }) =>
+          sendEmail({
+            kind: 'change-email-confirmation',
+            to: user.email,
+            name: user.name,
+            newEmail,
+            url,
+          }),
+      },
       fields: {
         name: 'displayName',
       },

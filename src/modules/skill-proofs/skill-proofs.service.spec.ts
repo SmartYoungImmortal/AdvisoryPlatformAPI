@@ -98,7 +98,10 @@ describe('SkillProofsService', () => {
     >
   >;
   let storage: jest.Mocked<
-    Pick<SeaweedFsStorageService, 'putObject' | 'removeObject'>
+    Pick<
+      SeaweedFsStorageService,
+      'putObject' | 'removeObject' | 'createDownloadUrl'
+    >
   >;
   let service: SkillProofsService;
 
@@ -118,6 +121,9 @@ describe('SkillProofsService', () => {
     storage = {
       putObject: jest.fn().mockResolvedValue(undefined),
       removeObject: jest.fn().mockResolvedValue(undefined),
+      createDownloadUrl: jest
+        .fn()
+        .mockResolvedValue('https://storage.test/signed'),
     };
     service = new SkillProofsService(
       repository as unknown as SkillProofsRepository,
@@ -267,6 +273,42 @@ describe('SkillProofsService', () => {
       await expect(service.findOneForAdmin(proofId)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('createAdminDocumentDownloadUrl', () => {
+    it('signs the proof object key for five minutes', async () => {
+      repository.findOneForAdmin.mockResolvedValue(queueRow());
+
+      const result = await service.createAdminDocumentDownloadUrl(proofId);
+
+      expect(storage.createDownloadUrl).toHaveBeenCalledWith(
+        'skill-proofs/advisor/certificate.pdf',
+        300,
+      );
+      expect(result).toEqual({
+        url: 'https://storage.test/signed',
+        expiresInSeconds: 300,
+      });
+      expect(Object.keys(result)).toEqual(['url', 'expiresInSeconds']);
+    });
+
+    it('404s when the proof does not exist', async () => {
+      repository.findOneForAdmin.mockResolvedValue(undefined);
+
+      await expect(
+        service.createAdminDocumentDownloadUrl(proofId),
+      ).rejects.toThrow(NotFoundException);
+      expect(storage.createDownloadUrl).not.toHaveBeenCalled();
+    });
+
+    it('reports storage failure without exposing the object key', async () => {
+      repository.findOneForAdmin.mockResolvedValue(queueRow());
+      storage.createDownloadUrl.mockRejectedValue(new Error('storage down'));
+
+      await expect(
+        service.createAdminDocumentDownloadUrl(proofId),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
   });
 

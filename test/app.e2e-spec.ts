@@ -15,6 +15,7 @@ import {
   advisorSkills,
   notifications,
   serviceCategories,
+  serviceAppointments,
   services,
   session,
   skillProofDocuments,
@@ -36,6 +37,7 @@ describe('authentication and authorization (e2e)', () => {
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
   const createdServiceIds: string[] = [];
+  const createdAppointmentIds: string[] = [];
   const createdCategoryIds: string[] = [];
 
   function object(value: unknown): Record<string, unknown> {
@@ -64,6 +66,13 @@ describe('authentication and authorization (e2e)', () => {
 
   afterEach(async () => {
     storage.clear();
+    await Promise.all(
+      createdAppointmentIds
+        .splice(0)
+        .map((id) =>
+          db.delete(serviceAppointments).where(eq(serviceAppointments.id, id)),
+        ),
+    );
     await Promise.all(
       createdServiceIds
         .splice(0)
@@ -387,6 +396,81 @@ describe('authentication and authorization (e2e)', () => {
       db.select().from(verification).where(eq(verification.identifier, email)),
     ]);
     expect(erasedRows.every((rows) => rows.length === 0)).toBe(true);
+  });
+
+  it('reports actual upcoming appointments and blocks account deletion until they are resolved', async () => {
+    const advisee = await signUp();
+    const advisor = await signUpActiveUser(
+      { app, db },
+      'Deletion blocker advisor',
+      createdUserIds,
+    );
+    await approveAsAdvisor(db, advisor, { headline: 'Advisor' });
+    const [category] = await db
+      .insert(serviceCategories)
+      .values({ name: `Deletion blocker ${crypto.randomUUID()}` })
+      .returning({ id: serviceCategories.id });
+    createdCategoryIds.push(category.id);
+    const [service] = await db
+      .insert(services)
+      .values({
+        advisorId: advisor.userId,
+        categoryId: category.id,
+        name: 'Deletion blocker service',
+        priceSatang: 10000,
+        durationMinutes: 30,
+      })
+      .returning({ id: services.id });
+    createdServiceIds.push(service.id);
+    const startTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const [appointment] = await db
+      .insert(serviceAppointments)
+      .values({
+        serviceId: service.id,
+        advisorId: advisor.userId,
+        adviseeId: advisee.userId,
+        startTime,
+        endTime: new Date(startTime.getTime() + 30 * 60 * 1000),
+        unavailableUntil: new Date(startTime.getTime() + 30 * 60 * 1000),
+        state: 'BOOKED',
+      })
+      .returning({ id: serviceAppointments.id });
+    createdAppointmentIds.push(appointment.id);
+
+    const blockers = await advisee.agent
+      .get('/api/v1/users/me/deletion-blockers')
+      .expect(200);
+    expect(object(object(blockers.body).data)).toEqual({
+      upcomingAppointments: [
+        {
+          appointmentId: appointment.id,
+          startTime: startTime.toISOString(),
+          state: 'BOOKED',
+        },
+      ],
+    });
+
+    await advisee.agent.delete('/api/v1/users/me').expect(409);
+    const profile = await advisee.agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(profile.body).data)).toMatchObject({
+      id: advisee.userId,
+      email: advisee.email,
+    });
+
+    await db
+      .update(serviceAppointments)
+      .set({
+        state: 'CANCELLED',
+        cancelledAt: new Date(),
+        cancelledByUserId: advisee.userId,
+      })
+      .where(eq(serviceAppointments.id, appointment.id));
+    await advisee.agent
+      .get('/api/v1/users/me/deletion-blockers')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(object(object(body).data)).toEqual({ upcomingAppointments: [] });
+      });
   });
 
   it('opens an application once, which does not grant the Advisor role on its own', async () => {
