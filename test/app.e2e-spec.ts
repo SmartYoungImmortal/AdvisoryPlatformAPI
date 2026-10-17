@@ -335,6 +335,7 @@ describe('authentication and authorization (e2e)', () => {
         });
       });
 
+    // Account deletion removes the session and the next request is unauthorized.
     await agent.get('/api/v1/users/me').expect(401);
     expect(storage.hasObject(avatarKey)).toBe(false);
 

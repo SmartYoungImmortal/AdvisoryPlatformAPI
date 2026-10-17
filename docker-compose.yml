@@ -20,10 +20,16 @@ services:
       SEAWEEDFS_S3_ENDPOINT: seaweedfs
       SEAWEEDFS_S3_PORT: '8333'
       SEAWEEDFS_S3_USE_SSL: 'false'
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      SMTP_SECURE: 'false'
+      SMTP_FROM: 'Advisory Platform <no-reply@localhost>'
     ports:
       - '3000:3000'
     depends_on:
       seaweedfs:
+        condition: service_started
+      mailpit:
         condition: service_started
       # Deliberately absent: the postgres service below. It is the throwaway test
       # database, and an API that waited on it would be an API one edit away from
@@ -83,6 +89,13 @@ services:
       - '127.0.0.1:8888:8888'
     volumes:
       - seaweedfs_data:/data
+
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:1025:1025'
+      - '127.0.0.1:8025:8025'
 
 volumes:
   postgres_data:

@@ -79,6 +79,12 @@ All browser requests must use credentials so the HttpOnly session cookie is stor
 public advisor responses. A newly registered user is always an Advisee; Advisor access is gained
 only through `POST /api/v1/advisors/me`.
 
+Signup sends an email verification link automatically. The link expires after one hour. Use
+Better Auth's `/api/auth/send-verification-email` endpoint to resend it. Password reset requests use
+`/api/auth/request-password-reset`; reset links also expire after one hour. Locally, messages are
+captured by Mailpit at `http://localhost:8025`. Production requires SMTP host, sender, username and
+password configuration.
+
 ### Signup — copy this body
 
 `POST /api/auth/sign-up/email`

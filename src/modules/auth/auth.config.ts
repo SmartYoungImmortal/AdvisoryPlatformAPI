@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import type { ConfigService } from '@nestjs/config';
@@ -5,6 +6,7 @@ import type { DrizzleDB } from '@/database/database.module';
 import * as schema from '@/database/schema';
 import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
+import { createAuthEmailSender, createSmtpTransport } from './auth-email';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import {
@@ -188,6 +190,14 @@ export const appRoles = {
  * field names, no override is needed here.
  */
 export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
+  const logger = new Logger('AuthEmail');
+  const sendEmail = createAuthEmailSender({
+    from:
+      config.get(ENV_KEYS.SMTP_FROM, { infer: true }) ??
+      'Advisory Platform <no-reply@localhost>',
+    transport: createSmtpTransport(config),
+  });
+
   return betterAuth({
     database: drizzleAdapter(db, { provider: 'pg', schema }),
     secret: config.get(ENV_KEYS.BETTER_AUTH_SECRET, { infer: true }),
@@ -195,6 +205,29 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
     trustedOrigins: config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
     emailAndPassword: {
       enabled: true,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      sendResetPassword: ({ user, url }) => {
+        void sendEmail({
+          kind: 'password-reset',
+          to: user.email,
+          name: user.name,
+          url,
+        }).catch(() => logger.error('Password reset email delivery failed'));
+        return Promise.resolve();
+      },
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      expiresIn: 60 * 60,
+      sendVerificationEmail: ({ user, url }) => {
+        void sendEmail({
+          kind: 'verification',
+          to: user.email,
+          name: user.name,
+          url,
+        }).catch(() => logger.error('Verification email delivery failed'));
+        return Promise.resolve();
+      },
     },
     /**
      * Five minutes of the session in a signed cookie, so the guard on every route
