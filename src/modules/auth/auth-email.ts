@@ -5,7 +5,14 @@ import { ENV_KEYS } from '@/config/env.constants';
 
 export type AuthEmailRequest =
   | { kind: 'verification'; to: string; name: string; url: string }
-  | { kind: 'password-reset'; to: string; name: string; url: string };
+  | { kind: 'password-reset'; to: string; name: string; url: string }
+  | {
+      kind: 'change-email-confirmation';
+      to: string;
+      name: string;
+      newEmail: string;
+      url: string;
+    };
 
 export interface AuthMailMessage {
   from: string;
@@ -47,6 +54,12 @@ function createMessageContent(request: AuthEmailRequest) {
         subject: 'Reset your Advisory Platform password',
         text: `Hi ${name},\n\nReset your password by opening this link. It expires in one hour.\n\n${url}\n\nIf you did not request a password reset, you can ignore this email.`,
         html: `<p>Hi ${escapeHtml(name)},</p><p>Reset your password by opening the link below. It expires in one hour.</p><p><a href="${escapeHtml(url)}">Reset password</a></p><p>If you did not request a password reset, you can ignore this email.</p>`,
+      };
+    case 'change-email-confirmation':
+      return {
+        subject: 'Confirm your Advisory Platform email change',
+        text: `Hi ${name},\n\nWe received a request to change your account email to ${request.newEmail}. Confirm this request by opening the link below. It expires in one hour.\n\n${url}\n\nIf you did not request this change, you can ignore this email.`,
+        html: `<p>Hi ${escapeHtml(name)},</p><p>We received a request to change your account email to ${escapeHtml(request.newEmail)}. Confirm this request by opening the link below. It expires in one hour.</p><p><a href="${escapeHtml(url)}">Confirm email change</a></p><p>If you did not request this change, you can ignore this email.</p>`,
       };
   }
 }

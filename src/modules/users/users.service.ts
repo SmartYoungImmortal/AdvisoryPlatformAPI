@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -16,6 +17,7 @@ import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
 import { UserAvatarResponseDto } from './dtos/user-avatar-response.dto';
 import { UserAvatarUrlResponseDto } from './dtos/user-avatar-url-response.dto';
 import { UserOwnProfileResponseDto } from './dtos/user-own-profile-response.dto';
+import { AccountDeletionBlockersResponseDto } from './dtos/account-deletion-blockers-response.dto';
 import { USER_MESSAGES } from './users.constants';
 import { UsersRepository } from './users.repository';
 
@@ -139,18 +141,29 @@ export class UsersService {
     }
   }
 
+  async getDeletionBlockers(
+    userId: string,
+  ): Promise<AccountDeletionBlockersResponseDto> {
+    const upcomingAppointments =
+      await this.usersRepository.findDeletionBlockers(userId);
+    return new AccountDeletionBlockersResponseDto(upcomingAppointments);
+  }
+
   async deleteMe(userId: string): Promise<UserOwnProfileResponseDto> {
     const roles = await this.roleResolver.resolve(userId);
-    const deleted = await this.usersRepository.anonymizeById(userId);
-    if (!deleted) {
+    const result = await this.usersRepository.anonymizeById(userId);
+    if (result.status === 'not-found') {
       throw new NotFoundException(USER_MESSAGES.notFound);
     }
-
-    if (deleted.avatarKey) {
-      await this.removeObjectAfterRecordDelete(deleted.avatarKey);
+    if (result.status === 'blocked') {
+      throw new ConflictException(USER_MESSAGES.deletionBlocked);
     }
 
-    return new UserOwnProfileResponseDto(deleted, roles);
+    if (result.profile.avatarKey) {
+      await this.removeObjectAfterRecordDelete(result.profile.avatarKey);
+    }
+
+    return new UserOwnProfileResponseDto(result.profile, roles);
   }
 
   private validateAvatarUpload(

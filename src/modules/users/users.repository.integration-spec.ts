@@ -25,8 +25,8 @@ describe('UsersRepository (integration)', () => {
   });
 
   it('returns undefined when anonymizing a missing user', async () => {
-    await expect(
-      repository.anonymizeById(missingUserId),
-    ).resolves.toBeUndefined();
+    await expect(repository.anonymizeById(missingUserId)).resolves.toEqual({
+      status: 'not-found',
+    });
   });
 });

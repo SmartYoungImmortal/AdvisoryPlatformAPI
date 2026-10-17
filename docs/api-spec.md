@@ -74,6 +74,8 @@ All browser requests must use credentials so the HttpOnly session cookie is stor
 | `POST /api/auth/sign-in/email` | Create a session for an existing account | `email`, `password`                                 | `200`; returns `user` and sets the session cookie        |
 | `GET /api/auth/get-session`    | Read the current session                 | none                                                | `200`; returns `{ session, user }` or `null`             |
 | `POST /api/auth/sign-out`      | End the current session                  | none                                                | `200`; returns `{ success: true }` and clears the cookie |
+| `POST /api/auth/change-email`  | Request an email change                  | `newEmail`, optional `callbackURL`                  | `200`; returns Better Auth status; change is pending verification |
+| `POST /api/auth/change-password` | Change the signed-in user's password   | `currentPassword`, `newPassword`, optional `revokeOtherSessions` | `200`; verifies current password |
 
 `name` maps to the platform display name. `fullName` is the legal name and must never be included in
 public advisor responses. A newly registered user is always an Advisee; Advisor access is gained
@@ -84,6 +86,18 @@ Better Auth's `/api/auth/send-verification-email` endpoint to resend it. Passwor
 `/api/auth/request-password-reset`; reset links also expire after one hour. Locally, messages are
 captured by Mailpit at `http://localhost:8025`. Production requires SMTP host, sender, username and
 password configuration.
+
+Email changes require a fresh signed-in session and verification. A verified account first receives
+a confirmation link at its current email address; opening it sends a verification link to the new
+address. The account email changes only after the new address is verified. Duplicate addresses are
+handled with Better Auth's non-enumerating response: the request does not change the account or
+send a confirmation message, and the response does not disclose whether the address is registered.
+The confirmation and verification links expire after one hour. Email-change requests accept
+`callbackURL` for the browser page to show after each link is opened.
+
+Password changes use Better Auth's `/api/auth/change-password`. The user must provide the current
+password; a wrong current password returns a `400` Better Auth error. Set `revokeOtherSessions: true`
+to revoke other sessions while retaining a refreshed session for the current browser.
 
 ### Signup — copy this body
 
@@ -299,10 +313,27 @@ perspective and returns the removed `{ avatarKey }` in the standard success enve
 best-effort removes the corresponding private SeaweedFS object; a cleanup failure does not restore the
 database reference.
 
+### `GET /api/v1/users/me/deletion-blockers` — `Advisee`
+
+Returns the account owner's upcoming appointments that must be cancelled or completed before
+account deletion. It includes future `PENDING_PAYMENT` and `BOOKED` appointments where the user is
+either the Advisor or Advisee. The response includes only appointment id, start time, and state.
+
 ### `DELETE /api/v1/users/me` — `Advisee`
 
 Permanently closes the authenticated account and returns the pre-anonymization, allowlisted own-user
 profile in the standard success envelope. The operation is atomic:
+
+This domain endpoint is the supported account-deletion flow. It does not ask for a password; the
+authenticated session authorizes the request. Do not substitute Better Auth's generic
+`/api/auth/delete-user`: the domain endpoint anonymizes retained platform records and removes related
+identity/proof data instead of deleting the user row and cascading through evidence records.
+
+The API rechecks upcoming appointments inside the deletion transaction and returns `409` without
+changing the account while any remain. The user interface can load the current appointment details
+from `GET /api/v1/users/me/deletion-blockers`. Advisor withdrawable balance is not a deletion
+blocker yet: although invoice and payout tables are modelled, the API has no implemented payout or
+withdrawable-balance contract from which to calculate an authoritative amount.
 
 - all sessions and authentication accounts are deleted immediately;
 - the user row is marked `DELETED` and direct identity fields are replaced with non-identifying
