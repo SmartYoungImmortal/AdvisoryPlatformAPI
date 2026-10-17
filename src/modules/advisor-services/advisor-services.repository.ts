@@ -6,6 +6,7 @@ import {
   eq,
   gte,
   ilike,
+  isNull,
   lte,
   or,
   type InferSelectModel,
@@ -77,6 +78,7 @@ export class AdvisorServicesRepository extends EntityRepository<
         and(
           eq(availabilityProfiles.id, profileId),
           eq(availabilityProfiles.advisorId, advisorId),
+          isNull(availabilityProfiles.deletedAt),
         ),
       )
       .limit(1);
