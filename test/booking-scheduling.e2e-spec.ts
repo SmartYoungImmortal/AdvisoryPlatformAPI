@@ -1,36 +1,19 @@
-import type { NestExpressApplication } from '@nestjs/platform-express';
-import type { DrizzleDB } from '@/database/database.module';
 import { signUpUser } from './support/accounts';
 import {
   createBookingFixtureIds,
-  deleteBookingFixtures,
   seedAdvisorService,
 } from './support/booking-fixtures';
-import { createE2eApp } from './support/e2e-app';
+import { bookingE2eHarness } from './support/booking-e2e-harness';
 import { object, stringField } from './support/response';
 
 describe('booking scheduling contract (e2e)', () => {
-  let app: NestExpressApplication;
-  let db: DrizzleDB;
   const ids = createBookingFixtureIds();
-
-  beforeAll(async () => {
-    ({ app, db } = await createE2eApp());
-  });
-
-  afterEach(async () => {
-    await deleteBookingFixtures(db, ids);
-  });
-
-  afterAll(async () => {
-    await app.close();
-  });
-
-  const signUp = () => signUpUser(app, 'Scheduling', ids.userIds);
+  const e2e = bookingE2eHarness(ids);
+  const signUp = () => signUpUser(e2e().app, 'Scheduling', ids.userIds);
 
   it('revalidates a selected time against the booking horizon', async () => {
     const { advisor, serviceId, bookingDate, slotAt } =
-      await seedAdvisorService({ app, db }, ids, { label: 'Horizon' });
+      await seedAdvisorService(e2e(), ids, { label: 'Horizon' });
     const advisee = await signUp();
 
     await advisor.agent
@@ -52,7 +35,7 @@ describe('booking scheduling contract (e2e)', () => {
 
   it('hides remaining slots at the daily limit and rejects a stale selection', async () => {
     const { advisor, serviceId, bookingDate, slotAt } =
-      await seedAdvisorService({ app, db }, ids, { label: 'Daily limit' });
+      await seedAdvisorService(e2e(), ids, { label: 'Daily limit' });
     const advisee = await signUp();
 
     await advisor.agent
@@ -78,7 +61,7 @@ describe('booking scheduling contract (e2e)', () => {
 
   it('does not derive a consultation across a gap between availability windows', async () => {
     const { advisor, profileId, serviceId, bookingDate } =
-      await seedAdvisorService({ app, db }, ids, { label: 'Window gap' });
+      await seedAdvisorService(e2e(), ids, { label: 'Window gap' });
     const advisee = await signUp();
     const dayOfWeek = new Date(`${bookingDate}T00:00:00.000Z`).getUTCDay() || 7;
 
