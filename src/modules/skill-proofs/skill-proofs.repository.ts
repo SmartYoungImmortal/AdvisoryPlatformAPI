@@ -19,7 +19,6 @@ const OWN_COLUMNS = {
   id: skillProofDocuments.id,
   skillId: skillProofDocuments.skillId,
   skillName: skills.name,
-  objectKey: skillProofDocuments.objectKey,
   originalFileName: skillProofDocuments.originalFileName,
   reviewStatus: skillProofDocuments.reviewStatus,
   rejectionReason: skillProofDocuments.rejectionReason,

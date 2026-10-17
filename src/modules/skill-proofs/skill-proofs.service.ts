@@ -6,6 +6,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { DownloadUrlResponseDto } from '@/common/storage/download-url-response.dto';
 import {
   paginateQuery,
   type OffsetPaginationDto,
@@ -23,6 +24,7 @@ import {
   MAX_SKILL_PROOF_BYTES,
   SKILL_PROOF_EXTENSIONS,
   SKILL_PROOF_MESSAGES,
+  SKILL_PROOF_URL_EXPIRY_SECONDS,
   decodeUploadedFileName,
   skillProofObjectKey,
 } from './skill-proofs.constants';
@@ -65,6 +67,26 @@ export class SkillProofsService {
       throw new NotFoundException(SKILL_PROOF_MESSAGES.notFound);
     }
     return new SkillProofResponseDto(row);
+  }
+
+  async createDocumentUrlForAdmin(
+    proofId: string,
+  ): Promise<DownloadUrlResponseDto> {
+    const row = await this.repository.findOneForAdmin(proofId);
+    if (!row) {
+      throw new NotFoundException(SKILL_PROOF_MESSAGES.notFound);
+    }
+    try {
+      const url = await this.storage.createDownloadUrl(
+        row.objectKey,
+        SKILL_PROOF_URL_EXPIRY_SECONDS,
+      );
+      return new DownloadUrlResponseDto(url, SKILL_PROOF_URL_EXPIRY_SECONDS);
+    } catch {
+      throw new ServiceUnavailableException(
+        SKILL_PROOF_MESSAGES.storageUnavailable,
+      );
+    }
   }
 
   /**

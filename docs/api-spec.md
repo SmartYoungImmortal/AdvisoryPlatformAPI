@@ -456,7 +456,7 @@ A resubmission after `REJECTED` clears the old ruling and deletes the replaced s
 
 ### `GET /api/v1/advisors/me/identity-verification` — `Advisee` (own application)
 
-Status, document key, rejection reason and times. `404` until something has been submitted.
+Status, rejection reason and times. It does not return the storage key. `404` until something has been submitted.
 
 ### `POST /api/v1/advisors/me/skill-proofs` — `Advisee` (own application)
 
@@ -470,6 +470,7 @@ the only verification (docs/ER.README.md). Thai file names are stored as sent.
 ### `GET /api/v1/advisors/me/skill-proofs` — `Advisee` (own application)
 
 The caller's proof documents and their outcomes, paginated. An empty page, never a 404.
+Storage keys are omitted from the response.
 
 ### Admin review queues — `Admin`
 
@@ -477,12 +478,21 @@ The caller's proof documents and their outcomes, paginated. An empty page, never
 | ----------------------------------------------------------------------------------------- | ------------------------------- |
 | `GET /api/v1/admin/identity-verifications?status=SUBMITTED`                               | identity queue, oldest first    |
 | `GET /api/v1/admin/identity-verifications/:advisorId`                                     | one record                      |
+| `GET /api/v1/admin/identity-verifications/:advisorId/document-url`                        | short-lived ID scan URL         |
 | `POST /api/v1/admin/identity-verifications/:advisorId/approve`                            | `200`; grants the Advisor role  |
 | `POST /api/v1/admin/identity-verifications/:advisorId/reject`                             | `200`; body `{ "reason": "…" }` |
-| `GET /api/v1/admin/skill-proofs` · `/:proofId` · `/:proofId/approve` · `/:proofId/reject` | proof queue                     |
+| `GET /api/v1/admin/skill-proofs` · `/:proofId`                                            | proof queue                     |
+| `GET /api/v1/admin/skill-proofs/:proofId/document-url`                                    | short-lived proof URL           |
+| `POST /api/v1/admin/skill-proofs/:proofId/approve` · `/:proofId/reject`                   | proof decision                  |
+
+A file download URL is issued only to an Admin with the corresponding `read` permission, after
+looking up the record by its resource id. The response is `{ "url", "expiresInSeconds" }`; URLs
+expire after five minutes. Queue and owner DTOs omit the private storage key. The onboarding
+review client should request the relevant `document-url` route when opening an uploaded file and
+discard the URL after use; never construct an object-storage URL from a key.
 
 A ruling is accepted only from `SUBMITTED` (identity) or `PENDING` (proof); anything else is `409`.
-Not yet: masked national ID in the queue, signed document URLs, and a `VERIFICATION_DECIDED`
+Not yet: masked national ID in the queue, and a `VERIFICATION_DECIDED`
 notification.
 
 ---

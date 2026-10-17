@@ -104,7 +104,6 @@ export class IdentityVerificationRepository {
       .select({
         advisorId: advisorIdentity.advisorId,
         verificationStatus: advisorIdentity.verificationStatus,
-        documentObjectKey: advisorIdentity.documentObjectKey,
         rejectionReason: advisorIdentity.rejectionReason,
         submittedAt: advisorIdentity.submittedAt,
         verifiedAt: advisorIdentity.verifiedAt,
