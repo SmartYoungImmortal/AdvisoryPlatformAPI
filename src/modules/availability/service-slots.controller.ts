@@ -1,5 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Roles } from '@thallesp/nestjs-better-auth';
 import { ApiGetMany } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
@@ -15,6 +16,7 @@ export class ServiceSlotsController {
   constructor(private readonly availability: AvailabilityService) {}
 
   @Get(':serviceId/slots')
+  @Roles(['advisee'])
   @ApiGetMany(AvailabilitySlotResponseDto, { name: 'Available slots' })
   findSlots(
     @CurrentUser() user: SessionUser,
