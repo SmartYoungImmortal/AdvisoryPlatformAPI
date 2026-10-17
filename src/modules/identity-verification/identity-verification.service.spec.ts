@@ -46,7 +46,6 @@ function ownRow(
   return {
     advisorId: advisor.id,
     verificationStatus: 'SUBMITTED',
-    documentObjectKey: 'identity/advisor/scan.jpg',
     rejectionReason: null,
     submittedAt: new Date('2026-01-01T00:00:00Z'),
     verifiedAt: null,
@@ -78,7 +77,10 @@ describe('IdentityVerificationService', () => {
     >
   >;
   let storage: jest.Mocked<
-    Pick<SeaweedFsStorageService, 'putObject' | 'removeObject'>
+    Pick<
+      SeaweedFsStorageService,
+      'putObject' | 'removeObject' | 'createDownloadUrl'
+    >
   >;
   let service: IdentityVerificationService;
 
@@ -96,6 +98,9 @@ describe('IdentityVerificationService', () => {
     storage = {
       putObject: jest.fn().mockResolvedValue(undefined),
       removeObject: jest.fn().mockResolvedValue(undefined),
+      createDownloadUrl: jest
+        .fn()
+        .mockResolvedValue('https://storage.example.test/signed'),
     };
     service = new IdentityVerificationService(
       repository as unknown as IdentityVerificationRepository,
@@ -139,6 +144,18 @@ describe('IdentityVerificationService', () => {
       expect(storage.removeObject).toHaveBeenCalledWith(
         'identity/advisor/rejected.png',
       );
+    });
+
+    it('accepts a document at exactly 50 MB', async () => {
+      repository.submit.mockResolvedValue({
+        submittedAt,
+        previousDocumentObjectKey: null,
+      });
+
+      await service.submit(advisor, scan({ size: 50 * 1024 * 1024 }));
+
+      expect(storage.putObject).toHaveBeenCalledTimes(1);
+      expect(repository.submit).toHaveBeenCalledTimes(1);
     });
 
     it.each([
@@ -267,12 +284,26 @@ describe('IdentityVerificationService', () => {
         'displayName',
         'email',
         'verificationStatus',
-        'documentObjectKey',
         'rejectionReason',
         'submittedAt',
         'verifiedAt',
         'verifiedByAdminId',
       ]);
+    });
+
+    it('creates a short-lived download URL only for a submitted document', async () => {
+      repository.findOneForAdmin.mockResolvedValue(queueRow());
+
+      await expect(
+        service.createDocumentUrlForAdmin(advisor.id),
+      ).resolves.toEqual({
+        url: 'https://storage.example.test/signed',
+        expiresInSeconds: 300,
+      });
+      expect(storage.createDownloadUrl).toHaveBeenCalledWith(
+        'identity/advisor/scan.jpg',
+        300,
+      );
     });
 
     it('404s rather than answering an empty record for an advisor with none', async () => {
@@ -419,7 +450,6 @@ describe('IdentityVerificationService', () => {
       expect(Object.keys(result)).toEqual([
         'advisorId',
         'verificationStatus',
-        'documentObjectKey',
         'rejectionReason',
         'submittedAt',
         'verifiedAt',

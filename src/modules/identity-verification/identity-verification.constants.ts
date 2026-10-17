@@ -42,6 +42,7 @@ export const SUBMITTABLE_IDENTITY_STATUSES = [
  * anything else; the ceiling is the 50 MB the sprint plan names for every upload.
  */
 export const MAX_IDENTITY_DOCUMENT_BYTES = 50 * 1024 * 1024;
+export const IDENTITY_DOCUMENT_URL_EXPIRY_SECONDS = 5 * 60;
 
 export const IDENTITY_DOCUMENT_EXTENSIONS: Readonly<Record<string, string>> = {
   'image/jpeg': 'jpg',

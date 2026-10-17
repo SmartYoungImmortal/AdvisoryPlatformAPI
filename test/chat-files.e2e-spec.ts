@@ -149,10 +149,26 @@ describe('chat files (e2e)', () => {
   });
 
   it('requires a session', async () => {
-    const { roomId } = await seedRoom();
+    const { roomId, sender } = await seedRoom();
+    const uploaded = await upload(
+      sender.agent,
+      roomId,
+      Buffer.from('private'),
+    ).expect(201);
+    const fileId = stringField(object(object(uploaded.body).data), 'id');
 
     await request(app.getHttpServer())
       .get(`/api/v1/chat/rooms/${roomId}/files`)
+      .expect(401);
+    await request(app.getHttpServer())
+      .post(`/api/v1/chat/rooms/${roomId}/files`)
+      .attach('file', Buffer.from('unauthenticated'))
+      .expect(401);
+    await request(app.getHttpServer())
+      .get(`/api/v1/chat/rooms/${roomId}/files/${fileId}`)
+      .expect(401);
+    await request(app.getHttpServer())
+      .delete(`/api/v1/chat/rooms/${roomId}/files/${fileId}`)
       .expect(401);
   });
 

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiConflictResponse, ApiTags } from '@nestjs/swagger';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
+import { DownloadUrlResponseDto } from '@/common/storage/download-url-response.dto';
 import {
   ApiGetOne,
   ApiGetPaginated,
@@ -58,6 +59,15 @@ export class AdminIdentityVerificationsController {
     @Param('advisorId', ParseUUIDPipe) advisorId: string,
   ): Promise<IdentityVerificationResponseDto> {
     return this.identityVerifications.findOneForAdmin(advisorId);
+  }
+
+  @UserHasPermission({ permission: { identityVerification: ['read'] } })
+  @Get(':advisorId/document-url')
+  @ApiGetOne(DownloadUrlResponseDto, { name: 'Identity document URL' })
+  createDocumentUrl(
+    @Param('advisorId', ParseUUIDPipe) advisorId: string,
+  ): Promise<DownloadUrlResponseDto> {
+    return this.identityVerifications.createDocumentUrlForAdmin(advisorId);
   }
 
   @UserHasPermission({ permission: { identityVerification: ['decide'] } })
