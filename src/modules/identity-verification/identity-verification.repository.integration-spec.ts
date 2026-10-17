@@ -121,8 +121,10 @@ describe('IdentityVerificationRepository (integration)', () => {
     });
     await expect(repository.findOwn(id)).resolves.toMatchObject({
       verificationStatus: 'SUBMITTED',
-      documentObjectKey: 'identity/first.jpg',
     });
+    await expect(repository.findOwn(id)).resolves.not.toHaveProperty(
+      'documentObjectKey',
+    );
   });
 
   it('refuses to swap the document of a submission under review', async () => {
@@ -137,8 +139,11 @@ describe('IdentityVerificationRepository (integration)', () => {
       repository.submit(id, 'identity/b.jpg', SUBMITTABLE_IDENTITY_STATUSES),
     ).resolves.toBeUndefined();
     await expect(repository.findOwn(id)).resolves.toMatchObject({
-      documentObjectKey: 'identity/a.jpg',
+      verificationStatus: 'SUBMITTED',
     });
+    await expect(repository.findOwn(id)).resolves.not.toHaveProperty(
+      'documentObjectKey',
+    );
   });
 
   it('serializes two simultaneous first submissions: exactly one wins', async () => {
@@ -179,9 +184,11 @@ describe('IdentityVerificationRepository (integration)', () => {
     expect(result?.previousDocumentObjectKey).toBe('identity/blurry.jpg');
     await expect(repository.findOwn(id)).resolves.toMatchObject({
       verificationStatus: 'SUBMITTED',
-      documentObjectKey: 'identity/sharp.jpg',
       rejectionReason: null,
     });
+    await expect(repository.findOwn(id)).resolves.not.toHaveProperty(
+      'documentObjectKey',
+    );
   });
 
   it('makes the applicant an Advisor in the same write that verifies them', async () => {
