@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -72,6 +73,10 @@ export class AvailabilityService {
     advisorId: string,
     profileId: string,
   ): Promise<AvailabilityProfileDetails> {
+    if (!(await this.repository.findOwnedProfile(advisorId, profileId)))
+      throw new NotFoundException(AVAILABILITY_MESSAGES.profileNotFound);
+    if (await this.repository.isProfileInUse(profileId))
+      throw new ConflictException(AVAILABILITY_MESSAGES.profileInUse);
     const profile = await this.repository.softDelete(advisorId, profileId);
     if (!profile)
       throw new NotFoundException(AVAILABILITY_MESSAGES.profileNotFound);
