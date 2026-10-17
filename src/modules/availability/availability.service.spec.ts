@@ -331,6 +331,62 @@ describe('AvailabilityService slot derivation', () => {
     ).resolves.toEqual([]);
   });
 
+  it('hides remaining slots when earlier consultations exceed the global daily limit', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ globalLimit: 120 }),
+    );
+    repository.findBlockingAppointments.mockResolvedValue([
+      appointment(
+        '2026-09-06T18:00:00.000Z',
+        '2026-09-06T20:00:00.000Z',
+        '2026-09-06T20:00:00.000Z',
+      ),
+    ]);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  it('hides remaining slots when earlier consultations exceed the service daily limit', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ serviceLimit: 120 }),
+    );
+    repository.findBlockingAppointments.mockResolvedValue([
+      appointment(
+        '2026-09-06T18:00:00.000Z',
+        '2026-09-06T20:00:00.000Z',
+        '2026-09-06T20:00:00.000Z',
+      ),
+    ]);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  it('preserves repository errors while deriving slots', async () => {
+    const failure = new Error('database unavailable');
+    repository.schedulingContext.mockResolvedValue(context());
+    repository.findBlockingAppointments.mockRejectedValue(failure);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).rejects.toBe(failure);
+  });
+
   it('leaves the global limit alone when another Service has not filled it', async () => {
     repository.schedulingContext.mockResolvedValue(
       context({ globalLimit: 240 }),
@@ -448,6 +504,13 @@ describe('AvailabilityService slot derivation', () => {
   });
 
   it('rejects impossible dates and ranges longer than 90 inclusive days', async () => {
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: 'next monday', to: '2026-03-01' },
+        adviseeId,
+      ),
+    ).rejects.toThrow(BadRequestException);
     await expect(
       service.findSlots(
         serviceId,

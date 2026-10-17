@@ -19,23 +19,16 @@ export interface AuthMailTransport {
   sendMail(message: AuthMailMessage): Promise<void>;
 }
 
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => {
-    switch (character) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
-      case '"':
-        return '&quot;';
-      case "'":
-        return '&#39;';
-      default:
-        return character;
-    }
-  });
+  return value.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character]);
 }
 
 function createMessageContent(request: AuthEmailRequest) {

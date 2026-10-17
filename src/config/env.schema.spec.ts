@@ -39,4 +39,20 @@ describe('validateEnv SMTP settings', () => {
       validateEnv(validConfig({ SMTP_USER: 'mailer@example.test' })),
     ).toThrow('SMTP_USER and SMTP_PASSWORD must be configured together');
   });
+
+  it('accepts a complete production SMTP configuration', () => {
+    const env = validateEnv(
+      validConfig({
+        NODE_ENV: 'production',
+        SMTP_HOST: 'smtp.example.test',
+        SMTP_FROM: 'Advisory Platform <no-reply@example.test>',
+        SMTP_USER: 'mailer@example.test',
+        SMTP_PASSWORD: 'smtp-password',
+      }),
+    );
+
+    expect(env.SMTP_HOST).toBe('smtp.example.test');
+    expect(env.SMTP_FROM).toBe('Advisory Platform <no-reply@example.test>');
+    expect(env.SMTP_USER).toBe('mailer@example.test');
+  });
 });

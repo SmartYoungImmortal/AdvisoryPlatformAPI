@@ -1,8 +1,24 @@
+import type { ConfigService } from '@nestjs/config';
+import { createTransport } from 'nodemailer';
+import type { Env } from '@/config/env.schema';
 import {
   createAuthEmailSender,
+  createSmtpTransport,
   type AuthMailMessage,
   type AuthMailTransport,
 } from './auth-email';
+
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn(() => ({
+    sendMail: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+function config(values: Record<string, string | number | boolean>) {
+  return {
+    get: (key: string) => values[key],
+  } as unknown as ConfigService<Env, true>;
+}
 
 describe('createAuthEmailSender', () => {
   const messages: AuthMailMessage[] = [];
@@ -26,7 +42,7 @@ describe('createAuthEmailSender', () => {
     await sendEmail({
       kind: 'verification',
       to: 'user@example.test',
-      name: '<img src=x onerror=alert(1)>',
+      name: `<img src="x" onerror='alert(1)'>`,
       url: 'https://app.example.test/verify?token=secret&callbackURL=%2Fhome',
     });
 
@@ -39,7 +55,9 @@ describe('createAuthEmailSender', () => {
     expect(messages[0].text).toContain(
       'https://app.example.test/verify?token=secret&callbackURL=%2Fhome',
     );
-    expect(messages[0].html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(messages[0].html).toContain(
+      '&lt;img src=&quot;x&quot; onerror=&#39;alert(1)&#39;&gt;',
+    );
     expect(messages[0].html).toContain('token=secret&amp;callbackURL=');
     expect(messages[0].html).not.toContain('<img');
   });
@@ -82,5 +100,49 @@ describe('createAuthEmailSender', () => {
         url: 'https://app.example.test/verify?token=secret',
       }),
     ).rejects.toThrow('SMTP credentials rejected');
+  });
+});
+
+describe('createSmtpTransport', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('uses the local SMTP host without authentication when credentials are absent', async () => {
+    const mail = createSmtpTransport(
+      config({ SMTP_HOST: 'localhost', SMTP_PORT: 1025, SMTP_SECURE: false }),
+    );
+    const message: AuthMailMessage = {
+      from: 'no-reply@example.test',
+      to: 'user@example.test',
+      subject: 'Subject',
+      text: 'Text',
+      html: '<p>Text</p>',
+    };
+
+    await expect(mail.sendMail(message)).resolves.toBeUndefined();
+
+    expect(createTransport).toHaveBeenCalledWith({
+      host: 'localhost',
+      port: 1025,
+      secure: false,
+    });
+  });
+
+  it('configures SMTP authentication when both credentials are present', () => {
+    createSmtpTransport(
+      config({
+        SMTP_HOST: 'smtp.example.test',
+        SMTP_PORT: 587,
+        SMTP_SECURE: false,
+        SMTP_USER: 'mailer@example.test',
+        SMTP_PASSWORD: 'smtp-password',
+      }),
+    );
+
+    expect(createTransport).toHaveBeenCalledWith({
+      host: 'smtp.example.test',
+      port: 587,
+      secure: false,
+      auth: { user: 'mailer@example.test', pass: 'smtp-password' },
+    });
   });
 });
