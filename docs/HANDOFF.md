@@ -7,10 +7,10 @@ reset use the configured SMTP transport. Local development uses Mailpit at `loca
 its inbox at `http://localhost:8025`. Production requires `SMTP_HOST` and `SMTP_FROM`; configure
 `SMTP_USER` and `SMTP_PASSWORD` together when the provider requires authentication.
 
-Run the standard verification after starting the required local database service:
+Run the standard verification after starting the local test database and Mailpit services:
 
 ```powershell
-docker compose up -d postgres
+docker compose up -d postgres mailpit
 pnpm run test:cov
 ```
 
