@@ -27,6 +27,34 @@ export const DECIDABLE_IDENTITY_STATUSES = [
   'SUBMITTED',
 ] as const satisfies readonly IdentityVerificationStatus[];
 
+/**
+ * The statuses an applicant may (re)submit from: never submitted, or sent back by an
+ * admin. A `SUBMITTED` document is under review and is not swapped out from under the
+ * reviewer; a `VERIFIED` one is done.
+ */
+export const SUBMITTABLE_IDENTITY_STATUSES = [
+  'NONE',
+  'REJECTED',
+] as const satisfies readonly IdentityVerificationStatus[];
+
+/**
+ * The ID-card scan. Figma's Stage 2 accepts a photo — JPG or PNG — and rejects
+ * anything else; the ceiling is the 50 MB the sprint plan names for every upload.
+ */
+export const MAX_IDENTITY_DOCUMENT_BYTES = 50 * 1024 * 1024;
+
+export const IDENTITY_DOCUMENT_EXTENSIONS: Readonly<Record<string, string>> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+};
+
+export function identityDocumentObjectKey(
+  advisorId: string,
+  extension: string,
+): string {
+  return `identity/${advisorId}/${crypto.randomUUID()}.${extension}`;
+}
+
 export function isTerminalIdentityStatus(
   status: IdentityVerificationStatus,
 ): boolean {
@@ -41,6 +69,15 @@ export const IDENTITY_VERIFICATION_MESSAGES = {
   rejected: 'Identity verification rejected',
   alreadyDecided: 'Identity verification has already been decided',
   notSubmitted: 'Identity verification has not been submitted yet',
+  submitted: 'Identity submitted for review',
+  applicationRequired:
+    'Apply to become an advisor before submitting an identity document',
+  awaitingReview: 'Identity document is already awaiting review',
+  alreadyVerified: 'Identity has already been verified',
+  documentRequired: 'An identity document file is required',
+  documentInvalidType: 'Identity document must be a JPG or PNG image',
+  documentTooLarge: 'Identity document must be 50 MB or smaller',
+  storageUnavailable: 'File storage is unavailable; try again later',
 } as const;
 
 /**

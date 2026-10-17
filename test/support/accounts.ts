@@ -6,8 +6,11 @@ import {
   account,
   adminProfiles,
   advisorGlobalAvailability,
+  advisorIdentity,
   advisorProfiles,
+  advisorSkills,
   pdpaConsents,
+  skillProofDocuments,
   session,
   user,
   verification,
@@ -73,6 +76,34 @@ export async function signUpActiveUser(
 }
 
 /**
+ * Applies to be an Advisor and has the application approved, for specs whose subject
+ * is what an Advisor does rather than how one is approved — `advisor-onboarding`
+ * drives the real submit-and-approve flow over HTTP.
+ *
+ * It writes exactly what an admin's approval writes, a `VERIFIED` identity and
+ * `user.role = 'advisor'`. better-auth's permission check reads the role from the
+ * database by user id, so the agent's next request is an Advisor's.
+ */
+export async function approveAsAdvisor(
+  db: DrizzleDB,
+  advisor: SignedUpUser,
+  profile: { headline: string; bio?: string },
+): Promise<void> {
+  await advisor.agent.post('/api/v1/advisors/me').send(profile).expect(201);
+  await db.insert(advisorIdentity).values({
+    advisorId: advisor.userId,
+    verificationStatus: 'VERIFIED',
+    documentObjectKey: `identity/${advisor.userId}/fixture.jpg`,
+    submittedAt: new Date(),
+    verifiedAt: new Date(),
+  });
+  await db
+    .update(user)
+    .set({ role: 'advisor' })
+    .where(eq(user.id, advisor.userId));
+}
+
+/**
  * Drains `userIds`, removing each account and the profile, session, and verification
  * rows that reference it. Specs that create none of those are unaffected.
  */
@@ -85,6 +116,11 @@ export async function deleteUsers(
     await db
       .delete(advisorGlobalAvailability)
       .where(eq(advisorGlobalAvailability.advisorId, id));
+    await db.delete(advisorIdentity).where(eq(advisorIdentity.advisorId, id));
+    await db
+      .delete(skillProofDocuments)
+      .where(eq(skillProofDocuments.advisorId, id));
+    await db.delete(advisorSkills).where(eq(advisorSkills.advisorId, id));
     await db.delete(advisorProfiles).where(eq(advisorProfiles.userId, id));
     await db.delete(pdpaConsents).where(eq(pdpaConsents.userId, id));
     await db.delete(session).where(eq(session.userId, id));

@@ -23,7 +23,11 @@ import {
   verification,
 } from '@/database/schema';
 import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
-import { deleteUsers, signUpActiveUser } from './support/accounts';
+import {
+  approveAsAdvisor,
+  deleteUsers,
+  signUpActiveUser,
+} from './support/accounts';
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
@@ -278,11 +282,14 @@ describe('authentication and authorization (e2e)', () => {
       objectKey: `proofs/${userId}.pdf`,
       originalFileName: 'personal-proof.pdf',
     });
+    // Approved, as an admin's approval would leave it: a verified identity and the
+    // Advisor role, so this deletes a working Advisor rather than an applicant.
     await db.insert(advisorIdentity).values({
       advisorId: userId,
       nationalIdHash: crypto.randomUUID(),
-      verificationStatus: 'SUBMITTED',
+      verificationStatus: 'VERIFIED',
     });
+    await db.update(user).set({ role: 'advisor' }).where(eq(user.id, userId));
     await db.insert(notifications).values({
       ownerId: userId,
       type: 'POLICY_WARNING',
@@ -381,18 +388,19 @@ describe('authentication and authorization (e2e)', () => {
     expect(erasedRows.every((rows) => rows.length === 0)).toBe(true);
   });
 
-  it('creates an Advisee session, upgrades once, and then permits the Advisor route', async () => {
+  it('opens an application once, which does not grant the Advisor role on its own', async () => {
     const { agent } = await signUp();
 
     await agent.get('/api/v1/advisors/me').expect(404);
 
-    const upgraded = await agent
+    const applied = await agent
       .post('/api/v1/advisors/me')
       .send({ headline: 'Operations advisor', bio: 'Helping teams improve.' })
       .expect(201);
-    expect(object(object(upgraded.body).data)).toMatchObject({
+    expect(object(object(applied.body).data)).toMatchObject({
       headline: 'Operations advisor',
       bio: 'Helping teams improve.',
+      verificationStatus: 'NONE',
     });
 
     const profile = await agent.get('/api/v1/advisors/me').expect(200);
@@ -400,10 +408,13 @@ describe('authentication and authorization (e2e)', () => {
       headline: 'Operations advisor',
     });
 
+    // Still an Advisee: the role waits for an admin to verify the identity, and the
+    // Advisor workspace stays shut until then (see advisor-onboarding.e2e-spec.ts).
     const roles = await agent.get('/api/v1/users/me').expect(200);
     expect(object(object(roles.body).data)).toMatchObject({
-      roles: ['ADVISEE', 'ADVISOR'],
+      roles: ['ADVISEE'],
     });
+    await agent.get('/api/v1/advisors/me/availability/global').expect(403);
 
     const updated = await agent
       .patch('/api/v1/advisors/me')
@@ -474,17 +485,15 @@ describe('authentication and authorization (e2e)', () => {
   });
 
   it('allows only Advisors and Admins to manage service categories', async () => {
-    const { agent } = await signUp();
+    const advisor = await signUp();
+    const { agent } = advisor;
 
     await agent
       .post('/api/v1/service-categories')
       .send({ name: 'Blocked category' })
       .expect(403);
 
-    await agent
-      .post('/api/v1/advisors/me')
-      .send({ headline: 'Category advisor' })
-      .expect(201);
+    await approveAsAdvisor(db, advisor, { headline: 'Category advisor' });
 
     const created = await agent
       .post('/api/v1/service-categories')

@@ -29,7 +29,47 @@ export const SKILL_PROOF_MESSAGES = {
   approved: 'Skill proof approved',
   rejected: 'Skill proof rejected',
   alreadyReviewed: 'Skill proof has already been reviewed',
+  submitted: 'Skill proof submitted for review',
+  applicationRequired:
+    'Apply to become an advisor before submitting a skill proof',
+  skillNotFound: 'Skill not found',
+  fileRequired: 'A proof document file is required',
+  fileInvalidType: 'Skill proof must be a JPG, PNG or PDF file',
+  fileTooLarge: 'Skill proof must be 50 MB or smaller',
+  storageUnavailable: 'File storage is unavailable; try again later',
 } as const;
+
+/**
+ * Figma's Stage 3 accepts a certificate as a photo or a PDF. The ceiling is the 50 MB
+ * the sprint plan names for every upload.
+ */
+export const MAX_SKILL_PROOF_BYTES = 50 * 1024 * 1024;
+
+export const SKILL_PROOF_EXTENSIONS: Readonly<Record<string, string>> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'application/pdf': 'pdf',
+};
+
+export function skillProofObjectKey(
+  advisorId: string,
+  extension: string,
+): string {
+  return `skill-proofs/${advisorId}/${crypto.randomUUID()}.${extension}`;
+}
+
+/** `original_file_name` is unbounded; this keeps a hostile name from bloating the row. */
+export const MAX_ORIGINAL_FILE_NAME_LENGTH = 255;
+
+/**
+ * Multer hands over the multipart filename decoded as Latin-1, so a Thai name such as
+ * `ใบอนุญาต.pdf` arrives as mojibake. The bytes are UTF-8 — every browser sends them
+ * that way — so they are re-read as such before anything stores them.
+ */
+export function decodeUploadedFileName(name: string): string {
+  const decoded = Buffer.from(name, 'latin1').toString('utf8');
+  return decoded.slice(0, MAX_ORIGINAL_FILE_NAME_LENGTH);
+}
 
 /**
  * `skill_proof_documents.rejection_reason` is unbounded `text`, so the bound is the

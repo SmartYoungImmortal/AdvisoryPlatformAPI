@@ -36,7 +36,10 @@ describe('AdvisorsService', () => {
   let repository: jest.Mocked<
     Pick<
       AdvisorsRepository,
-      'findByUserId' | 'createIfAbsent' | 'updateByUserId'
+      | 'findByUserId'
+      | 'findVerificationStatus'
+      | 'createIfAbsent'
+      | 'updateByUserId'
     >
   >;
   let service: AdvisorsService;
@@ -44,13 +47,14 @@ describe('AdvisorsService', () => {
   beforeEach(() => {
     repository = {
       findByUserId: jest.fn(),
+      findVerificationStatus: jest.fn().mockResolvedValue('SUBMITTED'),
       createIfAbsent: jest.fn(),
       updateByUserId: jest.fn(),
     };
     service = new AdvisorsService(repository as unknown as AdvisorsRepository);
   });
 
-  it('returns the owner-only profile DTO', async () => {
+  it('returns the owner-only profile DTO with the application status', async () => {
     repository.findByUserId.mockResolvedValue(profile());
 
     const result = await service.getMe(user);
@@ -59,7 +63,9 @@ describe('AdvisorsService', () => {
       id: user.id,
       email: user.email,
       headline: 'Operations advisor',
+      verificationStatus: 'SUBMITTED',
     });
+    expect(repository.findVerificationStatus).toHaveBeenCalledWith(user.id);
   });
 
   it('throws when the advisor profile does not exist', async () => {
@@ -68,10 +74,10 @@ describe('AdvisorsService', () => {
     await expect(service.getMe(user)).rejects.toThrow(NotFoundException);
   });
 
-  it('creates the advisor profile once', async () => {
+  it('opens the application once, with nothing submitted yet', async () => {
     repository.createIfAbsent.mockResolvedValue(profile());
 
-    const result = await service.upgrade(user, {
+    const result = await service.apply(user, {
       headline: 'Operations advisor',
     });
 
@@ -79,17 +85,19 @@ describe('AdvisorsService', () => {
       headline: 'Operations advisor',
     });
     expect(result.headline).toBe('Operations advisor');
+    expect(result.verificationStatus).toBe('NONE');
+    expect(repository.findVerificationStatus).not.toHaveBeenCalled();
   });
 
-  it('maps a repeated atomic upgrade to conflict', async () => {
+  it('maps a repeated atomic application to conflict', async () => {
     repository.createIfAbsent.mockResolvedValue(undefined);
 
-    await expect(service.upgrade(user, { headline: 'Again' })).rejects.toThrow(
+    await expect(service.apply(user, { headline: 'Again' })).rejects.toThrow(
       ConflictException,
     );
   });
 
-  it('updates the owner-only advisor profile', async () => {
+  it('updates the owner-only advisor profile and reports its status', async () => {
     repository.updateByUserId.mockResolvedValue({
       ...profile(),
       headline: 'Updated advisor',
@@ -103,6 +111,7 @@ describe('AdvisorsService', () => {
       headline: 'Updated advisor',
     });
     expect(result.headline).toBe('Updated advisor');
+    expect(result.verificationStatus).toBe('SUBMITTED');
   });
 
   it('throws when updating a missing advisor profile', async () => {

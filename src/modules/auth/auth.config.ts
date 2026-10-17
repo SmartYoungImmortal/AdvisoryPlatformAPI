@@ -17,9 +17,21 @@ const permissions = {
   profile: {
     selfManaged: ['read', 'updateSelf', 'deleteSelf'],
   },
+  /**
+   * The Advisor workspace — availability, own services, own bookings. Held only by an
+   * approved Advisor: `user.role` becomes `advisor` when an admin verifies the
+   * applicant's identity, never when the applicant asks.
+   */
   advisor: {
-    selfManaged: ['createSelf', 'read', 'updateSelf'],
-    selfCreateOrRead: ['createSelf', 'read'],
+    selfManaged: ['read', 'updateSelf'],
+  },
+  /**
+   * Applying to become an Advisor and keeping that profile up to date. Every Advisee
+   * may apply, so this is deliberately a separate resource from `advisor`: granting
+   * an applicant "read my application" must not also grant "read my availability".
+   */
+  advisorApplication: {
+    selfManaged: ['submitSelf', 'readSelf', 'updateSelf'],
   },
   advisorService: {
     selfManaged: ['createSelf', 'read', 'update', 'delete'],
@@ -76,6 +88,7 @@ const statements = {
   ...defaultStatements,
   profile: permissions.profile.selfManaged,
   advisor: permissions.advisor.selfManaged,
+  advisorApplication: permissions.advisorApplication.selfManaged,
   advisorService: permissions.advisorService.selfManaged,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
@@ -119,6 +132,7 @@ const advisorStatements = {
   ...userAc.statements,
   profile: permissions.profile.selfManaged,
   advisor: permissions.advisor.selfManaged,
+  advisorApplication: permissions.advisorApplication.selfManaged,
   advisorService: permissions.advisorService.selfManaged,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.readAndCreate,
@@ -133,8 +147,12 @@ const advisorStatements = {
 const adviseeStatements = {
   ...userAc.statements,
   profile: permissions.profile.selfManaged,
-  advisor: permissions.advisor.selfCreateOrRead,
-  advisorService: permissions.advisorService.readOnly,
+  // An Advisee applies to become an Advisor and uploads the documents an admin
+  // reviews. They hold nothing on `advisor` or `advisorService`: the workspace opens
+  // only when the admin approves, which is what turns `user.role` into `advisor`.
+  advisorApplication: permissions.advisorApplication.selfManaged,
+  identityVerification: permissions.identityVerification.selfSubmit,
+  skillProof: permissions.skillProof.selfSubmit,
   serviceCategory: permissions.serviceCategory.readOnly,
   skills: permissions.skills.readOnly,
   // An Advisee opens their own refund case and reports another user, and reads
