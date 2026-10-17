@@ -297,34 +297,57 @@ export class AvailabilityService {
       string,
       Array<{ startTime: string; endTime: string }>
     >();
-    for (const window of dto.weeklyWindows)
+    for (const window of dto.weeklyWindows) {
+      this.assertWindowTimes(window.startTime, window.endTime);
       addRange(ranges, `weekly:${window.dayOfWeek}`, window);
-    for (const window of dto.specificWindows ?? [])
+    }
+    for (const window of dto.specificWindows ?? []) {
+      if (!isIsoDate(window.availableDate))
+        throw new BadRequestException(AVAILABILITY_MESSAGES.invalidWindows);
+      this.assertWindowTimes(window.startTime, window.endTime);
       addRange(ranges, `specific:${window.availableDate}`, window);
+    }
     for (const [key, values] of ranges) {
-      values.sort((a, b) => a.startTime.localeCompare(b.startTime));
+      values.sort(
+        (a, b) => wallClockSeconds(a.startTime) - wallClockSeconds(b.startTime),
+      );
       if (
         values.some(
           (value, index) =>
-            value.startTime >= value.endTime ||
-            (index > 0 && values[index - 1].endTime > value.startTime),
+            wallClockSeconds(value.startTime) >=
+              wallClockSeconds(value.endTime) ||
+            (index > 0 &&
+              wallClockSeconds(values[index - 1].endTime) >
+                wallClockSeconds(value.startTime)),
         )
       )
         throw new BadRequestException(
           `${AVAILABILITY_MESSAGES.invalidWindows}: ${key}`,
         );
     }
-    for (const period of dto.blockedPeriods ?? [])
+    for (const period of dto.blockedPeriods ?? []) {
       if (
+        !isIsoDate(period.blockedDate) ||
         (period.startTime === undefined) !== (period.endTime === undefined) ||
-        (period.startTime &&
-          period.endTime &&
-          period.startTime >= period.endTime)
+        (period.startTime !== undefined &&
+          period.endTime !== undefined &&
+          (!isWallClockTime(period.startTime) ||
+            !isWallClockTime(period.endTime) ||
+            wallClockSeconds(period.startTime) >=
+              wallClockSeconds(period.endTime)))
       )
         throw new BadRequestException(AVAILABILITY_MESSAGES.invalidWindows);
-    for (const window of [...dto.weeklyWindows, ...(dto.specificWindows ?? [])])
-      if (!isSlotGridTime(window.startTime) || !isSlotGridTime(window.endTime))
-        throw new BadRequestException(AVAILABILITY_MESSAGES.invalidWindows);
+    }
+  }
+
+  private assertWindowTimes(startTime: string, endTime: string): void {
+    if (
+      !isWallClockTime(startTime) ||
+      !isWallClockTime(endTime) ||
+      !isSlotGridTime(startTime) ||
+      !isSlotGridTime(endTime)
+    )
+      throw new BadRequestException(AVAILABILITY_MESSAGES.invalidWindows);
   }
 }
 
@@ -368,6 +391,15 @@ function isSlotGridTime(time: string): boolean {
     Number(match[2]) < 60 &&
     Number(match[2]) % 30 === 0
   );
+}
+
+function isWallClockTime(time: string): boolean {
+  return /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time);
+}
+
+function wallClockSeconds(time: string): number {
+  const [hours, minutes, seconds = 0] = time.split(':').map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
 }
 
 function mergeRanges(

@@ -224,6 +224,20 @@ describe('AvailabilityService slot derivation', () => {
     ]);
   });
 
+  it('returns an empty slot list when the profile has no available windows', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ weeklyWindows: [], specificWindows: [] }),
+    );
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toEqual([]);
+  });
+
   it('combines weekly and specific-date availability without duplicate slots', async () => {
     const scheduling = context({
       weeklyWindows: [weeklyWindow('09:00', '10:00')],
@@ -801,6 +815,32 @@ describe('AvailabilityService profiles', () => {
         upsertDto({
           blockedPeriods: [
             { blockedDate: '2026-09-09', startTime: '10:00', endTime: '09:00' },
+          ],
+        }),
+      ],
+      [
+        'a blocked period with an invalid wall-clock time',
+        upsertDto({
+          blockedPeriods: [
+            { blockedDate: '2026-09-09', startTime: '09:00', endTime: '99:00' },
+          ],
+        }),
+      ],
+      [
+        'a blocked period date with a time component',
+        upsertDto({
+          blockedPeriods: [{ blockedDate: '2026-09-09T00:00:00.000Z' }],
+        }),
+      ],
+      [
+        'a specific availability date with a time component',
+        upsertDto({
+          specificWindows: [
+            {
+              availableDate: '2026-09-08T00:00:00.000Z',
+              startTime: '13:00',
+              endTime: '15:00',
+            },
           ],
         }),
       ],
