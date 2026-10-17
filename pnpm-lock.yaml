@@ -61,6 +61,9 @@ importers:
       multer:
         specifier: ^2.2.0
         version: 2.2.0
+      nodemailer:
+        specifier: ^10.1.1
+        version: 10.1.1
       omise:
         specifier: ^1.1.0
         version: 1.1.0
@@ -107,6 +110,9 @@ importers:
       '@types/node':
         specifier: ^26.2.0
         version: 26.2.0
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
@@ -2074,6 +2080,12 @@ packages:
     resolution:
       {
         integrity: sha512-tktOkFUA4kXx2hhhrB8bIFb5TbwzS4uOhKEmwiD+NoiL0qtP2OQ9mFldbgD4dV1djrlBYP6eBuQZiWjuHUpqFw==,
+      }
+
+  '@types/nodemailer@8.0.2':
+    resolution:
+      {
+        integrity: sha512-c7M5ox8p0nEOfbJ2E9Qcmt8/QCu/VzsiAhzBiZbvky2PhKZDHpKB3sQHBM5MEZNkCfBOaS6S9//AGPRTNB7IaA==,
       }
 
   '@types/pg@8.23.1':
@@ -5086,6 +5098,13 @@ packages:
       }
     engines: { node: '>=0.10.0' }
 
+  nodemailer@10.1.1:
+    resolution:
+      {
+        integrity: sha512-pbqZRoeYUO+1E8TJ/11WeY4D2EVujj1hsYjz3qff/vUFDtGnmi7p3iqzTFslYOfQ6PnjVcWxx/CIUSHCSrO/QA==,
+      }
+    engines: { node: '>=20.0.0' }
+
   npm-run-path@4.0.1:
     resolution:
       {
@@ -7848,6 +7867,10 @@ snapshots:
 
   '@types/node@8.10.66': {}
 
+  '@types/nodemailer@8.0.2':
+    dependencies:
+      '@types/node': 26.2.0
+
   '@types/pg@8.23.1':
     dependencies:
       '@types/node': 26.2.0
@@ -9697,6 +9720,8 @@ snapshots:
   node-releases@2.0.53: {}
 
   normalize-path@3.0.0: {}
+
+  nodemailer@10.1.1: {}
 
   npm-run-path@4.0.1:
     dependencies:
