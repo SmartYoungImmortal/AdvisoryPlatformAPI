@@ -304,8 +304,37 @@ describe('booking lifecycle (e2e)', () => {
       const booking = await book(advisee.agent, serviceId, first);
       const bookingId = stringField(booking, 'id');
 
-      await advisee.agent.get(`/api/v1/bookings/${bookingId}`).expect(200);
-      await advisor.agent.get(`/api/v1/bookings/${bookingId}`).expect(200);
+      const adviseeDetail = await advisee.agent
+        .get(`/api/v1/bookings/${bookingId}`)
+        .expect(200);
+      const advisorDetail = await advisor.agent
+        .get(`/api/v1/bookings/${bookingId}`)
+        .expect(200);
+      expect(data(adviseeDetail.body).state).toBe('PENDING_PAYMENT');
+      expect(data(advisorDetail.body).state).toBe('PENDING_PAYMENT');
+
+      const adviseeList = await advisee.agent
+        .get('/api/v1/bookings/me')
+        .expect(200);
+      const advisorList = await advisor.agent
+        .get('/api/v1/advisors/me/bookings')
+        .expect(200);
+      expect(data(adviseeList.body).items).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: bookingId })]),
+      );
+      expect(data(advisorList.body).items).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: bookingId })]),
+      );
+
+      await advisee.agent
+        .post(`/api/v1/bookings/${bookingId}/cancel`)
+        .expect(200);
+      const cancelled = await Promise.all([
+        advisee.agent.get(`/api/v1/bookings/${bookingId}`).expect(200),
+        advisor.agent.get(`/api/v1/bookings/${bookingId}`).expect(200),
+      ]);
+      expect(data(cancelled[0].body).state).toBe('CANCELLED');
+      expect(data(cancelled[1].body).state).toBe('CANCELLED');
       await stranger.agent.get(`/api/v1/bookings/${bookingId}`).expect(404);
     });
   });
