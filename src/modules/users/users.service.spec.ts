@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Logger,
   NotFoundException,
   ServiceUnavailableException,
@@ -40,6 +41,7 @@ describe('UsersService', () => {
       | 'updateById'
       | 'removeAvatar'
       | 'replaceAvatar'
+      | 'findDeletionBlockers'
       | 'anonymizeById'
     >
   >;
@@ -58,6 +60,7 @@ describe('UsersService', () => {
       updateById: jest.fn(),
       removeAvatar: jest.fn(),
       replaceAvatar: jest.fn(),
+      findDeletionBlockers: jest.fn(),
       anonymizeById: jest.fn(),
     };
     roleResolver = { resolve: jest.fn() };
@@ -151,8 +154,8 @@ describe('UsersService', () => {
 
   it('anonymizes and deletes the current account', async () => {
     repository.anonymizeById.mockResolvedValue({
-      ...profile(),
-      avatarKey: `avatars/${userId}.webp`,
+      status: 'deleted',
+      profile: { ...profile(), avatarKey: `avatars/${userId}.webp` },
     });
     roleResolver.resolve.mockResolvedValue([Role.Advisee, Role.Advisor]);
 
@@ -168,10 +171,43 @@ describe('UsersService', () => {
   });
 
   it('throws when deleting a missing account', async () => {
-    repository.anonymizeById.mockResolvedValue(undefined);
+    repository.anonymizeById.mockResolvedValue({ status: 'not-found' });
     roleResolver.resolve.mockResolvedValue([Role.Advisee]);
 
     await expect(service.deleteMe(userId)).rejects.toThrow(NotFoundException);
+  });
+
+  it('returns live upcoming appointments as deletion blockers', async () => {
+    const upcomingAppointments = [
+      {
+        appointmentId: '22222222-2222-4222-8222-222222222222',
+        startTime: new Date('2026-10-20T02:00:00.000Z'),
+        state: 'BOOKED' as const,
+      },
+    ];
+    repository.findDeletionBlockers.mockResolvedValue(upcomingAppointments);
+
+    await expect(service.getDeletionBlockers(userId)).resolves.toEqual({
+      upcomingAppointments,
+    });
+    expect(repository.findDeletionBlockers).toHaveBeenCalledWith(userId);
+  });
+
+  it('refuses account deletion while upcoming appointments remain', async () => {
+    repository.anonymizeById.mockResolvedValue({
+      status: 'blocked',
+      upcomingAppointments: [
+        {
+          appointmentId: '22222222-2222-4222-8222-222222222222',
+          startTime: new Date('2026-10-20T02:00:00.000Z'),
+          state: 'BOOKED',
+        },
+      ],
+    });
+    roleResolver.resolve.mockResolvedValue([Role.Advisee]);
+
+    await expect(service.deleteMe(userId)).rejects.toThrow(ConflictException);
+    expect(storage.removeObject).not.toHaveBeenCalled();
   });
 
   it('uploads a validated avatar and removes the replaced object', async () => {
