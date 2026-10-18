@@ -1,0 +1,2 @@
+ALTER TABLE "service_invoices" ADD COLUMN "appointment_id" uuid;--> statement-breakpoint
+ALTER TABLE "service_invoices" ADD CONSTRAINT "service_invoices_appointment_id_service_appointments_id_fkey" FOREIGN KEY ("appointment_id") REFERENCES "service_appointments"("id");
