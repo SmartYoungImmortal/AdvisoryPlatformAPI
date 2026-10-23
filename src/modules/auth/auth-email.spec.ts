@@ -84,6 +84,29 @@ describe('createAuthEmailSender', () => {
     expect(messages[0].html).toContain('Reset password');
   });
 
+  it('sends email-change confirmation to the current address and escapes the target', async () => {
+    const sendEmail = createAuthEmailSender({
+      from: 'Advisory Platform <no-reply@example.test>',
+      transport,
+    });
+
+    await sendEmail({
+      kind: 'change-email-confirmation',
+      to: 'current@example.test',
+      name: 'User',
+      newEmail: '<script@example.test>',
+      url: 'https://app.example.test/api/auth/verify-email?token=secret',
+    });
+
+    expect(messages[0]).toMatchObject({
+      to: 'current@example.test',
+      subject: 'Confirm your Advisory Platform email change',
+    });
+    expect(messages[0].text).toContain('<script@example.test>');
+    expect(messages[0].html).toContain('&lt;script@example.test&gt;');
+    expect(messages[0].html).not.toContain('<script');
+  });
+
   it('lets the caller handle a failed delivery without logging email content', async () => {
     const sendEmail = createAuthEmailSender({
       from: 'Advisory Platform <no-reply@example.test>',
