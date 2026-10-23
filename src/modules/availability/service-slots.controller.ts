@@ -1,6 +1,15 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ApiGetMany } from '@/common/decorators/api-docs.decorator';
+import { Role } from '@/common/authorization/role.enum';
+import { RoleResolver } from '@/common/authorization/role-resolver.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { AvailabilityService } from './availability.service';
@@ -12,7 +21,10 @@ import {
 @ApiTags('Availability')
 @Controller('services')
 export class ServiceSlotsController {
-  constructor(private readonly availability: AvailabilityService) {}
+  constructor(
+    private readonly availability: AvailabilityService,
+    private readonly roleResolver: RoleResolver,
+  ) {}
 
   @Get(':serviceId/slots')
   @ApiGetMany(AvailabilitySlotResponseDto, { name: 'Available slots' })
@@ -21,6 +33,12 @@ export class ServiceSlotsController {
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
     @Query() query: SlotQueryDto,
   ): Promise<AvailabilitySlotResponseDto[]> {
-    return this.availability.findSlots(serviceId, query, user.id);
+    return this.roleResolver.resolve(user.id).then((roles) => {
+      if (roles.some((role) => role !== Role.Advisee)) {
+        throw new ForbiddenException();
+      }
+
+      return this.availability.findSlots(serviceId, query, user.id);
+    });
   }
 }

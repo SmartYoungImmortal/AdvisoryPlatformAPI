@@ -1,7 +1,7 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { eq } from 'drizzle-orm';
 import type { DrizzleDB } from '@/database/database.module';
-import { serviceAppointments } from '@/database/schema';
+import { adminProfiles, serviceAppointments, user } from '@/database/schema';
 import { signUpUser } from './support/accounts';
 import {
   createBookingFixtureIds,
@@ -109,6 +109,30 @@ describe('concurrent booking of one Advisor time (e2e)', () => {
     expect(remaining).not.toContainEqual(
       expect.objectContaining({ startTime: new Date(startTime).toISOString() }),
     );
+  });
+
+  it('allows only Advisees to read derived service slots', async () => {
+    const { advisor, serviceId, bookingDate } = await seedBookableService();
+    const advisee = await signUp();
+    const admin = await signUp();
+    await db.insert(adminProfiles).values({ userId: admin.userId });
+    await db
+      .update(user)
+      .set({ role: 'admin' })
+      .where(eq(user.id, admin.userId));
+
+    await advisee.agent
+      .get(`/api/v1/services/${serviceId}/slots`)
+      .query({ from: bookingDate, to: bookingDate })
+      .expect(200);
+    await advisor.agent
+      .get(`/api/v1/services/${serviceId}/slots`)
+      .query({ from: bookingDate, to: bookingDate })
+      .expect(403);
+    await admin.agent
+      .get(`/api/v1/services/${serviceId}/slots`)
+      .query({ from: bookingDate, to: bookingDate })
+      .expect(403);
   });
 
   it('refuses a second booking of a claimed slot by a different Advisee', async () => {

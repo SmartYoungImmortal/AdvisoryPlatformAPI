@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import type { AvailabilityRepository } from './availability.repository';
 import { AvailabilityService } from './availability.service';
 import type { AvailabilityProfileDetails } from './availability.types';
@@ -162,6 +166,7 @@ type AvailabilityRepositoryMock = jest.Mocked<
     | 'findProfiles'
     | 'saveProfile'
     | 'findOwnedProfile'
+    | 'isProfileInUse'
     | 'softDelete'
   >
 >;
@@ -179,6 +184,7 @@ function makeService(): {
     findProfiles: jest.fn(),
     saveProfile: jest.fn(),
     findOwnedProfile: jest.fn(),
+    isProfileInUse: jest.fn(),
     softDelete: jest.fn(),
   };
   return {
@@ -216,6 +222,20 @@ describe('AvailabilityService slot derivation', () => {
       '2026-09-07T03:30:00.000Z',
       '2026-09-07T04:00:00.000Z',
     ]);
+  });
+
+  it('returns an empty slot list when the profile has no available windows', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ weeklyWindows: [], specificWindows: [] }),
+    );
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toEqual([]);
   });
 
   it('combines weekly and specific-date availability without duplicate slots', async () => {
@@ -718,6 +738,8 @@ describe('AvailabilityService profiles', () => {
 
   it('soft-deletes a profile the Advisor owns', async () => {
     const details = profileDetails();
+    repository.findOwnedProfile.mockResolvedValue(details.profile);
+    repository.isProfileInUse.mockResolvedValue(false);
     repository.softDelete.mockResolvedValue(details);
 
     await expect(service.deleteProfile(advisorId, profileId)).resolves.toBe(
@@ -726,11 +748,24 @@ describe('AvailabilityService profiles', () => {
   });
 
   it('reports a missing profile on delete', async () => {
-    repository.softDelete.mockResolvedValue(undefined);
+    repository.findOwnedProfile.mockResolvedValue(undefined);
 
     await expect(service.deleteProfile(advisorId, profileId)).rejects.toThrow(
       NotFoundException,
     );
+    expect(repository.isProfileInUse).not.toHaveBeenCalled();
+    expect(repository.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('refuses to delete a profile assigned to a Service', async () => {
+    repository.findOwnedProfile.mockResolvedValue(profileDetails().profile);
+    repository.isProfileInUse.mockResolvedValue(true);
+
+    await expect(service.deleteProfile(advisorId, profileId)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(repository.isProfileInUse).toHaveBeenCalledWith(profileId);
+    expect(repository.softDelete).not.toHaveBeenCalled();
   });
 
   describe('window validation', () => {
@@ -780,6 +815,32 @@ describe('AvailabilityService profiles', () => {
         upsertDto({
           blockedPeriods: [
             { blockedDate: '2026-09-09', startTime: '10:00', endTime: '09:00' },
+          ],
+        }),
+      ],
+      [
+        'a blocked period with an invalid wall-clock time',
+        upsertDto({
+          blockedPeriods: [
+            { blockedDate: '2026-09-09', startTime: '09:00', endTime: '99:00' },
+          ],
+        }),
+      ],
+      [
+        'a blocked period date with a time component',
+        upsertDto({
+          blockedPeriods: [{ blockedDate: '2026-09-09T00:00:00.000Z' }],
+        }),
+      ],
+      [
+        'a specific availability date with a time component',
+        upsertDto({
+          specificWindows: [
+            {
+              availableDate: '2026-09-08T00:00:00.000Z',
+              startTime: '13:00',
+              endTime: '15:00',
+            },
           ],
         }),
       ],
