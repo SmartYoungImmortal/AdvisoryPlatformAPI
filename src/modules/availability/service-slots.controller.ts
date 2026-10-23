@@ -7,6 +7,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Roles } from '@thallesp/nestjs-better-auth';
 import { ApiGetMany } from '@/common/decorators/api-docs.decorator';
 import { Role } from '@/common/authorization/role.enum';
 import { RoleResolver } from '@/common/authorization/role-resolver.service';
@@ -27,6 +28,7 @@ export class ServiceSlotsController {
   ) {}
 
   @Get(':serviceId/slots')
+  @Roles(['advisee'])
   @ApiGetMany(AvailabilitySlotResponseDto, { name: 'Available slots' })
   findSlots(
     @CurrentUser() user: SessionUser,

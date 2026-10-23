@@ -1,14 +1,11 @@
-import type { NestExpressApplication } from '@nestjs/platform-express';
 import { eq } from 'drizzle-orm';
-import type { DrizzleDB } from '@/database/database.module';
 import { adminProfiles, serviceAppointments, user } from '@/database/schema';
 import { signUpUser } from './support/accounts';
 import {
   createBookingFixtureIds,
-  deleteBookingFixtures,
   seedAdvisorService,
 } from './support/booking-fixtures';
-import { createE2eApp } from './support/e2e-app';
+import { bookingE2eHarness } from './support/booking-e2e-harness';
 import { object, stringField } from './support/response';
 
 const WINDOW_START = '09:00';
@@ -19,38 +16,24 @@ const WINDOW_START = '09:00';
  * stack, the advisory lock, and the eligibility rederivation.
  */
 describe('concurrent booking of one Advisor time (e2e)', () => {
-  let app: NestExpressApplication;
-  let db: DrizzleDB;
   const ids = createBookingFixtureIds();
-
-  beforeAll(async () => {
-    ({ app, db } = await createE2eApp());
-  });
-
-  afterEach(async () => {
-    await deleteBookingFixtures(db, ids);
-  });
-
-  afterAll(async () => {
-    await app.close();
-  });
-
-  const signUp = () => signUpUser(app, 'Booking', ids.userIds);
+  const e2e = bookingE2eHarness(ids);
+  const signUp = () => signUpUser(e2e().app, 'Booking', ids.userIds);
 
   /**
    * Both Advisees are pointed at the first slot of the seeded window, so they are
    * forced to compete for the same range.
    */
   async function seedBookableService() {
-    const seeded = await seedAdvisorService({ app, db }, ids, {
+    const seeded = await seedAdvisorService(e2e(), ids, {
       label: 'Concurrency',
     });
     return { ...seeded, startTime: seeded.slotAt(WINDOW_START) };
   }
 
   async function countAppointments(serviceId: string): Promise<number> {
-    const rows = await db
-      .select({ id: serviceAppointments.id })
+    const rows = await e2e()
+      .db.select({ id: serviceAppointments.id })
       .from(serviceAppointments)
       .where(eq(serviceAppointments.serviceId, serviceId));
     return rows.length;

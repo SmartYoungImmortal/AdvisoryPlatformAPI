@@ -44,6 +44,7 @@ export interface SeedServiceOptions {
 export interface SeededService {
   advisor: SignedUpUser;
   serviceId: string;
+  profileId: string;
   bookingDate: string;
   /** The UTC instant of `time` on the seeded booking date, as the API returns it. */
   slotAt: (time: string) => string;
@@ -114,6 +115,7 @@ export async function seedAdvisorService(
   return {
     advisor,
     serviceId: service.id,
+    profileId,
     bookingDate,
     slotAt: (time: string) =>
       zonedDateTimeToUtc(bookingDate, time, E2E_TIMEZONE).toISOString(),

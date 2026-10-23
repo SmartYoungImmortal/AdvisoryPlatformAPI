@@ -758,11 +758,13 @@ redelivered.
 window because the meeting summary never set one. Both are product decisions, not defaults to
 invent here.
 
-Screening-management, payment, payout, and refund endpoints are not yet written. Slot discovery
-and booking already enforce an accepted screening row when `screeningRequired` is enabled, but the
-HTTP workflow that creates questions, submits answers, and records the Advisor decision remains
-outstanding. The remaining paths and DTOs must be designed in the corresponding feature modules
-and preserve the following agreed behavior.
+Screening requests and refund cases have separate APIs. A cancellation only changes the booking;
+it does not create a refund case or issue a payment refund. An Advisee with an invoice for one of
+their appointments can open a case with `POST /api/v1/refunds` using `{ invoiceId, reason }` and
+read their cases from `GET /api/v1/refunds/me`. The response status is `OPEN`, `APPROVED`, or
+`REJECTED`; it is not included in `BookingResponseDto`. The payment owner remains responsible for
+Omise refunds and any policy that connects cancellation or rescheduling to a refund. Client flows
+that show refund-request status must read the separate refund-case API and correlate by invoice id.
 
 ### Availability and slots
 
