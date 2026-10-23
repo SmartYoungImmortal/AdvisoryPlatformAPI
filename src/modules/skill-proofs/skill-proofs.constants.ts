@@ -44,6 +44,7 @@ export const SKILL_PROOF_MESSAGES = {
  * the sprint plan names for every upload.
  */
 export const MAX_SKILL_PROOF_BYTES = 50 * 1024 * 1024;
+export const SKILL_PROOF_URL_EXPIRY_SECONDS = 5 * 60;
 
 export const SKILL_PROOF_EXTENSIONS: Readonly<Record<string, string>> = {
   'image/jpeg': 'jpg',

@@ -6,6 +6,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { DownloadUrlResponseDto } from '@/common/storage/download-url-response.dto';
 import {
   paginateQuery,
   type PaginatedResult,
@@ -20,6 +21,7 @@ import { RejectIdentityVerificationDto } from './dtos/reject-identity-verificati
 import {
   DECIDABLE_IDENTITY_STATUSES,
   IDENTITY_DOCUMENT_EXTENSIONS,
+  IDENTITY_DOCUMENT_URL_EXPIRY_SECONDS,
   IDENTITY_VERIFICATION_MESSAGES,
   MAX_IDENTITY_DOCUMENT_BYTES,
   SUBMITTABLE_IDENTITY_STATUSES,
@@ -63,6 +65,29 @@ export class IdentityVerificationService {
       throw new NotFoundException(IDENTITY_VERIFICATION_MESSAGES.notFound);
     }
     return new IdentityVerificationResponseDto(row);
+  }
+
+  async createDocumentUrlForAdmin(
+    advisorId: string,
+  ): Promise<DownloadUrlResponseDto> {
+    const row = await this.repository.findOneForAdmin(advisorId);
+    if (!row?.documentObjectKey) {
+      throw new NotFoundException(IDENTITY_VERIFICATION_MESSAGES.notFound);
+    }
+    try {
+      const url = await this.storage.createDownloadUrl(
+        row.documentObjectKey,
+        IDENTITY_DOCUMENT_URL_EXPIRY_SECONDS,
+      );
+      return new DownloadUrlResponseDto(
+        url,
+        IDENTITY_DOCUMENT_URL_EXPIRY_SECONDS,
+      );
+    } catch {
+      throw new ServiceUnavailableException(
+        IDENTITY_VERIFICATION_MESSAGES.storageUnavailable,
+      );
+    }
   }
 
   /**

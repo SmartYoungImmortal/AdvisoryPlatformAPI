@@ -1,5 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { eq, inArray } from 'drizzle-orm';
+import request from 'supertest';
 import type { DrizzleDB } from '@/database/database.module';
 import {
   adminProfiles,
@@ -137,6 +138,29 @@ describe('advisor onboarding (e2e)', () => {
       'submittedAt',
     ]);
     expect(data(submitted.body).verificationStatus).toBe('SUBMITTED');
+    const ownIdentity = await applicant.agent
+      .get('/api/v1/advisors/me/identity-verification')
+      .expect(200);
+    expect(data(ownIdentity.body).documentObjectKey).toBeUndefined();
+    const adminIdentity = await admin.agent
+      .get(`/api/v1/admin/identity-verifications/${applicant.userId}`)
+      .expect(200);
+    expect(data(adminIdentity.body).documentObjectKey).toBeUndefined();
+    const identityDocument = await admin.agent
+      .get(
+        `/api/v1/admin/identity-verifications/${applicant.userId}/document-url`,
+      )
+      .expect(200);
+    const identityDownload = object(data(identityDocument.body));
+    expect(stringField(identityDownload, 'url')).toContain(
+      'https://storage.example.test/',
+    );
+    expect(identityDownload.expiresInSeconds).toBe(300);
+    await applicant.agent
+      .get(
+        `/api/v1/admin/identity-verifications/${applicant.userId}/document-url`,
+      )
+      .expect(403);
     const firstKey = await documentKey(applicant.userId);
     expect(firstKey).toMatch(new RegExp(`^identity/${applicant.userId}/`));
     expect(storage.hasObject(firstKey!)).toBe(true);
@@ -161,6 +185,26 @@ describe('advisor onboarding (e2e)', () => {
       reviewStatus: 'PENDING',
       originalFileName: 'ใบอนุญาตผู้สอบบัญชี.pdf',
     });
+    expect(data(proof.body).objectKey).toBeUndefined();
+    const adminProofs = await admin.agent
+      .get(`/api/v1/admin/skill-proofs?advisorId=${applicant.userId}`)
+      .expect(200);
+    expect(object(data(adminProofs.body).items[0]).objectKey).toBeUndefined();
+    const proofDocument = await admin.agent
+      .get(
+        `/api/v1/admin/skill-proofs/${stringField(data(proof.body), 'id')}/document-url`,
+      )
+      .expect(200);
+    const proofDownload = object(data(proofDocument.body));
+    expect(stringField(proofDownload, 'url')).toContain(
+      'https://storage.example.test/',
+    );
+    expect(proofDownload.expiresInSeconds).toBe(300);
+    await applicant.agent
+      .get(
+        `/api/v1/admin/skill-proofs/${stringField(data(proof.body), 'id')}/document-url`,
+      )
+      .expect(403);
     const claimed = await db
       .select()
       .from(advisorSkills)
@@ -232,6 +276,24 @@ describe('advisor onboarding (e2e)', () => {
       })
       .expect(404);
     expect(storage.objectCount()).toBe(0);
+  });
+
+  it('requires a session to upload either onboarding document', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/advisors/me/identity-verification')
+      .attach('document', JPEG, {
+        filename: 'id-card.jpg',
+        contentType: 'image/jpeg',
+      })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/advisors/me/skill-proofs')
+      .field('skillId', crypto.randomUUID())
+      .attach('file', PDF, {
+        filename: 'proof.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(401);
   });
 
   it('400s a skill proof for a skill that is not in the catalogue', async () => {

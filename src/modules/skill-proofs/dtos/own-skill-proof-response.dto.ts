@@ -13,7 +13,6 @@ export interface OwnSkillProofRow {
   id: string;
   skillId: string;
   skillName: string;
-  objectKey: string;
   originalFileName: string;
   reviewStatus: SkillProofReviewStatus;
   rejectionReason: string | null;
@@ -25,10 +24,6 @@ export class OwnSkillProofResponseDto {
   @ApiProperty({ format: 'uuid' }) id: string;
   @ApiProperty({ format: 'uuid' }) skillId: string;
   @ApiProperty() skillName: string;
-  @ApiProperty({
-    description: 'SeaweedFS object key of the uploaded document, not a URL.',
-  })
-  objectKey: string;
   @ApiProperty() originalFileName: string;
   @ApiProperty({ enum: skillProofReviewStatusEnum.enumValues })
   reviewStatus: SkillProofReviewStatus;
@@ -41,7 +36,6 @@ export class OwnSkillProofResponseDto {
     this.id = row.id;
     this.skillId = row.skillId;
     this.skillName = row.skillName;
-    this.objectKey = row.objectKey;
     this.originalFileName = row.originalFileName;
     this.reviewStatus = row.reviewStatus;
     this.rejectionReason = row.rejectionReason;
