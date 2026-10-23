@@ -16,7 +16,6 @@ import type { IdentityVerificationStatus } from '../identity-verification.consta
 export interface OwnIdentityVerificationRow {
   advisorId: string;
   verificationStatus: IdentityVerificationStatus;
-  documentObjectKey: string | null;
   rejectionReason: string | null;
   submittedAt: Date | null;
   verifiedAt: Date | null;
@@ -26,12 +25,6 @@ export class OwnIdentityVerificationResponseDto {
   @ApiProperty({ format: 'uuid' }) advisorId: string;
   @ApiProperty({ enum: identityVerificationStatusEnum.enumValues })
   verificationStatus: IdentityVerificationStatus;
-  @ApiProperty({
-    nullable: true,
-    type: String,
-    description: 'SeaweedFS object key of the uploaded scan, not a URL.',
-  })
-  documentObjectKey: string | null;
   @ApiProperty({ nullable: true, type: String }) rejectionReason: string | null;
   @ApiProperty({ format: 'date-time', nullable: true, type: String })
   submittedAt: Date | null;
@@ -41,7 +34,6 @@ export class OwnIdentityVerificationResponseDto {
   constructor(row: OwnIdentityVerificationRow) {
     this.advisorId = row.advisorId;
     this.verificationStatus = row.verificationStatus;
-    this.documentObjectKey = row.documentObjectKey;
     this.rejectionReason = row.rejectionReason;
     this.submittedAt = row.submittedAt;
     this.verifiedAt = row.verifiedAt;

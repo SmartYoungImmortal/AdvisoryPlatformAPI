@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiConflictResponse, ApiTags } from '@nestjs/swagger';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
+import { DownloadUrlResponseDto } from '@/common/storage/download-url-response.dto';
 import {
   ApiGetOne,
   ApiGetPaginated,
@@ -52,6 +53,15 @@ export class AdminSkillProofsController {
     @Param('proofId', ParseUUIDPipe) proofId: string,
   ): Promise<SkillProofResponseDto> {
     return this.skillProofs.findOneForAdmin(proofId);
+  }
+
+  @UserHasPermission({ permission: { skillProof: ['read'] } })
+  @Get(':proofId/document-url')
+  @ApiGetOne(DownloadUrlResponseDto, { name: 'Skill proof document URL' })
+  createDocumentUrl(
+    @Param('proofId', ParseUUIDPipe) proofId: string,
+  ): Promise<DownloadUrlResponseDto> {
+    return this.skillProofs.createDocumentUrlForAdmin(proofId);
   }
 
   @UserHasPermission({ permission: { skillProof: ['decide'] } })

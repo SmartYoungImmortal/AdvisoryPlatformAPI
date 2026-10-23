@@ -53,7 +53,6 @@ function ownRow(overrides: Partial<OwnSkillProofRow> = {}): OwnSkillProofRow {
     id: proofId,
     skillId,
     skillName: 'Financial planning',
-    objectKey: 'skill-proofs/advisor/certificate.pdf',
     originalFileName: 'certificate.pdf',
     reviewStatus: 'PENDING',
     rejectionReason: null,
@@ -98,7 +97,10 @@ describe('SkillProofsService', () => {
     >
   >;
   let storage: jest.Mocked<
-    Pick<SeaweedFsStorageService, 'putObject' | 'removeObject'>
+    Pick<
+      SeaweedFsStorageService,
+      'putObject' | 'removeObject' | 'createDownloadUrl'
+    >
   >;
   let service: SkillProofsService;
 
@@ -118,6 +120,9 @@ describe('SkillProofsService', () => {
     storage = {
       putObject: jest.fn().mockResolvedValue(undefined),
       removeObject: jest.fn().mockResolvedValue(undefined),
+      createDownloadUrl: jest
+        .fn()
+        .mockResolvedValue('https://storage.example.test/signed'),
     };
     service = new SkillProofsService(
       repository as unknown as SkillProofsRepository,
@@ -152,6 +157,19 @@ describe('SkillProofsService', () => {
         originalFileName: 'certificate.pdf',
       });
       expect(result.reviewStatus).toBe('PENDING');
+    });
+
+    it('accepts a proof at exactly 50 MB', async () => {
+      repository.createForAdvisor.mockResolvedValue(ownRow());
+
+      await service.submit(
+        advisor,
+        { skillId },
+        file({ size: 50 * 1024 * 1024 }),
+      );
+
+      expect(storage.putObject).toHaveBeenCalledTimes(1);
+      expect(repository.createForAdvisor).toHaveBeenCalledTimes(1);
     });
 
     it('stores a Thai file name as Thai, not as the Latin-1 bytes multer hands over', async () => {
@@ -237,6 +255,23 @@ describe('SkillProofsService', () => {
       ).rejects.toThrow('database down');
       expect(storage.removeObject).toHaveBeenCalledWith(
         storage.putObject.mock.calls[0][0].key,
+      );
+    });
+  });
+
+  describe('admin document URL', () => {
+    it('creates a short-lived URL after finding the proof record', async () => {
+      repository.findOneForAdmin.mockResolvedValue(queueRow());
+
+      await expect(service.createDocumentUrlForAdmin(proofId)).resolves.toEqual(
+        {
+          url: 'https://storage.example.test/signed',
+          expiresInSeconds: 300,
+        },
+      );
+      expect(storage.createDownloadUrl).toHaveBeenCalledWith(
+        'skill-proofs/advisor/certificate.pdf',
+        300,
       );
     });
   });

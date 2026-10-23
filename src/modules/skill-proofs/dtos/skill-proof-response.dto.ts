@@ -13,8 +13,8 @@ import type { SkillProofReviewStatus } from '../skill-proofs.constants';
  * certificate needs no address, and a field nobody reads is a field that leaks for
  * nothing.
  *
- * `objectKey` is a SeaweedFS object key, not a URL. Presigning it is the storage
- * service's job, so naming the key here exposes nothing fetchable.
+ * The document key stays out of the response. Admins get a short-lived URL from the
+ * dedicated document-url route after the same read permission check.
  */
 export interface SkillProofRow {
   id: string;
@@ -37,10 +37,6 @@ export class SkillProofResponseDto {
   @ApiProperty() advisorDisplayName: string;
   @ApiProperty({ format: 'uuid' }) skillId: string;
   @ApiProperty() skillName: string;
-  @ApiProperty({
-    description: 'SeaweedFS object key of the uploaded document, not a URL.',
-  })
-  objectKey: string;
   @ApiProperty() originalFileName: string;
   @ApiProperty({ enum: skillProofReviewStatusEnum.enumValues })
   reviewStatus: SkillProofReviewStatus;
@@ -57,7 +53,6 @@ export class SkillProofResponseDto {
     this.advisorDisplayName = row.advisorDisplayName;
     this.skillId = row.skillId;
     this.skillName = row.skillName;
-    this.objectKey = row.objectKey;
     this.originalFileName = row.originalFileName;
     this.reviewStatus = row.reviewStatus;
     this.rejectionReason = row.rejectionReason;
