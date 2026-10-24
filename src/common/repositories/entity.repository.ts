@@ -1,8 +1,11 @@
 import type { InferInsertModel, InferSelectModel, SQL } from 'drizzle-orm';
 import { asc, count, eq } from 'drizzle-orm';
-import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
+import type {
+  AnyPgColumn,
+  PgTable,
+  PgUpdateSetSource,
+} from 'drizzle-orm/pg-core';
 import type { DrizzleDB } from '@/database/database.module';
-import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 
 export type TableWithId = PgTable & { id: AnyPgColumn };
 

@@ -13,6 +13,7 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
+import { escapeLike } from '@/common/utils/escape-like';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   advisorGlobalAvailability,
@@ -131,9 +132,7 @@ export class AdvisorsRepository {
    */
   private discoverableWhere(query?: PublicAdvisorQueryDto): SQL {
     const text = query?.q?.trim();
-    const pattern = text
-      ? `%${text.replace(/[\\%_]/g, (match) => `\\${match}`)}%`
-      : undefined;
+    const pattern = text ? `%${escapeLike(text)}%` : undefined;
 
     return and(
       eq(userSchema.status, 'ACTIVE'),
@@ -194,7 +193,7 @@ export class AdvisorsRepository {
     query: PublicAdvisorQueryDto,
     options: { limit: number; offset: number },
   ): Promise<PublicAdvisorRow[]> {
-    return this.selectDiscoverable()
+    return await this.selectDiscoverable()
       .where(this.discoverableWhere(query))
       .orderBy(asc(advisorProfiles.createdAt), asc(advisorProfiles.userId))
       .limit(options.limit)
@@ -224,7 +223,7 @@ export class AdvisorsRepository {
     advisorIds: readonly string[],
   ): Promise<{ advisorId: string; name: string }[]> {
     if (advisorIds.length === 0) return [];
-    return this.db
+    return await this.db
       .select({ advisorId: advisorSkills.advisorId, name: skills.name })
       .from(advisorSkills)
       .innerJoin(skills, eq(skills.id, advisorSkills.skillId))

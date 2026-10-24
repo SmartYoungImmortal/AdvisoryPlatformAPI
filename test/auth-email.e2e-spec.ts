@@ -37,7 +37,7 @@ function parseMailpitSearch(value: unknown): MailpitSearchResponse {
     messages: messages.map((message) => {
       const item = object(message);
       if (typeof item.ID !== 'string' || typeof item.Subject !== 'string') {
-        throw new Error('Invalid Mailpit message summary');
+        throw new TypeError('Invalid Mailpit message summary');
       }
       return { ID: item.ID, Subject: item.Subject };
     }),
@@ -51,7 +51,7 @@ function parseMailpitMessage(value: unknown): MailpitMessage {
     typeof item.Subject !== 'string' ||
     typeof item.Text !== 'string'
   ) {
-    throw new Error('Invalid Mailpit message');
+    throw new TypeError('Invalid Mailpit message');
   }
   return { ID: item.ID, Subject: item.Subject, Text: item.Text };
 }
@@ -62,7 +62,8 @@ async function waitForMessages(
   expectedCount: number,
 ): Promise<MailSummary[]> {
   const mailpitUrl = process.env.MAILPIT_API_URL ?? 'http://localhost:8025';
-  const url = `${mailpitUrl}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`;
+  const toQuery = encodeURIComponent(`to:${email}`);
+  const url = `${mailpitUrl}/api/v1/search?query=${toQuery}`;
 
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const response = await fetch(url);
@@ -138,9 +139,7 @@ describe('authentication email delivery (e2e)', () => {
     expect(firstMail.Text).toContain('expires in one hour');
     expect(firstMail.Text).toContain('/api/auth/verify-email?token=');
 
-    const firstLink = new URL(
-      firstMail.Text.match(/https?:\/\/[^\s]+/)?.[0] ?? '',
-    );
+    const firstLink = new URL(/https?:\/\/\S+/.exec(firstMail.Text)?.[0] ?? '');
     const token = firstLink.searchParams.get('token');
     if (!token) throw new Error('Verification email did not contain a token');
     const payload = JSON.parse(
@@ -190,9 +189,7 @@ describe('authentication email delivery (e2e)', () => {
     const firstBatch = await waitForMessages(signedUp.email, resetSubject, 1);
     const firstMail = await readMessage(firstBatch[0].ID);
     expect(firstMail.Text).toContain('expires in one hour');
-    const firstLink = new URL(
-      firstMail.Text.match(/https?:\/\/[^\s]+/)?.[0] ?? '',
-    );
+    const firstLink = new URL(/https?:\/\/\S+/.exec(firstMail.Text)?.[0] ?? '');
     const workingToken = firstLink.pathname.split('/').at(-1);
     if (!workingToken) throw new Error('Reset email did not contain a token');
 
@@ -217,7 +214,7 @@ describe('authentication email delivery (e2e)', () => {
     const resent = await waitForMessages(signedUp.email, resetSubject, 2);
     const latestMail = await readMessage(resent[0].ID);
     const latestLink = new URL(
-      latestMail.Text.match(/https?:\/\/[^\s]+/)?.[0] ?? '',
+      /https?:\/\/\S+/.exec(latestMail.Text)?.[0] ?? '',
     );
     const expiredToken = latestLink.pathname.split('/').at(-1);
     if (!expiredToken) throw new Error('Reset email did not contain a token');

@@ -375,7 +375,7 @@ export class AvailabilityRepository {
   }
 
   async findBlockingAppointments(advisorId: string, from: Date, to: Date) {
-    return this.db
+    return await this.db
       .select()
       .from(serviceAppointments)
       .where(

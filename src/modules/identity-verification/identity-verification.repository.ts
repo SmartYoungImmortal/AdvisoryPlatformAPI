@@ -195,7 +195,7 @@ export class IdentityVerificationRepository {
     acceptedStatuses: readonly IdentityVerificationStatus[],
     decision: IdentityDecision,
   ): Promise<boolean> {
-    return this.db.transaction((tx) =>
+    return await this.db.transaction((tx) =>
       this.applyDecision(tx, advisorId, acceptedStatuses, decision),
     );
   }

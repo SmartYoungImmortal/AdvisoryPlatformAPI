@@ -11,6 +11,10 @@ import { AccountQueryDto } from './dtos/account-query.dto';
  * and combined, a search term carrying LIKE wildcards, and the two conditional
  * status changes that must not overwrite each other.
  */
+function query(filters: Partial<AccountQueryDto>): AccountQueryDto {
+  return Object.assign(new AccountQueryDto(), filters);
+}
+
 describe('AdminAccountsRepository (integration)', () => {
   let pool: Pool;
   let db: DrizzleDB;
@@ -22,10 +26,6 @@ describe('AdminAccountsRepository (integration)', () => {
   const advisorId = crypto.randomUUID();
   const suspendedId = crypto.randomUUID();
   const ids = [adviseeId, advisorId, suspendedId];
-
-  function query(filters: Partial<AccountQueryDto>): AccountQueryDto {
-    return Object.assign(new AccountQueryDto(), filters);
-  }
 
   async function idsFor(filters: Partial<AccountQueryDto>): Promise<string[]> {
     const rows = await repository.findManyForAdmin(

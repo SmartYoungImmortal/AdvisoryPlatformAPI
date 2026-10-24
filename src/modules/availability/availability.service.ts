@@ -31,6 +31,100 @@ type BlockingAppointment = Awaited<
   ReturnType<AvailabilityRepository['findBlockingAppointments']>
 >[number];
 
+const minutes = (count: number): number => count * 60000;
+
+/** The day's open windows: its weekday's and its own date's, merged. */
+function windowsOn(context: SchedulingContext, date: string) {
+  const weekly = context.weeklyWindows
+    .filter((window) => window.dayOfWeek === isoWeekday(date))
+    .map(({ startTime, endTime }) => ({ startTime, endTime }));
+  const specific = context.specificWindows
+    .filter((window) => window.availableDate === date)
+    .map(({ startTime, endTime }) => ({ startTime, endTime }));
+  return mergeRanges([...weekly, ...specific]);
+}
+
+/** Minutes already booked on `date` (the advisor's calendar), of one service or all. */
+function minutesBookedOn(
+  appointments: readonly BlockingAppointment[],
+  date: string,
+  timezone: string,
+  serviceId?: string,
+): number {
+  return appointments
+    .filter(
+      (appointment) =>
+        (serviceId === undefined || appointment.serviceId === serviceId) &&
+        dateInTimeZone(appointment.startTime, timezone) === date,
+    )
+    .reduce(
+      (total, appointment) =>
+        total +
+        (appointment.endTime.getTime() - appointment.startTime.getTime()) /
+          60000,
+      0,
+    );
+}
+
+/** Whether one more session fits the advisor's daily limit and the service's. */
+function withinDailyLimits(
+  context: SchedulingContext,
+  date: string,
+  appointments: readonly BlockingAppointment[],
+): boolean {
+  const { durationMinutes, dailyConsultationLimitMinutes: serviceLimit } =
+    context.service;
+  const globalLimit = context.global.dailyConsultationLimitMinutes;
+  if (
+    globalLimit !== null &&
+    minutesBookedOn(appointments, date, context.timezone) + durationMinutes >
+      globalLimit
+  )
+    return false;
+  return (
+    serviceLimit === null ||
+    minutesBookedOn(appointments, date, context.timezone, context.service.id) +
+      durationMinutes <=
+      serviceLimit
+  );
+}
+
+/**
+ * Whether `start`–`end` is clear of the day's blocked periods (a period with
+ * no times blocks the whole day) and, with the buffer after it, of every
+ * blocking appointment.
+ */
+function slotIsFree(
+  context: SchedulingContext,
+  date: string,
+  start: Date,
+  end: Date,
+  appointments: readonly BlockingAppointment[],
+): boolean {
+  const blocked = context.blockedPeriods.some((period) => {
+    if (period.blockedDate !== date) return false;
+    if (!period.startTime || !period.endTime) return true;
+    return overlaps(
+      start,
+      end,
+      zonedDateTimeToUtc(date, period.startTime, context.timezone),
+      zonedDateTimeToUtc(date, period.endTime, context.timezone),
+    );
+  });
+  if (blocked) return false;
+  const unavailableUntil = new Date(
+    end.getTime() + minutes(context.global.bufferMinutes),
+  );
+  return !appointments.some((appointment) =>
+    overlaps(
+      start,
+      unavailableUntil,
+      appointment.startTime,
+      appointment.unavailableUntil,
+    ),
+  );
+}
+
 /**
  * The instants a slot search between `from` and `to` spans, on the advisor's
  * own calendar: midnight at the start of `from` to midnight after `to`.
@@ -298,20 +392,11 @@ export class AvailabilityService {
     );
     const slots: AvailabilitySlotResponseDto[] = [];
     for (let date = from; date <= to; date = addDays(date, 1)) {
-      const specificRanges = context.specificWindows
-        .filter((window) => window.availableDate === date)
-        .map((window) => ({
-          startTime: window.startTime,
-          endTime: window.endTime,
-        }));
-      const weeklyRanges = context.weeklyWindows
-        .filter((window) => window.dayOfWeek === isoWeekday(date))
-        .map((window) => ({
-          startTime: window.startTime,
-          endTime: window.endTime,
-        }));
-      const source = mergeRanges([...weeklyRanges, ...specificRanges]);
-      for (const range of source) {
+      // The daily limits depend on the day, not the slot: a day over either
+      // has no slot at all.
+      if (date > latestDate || !withinDailyLimits(context, date, appointments))
+        continue;
+      for (const range of windowsOn(context, date)) {
         const rangeEnd = zonedDateTimeToUtc(
           date,
           range.endTime,
@@ -325,85 +410,18 @@ export class AvailabilityService {
           );
           start < rangeEnd;
           start = new Date(
-            start.getTime() + context.global.slotIntervalMinutes * 60000,
+            start.getTime() + minutes(context.global.slotIntervalMinutes),
           )
         ) {
           const end = new Date(
-            start.getTime() + context.service.durationMinutes * 60000,
-          );
-          const unavailableUntil = new Date(
-            end.getTime() + context.global.bufferMinutes * 60000,
-          );
-          if (end > rangeEnd || start < earliestStart || date > latestDate)
-            continue;
-          const overlapsBlockedPeriod = context.blockedPeriods.some(
-            (period) => {
-              if (period.blockedDate !== date) return false;
-              if (!period.startTime || !period.endTime) return true;
-              return overlaps(
-                start,
-                end,
-                zonedDateTimeToUtc(date, period.startTime, context.timezone),
-                zonedDateTimeToUtc(date, period.endTime, context.timezone),
-              );
-            },
+            start.getTime() + minutes(context.service.durationMinutes),
           );
           if (
-            overlapsBlockedPeriod ||
-            appointments.some((appointment) =>
-              overlaps(
-                start,
-                unavailableUntil,
-                appointment.startTime,
-                appointment.unavailableUntil,
-              ),
-            )
+            end <= rangeEnd &&
+            start >= earliestStart &&
+            slotIsFree(context, date, start, end, appointments)
           )
-            continue;
-          if (context.global.dailyConsultationLimitMinutes !== null) {
-            const used = appointments
-              .filter(
-                (appointment) =>
-                  dateInTimeZone(appointment.startTime, context.timezone) ===
-                  date,
-              )
-              .reduce(
-                (total, appointment) =>
-                  total +
-                  (appointment.endTime.getTime() -
-                    appointment.startTime.getTime()) /
-                    60000,
-                0,
-              );
-            if (
-              used + context.service.durationMinutes >
-              context.global.dailyConsultationLimitMinutes
-            )
-              continue;
-          }
-          if (context.service.dailyConsultationLimitMinutes !== null) {
-            const serviceMinutesUsed = appointments
-              .filter(
-                (appointment) =>
-                  appointment.serviceId === context.service.id &&
-                  dateInTimeZone(appointment.startTime, context.timezone) ===
-                    date,
-              )
-              .reduce(
-                (total, appointment) =>
-                  total +
-                  (appointment.endTime.getTime() -
-                    appointment.startTime.getTime()) /
-                    60000,
-                0,
-              );
-            if (
-              serviceMinutesUsed + context.service.durationMinutes >
-              context.service.dailyConsultationLimitMinutes
-            )
-              continue;
-          }
-          slots.push(new AvailabilitySlotResponseDto(start, end));
+            slots.push(new AvailabilitySlotResponseDto(start, end));
         }
       }
     }
