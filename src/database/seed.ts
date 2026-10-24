@@ -31,11 +31,17 @@
  *
  * ## What it deliberately does not seed
  *
- * `service_images` takes a SeaweedFS object key, which the API presigns on read.
- * Writing the frontend's R2 URLs into that column would produce keys that cannot
- * be presigned and reads that fail, so images are left out: they need SeaweedFS up
- * and a real upload. The frontend keeps serving covers from its own R2 bucket
- * until then.
+ * Service covers. `service_images` holds a service's photographs in carousel
+ * order, and index 0 is the cover's — but the web app still picks covers itself
+ * (`COVER_BY_TITLE` and the hero-ring photos in its `lib/catalogue/live.ts`), so
+ * the seed leaves index 0 empty and writes only the gallery, at 1 and 2. When
+ * covers move into the database they take index 0 without renumbering a row.
+ *
+ * The gallery rows (`GALLERY`, keyed on the service's name so they survive a
+ * database reset) hold absolute URLs into the web app's R2 bucket, not SeaweedFS
+ * keys. The API returns an `object_key` that is already an http(s) URL unchanged
+ * and presigns anything else, so these read back with no SeaweedFS running, and a
+ * real upload's storage key still works beside them.
  *
  * ## Demo activity
  *
@@ -77,6 +83,7 @@ import {
   refundCases,
   serviceAppointments,
   serviceCategories,
+  serviceImages,
   serviceInvoices,
   serviceReviews,
   services,
@@ -727,6 +734,186 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
   ],
 };
 
+/** The web app's R2 bucket, where the service gallery photographs live. */
+const GALLERY_R2 =
+  'https://pub-07e53481352743c1826a900d773cb1f7.r2.dev/services/gallery';
+
+/**
+ * Each service's gallery — the photographs after its cover — written at carousel
+ * indexes 1 and 2 (0 is the cover's; see the header). Keyed on the service's
+ * name, which the seed keeps stable, rather than its id, which a database reset
+ * changes: the `<id8>` in a file name only records the dev-database service the
+ * photo was made for, and the hash after it is the file's content, so a
+ * re-encoded photo is a new object. Sarawut's two services are left out; his
+ * identity was turned down, so discovery does not list them.
+ */
+const GALLERY: Readonly<Record<string, readonly [string, string]>> = {
+  วางแผนภาษีสำหรับฟรีแลนซ์: [
+    `${GALLERY_R2}/10b93a6b-2.684b0694.jpg`,
+    `${GALLERY_R2}/10b93a6b-3.0fad756f.jpg`,
+  ],
+  ตรวจแผนภาษีก่อนยื่น: [
+    `${GALLERY_R2}/89195083-2.c73392bc.jpg`,
+    `${GALLERY_R2}/89195083-3.449ceb41.jpg`,
+  ],
+  ปิดงบบริษัทเล็กครั้งแรก: [
+    `${GALLERY_R2}/b7214dc4-2.03738473.jpg`,
+    `${GALLERY_R2}/b7214dc4-3.47bf2dfd.jpg`,
+  ],
+  ตรวจสัญญาก่อนเซ็น: [
+    `${GALLERY_R2}/9e90bd63-2.8374be5b.jpg`,
+    `${GALLERY_R2}/9e90bd63-3.8f83c050.jpg`,
+  ],
+  ปัญหาลูกจ้างและกฎหมายแรงงาน: [
+    `${GALLERY_R2}/10c63a55-2.81aebea6.jpg`,
+    `${GALLERY_R2}/10c63a55-3.3fd5def1.jpg`,
+  ],
+  ตรวจสุขภาพการตลาดของร้าน: [
+    `${GALLERY_R2}/18d4a660-2.75d3e05b.jpg`,
+    `${GALLERY_R2}/18d4a660-3.01559e47.jpg`,
+  ],
+  วางแผนเปิดธุรกิจใหม่: [
+    `${GALLERY_R2}/a2929247-2.5e5364e2.jpg`,
+    `${GALLERY_R2}/a2929247-3.b32a80e4.jpg`,
+  ],
+  คุยเรื่องความเครียดจากงาน: [
+    `${GALLERY_R2}/4d206828-2.8172f890.jpg`,
+    `${GALLERY_R2}/4d206828-3.5f35fcda.jpg`,
+  ],
+  ทบทวนเส้นทางอาชีพ: [
+    `${GALLERY_R2}/17108884-2.cdca89b9.jpg`,
+    `${GALLERY_R2}/17108884-3.b334d1ba.jpg`,
+  ],
+  วางแผนเปิดร้านแรก: [
+    `${GALLERY_R2}/98d5e655-2.3c91c173.jpg`,
+    `${GALLERY_R2}/98d5e655-3.c5cc1f71.jpg`,
+  ],
+  ยื่นภาษีบุคคลธรรมดาให้ครบสิทธิ์: [
+    `${GALLERY_R2}/1bca0404-2.719a50ce.jpg`,
+    `${GALLERY_R2}/1bca0404-3.06b11437.jpg`,
+  ],
+  ภาษีสำหรับร้านขายของออนไลน์: [
+    `${GALLERY_R2}/3022804d-2.3c3d64b8.jpg`,
+    `${GALLERY_R2}/3022804d-3.36de62fc.jpg`,
+  ],
+  วางแผนการเงินส่วนบุคคล: [
+    `${GALLERY_R2}/4c494cb5-2.d9477a38.jpg`,
+    `${GALLERY_R2}/4c494cb5-3.02b0324d.jpg`,
+  ],
+  วางแผนย้ายเข้าสายงานเทค: [
+    `${GALLERY_R2}/27f3ebf0-2.fa4e1e12.jpg`,
+    `${GALLERY_R2}/27f3ebf0-3.2feccace.jpg`,
+  ],
+  ภาษีฟรีแลนซ์ฉบับเข้าใจง่าย: [
+    `${GALLERY_R2}/a8bde51a-2.dec36355.jpg`,
+    `${GALLERY_R2}/a8bde51a-3.cfc1664d.jpg`,
+  ],
+  สิทธิลูกจ้างเมื่อถูกเลิกจ้าง: [
+    `${GALLERY_R2}/8514fe9c-2.34fd4f7f.jpg`,
+    `${GALLERY_R2}/8514fe9c-3.817c4d34.jpg`,
+  ],
+  เตรียมยื่นกู้สินเชื่อธุรกิจ: [
+    `${GALLERY_R2}/7291d7c0-2.143c285d.jpg`,
+    `${GALLERY_R2}/7291d7c0-3.9dc1bd73.jpg`,
+  ],
+  วางระบบจ้างพนักงานคนแรก: [
+    `${GALLERY_R2}/5986b539-2.bcc76f0f.jpg`,
+    `${GALLERY_R2}/5986b539-3.1dd2643c.jpg`,
+  ],
+  ตรวจงบก่อนส่งผู้สอบบัญชี: [
+    `${GALLERY_R2}/cb7d37ec-2.310cb113.jpg`,
+    `${GALLERY_R2}/cb7d37ec-3.d9538e57.jpg`,
+  ],
+  เริ่มต้นเป็นฟรีแลนซ์ให้รอด: [
+    `${GALLERY_R2}/bca4330e-2.293db510.jpg`,
+    `${GALLERY_R2}/bca4330e-3.58880302.jpg`,
+  ],
+  วางแผนซื้อบ้านหลังแรก: [
+    `${GALLERY_R2}/c712e475-2.087367d5.jpg`,
+    `${GALLERY_R2}/c712e475-3.7e0d210a.jpg`,
+  ],
+  ปลดหนี้บัตรเครดิตอย่างมีแผน: [
+    `${GALLERY_R2}/77fa2b58-2.42dcdac5.jpg`,
+    `${GALLERY_R2}/77fa2b58-3.6e4a38b0.jpg`,
+  ],
+  เริ่มลงทุนด้วยเงินก้อนแรก: [
+    `${GALLERY_R2}/78856419-2.73e4a96b.jpg`,
+    `${GALLERY_R2}/78856419-3.c718d908.jpg`,
+  ],
+  เลือกกองทุนลดหย่อนภาษีให้เหมาะกับตัวเอง: [
+    `${GALLERY_R2}/76a383b1-2.9bc6664e.jpg`,
+    `${GALLERY_R2}/76a383b1-3.3f9d32d7.jpg`,
+  ],
+  รีไฟแนนซ์บ้านให้ดอกเบี้ยลด: [
+    `${GALLERY_R2}/c92085e0-2.07ba72f8.jpg`,
+    `${GALLERY_R2}/c92085e0-3.5b71b42f.jpg`,
+  ],
+  เตรียมเอกสารขอสินเชื่อบ้าน: [
+    `${GALLERY_R2}/42b08197-2.31dbfb07.jpg`,
+    `${GALLERY_R2}/42b08197-3.a9b4a39e.jpg`,
+  ],
+  ตรวจสัญญาเช่าคอนโดก่อนเซ็น: [
+    `${GALLERY_R2}/803ab872-2.807f3504.jpg`,
+    `${GALLERY_R2}/803ab872-3.d5c7a010.jpg`,
+  ],
+  ร่างสัญญาจ้างงานฟรีแลนซ์: [
+    `${GALLERY_R2}/640f2c7b-2.6e262fe7.jpg`,
+    `${GALLERY_R2}/640f2c7b-3.ce615e52.jpg`,
+  ],
+  รีวิวสัญญาจ้างก่อนเซ็น: [
+    `${GALLERY_R2}/6a1a8cfe-2.e331eace.jpg`,
+    `${GALLERY_R2}/6a1a8cfe-3.1b276f04.jpg`,
+  ],
+  เลือกจดบริษัทหรือห้างหุ้นส่วน: [
+    `${GALLERY_R2}/03142946-2.17c0782c.jpg`,
+    `${GALLERY_R2}/03142946-3.ba2d68e9.jpg`,
+  ],
+  ออกแบบโครงสร้างเงินเดือนพนักงาน: [
+    `${GALLERY_R2}/39235645-2.163c9aa8.jpg`,
+    `${GALLERY_R2}/39235645-3.a6afe478.jpg`,
+  ],
+  'เขียน JD และวางขั้นตอนสัมภาษณ์': [
+    `${GALLERY_R2}/1256e6ba-2.f93839c8.jpg`,
+    `${GALLERY_R2}/1256e6ba-3.13336190.jpg`,
+  ],
+  เตรียมเอกสารก่อนปิดงบปี: [
+    `${GALLERY_R2}/80a54c30-2.051b458d.jpg`,
+    `${GALLERY_R2}/80a54c30-3.4a8f75f9.jpg`,
+  ],
+  'วางระบบบัญชีร้านเล็กด้วย Excel': [
+    `${GALLERY_R2}/bf22402c-2.74af6814.jpg`,
+    `${GALLERY_R2}/bf22402c-3.8f62a0b6.jpg`,
+  ],
+  ตั้งราคางานฟรีแลนซ์ให้คุ้ม: [
+    `${GALLERY_R2}/faacad7e-2.99378de0.jpg`,
+    `${GALLERY_R2}/faacad7e-3.74d1d1cb.jpg`,
+  ],
+  เปิดร้านออนไลน์ให้ถูกภาษี: [
+    `${GALLERY_R2}/e0a6d978-2.9cb3f204.jpg`,
+    `${GALLERY_R2}/e0a6d978-3.bf223ce8.jpg`,
+  ],
+  ยิงแอดร้านออนไลน์ให้คุ้มงบ: [
+    `${GALLERY_R2}/82538a90-2.85cb1649.jpg`,
+    `${GALLERY_R2}/82538a90-3.496b206d.jpg`,
+  ],
+  ตั้งราคาสินค้าและคำนวณกำไรต่อชิ้น: [
+    `${GALLERY_R2}/9a270df9-2.3815017f.jpg`,
+    `${GALLERY_R2}/9a270df9-3.78bd1820.jpg`,
+  ],
+  จดทะเบียนบริษัทครั้งแรก: [
+    `${GALLERY_R2}/a23aef0e-2.3edfbe40.jpg`,
+    `${GALLERY_R2}/a23aef0e-3.c1550daf.jpg`,
+  ],
+  ทำพอร์ตให้ได้งานสายเทค: [
+    `${GALLERY_R2}/50271ba7-2.71e918d9.jpg`,
+    `${GALLERY_R2}/50271ba7-3.5cbe872a.jpg`,
+  ],
+  รีวิวเรซูเม่ภาษาอังกฤษ: [
+    `${GALLERY_R2}/996cf568-2.c7029fb9.jpg`,
+    `${GALLERY_R2}/996cf568-3.0ea00312.jpg`,
+  ],
+};
+
 const ADVISEES = [
   {
     email: 'nattapong.d@advisory.demo',
@@ -1355,6 +1542,43 @@ async function ensureNamed(
     .returning({ id: table.id });
   note(name, true);
   return row.id;
+}
+
+/**
+ * A seeded service's `GALLERY` photographs, at carousel indexes 1 and 2; index 0
+ * stays free for the cover. A row already at an index keeps it: one still holding
+ * an earlier gallery URL moves to the current one, and anything else — a real
+ * upload's storage key — is left alone.
+ */
+async function ensureGallery(
+  db: DrizzleDB,
+  serviceId: string,
+  serviceName: string,
+): Promise<void> {
+  const photos = GALLERY[serviceName];
+  if (!photos) return;
+  for (const [offset, url] of photos.entries()) {
+    const carouselIndex = offset + 1;
+    const at = and(
+      eq(serviceImages.serviceId, serviceId),
+      eq(serviceImages.carouselIndex, carouselIndex),
+    );
+    const what = `photo ${carouselIndex} of ${serviceName}`;
+    const [found] = await db
+      .select({ key: serviceImages.objectKey })
+      .from(serviceImages)
+      .where(at)
+      .limit(1);
+    if (!found) {
+      await db
+        .insert(serviceImages)
+        .values({ serviceId, carouselIndex, objectKey: url });
+      note(what, true);
+    } else if (found.key !== url && found.key.startsWith(`${GALLERY_R2}/`)) {
+      await db.update(serviceImages).set({ objectKey: url }).where(at);
+      note(what, true);
+    } else note(what, false);
+  }
 }
 
 /** A Bangkok wall-clock time `day` days from today. */
@@ -2149,6 +2373,7 @@ async function main(): Promise<void> {
             id: found.id,
             ...shape,
           });
+          await ensureGallery(db, found.id, service.name);
           continue;
         }
         const [inserted] = await db
@@ -2173,6 +2398,7 @@ async function main(): Promise<void> {
           id: inserted.id,
           ...shape,
         });
+        await ensureGallery(db, inserted.id, service.name);
       }
     }
 

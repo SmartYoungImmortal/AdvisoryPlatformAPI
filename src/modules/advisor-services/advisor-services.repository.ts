@@ -6,6 +6,7 @@ import {
   eq,
   gte,
   ilike,
+  inArray,
   isNull,
   lte,
   or,
@@ -19,6 +20,7 @@ import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   availabilityProfiles,
   serviceCategories,
+  serviceImages,
   services,
   user,
 } from '@/database/schema';
@@ -97,14 +99,35 @@ export class AdvisorServicesRepository extends EntityRepository<
     return service;
   }
 
+  /**
+   * The service and its photographs, in one transaction.
+   *
+   * `service_images` references the service with no cascade, so deleting the
+   * row alone fails as soon as it has photographs, which every seeded service
+   * now does. The photographs go only once the same `ownedWhere` has found the
+   * service, so another advisor's id deletes nothing, and a service that still
+   * cannot go (it has bookings) keeps its photographs when the delete rolls back.
+   */
   async deleteOwned(
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.deleteWhere(
-      this.ownedWhere(advisorId, serviceId),
-    );
-    return service;
+    return this.db.transaction(async (tx) => {
+      const [owned] = await tx
+        .select({ id: services.id })
+        .from(services)
+        .where(this.ownedWhere(advisorId, serviceId));
+      if (!owned) return undefined;
+
+      await tx
+        .delete(serviceImages)
+        .where(eq(serviceImages.serviceId, serviceId));
+      const [service] = await tx
+        .delete(services)
+        .where(this.ownedWhere(advisorId, serviceId))
+        .returning();
+      return service;
+    });
   }
 
   async findPublished(
@@ -147,6 +170,25 @@ export class AdvisorServicesRepository extends EntityRepository<
       eq(services.id, serviceId),
     );
     return service;
+  }
+
+  /**
+   * The photograph keys for a set of services, in one query rather than one per
+   * row: a flat list for the caller to group, each service's keys in carousel
+   * order.
+   */
+  async findImageKeysFor(
+    serviceIds: readonly string[],
+  ): Promise<{ serviceId: string; objectKey: string }[]> {
+    if (serviceIds.length === 0) return [];
+    return this.db
+      .select({
+        serviceId: serviceImages.serviceId,
+        objectKey: serviceImages.objectKey,
+      })
+      .from(serviceImages)
+      .where(inArray(serviceImages.serviceId, [...serviceIds]))
+      .orderBy(asc(serviceImages.serviceId), asc(serviceImages.carouselIndex));
   }
 
   private ownedWhere(advisorId: string, serviceId: string): SQL {

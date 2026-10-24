@@ -22,6 +22,7 @@ import type {
   ChatSocketData,
   ChatSocketError,
 } from './chat-socket.types';
+import { ChatMessageNotifier } from './chat-message-notifier';
 import { ChatSocketSessionService } from './chat-socket-session.service';
 import type { ChatSocket } from './chat-socket-session.service';
 import { ChatService } from './chat.service';
@@ -55,6 +56,7 @@ export class ChatGateway implements OnGatewayInit<ChatServer> {
   constructor(
     private readonly chatService: ChatService,
     private readonly socketSession: ChatSocketSessionService,
+    private readonly messageNotifier: ChatMessageNotifier,
   ) {}
 
   afterInit(server: ChatServer): void {
@@ -116,8 +118,28 @@ export class ChatGateway implements OnGatewayInit<ChatServer> {
       this.server
         .to(chatSocketRoom(dto.chatRoomId))
         .emit(CHAT_EVENTS.message, message);
+      await this.messageNotifier.notifyAbsentMembers(
+        message,
+        await this.userIdsInRoom(dto.chatRoomId),
+      );
       return message;
     });
+  }
+
+  /** Users with a socket in the room right now; they got the message live and need no push. */
+  private async userIdsInRoom(chatRoomId: string): Promise<Set<string>> {
+    try {
+      const sockets = await this.server
+        .in(chatSocketRoom(chatRoomId))
+        .fetchSockets();
+      return new Set(
+        sockets.flatMap((socket) =>
+          socket.data.user ? [socket.data.user.id] : [],
+        ),
+      );
+    } catch {
+      return new Set();
+    }
   }
 
   @SubscribeMessage(CHAT_EVENTS.markRead)

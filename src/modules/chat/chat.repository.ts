@@ -13,6 +13,7 @@ import {
   type InferSelectModel,
   type SQL,
 } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import type { KeysetCursor } from '@/common/pagination/cursor-pagination.dto';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
@@ -34,6 +35,13 @@ const chatMembershipKey = {
   chatRoomId: chatMembers.chatRoomId,
   memberUserId: chatMembers.memberUserId,
 } as const;
+
+/**
+ * The room list reads `chat_members` and `user` a second time, for the other side
+ * of each room, so those reads get their own names.
+ */
+const otherMember = alias(chatMembers, 'other_member');
+const otherUser = alias(user, 'other_user');
 
 @Injectable()
 export class ChatRepository {
@@ -75,11 +83,65 @@ export class ChatRepository {
     return membership;
   }
 
+  /** The room's active members other than the sender, and the sender's name for a notification. */
+  async findMessageRecipients(
+    chatRoomId: string,
+    senderUserId: string,
+  ): Promise<{ recipientUserIds: string[]; senderName: string | null }> {
+    const [recipients, [sender]] = await Promise.all([
+      this.db
+        .select({ memberUserId: chatMembers.memberUserId })
+        .from(chatMembers)
+        .innerJoin(user, eq(user.id, chatMembers.memberUserId))
+        .where(
+          and(
+            eq(chatMembers.chatRoomId, chatRoomId),
+            ne(chatMembers.memberUserId, senderUserId),
+            eq(user.status, 'ACTIVE'),
+          ),
+        ),
+      this.db
+        .select({ fullName: user.fullName })
+        .from(user)
+        .where(eq(user.id, senderUserId))
+        .limit(1),
+    ]);
+    return {
+      recipientUserIds: recipients.map((row) => row.memberUserId),
+      senderName: sender?.fullName ?? null,
+    };
+  }
+
+  /**
+   * The member's rooms, each with its unread count and the other member.
+   *
+   * The other member is a lateral subquery limited to one row, the earliest to
+   * join, so a room can never come back twice or count its unread lines twice
+   * however many members it holds. A booking's room holds exactly two.
+   */
   async findRoomsForMember(
     memberUserId: string,
     limit: number,
     offset: number,
   ): Promise<ChatRoomView[]> {
+    const counterpart = this.db
+      .select({
+        id: otherUser.id,
+        displayName: otherUser.displayName,
+        image: otherUser.image,
+      })
+      .from(otherMember)
+      .innerJoin(otherUser, eq(otherUser.id, otherMember.memberUserId))
+      .where(
+        and(
+          eq(otherMember.chatRoomId, chatMembers.chatRoomId),
+          ne(otherMember.memberUserId, memberUserId),
+        ),
+      )
+      .orderBy(otherMember.createdAt, otherMember.memberUserId)
+      .limit(1)
+      .as('counterpart');
+
     const rows = await this.db
       .select({
         id: chatRooms.id,
@@ -87,9 +149,13 @@ export class ChatRepository {
         lastReadAt: chatMembers.lastReadAt,
         unreadCount: count(chatMessages.id),
         createdAt: chatRooms.createdAt,
+        counterpartId: counterpart.id,
+        counterpartDisplayName: counterpart.displayName,
+        counterpartImage: counterpart.image,
       })
       .from(chatMembers)
       .innerJoin(chatRooms, eq(chatRooms.id, chatMembers.chatRoomId))
+      .leftJoinLateral(counterpart, sql`true`)
       .leftJoin(
         chatMessages,
         and(
@@ -107,12 +173,32 @@ export class ChatRepository {
         chatRooms.isAnonymous,
         chatRooms.createdAt,
         chatMembers.lastReadAt,
+        counterpart.id,
+        counterpart.displayName,
+        counterpart.image,
       )
       .orderBy(desc(chatRooms.createdAt), desc(chatRooms.id))
       .limit(limit)
       .offset(offset);
 
-    return rows;
+    return rows.map(
+      ({
+        counterpartId,
+        counterpartDisplayName,
+        counterpartImage,
+        ...room
+      }) => ({
+        ...room,
+        counterpart:
+          counterpartId && counterpartDisplayName !== null
+            ? {
+                id: counterpartId,
+                displayName: counterpartDisplayName,
+                image: counterpartImage,
+              }
+            : null,
+      }),
+    );
   }
 
   async countRoomsForMember(memberUserId: string): Promise<number> {
@@ -192,7 +278,7 @@ export class ChatRepository {
       }
 
       const [message] = await tx
-        .select({ createdAt: chatMessages.createdAt })
+        .select({ id: chatMessages.id })
         .from(chatMessages)
         .where(
           and(
@@ -206,10 +292,13 @@ export class ChatRepository {
         return undefined;
       }
 
+      // The marker is read from the row in SQL, not passed back from JS: a `Date`
+      // keeps milliseconds and `created_at` keeps microseconds, so a round trip
+      // put the marker a fraction before the message and left it unread.
       const [updated] = await tx
         .update(chatMembers)
         .set({
-          lastReadAt: sql<Date>`greatest(coalesce(${chatMembers.lastReadAt}, '-infinity'::timestamptz), ${message.createdAt})`,
+          lastReadAt: sql<Date>`greatest(coalesce(${chatMembers.lastReadAt}, '-infinity'::timestamptz), (select ${chatMessages.createdAt} from ${chatMessages} where ${chatMessages.id} = ${message.id}))`,
         })
         .where(this.memberships.where({ chatRoomId, memberUserId }))
         .returning({

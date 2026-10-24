@@ -11,6 +11,7 @@ import type {
 } from '@/database/schema';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { AvailabilityService } from '@/modules/availability/availability.service';
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import type { BookingsRepository } from './bookings.repository';
 import { BookingsService } from './bookings.service';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
@@ -66,6 +67,7 @@ function makeGlobal(
 
 describe('BookingsService', () => {
   let service: BookingsService;
+  let notifications: jest.Mocked<Pick<NotificationsService, 'notify'>>;
   let repository: jest.Mocked<
     Pick<
       BookingsRepository,
@@ -104,9 +106,11 @@ describe('BookingsService', () => {
     };
     availability = { findSlotAt: jest.fn(), getGlobal: jest.fn() };
     availability.getGlobal.mockResolvedValue(makeGlobal());
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
     service = new BookingsService(
       repository as unknown as BookingsRepository,
       availability as unknown as AvailabilityService,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -501,6 +505,27 @@ describe('BookingsService', () => {
       expect(booking.state).toBe('PENDING_PAYMENT');
     });
 
+    it('hands the original chat room on to the replacement', async () => {
+      const chatRoomId = '55555555-5555-4555-8555-555555555555';
+      const original = makeAppointment({ chatRoomId });
+      repository.findForAdvisee.mockResolvedValue(original);
+      let replacementValues: Partial<Appointment> | undefined;
+      repository.rescheduleWithSchedulingLock.mockImplementation(
+        async (_advisorId, _bookingId, _states, _cancellation, values) => {
+          replacementValues = await values(original);
+          return makeAppointment(replacementValues);
+        },
+      );
+
+      await service.reschedule(advisee, bookingId, {
+        startTime: newStart.toISOString(),
+      });
+
+      expect(replacementValues).toEqual(
+        expect.objectContaining({ chatRoomId, startTime: newStart }),
+      );
+    });
+
     it('cancels the original under the same Advisor lock', async () => {
       const original = makeAppointment();
       repository.findForAdvisee.mockResolvedValue(original);
@@ -578,6 +603,49 @@ describe('BookingsService', () => {
       );
     });
 
+    it('notifies the advisee and the advisor once the appointment is BOOKED', async () => {
+      repository.transition.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+      repository.findPublishedService.mockResolvedValue({
+        id: serviceId,
+        name: 'ปรึกษาการเงิน',
+      } as AdvisorService);
+
+      await service.confirmPayment(bookingId);
+
+      expect(notifications.notify).toHaveBeenCalledTimes(2);
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisee.id,
+          type: 'BOOKING_CONFIRMED',
+          resourceId: bookingId,
+        }),
+      );
+      expect(notifications.notify.mock.calls[0][0].content).toContain(
+        'ปรึกษาการเงิน',
+      );
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisor.id,
+          type: 'BOOKING_RECEIVED',
+          resourceId: bookingId,
+        }),
+      );
+    });
+
+    it('still confirms when a notification cannot be created', async () => {
+      repository.transition.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+      repository.findPublishedService.mockResolvedValue(undefined);
+      notifications.notify.mockRejectedValue(new Error('db down'));
+
+      const booking = await service.confirmPayment(bookingId);
+
+      expect(booking.state).toBe('BOOKED');
+    });
+
     it('is idempotent for a redelivered webhook', async () => {
       repository.transition.mockResolvedValue(undefined);
       repository.findById.mockResolvedValue(
@@ -587,6 +655,7 @@ describe('BookingsService', () => {
       const booking = await service.confirmPayment(bookingId);
 
       expect(booking.state).toBe('BOOKED');
+      expect(notifications.notify).not.toHaveBeenCalled();
     });
 
     it('reports a missing appointment rather than inventing one', async () => {

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
@@ -9,11 +10,16 @@ import {
   paginateQuery,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
+import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import { services } from '@/database/schema';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { AvailabilityService } from '@/modules/availability/availability.service';
-import { ADVISOR_SERVICE_MESSAGES } from './advisor-services.constants';
+import {
+  ADVISOR_SERVICE_MESSAGES,
+  SERVICE_IMAGE_URL_EXPIRY_SECONDS,
+} from './advisor-services.constants';
 import { AdvisorServicesRepository } from './advisor-services.repository';
+import type { PublicServiceDocument } from './advisor-services.types';
 import { AdvisorServiceQueryDto } from './dtos/advisor-service-query.dto';
 import { AdvisorServiceResponseDto } from './dtos/advisor-service-response.dto';
 import { CreateAdvisorServiceDto } from './dtos/create-advisor-service.dto';
@@ -26,11 +32,22 @@ type AdvisorService = InferSelectModel<typeof services>;
 /** How many matching services an `availableOn` search checks before paging. */
 const AVAILABLE_ON_SCAN_LIMIT = 500;
 
+/**
+ * A photograph key that is already a fetchable URL rather than a storage key —
+ * the demo catalogue's photographs are public R2 URLs. Returned unchanged.
+ */
+function isAbsoluteUrl(key: string): boolean {
+  return /^https?:\/\//i.test(key);
+}
+
 @Injectable()
 export class AdvisorServicesService {
+  private readonly logger = new Logger(AdvisorServicesService.name);
+
   constructor(
     private readonly repository: AdvisorServicesRepository,
     private readonly availability: AvailabilityService,
+    private readonly storage: SeaweedFsStorageService,
   ) {}
 
   async findMany(
@@ -81,12 +98,17 @@ export class AdvisorServicesService {
     if (query.availableOn)
       return this.findPublishedAvailableOn(query, query.availableOn);
 
-    return paginateQuery(
-      query,
-      (options) => this.repository.findPublished(query, options),
-      () => this.repository.countPublished(query),
-      (service) => new PublicServiceResponseDto(service),
-    );
+    // `paginate` by hand rather than `paginateQuery`: the photographs for a page
+    // are one query keyed on the ids that page returned, which a per-row `map`
+    // cannot do without going back to the database once per row.
+    const [rows, total] = await Promise.all([
+      this.repository.findPublished(query, {
+        limit: query.limit,
+        offset: query.offset,
+      }),
+      this.repository.countPublished(query),
+    ]);
+    return paginate(await this.toListItems(rows), total, query);
   }
 
   /**
@@ -110,11 +132,7 @@ export class AdvisorServicesService {
     );
     const matching = candidates.filter((_, i) => open[i]);
     const page = matching.slice(query.offset, query.offset + query.limit);
-    return paginate(
-      page.map((service) => new PublicServiceResponseDto(service)),
-      matching.length,
-      query,
-    );
+    return paginate(await this.toListItems(page), matching.length, query);
   }
 
   async findPublishedById(
@@ -124,7 +142,65 @@ export class AdvisorServicesService {
     if (!service) {
       throw new NotFoundException(ADVISOR_SERVICE_MESSAGES.notFound);
     }
-    return new PublicServiceResponseDto(service);
+    const keys = await this.repository.findImageKeysFor([service.id]);
+    return new PublicServiceResponseDto(
+      service,
+      await this.resolveImageUrls(keys.map((row) => row.objectKey)),
+    );
+  }
+
+  /**
+   * A page of services as the public DTO, each with its photographs.
+   *
+   * The keys for the whole page are read in one query. Only keys that are already
+   * URLs are kept: presigning goes through storage, and a page of results should
+   * neither wait on it nor fail with it — the detail route presigns.
+   */
+  private async toListItems(
+    rows: readonly PublicServiceDocument[],
+  ): Promise<PublicServiceResponseDto[]> {
+    const keys = await this.repository.findImageKeysFor(
+      rows.map((row) => row.id),
+    );
+    const urlsByService = new Map<string, string[]>();
+    for (const { serviceId, objectKey } of keys) {
+      if (!isAbsoluteUrl(objectKey)) continue;
+      const urls = urlsByService.get(serviceId);
+      if (urls) urls.push(objectKey);
+      else urlsByService.set(serviceId, [objectKey]);
+    }
+    return rows.map(
+      (row) =>
+        new PublicServiceResponseDto(row, urlsByService.get(row.id) ?? []),
+    );
+  }
+
+  /**
+   * One service's photograph keys as URLs a browser can fetch, in the same order:
+   * an absolute URL as it is, a storage key presigned. A photograph that cannot be
+   * signed is left out rather than failing the response it sits in.
+   */
+  private async resolveImageUrls(keys: readonly string[]): Promise<string[]> {
+    const urls = await Promise.all(
+      keys.map((key) => this.resolveImageUrl(key)),
+    );
+    return urls.filter((url): url is string => url !== null);
+  }
+
+  private async resolveImageUrl(key: string): Promise<string | null> {
+    if (isAbsoluteUrl(key)) return key;
+    try {
+      return await this.storage.createDownloadUrl(
+        key,
+        SERVICE_IMAGE_URL_EXPIRY_SECONDS,
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not presign service image ${key}; it is left out of the response.`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      return null;
+    }
   }
 
   async create(

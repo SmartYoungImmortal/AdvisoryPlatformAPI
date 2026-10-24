@@ -14,10 +14,15 @@ import { NotificationResponseDto } from './dtos/notification-response.dto';
 import { NOTIFICATION_MESSAGES } from './notifications.constants';
 import { NotificationsRepository } from './notifications.repository';
 import type { NotifyInput } from './notifications.types';
+import { pushUrlFor } from './push/push.constants';
+import { PushService } from './push/push.service';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly repository: NotificationsRepository) {}
+  constructor(
+    private readonly repository: NotificationsRepository,
+    private readonly push: PushService,
+  ) {}
 
   async findMine(
     ownerId: string,
@@ -80,6 +85,14 @@ export class NotificationsService {
       input.type === 'NEW_MESSAGE' && input.resourceId
         ? await this.repository.upsertUnreadMessage(input)
         : await this.repository.create(input);
+    // Not awaited: the request that caused the notification must not wait on push services.
+    // `sendToUser` never rejects.
+    void this.push.sendToUser(row.ownerId, {
+      title: row.title,
+      body: row.content ?? '',
+      url: pushUrlFor(row.type),
+      tag: row.resourceId ? `${row.type}:${row.resourceId}` : undefined,
+    });
     return new NotificationResponseDto(row);
   }
 }

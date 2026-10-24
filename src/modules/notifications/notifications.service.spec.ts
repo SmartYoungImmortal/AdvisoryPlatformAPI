@@ -5,6 +5,7 @@ import {
 } from '@/common/pagination/cursor-pagination.dto';
 import type { NotificationsRepository } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
+import type { PushService } from './push/push.service';
 import type { Notification } from './notifications.types';
 
 const ownerId = '11111111-1111-1111-1111-111111111111';
@@ -37,9 +38,11 @@ describe('NotificationsService', () => {
       | 'upsertUnreadMessage'
     >
   >;
+  let push: jest.Mocked<Pick<PushService, 'sendToUser'>>;
   let service: NotificationsService;
 
   beforeEach(() => {
+    push = { sendToUser: jest.fn().mockResolvedValue(undefined) };
     repository = {
       findPageForOwner: jest.fn(),
       countUnread: jest.fn(),
@@ -50,6 +53,7 @@ describe('NotificationsService', () => {
     };
     service = new NotificationsService(
       repository as unknown as NotificationsRepository,
+      push as unknown as PushService,
     );
   });
 
@@ -171,6 +175,30 @@ describe('NotificationsService', () => {
 
       expect(repository.upsertUnreadMessage).toHaveBeenCalledWith(input);
       expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it('pushes the new notification to the owner with the page it opens', async () => {
+      repository.create.mockResolvedValue(
+        makeNotification({
+          type: 'BOOKING_CONFIRMED',
+          title: 'จองสำเร็จ',
+          content: 'พรุ่งนี้ 10:00',
+          resourceId: '44444444-4444-4444-4444-444444444444',
+        }),
+      );
+
+      await service.notify({
+        ownerId,
+        type: 'BOOKING_CONFIRMED',
+        title: 'จองสำเร็จ',
+      });
+
+      expect(push.sendToUser).toHaveBeenCalledWith(ownerId, {
+        title: 'จองสำเร็จ',
+        body: 'พรุ่งนี้ 10:00',
+        url: '/bookings',
+        tag: 'BOOKING_CONFIRMED:44444444-4444-4444-4444-444444444444',
+      });
     });
 
     it('adds a chat message without a room as a plain notification', async () => {

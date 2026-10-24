@@ -26,6 +26,29 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'REVIEW_RECEIVED',
 ]);
 
+/**
+ * One row per browser/device a user allowed device notifications on. `endpoint` is the push
+ * service URL the browser handed out; it identifies the subscription, so it is unique across users
+ * (a device that signs in as someone else moves the row to that user).
+ */
+export const pushSubscriptions = pgTable(
+  'push_subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull().unique(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index('push_subscriptions_user_id_idx').on(table.userId)],
+);
+
 export const notifications = pgTable(
   'notifications',
   {
