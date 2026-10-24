@@ -98,6 +98,7 @@ describe('concurrent booking of one Advisor time (e2e)', () => {
     const { advisor, serviceId, bookingDate } = await seedBookableService();
     const advisee = await signUp();
     const admin = await signUp();
+    const { db } = e2e();
     await db.insert(adminProfiles).values({ userId: admin.userId });
     await db
       .update(user)

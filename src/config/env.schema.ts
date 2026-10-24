@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import { Environment } from './environment.enum';
 
+// `.optional()` last, as on SMTP_USER: it keeps the key optional in `Env`, so test
+// fixtures that build an Env by hand need not list every provider.
+const optionalSecret = z
+  .string()
+  .trim()
+  .transform((value) => value || undefined)
+  .optional();
+
 const baseEnvSchema = z.object({
   NODE_ENV: z.enum(Environment).default(Environment.Development),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -50,6 +58,16 @@ const baseEnvSchema = z.object({
     .max(63)
     .default('advisory-platform'),
   SEAWEEDFS_S3_REGION: z.string().trim().min(1).default('us-east-1'),
+  // Social sign-in. Each provider is switched on by setting both of its values and
+  // left off by setting neither; see `socialProviders` in auth.config.ts. An empty
+  // value (`GOOGLE_CLIENT_ID=` as .env.example ships it) reads as unset rather than
+  // failing validation, so the API still boots with no provider configured.
+  GOOGLE_CLIENT_ID: optionalSecret,
+  GOOGLE_CLIENT_SECRET: optionalSecret,
+  FACEBOOK_CLIENT_ID: optionalSecret,
+  FACEBOOK_CLIENT_SECRET: optionalSecret,
+  APPLE_CLIENT_ID: optionalSecret,
+  APPLE_CLIENT_SECRET: optionalSecret,
   // Omise
   OMISE_PUBLIC_KEY: z.string(),
   OMISE_SECRET_KEY: z.string(),
