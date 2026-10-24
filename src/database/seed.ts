@@ -117,6 +117,9 @@ const SKILLS = [
 /** A password every demo account shares. It is a demo credential, not a secret. */
 const DEMO_PASSWORD = 'AdvisoryDemo!2026';
 
+/** The web app's R2 bucket, where the home-hero portraits live. */
+const HERO_R2 = 'https://pub-07e53481352743c1826a900d773cb1f7.r2.dev/hero';
+
 /**
  * Stock portraits for the demo accounts, written to better-auth's `image` — a plain
  * URL the admin console draws as-is. Uploaded avatars still go to `avatar_key`; this
@@ -133,6 +136,19 @@ const PORTRAITS: Readonly<Record<string, string>> = {
   'supaporn.t@advisory.demo':
     'https://randomuser.me/api/portraits/women/90.jpg',
   'admin@advisory.demo': 'https://randomuser.me/api/portraits/men/11.jpg',
+  // The people on the web app's home-hero ring (`heroCards` in its
+  // `lib/assets/r2.ts`), with the same portraits the cards show.
+  'thanakrit.wt@advisory.demo': `${HERO_R2}/q1-face.8eb33ddb.jpg`,
+  'sarah.j@advisory.demo': `${HERO_R2}/q2-face.50b06429.jpg`,
+  'pimchanok.k@advisory.demo': `${HERO_R2}/q4-face.0be00332.jpg`,
+  'methawee.k@advisory.demo': `${HERO_R2}/q5-face.91cde5b6.jpg`,
+  'weerapat.k@advisory.demo': `${HERO_R2}/q6-face.8590391e.jpg`,
+  'siraprapa.t@advisory.demo': `${HERO_R2}/q7-face.c0289e21.jpg`,
+  'piyapong.c@advisory.demo': `${HERO_R2}/q8-face.55c1196c.jpg`,
+  'thanaphat.w@advisory.demo': `${HERO_R2}/q9-face.66ed76ef.jpg`,
+  'warin.m@advisory.demo': `${HERO_R2}/q10-face.50daa8d2.jpg`,
+  'anucha.s@advisory.demo': `${HERO_R2}/q11-face.35a1262b.jpg`,
+  'nattawut.t@advisory.demo': `${HERO_R2}/q12-face.0fbcebd3.jpg`,
 };
 
 interface AdvisorSeed {
@@ -296,6 +312,211 @@ const ADVISORS: readonly AdvisorSeed[] = [
         priceBaht: 1100,
         durationMinutes: 60,
         screeningRequired: true,
+      },
+    ],
+  },
+  // The people on the web app's home-hero ring, one service each, so every card
+  // there opens a real service. Card 3 (กัญญา พรหมมา) is kanya.p above.
+  {
+    email: 'thanakrit.wt@advisory.demo',
+    displayName: 'ธนกฤต วงศ์ทอง',
+    fullName: 'ธนกฤต วงศ์ทอง',
+    headline: 'ที่ปรึกษาธุรกิจ SME · กรุงเทพฯ',
+    bio: 'ช่วยเจ้าของกิจการรายย่อยเปิดร้านแรกมาแล้วกว่า 80 ราย ถนัดเรื่องคำนวณต้นทุน ตั้งราคา และวางแผนเงินทุนช่วงหกเดือนแรก',
+    skills: ['การวางแผนธุรกิจ'],
+    services: [
+      {
+        name: 'วางแผนเปิดร้านแรก',
+        description:
+          'คุยตั้งแต่ไอเดีย ทำเล ต้นทุน ไปจนถึงเงินที่ต้องเตรียมไว้ก่อนเปิด จบด้วยรายการสิ่งที่ต้องทำก่อนวันแรก',
+        category: 'ธุรกิจและการตลาด',
+        priceBaht: 1500,
+        durationMinutes: 60,
+      },
+    ],
+  },
+  {
+    email: 'sarah.j@advisory.demo',
+    displayName: 'Sarah Jenskins',
+    fullName: 'Sarah Jenskins',
+    headline: 'ภาษีและบัญชี · กรุงเทพฯ',
+    bio: 'นักบัญชีรับอนุญาตที่ทำงานกับพนักงานบริษัทและชาวต่างชาติที่มีรายได้ในไทย อธิบายภาษีเป็นภาษาไทยและอังกฤษ',
+    skills: ['การวางแผนภาษี', 'บัญชีและงบการเงิน'],
+    services: [
+      {
+        name: 'ยื่นภาษีบุคคลธรรมดาให้ครบสิทธิ์',
+        description:
+          'ไล่ดูรายได้และค่าลดหย่อนทั้งหมดของคุณ แล้วยื่นให้ถูกแบบ ใช้สิทธิ์ครบ และเก็บเอกสารที่ต้องใช้ไว้ถูกต้อง',
+        category: 'การเงินและภาษี',
+        priceBaht: 1200,
+        durationMinutes: 60,
+        trialMinutes: 15,
+      },
+    ],
+  },
+  {
+    email: 'pimchanok.k@advisory.demo',
+    displayName: 'พิมพ์ชนก แก้วใส',
+    fullName: 'พิมพ์ชนก แก้วใส',
+    headline: 'ภาษีร้านค้าออนไลน์ · เชียงใหม่',
+    bio: 'ดูแลบัญชีให้แม่ค้าออนไลน์บน Shopee, Lazada และ TikTok Shop มา 6 ปี รู้ว่ายอดแบบไหนต้องจด VAT และแบบไหนยังไม่ต้อง',
+    skills: ['การวางแผนภาษี'],
+    services: [
+      {
+        name: 'ภาษีสำหรับร้านขายของออนไลน์',
+        description:
+          'ยอดขายเท่านี้ต้องเสียภาษีแบบไหน ต้องจด VAT เมื่อไร และควรเก็บหลักฐานอะไรไว้บ้าง คุยให้จบในชั่วโมงเดียว',
+        category: 'การเงินและภาษี',
+        priceBaht: 900,
+        durationMinutes: 45,
+      },
+    ],
+  },
+  {
+    email: 'methawee.k@advisory.demo',
+    displayName: 'เมธาวี คงสวัสดิ์',
+    fullName: 'เมธาวี คงสวัสดิ์',
+    headline: 'วางแผนการเงิน · กรุงเทพฯ',
+    bio: 'นักวางแผนการเงินที่ช่วยคนวัยทำงานจัดเงินเดือนให้มีเงินเก็บจริง ตั้งเป้าเงินฉุกเฉิน และเริ่มลงทุนแบบไม่ต้องเดา',
+    skills: ['บัญชีและงบการเงิน'],
+    services: [
+      {
+        name: 'วางแผนการเงินส่วนบุคคล',
+        description:
+          'ดูรายรับรายจ่ายจริงของคุณ แล้ววางแผนเงินเก็บ เงินฉุกเฉิน และเป้าหมายระยะยาว ให้เอาไปทำต่อได้เองทุกเดือน',
+        category: 'การเงินและภาษี',
+        priceBaht: 1300,
+        durationMinutes: 60,
+        trialMinutes: 15,
+      },
+    ],
+  },
+  {
+    email: 'weerapat.k@advisory.demo',
+    displayName: 'วีรภัทร กิตติวงศ์',
+    fullName: 'วีรภัทร กิตติวงศ์',
+    headline: 'สายอาชีพเทค · กรุงเทพฯ',
+    bio: 'หัวหน้าทีมวิศวกรที่สัมภาษณ์คนเข้าทีมมาแล้วหลายร้อยคน ช่วยคนที่อยากย้ายเข้าสายเทคเลือกเส้นทางและเตรียมพอร์ตให้ตรงงาน',
+    skills: ['การให้คำปรึกษาด้านอาชีพ', 'พัฒนาเว็บแอปพลิเคชัน'],
+    services: [
+      {
+        name: 'วางแผนย้ายเข้าสายงานเทค',
+        description:
+          'ดูพื้นฐานที่คุณมีอยู่ แล้วเลือกตำแหน่งที่เข้าทางที่สุด พร้อมลำดับสิ่งที่ต้องเรียนและพอร์ตที่ควรทำ',
+        category: 'การศึกษาและอาชีพ',
+        priceBaht: 900,
+        durationMinutes: 45,
+      },
+    ],
+  },
+  {
+    email: 'siraprapa.t@advisory.demo',
+    displayName: 'ศิรประภา ตันติ',
+    fullName: 'ศิรประภา ตันติ',
+    headline: 'ภาษีฟรีแลนซ์ · ขอนแก่น',
+    bio: 'ที่ปรึกษาภาษีของฟรีแลนซ์สายครีเอทีฟ ช่วยแยกเงินได้ 40(2) กับ 40(8) ให้ถูก และวางแผนหักค่าใช้จ่ายให้คุ้ม',
+    skills: ['การวางแผนภาษี'],
+    services: [
+      {
+        name: 'ภาษีฟรีแลนซ์ฉบับเข้าใจง่าย',
+        description:
+          'รายได้ฟรีแลนซ์ของคุณเป็นเงินได้ประเภทไหน หักค่าใช้จ่ายได้เท่าไร และต้องยื่นกลางปีหรือไม่ อธิบายพร้อมตัวเลขของคุณเอง',
+        category: 'การเงินและภาษี',
+        priceBaht: 800,
+        durationMinutes: 45,
+      },
+    ],
+  },
+  {
+    email: 'piyapong.c@advisory.demo',
+    displayName: 'ปิยะพงศ์ จันทร์เพ็ญ',
+    fullName: 'ปิยะพงศ์ จันทร์เพ็ญ',
+    headline: 'กฎหมายแรงงาน · กรุงเทพฯ',
+    bio: 'ทนายความด้านแรงงานที่ทำคดีทั้งฝั่งลูกจ้างและนายจ้าง อธิบายสิทธิตามกฎหมายคุ้มครองแรงงานให้เข้าใจและตัดสินใจได้',
+    skills: ['กฎหมายแรงงาน'],
+    services: [
+      {
+        name: 'สิทธิลูกจ้างเมื่อถูกเลิกจ้าง',
+        description:
+          'ถูกเลิกจ้าง ถูกลดเงินเดือน หรือถูกบังคับให้ลาออก คุยให้รู้ว่าคุณได้รับอะไรตามกฎหมาย และควรทำอะไรต่อ',
+        category: 'กฎหมายและสัญญา',
+        priceBaht: 1500,
+        durationMinutes: 60,
+        screeningRequired: true,
+      },
+    ],
+  },
+  {
+    email: 'thanaphat.w@advisory.demo',
+    displayName: 'ธนภัทร วิไลวรรณ',
+    fullName: 'ธนภัทร วิไลวรรณ',
+    headline: 'สินเชื่อธุรกิจ · ชลบุรี',
+    bio: 'อดีตเจ้าหน้าที่สินเชื่อธนาคารพาณิชย์ 10 ปี รู้ว่าธนาคารดูอะไรในคำขอกู้ และช่วยเตรียมเอกสารให้ผ่านในครั้งแรก',
+    skills: ['การวางแผนธุรกิจ', 'บัญชีและงบการเงิน'],
+    services: [
+      {
+        name: 'เตรียมยื่นกู้สินเชื่อธุรกิจ',
+        description:
+          'ดูงบ รายได้ และหลักประกันที่มี แล้วบอกว่าควรยื่นสินเชื่อแบบไหน กับใคร และต้องแก้อะไรก่อนยื่น',
+        category: 'ธุรกิจและการตลาด',
+        priceBaht: 1800,
+        durationMinutes: 60,
+      },
+    ],
+  },
+  {
+    email: 'warin.m@advisory.demo',
+    displayName: 'วรินทร มณีรัตน์',
+    fullName: 'วรินทร มณีรัตน์',
+    headline: 'HR และการจ้างงาน · ภูเก็ต',
+    bio: 'ผู้จัดการฝ่ายบุคคลในธุรกิจโรงแรมมา 12 ปี ช่วยเจ้าของกิจการวางระบบจ้างงาน สัญญา และสวัสดิการให้ถูกกฎหมาย',
+    skills: ['กฎหมายแรงงาน', 'การให้คำปรึกษาด้านอาชีพ'],
+    services: [
+      {
+        name: 'วางระบบจ้างพนักงานคนแรก',
+        description:
+          'ตั้งแต่ประกาศรับสมัคร สัญญาจ้าง ประกันสังคม ไปจนถึงวันทดลองงาน วางให้ครบก่อนรับพนักงานคนแรก',
+        category: 'กฎหมายและสัญญา',
+        priceBaht: 1400,
+        durationMinutes: 60,
+      },
+    ],
+  },
+  {
+    email: 'anucha.s@advisory.demo',
+    displayName: 'อนุชา ศรีสุข',
+    fullName: 'อนุชา ศรีสุข',
+    headline: 'ผู้สอบบัญชี · นครราชสีมา',
+    bio: 'ผู้สอบบัญชีรับอนุญาตที่ตรวจงบให้บริษัทขนาดเล็กและกลาง ช่วยเตรียมงบให้พร้อมก่อนส่งตรวจ ลดเวลาแก้ไขไปมา',
+    skills: ['บัญชีและงบการเงิน'],
+    services: [
+      {
+        name: 'ตรวจงบก่อนส่งผู้สอบบัญชี',
+        description:
+          'ไล่ดูงบและเอกสารประกอบก่อนส่งตรวจจริง ชี้จุดที่ผู้สอบจะถาม และสิ่งที่ควรแก้ให้เรียบร้อยก่อน',
+        category: 'การเงินและภาษี',
+        priceBaht: 2200,
+        durationMinutes: 90,
+        screeningRequired: true,
+      },
+    ],
+  },
+  {
+    email: 'nattawut.t@advisory.demo',
+    displayName: 'ณัฐวุฒิ ธนสาร',
+    fullName: 'ณัฐวุฒิ ธนสาร',
+    headline: 'ที่ปรึกษาฟรีแลนซ์ · เชียงราย',
+    bio: 'ฟรีแลนซ์สายออกแบบมา 9 ปีก่อนมาเป็นโค้ช ช่วยคนที่เพิ่งออกจากงานประจำตั้งราคา หาลูกค้า และจัดการงานไม่ให้ล้นมือ',
+    skills: ['การให้คำปรึกษาด้านอาชีพ'],
+    services: [
+      {
+        name: 'เริ่มต้นเป็นฟรีแลนซ์ให้รอด',
+        description:
+          'ตั้งราคางาน หาลูกค้ากลุ่มแรก และวางระบบรับงานให้รายได้ไม่ขาดช่วง สำหรับคนที่เพิ่งเริ่มหรือกำลังจะลาออก',
+        category: 'การศึกษาและอาชีพ',
+        priceBaht: 1000,
+        durationMinutes: 60,
+        trialMinutes: 15,
       },
     ],
   },

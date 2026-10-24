@@ -189,6 +189,63 @@ export const appRoles = {
  * schema object) — not the physical DB column. Since our Drizzle keys already match these
  * field names, no override is needed here.
  */
+/**
+ * The two `required` additional fields a social sign-up has no form to fill.
+ * better-auth creates the user from the provider's profile, so without these
+ * the insert is refused and the person lands back on the sign-in page.
+ * `fullName` is the provider's own name when it gives one (Apple gives it only
+ * on the very first consent, and only if the person shares it), otherwise the
+ * part of the email before the `@`; it stays editable from the profile.
+ */
+function socialUser(profile: { name?: string | null; email?: string | null }) {
+  const fullName =
+    profile.name?.trim() || profile.email?.split('@')[0] || 'Advisory user';
+  return { fullName, timezone: 'Asia/Bangkok' };
+}
+
+/**
+ * Each provider whose id and secret are both set, and no other: a provider
+ * listed without credentials would answer every click with an error from the
+ * provider's own page. The frontend draws all three buttons and reports
+ * better-auth's "provider not found" for one that is off.
+ */
+function socialProviders(config: ConfigService<Env, true>) {
+  type SocialKey =
+    | typeof ENV_KEYS.GOOGLE_CLIENT_ID
+    | typeof ENV_KEYS.GOOGLE_CLIENT_SECRET
+    | typeof ENV_KEYS.FACEBOOK_CLIENT_ID
+    | typeof ENV_KEYS.FACEBOOK_CLIENT_SECRET
+    | typeof ENV_KEYS.APPLE_CLIENT_ID
+    | typeof ENV_KEYS.APPLE_CLIENT_SECRET;
+  const pair = (id: SocialKey, secret: SocialKey) => {
+    const clientId = config.get(id, { infer: true });
+    const clientSecret = config.get(secret, { infer: true });
+    return clientId && clientSecret ? { clientId, clientSecret } : null;
+  };
+  const google = pair(ENV_KEYS.GOOGLE_CLIENT_ID, ENV_KEYS.GOOGLE_CLIENT_SECRET);
+  const facebook = pair(
+    ENV_KEYS.FACEBOOK_CLIENT_ID,
+    ENV_KEYS.FACEBOOK_CLIENT_SECRET,
+  );
+  const apple = pair(ENV_KEYS.APPLE_CLIENT_ID, ENV_KEYS.APPLE_CLIENT_SECRET);
+  return {
+    ...(google && {
+      // `select_account`: always the account chooser, even with one Google
+      // account signed in, so a shared machine never signs in as whoever was
+      // last there.
+      google: {
+        ...google,
+        prompt: 'select_account' as const,
+        mapProfileToUser: socialUser,
+      },
+    }),
+    ...(facebook && {
+      facebook: { ...facebook, mapProfileToUser: socialUser },
+    }),
+    ...(apple && { apple: { ...apple, mapProfileToUser: socialUser } }),
+  };
+}
+
 export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
   const logger = new Logger('AuthEmail');
   const sendEmail = createAuthEmailSender({
@@ -197,12 +254,17 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
       'Advisory Platform <no-reply@localhost>',
     transport: createSmtpTransport(config),
   });
+  const providers = socialProviders(config);
 
   return betterAuth({
     database: drizzleAdapter(db, { provider: 'pg', schema }),
     secret: config.get(ENV_KEYS.BETTER_AUTH_SECRET, { infer: true }),
     baseURL: config.get(ENV_KEYS.BETTER_AUTH_URL, { infer: true }),
-    trustedOrigins: config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
+    trustedOrigins: [
+      ...config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
+      // Apple posts its callback from its own origin.
+      ...('apple' in providers ? ['https://appleid.apple.com'] : []),
+    ],
     emailAndPassword: {
       enabled: true,
       resetPasswordTokenExpiresIn: 60 * 60,
@@ -229,6 +291,7 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
         return Promise.resolve();
       },
     },
+    socialProviders: providers,
     /**
      * Five minutes of the session in a signed cookie, so the guard on every route
      * reads it from the request instead of querying `session` first. Against the
