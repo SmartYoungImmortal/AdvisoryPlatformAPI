@@ -23,6 +23,7 @@ import type {
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { BOOKING_MESSAGES } from './bookings.constants';
 import { BookingsService } from './bookings.service';
+import { AdvisorBookingResponseDto } from './dtos/advisor-booking-response.dto';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 
 @ApiTags('Bookings')
@@ -32,11 +33,11 @@ export class AdvisorBookingsController {
 
   @UserHasPermission({ permission: { advisor: ['read'] } })
   @Get()
-  @ApiGetPaginated(BookingResponseDto, { name: 'Booking' })
+  @ApiGetPaginated(AdvisorBookingResponseDto, { name: 'AdvisorBooking' })
   findMine(
     @CurrentUser() user: SessionUser,
     @Query() query: OffsetPaginationDto,
-  ): Promise<PaginatedResult<BookingResponseDto>> {
+  ): Promise<PaginatedResult<AdvisorBookingResponseDto>> {
     return this.bookings.findAdvisorMine(user, query);
   }
 
