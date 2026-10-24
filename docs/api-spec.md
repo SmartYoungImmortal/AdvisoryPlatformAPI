@@ -609,10 +609,12 @@ exists.
 ### HTTP history and read model
 
 - `GET /api/v1/chat/rooms?page=1&limit=20` lists only the current user's rooms, newest room first.
-  Each item is `{ id, isAnonymous, lastReadAt, unreadCount, createdAt, counterpart }`. `unreadCount`
-  counts only messages from other members strictly after this member's read marker. `counterpart` is
-  the other member as `{ id, displayName, image }` (`image` is the public portrait URL or `null`,
-  never a storage key), or `null` for an anonymous room or a room with no other member.
+  Each item is `{ id, isAnonymous, lastReadAt, unreadCount, createdAt, counterpart, lastMessage }`.
+  `unreadCount` counts only messages from other members strictly after this member's read marker.
+  `counterpart` is the other member as `{ id, displayName, image }` (`image` is the public portrait
+  URL or `null`, never a storage key), or `null` for an anonymous room or a room with no other member.
+  `lastMessage` is the room's newest message in the message shape (the first item the messages
+  route would return), or `null` in an empty room, so a list needs no per-room read.
 - `GET /api/v1/chat/rooms/:chatRoomId/messages?limit=20&cursor=<opaque>` returns member-only
   history, newest message first. Omit `cursor` for the first page, then pass `nextCursor` back
   unchanged while `hasMore` is true. Ties are ordered by UUID so pagination remains stable when
@@ -850,6 +852,7 @@ primary key and every route addresses it as that booking's subresource. There is
 | `PATCH /api/v1/advisors/me/reviews/:bookingId/reply` | `Advisor` | Write or rewrite the reply          |
 | `GET /api/v1/advisors/:advisorId/reviews`            | `Public`  | Paginated public list               |
 | `GET /api/v1/advisors/:advisorId/reviews/summary`    | `Public`  | Score and star distribution         |
+| `GET /api/v1/advisors/reviews/summaries?ids=a,b,c`   | `Public`  | The same summary for up to 100 advisors at once, `{ items: [{ advisorId, average, total, distribution }] }`; an advisor the single route would 404 is left out |
 
 **What may be reviewed.** Only an appointment in `COMPLETED`, and only by its Advisee — a
 consultation is rated after it has happened. `stars` is an integer 1–5, enforced both by the DTO

@@ -74,7 +74,7 @@ describe('AdvisorServicesService', () => {
       | 'findImageKeysFor'
     >
   >;
-  let availability: jest.Mocked<Pick<AvailabilityService, 'hasOpenSlotOn'>>;
+  let availability: jest.Mocked<Pick<AvailabilityService, 'openOn'>>;
   let storage: jest.Mocked<Pick<SeaweedFsStorageService, 'createDownloadUrl'>>;
 
   beforeEach(() => {
@@ -94,7 +94,7 @@ describe('AdvisorServicesService', () => {
       findPublishedById: jest.fn(),
       findImageKeysFor: jest.fn().mockResolvedValue([]),
     };
-    availability = { hasOpenSlotOn: jest.fn() };
+    availability = { openOn: jest.fn() };
     storage = { createDownloadUrl: jest.fn() };
     service = new AdvisorServicesService(
       repository as unknown as AdvisorServicesRepository,
@@ -240,9 +240,7 @@ describe('AdvisorServicesService', () => {
       id: '55555555-5555-5555-5555-555555555555',
     };
     repository.findPublished.mockResolvedValue([publicService, closed]);
-    availability.hasOpenSlotOn.mockImplementation((id) =>
-      Promise.resolve(id === serviceId),
-    );
+    availability.openOn.mockResolvedValue(new Set([serviceId]));
     const query = Object.assign(new PublicServiceQueryDto(), {
       page: 1,
       limit: 20,
@@ -256,8 +254,10 @@ describe('AdvisorServicesService', () => {
       limit: 20,
       totalPages: 1,
     });
-    expect(availability.hasOpenSlotOn).toHaveBeenCalledWith(
-      serviceId,
+    // Every candidate in one batch.
+    expect(availability.openOn).toHaveBeenCalledTimes(1);
+    expect(availability.openOn).toHaveBeenCalledWith(
+      [serviceId, closed.id],
       '2026-10-24',
     );
     expect(repository.countPublished).not.toHaveBeenCalled();
@@ -374,9 +374,7 @@ describe('AdvisorServicesService', () => {
 
     it('reads photographs only for the page an available-today search returns', async () => {
       repository.findPublished.mockResolvedValue([publicService, other]);
-      availability.hasOpenSlotOn.mockImplementation((id) =>
-        Promise.resolve(id === otherId),
-      );
+      availability.openOn.mockResolvedValue(new Set([otherId]));
       repository.findImageKeysFor.mockResolvedValue([
         { serviceId: otherId, objectKey: photo('b-1') },
       ]);

@@ -71,7 +71,9 @@ describe('ReviewsService', () => {
       findManyForAdvisor: jest.fn(),
       countForAdvisor: jest.fn(),
       countByStarsForAdvisor: jest.fn(),
+      countByStarsForAdvisors: jest.fn(),
       publicAdvisorExists: jest.fn(),
+      publicAdvisorIds: jest.fn(),
     } as unknown as jest.Mocked<ReviewsRepository>;
     service = new ReviewsService(repository);
   });
@@ -301,6 +303,37 @@ describe('ReviewsService', () => {
         NotFoundException,
       );
       expect(repository.countByStarsForAdvisor).not.toHaveBeenCalled();
+    });
+
+    it('summarises many advisors at once, in the order asked, as the single route does', async () => {
+      repository.publicAdvisorIds.mockResolvedValue(new Set(['a', 'b']));
+      repository.countByStarsForAdvisors.mockResolvedValue(
+        new Map([
+          [
+            'b',
+            new Map([
+              [5, 2],
+              [3, 1],
+            ]),
+          ],
+        ]),
+      );
+
+      const { items } = await service.summariesForAdvisors(['b', 'a']);
+
+      expect(items.map((item) => item.advisorId)).toEqual(['b', 'a']);
+      expect(items[0]).toMatchObject({ total: 3, average: 4.3 });
+      // Listed but unreviewed: zeros, like the single route, not missing.
+      expect(items[1]).toMatchObject({ total: 0, average: null });
+    });
+
+    it('leaves out an advisor the public routes would not acknowledge', async () => {
+      repository.publicAdvisorIds.mockResolvedValue(new Set(['a']));
+      repository.countByStarsForAdvisors.mockResolvedValue(new Map());
+
+      const { items } = await service.summariesForAdvisors(['a', 'suspended']);
+
+      expect(items.map((item) => item.advisorId)).toEqual(['a']);
     });
   });
 });
