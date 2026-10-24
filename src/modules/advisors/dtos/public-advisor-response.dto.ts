@@ -25,6 +25,14 @@ export class PublicAdvisorResponseDto {
   @ApiProperty({ nullable: true })
   avatarKey: string | null;
 
+  /**
+   * better-auth's `image`: a portrait URL that is already public (a social
+   * sign-in's profile photo, or a demo account's stock portrait). Shown when
+   * there is no uploaded avatar; never a storage key.
+   */
+  @ApiProperty({ nullable: true, type: String })
+  image: string | null;
+
   @ApiProperty({ type: [String] })
   skills: string[];
 
@@ -39,6 +47,7 @@ export class PublicAdvisorResponseDto {
     headline: string;
     bio: string | null;
     avatarKey: string | null;
+    image?: string | null;
     skills: string[];
     publishedServiceCount: number;
   }) {
@@ -47,6 +56,7 @@ export class PublicAdvisorResponseDto {
     this.headline = row.headline;
     this.bio = row.bio;
     this.avatarKey = row.avatarKey;
+    this.image = row.image ?? null;
     this.skills = row.skills;
     this.publishedServiceCount = row.publishedServiceCount;
   }

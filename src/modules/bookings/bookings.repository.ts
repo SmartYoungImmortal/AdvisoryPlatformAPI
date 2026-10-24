@@ -13,10 +13,15 @@ import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { serviceAppointments, services } from '@/database/schema';
+import { serviceAppointments, services, user } from '@/database/schema';
 import type { AppointmentState } from './booking-states';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
+/** A booking as the Advisor's own list returns it. */
+export type AdvisorAppointment = Appointment & {
+  adviseeName: string;
+  serviceName: string;
+};
 type NewAppointment = InferInsertModel<typeof serviceAppointments>;
 type AppointmentUpdate = PgUpdateSetSource<typeof serviceAppointments>;
 type Transaction = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0];
@@ -170,14 +175,33 @@ export class BookingsRepository extends EntityRepository<
     );
   }
 
+  /**
+   * The Advisor's bookings with who booked and what, because the Advisor's desk
+   * has to say both and the Advisor cannot read another user's profile or a
+   * service by id on its own. Only the Advisee's public display name is read.
+   */
   async findManyForAdvisor(
     advisorId: string,
     options: { limit: number; offset: number },
-  ): Promise<Appointment[]> {
-    return this.findManyByParticipant(
-      eq(serviceAppointments.advisorId, advisorId),
-      options,
-    );
+  ): Promise<AdvisorAppointment[]> {
+    const rows = await this.db
+      .select({
+        appointment: serviceAppointments,
+        adviseeName: user.displayName,
+        serviceName: services.name,
+      })
+      .from(serviceAppointments)
+      .innerJoin(user, eq(user.id, serviceAppointments.adviseeId))
+      .innerJoin(services, eq(services.id, serviceAppointments.serviceId))
+      .where(eq(serviceAppointments.advisorId, advisorId))
+      .orderBy(serviceAppointments.startTime)
+      .limit(options.limit)
+      .offset(options.offset);
+    return rows.map((row) => ({
+      ...row.appointment,
+      adviseeName: row.adviseeName,
+      serviceName: row.serviceName,
+    }));
   }
 
   async countForAdvisor(advisorId: string): Promise<number> {

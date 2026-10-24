@@ -258,7 +258,13 @@ describe('BookingsService', () => {
     });
 
     it('scopes the Advisor list to the session user', async () => {
-      repository.findManyForAdvisor.mockResolvedValue([makeAppointment()]);
+      repository.findManyForAdvisor.mockResolvedValue([
+        {
+          ...makeAppointment(),
+          adviseeName: 'ธนกฤต ว.',
+          serviceName: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+        },
+      ]);
       repository.countForAdvisor.mockResolvedValue(1);
 
       const page = await service.findAdvisorMine(
@@ -267,6 +273,10 @@ describe('BookingsService', () => {
       );
 
       expect(page.total).toBe(1);
+      expect(page.items[0]).toMatchObject({
+        adviseeName: 'ธนกฤต ว.',
+        serviceName: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+      });
       expect(repository.findManyForAdvisor).toHaveBeenCalledWith(
         advisor.id,
         expect.anything(),
