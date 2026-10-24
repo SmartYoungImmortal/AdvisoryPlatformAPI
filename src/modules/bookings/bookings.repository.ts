@@ -14,6 +14,7 @@ import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predi
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import { serviceAppointments, services, user } from '@/database/schema';
+import { openBookingChatRoom } from '@/modules/chat/booking-chat-room';
 import type { AppointmentState } from './booking-states';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
@@ -54,6 +55,9 @@ export class BookingsRepository extends EntityRepository<
    * Serializes the eligibility recheck and insert per Advisor. This closes the
    * race for daily limits while the exclusion constraint remains the final
    * guarantee against overlapping appointment ranges.
+   *
+   * The booking's chat room is opened in the same transaction, so the two commit
+   * or roll back together; see `openBookingChatRoom`.
    */
   createWithSchedulingLock(
     advisorId: string,
@@ -66,7 +70,7 @@ export class BookingsRepository extends EntityRepository<
         .insert(serviceAppointments)
         .values(values)
         .returning();
-      return appointment;
+      return openBookingChatRoom(tx, appointment);
     });
   }
 
@@ -76,6 +80,10 @@ export class BookingsRepository extends EntityRepository<
    * picks the new slot. `replacementValues` receives the pre-cancellation row because
    * the replacement inherits the state the original had reached. An undefined result
    * means the original was no longer cancellable.
+   *
+   * The replacement keeps the conversation: it carries the original's room when
+   * `replacementValues` passes `chatRoomId` on, and is given one only when the
+   * original had none.
    */
   rescheduleWithSchedulingLock(
     advisorId: string,
@@ -100,7 +108,7 @@ export class BookingsRepository extends EntityRepository<
         .insert(serviceAppointments)
         .values(await replacementValues(original))
         .returning();
-      return replacement;
+      return openBookingChatRoom(tx, replacement);
     });
   }
 
