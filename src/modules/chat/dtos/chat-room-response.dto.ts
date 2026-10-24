@@ -1,4 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ChatMessageResponseDto,
+  type ChatMessageView,
+} from './chat-message-response.dto';
 
 /** The other member of a room, as far as a member may see them. */
 export interface ChatRoomCounterpartView {
@@ -15,6 +19,8 @@ export interface ChatRoomView {
   createdAt: Date;
   /** Absent or null when the room has no other member to name. */
   counterpart?: ChatRoomCounterpartView | null;
+  /** The room's newest line; absent from a view that did not read it, null in an empty room. */
+  lastMessage?: ChatMessageView | null;
 }
 
 /**
@@ -46,6 +52,12 @@ export class ChatRoomResponseDto {
    */
   @ApiProperty({ type: () => ChatRoomCounterpartDto, nullable: true })
   counterpart: ChatRoomCounterpartDto | null;
+  /**
+   * The newest line in the room, so a list can show it without reading each
+   * room's messages. Null in a room with nothing in it yet.
+   */
+  @ApiProperty({ type: () => ChatMessageResponseDto, nullable: true })
+  lastMessage: ChatMessageResponseDto | null;
 
   constructor(room: ChatRoomView) {
     this.id = room.id;
@@ -57,5 +69,8 @@ export class ChatRoomResponseDto {
       room.counterpart && !room.isAnonymous
         ? new ChatRoomCounterpartDto(room.counterpart)
         : null;
+    this.lastMessage = room.lastMessage
+      ? new ChatMessageResponseDto(room.lastMessage)
+      : null;
   }
 }

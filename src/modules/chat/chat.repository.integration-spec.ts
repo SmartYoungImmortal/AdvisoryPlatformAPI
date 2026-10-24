@@ -87,6 +87,14 @@ describe('ChatRepository (integration)', () => {
         },
       }),
     );
+    // The newest line rides along with the room.
+    expect(room?.lastMessage).toEqual(
+      expect.objectContaining({
+        chatRoomId: roomId,
+        senderUserId: secondUserId,
+        message: 'unread',
+      }),
+    );
     await expect(repository.countRoomsForMember(firstUserId)).resolves.toBe(1);
     const history = await repository.findMessages(roomId, 100);
     expect(history).toEqual(

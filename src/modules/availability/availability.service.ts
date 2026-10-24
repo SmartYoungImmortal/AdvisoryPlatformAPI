@@ -27,6 +27,24 @@ type SchedulingContext = Exclude<
   Awaited<ReturnType<AvailabilityRepository['schedulingContext']>>,
   undefined
 >;
+type BlockingAppointment = Awaited<
+  ReturnType<AvailabilityRepository['findBlockingAppointments']>
+>[number];
+
+/**
+ * The instants a slot search between `from` and `to` spans, on the advisor's
+ * own calendar: midnight at the start of `from` to midnight after `to`.
+ */
+function slotRange(
+  context: SchedulingContext,
+  from: string,
+  to: string,
+): { rangeStart: Date; rangeEnd: Date } {
+  return {
+    rangeStart: zonedDateTimeToUtc(from, '00:00', context.timezone),
+    rangeEnd: zonedDateTimeToUtc(addDays(to, 1), '00:00', context.timezone),
+  };
+}
 
 @Injectable()
 export class AvailabilityService {
@@ -118,6 +136,79 @@ export class AvailabilityService {
    * A service whose schedule cannot be read counts as not available rather than
    * failing the whole list.
    */
+  /**
+   * `hasOpenSlotOn` for many services at once: the ones with a slot left on
+   * `date`. The same answer service by service, read in a fixed handful of
+   * queries (the services, their schedules, and every advisor's blocking
+   * appointments over the day) instead of several per service. A service
+   * whose schedule cannot be read or worked out is simply not open, as it is
+   * for the single check.
+   */
+  async openOn(
+    serviceIds: readonly string[],
+    date: string,
+  ): Promise<ReadonlySet<string>> {
+    const open = new Set<string>();
+    if (!isIsoDate(date) || serviceIds.length === 0) return open;
+    let contexts: ReadonlyMap<string, SchedulingContext>;
+    try {
+      contexts = await this.repository.schedulingContexts(serviceIds);
+    } catch {
+      return open;
+    }
+
+    const ranges = new Map<string, { rangeStart: Date; rangeEnd: Date }>();
+    for (const [serviceId, context] of contexts) {
+      try {
+        assertIanaTimeZone(context.timezone);
+        ranges.set(serviceId, slotRange(context, date, date));
+      } catch {
+        // An unusable time zone or date: not open, as `hasOpenSlotOn` says.
+      }
+    }
+    if (ranges.size === 0) return open;
+
+    // One read for every advisor over the widest of their days; each service
+    // then keeps only what overlaps its own day, the same test as the query.
+    const spans = [...ranges.values()];
+    const from = new Date(
+      Math.min(...spans.map((r) => r.rangeStart.getTime())),
+    );
+    const to = new Date(Math.max(...spans.map((r) => r.rangeEnd.getTime())));
+    const advisorIds = [
+      ...new Set(
+        [...ranges.keys()].map((id) => contexts.get(id)!.service.advisorId),
+      ),
+    ];
+    let appointments: BlockingAppointment[];
+    try {
+      appointments = await this.repository.findBlockingAppointmentsForAdvisors(
+        advisorIds,
+        from,
+        to,
+      );
+    } catch {
+      return open;
+    }
+
+    for (const [serviceId, range] of ranges) {
+      const context = contexts.get(serviceId)!;
+      const blocking = appointments.filter(
+        (appointment) =>
+          appointment.advisorId === context.service.advisorId &&
+          appointment.startTime < range.rangeEnd &&
+          appointment.unavailableUntil > range.rangeStart,
+      );
+      try {
+        if (this.slotsFrom(context, date, date, blocking).length > 0)
+          open.add(serviceId);
+      } catch {
+        // As above: a schedule that cannot be worked out is not open.
+      }
+    }
+    return open;
+  }
+
   async hasOpenSlotOn(serviceId: string, date: string): Promise<boolean> {
     if (!isIsoDate(date)) return false;
     try {
@@ -177,17 +268,26 @@ export class AvailabilityService {
     from: string,
     to: string,
   ): Promise<AvailabilitySlotResponseDto[]> {
-    const rangeStart = zonedDateTimeToUtc(from, '00:00', context.timezone);
-    const rangeEnd = zonedDateTimeToUtc(
-      addDays(to, 1),
-      '00:00',
-      context.timezone,
-    );
+    const { rangeStart, rangeEnd } = slotRange(context, from, to);
     const appointments = await this.repository.findBlockingAppointments(
       context.service.advisorId,
       rangeStart,
       rangeEnd,
     );
+    return this.slotsFrom(context, from, to, appointments);
+  }
+
+  /**
+   * The slots between `from` and `to`, given the appointments that block the
+   * advisor across that range: no reads of its own, so a batch can hand it the
+   * appointments it read for many advisors at once.
+   */
+  private slotsFrom(
+    context: SchedulingContext,
+    from: string,
+    to: string,
+    appointments: readonly BlockingAppointment[],
+  ): AvailabilitySlotResponseDto[] {
     const now = new Date();
     const earliestStart = new Date(
       now.getTime() + context.global.minimumBookingNoticeMinutes * 60000,

@@ -42,6 +42,8 @@ const chatMembershipKey = {
  */
 const otherMember = alias(chatMembers, 'other_member');
 const otherUser = alias(user, 'other_user');
+/** And `chat_messages` a second time, for each room's newest line. */
+const newestMessage = alias(chatMessages, 'newest_message');
 
 @Injectable()
 export class ChatRepository {
@@ -142,6 +144,21 @@ export class ChatRepository {
       .limit(1)
       .as('counterpart');
 
+    // The room's newest line, in the order `findMessages` reads a room, so the
+    // list can show it without reading every room's first page.
+    const lastMessage = this.db
+      .select({
+        id: newestMessage.id,
+        senderUserId: newestMessage.senderUserId,
+        message: newestMessage.message,
+        createdAt: newestMessage.createdAt,
+      })
+      .from(newestMessage)
+      .where(eq(newestMessage.chatRoomId, chatMembers.chatRoomId))
+      .orderBy(desc(newestMessage.createdAt), desc(newestMessage.id))
+      .limit(1)
+      .as('last_message');
+
     const rows = await this.db
       .select({
         id: chatRooms.id,
@@ -152,10 +169,15 @@ export class ChatRepository {
         counterpartId: counterpart.id,
         counterpartDisplayName: counterpart.displayName,
         counterpartImage: counterpart.image,
+        lastMessageId: lastMessage.id,
+        lastMessageSenderUserId: lastMessage.senderUserId,
+        lastMessageText: lastMessage.message,
+        lastMessageCreatedAt: lastMessage.createdAt,
       })
       .from(chatMembers)
       .innerJoin(chatRooms, eq(chatRooms.id, chatMembers.chatRoomId))
       .leftJoinLateral(counterpart, sql`true`)
+      .leftJoinLateral(lastMessage, sql`true`)
       .leftJoin(
         chatMessages,
         and(
@@ -176,6 +198,10 @@ export class ChatRepository {
         counterpart.id,
         counterpart.displayName,
         counterpart.image,
+        lastMessage.id,
+        lastMessage.senderUserId,
+        lastMessage.message,
+        lastMessage.createdAt,
       )
       .orderBy(desc(chatRooms.createdAt), desc(chatRooms.id))
       .limit(limit)
@@ -186,6 +212,10 @@ export class ChatRepository {
         counterpartId,
         counterpartDisplayName,
         counterpartImage,
+        lastMessageId,
+        lastMessageSenderUserId,
+        lastMessageText,
+        lastMessageCreatedAt,
         ...room
       }) => ({
         ...room,
@@ -195,6 +225,19 @@ export class ChatRepository {
                 id: counterpartId,
                 displayName: counterpartDisplayName,
                 image: counterpartImage,
+              }
+            : null,
+        lastMessage:
+          lastMessageId &&
+          lastMessageSenderUserId &&
+          lastMessageText !== null &&
+          lastMessageCreatedAt
+            ? {
+                id: lastMessageId,
+                chatRoomId: room.id,
+                senderUserId: lastMessageSenderUserId,
+                message: lastMessageText,
+                createdAt: lastMessageCreatedAt,
               }
             : null,
       }),

@@ -125,12 +125,12 @@ export class AdvisorServicesService {
       limit: AVAILABLE_ON_SCAN_LIMIT,
       offset: 0,
     });
-    const open = await Promise.all(
-      candidates.map((service) =>
-        this.availability.hasOpenSlotOn(service.id, date),
-      ),
+    // Every candidate checked in one batch, not a read per service.
+    const open = await this.availability.openOn(
+      candidates.map((service) => service.id),
+      date,
     );
-    const matching = candidates.filter((_, i) => open[i]);
+    const matching = candidates.filter((service) => open.has(service.id));
     const page = matching.slice(query.offset, query.offset + query.limit);
     return paginate(await this.toListItems(page), matching.length, query);
   }

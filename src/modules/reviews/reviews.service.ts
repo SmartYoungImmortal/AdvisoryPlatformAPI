@@ -9,6 +9,10 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import {
+  AdvisorRatingSummariesDto,
+  AdvisorRatingSummaryItemDto,
+} from './dtos/advisor-rating-summaries.dto';
 import { AdvisorRatingSummaryDto } from './dtos/advisor-rating-summary.dto';
 import { CreateReviewDto } from './dtos/create-review.dto';
 import { ReplyToReviewDto } from './dtos/reply-to-review.dto';
@@ -125,6 +129,27 @@ export class ReviewsService {
     const countsByStars =
       await this.repository.countByStarsForAdvisor(advisorId);
     return new AdvisorRatingSummaryDto(countsByStars);
+  }
+
+  /**
+   * `summaryForAdvisor` for a list, in two queries whatever its length. Kept in the order asked;
+   * an advisor the single route would 404 is simply not in the answer.
+   */
+  async summariesForAdvisors(
+    advisorIds: readonly string[],
+  ): Promise<AdvisorRatingSummariesDto> {
+    const [visible, counts] = await Promise.all([
+      this.repository.publicAdvisorIds(advisorIds),
+      this.repository.countByStarsForAdvisors(advisorIds),
+    ]);
+    return new AdvisorRatingSummariesDto(
+      advisorIds
+        .filter((id) => visible.has(id))
+        .map(
+          (id) =>
+            new AdvisorRatingSummaryItemDto(id, counts.get(id) ?? new Map()),
+        ),
+    );
   }
 
   private findForAdvisor(
