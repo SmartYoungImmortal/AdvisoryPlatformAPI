@@ -99,6 +99,15 @@ const CATEGORIES = [
     'เทคโนโลยีและงานดิจิทัล',
     'พัฒนาซอฟต์แวร์ ข้อมูล และการใช้เครื่องมือดิจิทัล',
   ],
+  ['อสังหาริมทรัพย์และบ้าน', 'ซื้อ เช่า และวางแผนการเงินเพื่อที่อยู่อาศัย'],
+  ['สินเชื่อและการจัดการหนี้', 'ขอสินเชื่อ รีไฟแนนซ์ และวางแผนปลดหนี้'],
+  ['ทรัพยากรบุคคลและการจ้างงาน', 'สรรหาคน โครงสร้างเงินเดือน และระบบงานบุคคล'],
+  ['บัญชีและการตรวจสอบ', 'ระบบบัญชี ปิดงบ และเตรียมรับการตรวจสอบ'],
+  ['ฟรีแลนซ์และงานอิสระ', 'ตั้งราคา หาลูกค้า และทำสัญญางานอิสระ'],
+  [
+    'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
+    'เปิดร้าน ตั้งราคา ทำโฆษณา และภาษีของร้านออนไลน์',
+  ],
 ] as const;
 
 const SKILLS = [
@@ -172,7 +181,7 @@ interface AdvisorSeed {
 const ADVISORS: readonly AdvisorSeed[] = [
   {
     email: 'araya.s@advisory.demo',
-    displayName: 'อารยา ส.',
+    displayName: 'อารยา สุวรรณเกษม',
     fullName: 'อารยา สุวรรณเกษม',
     headline: 'นักวางแผนภาษีและการเงินส่วนบุคคล',
     bio: 'ที่ปรึกษาภาษีที่ทำงานกับฟรีแลนซ์และเจ้าของกิจการขนาดเล็กมา 9 ปี ถนัดเรื่องการยื่นภาษีของคนที่มีรายได้หลายทาง และการวางค่าลดหย่อนให้ใช้ได้เต็มสิทธิ์',
@@ -235,7 +244,7 @@ const ADVISORS: readonly AdvisorSeed[] = [
   },
   {
     email: 'thanakrit.w@advisory.demo',
-    displayName: 'ธนกฤต ว.',
+    displayName: 'ธนกฤต วงศ์อารีย์',
     fullName: 'ธนกฤต วงศ์อารีย์',
     headline: 'ที่ปรึกษาการตลาดดิจิทัลและการวางแผนธุรกิจ',
     bio: 'ทำการตลาดให้แบรนด์ไทยมา 11 ปี ทั้งฝั่งเอเจนซีและฝั่งแบรนด์ ถนัดช่วยธุรกิจที่ยอดนิ่งหาว่าปัญหาอยู่ที่สินค้า ราคา หรือช่องทาง',
@@ -263,7 +272,7 @@ const ADVISORS: readonly AdvisorSeed[] = [
   },
   {
     email: 'pimchanok.r@advisory.demo',
-    displayName: 'พิมพ์ชนก ร.',
+    displayName: 'พิมพ์ชนก รัตนโกศล',
     fullName: 'พิมพ์ชนก รัตนโกศล',
     headline: 'นักจิตวิทยาการปรึกษาและที่ปรึกษาด้านอาชีพ',
     bio: 'นักจิตวิทยาการปรึกษาที่ทำงานกับคนวัยทำงานเรื่องความเครียดจากงานและการตัดสินใจเปลี่ยนสายอาชีพ คุยแบบไม่ตัดสิน และไม่รีบสรุปแทนคุณ',
@@ -290,7 +299,7 @@ const ADVISORS: readonly AdvisorSeed[] = [
   },
   {
     email: 'sarawut.k@advisory.demo',
-    displayName: 'ศราวุธ ก.',
+    displayName: 'ศราวุธ กิตติวัฒน์',
     fullName: 'ศราวุธ กิตติวัฒน์',
     headline: 'วิศวกรซอฟต์แวร์และที่ปรึกษาด้านข้อมูล',
     bio: 'เขียนซอฟต์แวร์มา 12 ปี ปัจจุบันดูฝั่งข้อมูลให้บริษัทค้าปลีก รับปรึกษาเรื่องเลือกสแตก การวางโครงสร้างข้อมูล และการสัมภาษณ์งานสายเทค',
@@ -522,15 +531,171 @@ const ADVISORS: readonly AdvisorSeed[] = [
   },
 ];
 
+/**
+ * More of what the verified advisors offer, so `/search` has a catalogue worth
+ * paging through: sixteen services across every category, each in the
+ * advisor's own field. Kept apart from `ADVISORS` so the profiles above stay
+ * readable; the seed adds these after each advisor's own, the same idempotent
+ * way (one per advisor and name).
+ */
+const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
+  'methawee.k@advisory.demo': [
+    {
+      name: 'วางแผนซื้อบ้านหลังแรก',
+      description:
+        'ดูรายได้ เงินเก็บ และภาระที่มีอยู่ แล้วคำนวณว่าซื้อบ้านราคาเท่าไรได้จริง ต้องเก็บเงินดาวน์เท่าไร และผ่อนเดือนละเท่าไรโดยไม่ตึงมือ',
+      category: 'อสังหาริมทรัพย์และบ้าน',
+      priceBaht: 1500,
+      durationMinutes: 60,
+    },
+    {
+      name: 'ปลดหนี้บัตรเครดิตอย่างมีแผน',
+      description:
+        'รวมหนี้ทุกก้อนมาไว้ในตารางเดียว เรียงว่าควรปิดก้อนไหนก่อน และวางแผนรายเดือนที่ทำได้จริงจนหนี้หมด พร้อมทางเลือกถ้าต้องรวมหนี้',
+      category: 'สินเชื่อและการจัดการหนี้',
+      priceBaht: 1000,
+      durationMinutes: 60,
+    },
+  ],
+  'thanaphat.w@advisory.demo': [
+    {
+      name: 'รีไฟแนนซ์บ้านให้ดอกเบี้ยลด',
+      description:
+        'เทียบข้อเสนอรีไฟแนนซ์จากหลายธนาคาร คิดค่าธรรมเนียมและค่าประเมินให้ครบ แล้วบอกว่าคุ้มไหมและควรยื่นเมื่อไร',
+      category: 'สินเชื่อและการจัดการหนี้',
+      priceBaht: 1300,
+      durationMinutes: 60,
+    },
+    {
+      name: 'เตรียมเอกสารขอสินเชื่อบ้าน',
+      description:
+        'ไล่เช็กเอกสารรายได้ สเตทเมนต์ และภาระหนี้ก่อนยื่นจริง ชี้จุดที่ธนาคารมักตีกลับ เพื่อให้ยื่นครั้งเดียวผ่าน',
+      category: 'สินเชื่อและการจัดการหนี้',
+      priceBaht: 900,
+      durationMinutes: 30,
+    },
+  ],
+  'kanya.p@advisory.demo': [
+    {
+      name: 'ตรวจสัญญาเช่าคอนโดก่อนเซ็น',
+      description:
+        'อ่านสัญญาเช่าทั้งฉบับกับคุณ ชี้ข้อที่เอาเปรียบเรื่องเงินประกัน การต่อสัญญา และค่าเสียหาย พร้อมถ้อยคำที่ควรขอแก้ก่อนเซ็น',
+      category: 'อสังหาริมทรัพย์และบ้าน',
+      priceBaht: 1200,
+      durationMinutes: 60,
+    },
+    {
+      name: 'ร่างสัญญาจ้างงานฟรีแลนซ์',
+      description:
+        'วางขอบเขตงาน รอบแก้ งวดจ่ายเงิน และสิทธิ์ในผลงานให้ชัดในสัญญาเดียว ใช้ได้ทั้งฝั่งผู้จ้างและฟรีแลนซ์',
+      category: 'ฟรีแลนซ์และงานอิสระ',
+      priceBaht: 1400,
+      durationMinutes: 60,
+    },
+  ],
+  'warin.m@advisory.demo': [
+    {
+      name: 'ออกแบบโครงสร้างเงินเดือนพนักงาน',
+      description:
+        'จัดกลุ่มตำแหน่ง วางกระบอกเงินเดือนและเกณฑ์ขึ้นเงินเดือนที่อธิบายกับทีมได้ เหมาะกับธุรกิจ 10–50 คนที่เริ่มมีคำถามเรื่องความยุติธรรม',
+      category: 'ทรัพยากรบุคคลและการจ้างงาน',
+      priceBaht: 2200,
+      durationMinutes: 90,
+    },
+    {
+      name: 'เขียน JD และวางขั้นตอนสัมภาษณ์',
+      description:
+        'เขียนคำบรรยายงานที่ดึงคนที่ใช่ และออกแบบคำถามสัมภาษณ์กับเกณฑ์ให้คะแนน เพื่อให้ทุกคนในทีมคัดคนด้วยมาตรฐานเดียวกัน',
+      category: 'ทรัพยากรบุคคลและการจ้างงาน',
+      priceBaht: 1500,
+      durationMinutes: 60,
+    },
+  ],
+  'anucha.s@advisory.demo': [
+    {
+      name: 'เตรียมเอกสารก่อนปิดงบปี',
+      description:
+        'ไล่รายการเอกสารที่ผู้สอบบัญชีจะขอ ตั้งแต่สต็อก ลูกหนี้ ไปจนถึงสัญญาเงินกู้ แล้วจัดลำดับให้ส่งครบก่อนเส้นตาย',
+      category: 'บัญชีและการตรวจสอบ',
+      priceBaht: 1800,
+      durationMinutes: 60,
+    },
+    {
+      name: 'วางระบบบัญชีร้านเล็กด้วย Excel',
+      description:
+        'ตั้งไฟล์บันทึกรายรับรายจ่าย ใบกำกับ และสต็อกที่เจ้าของร้านทำเองได้ทุกวัน และสรุปเป็นตัวเลขที่ใช้ยื่นภาษีได้ทันที',
+      category: 'บัญชีและการตรวจสอบ',
+      priceBaht: 1400,
+      durationMinutes: 60,
+    },
+  ],
+  'nattawut.t@advisory.demo': [
+    {
+      name: 'ตั้งราคางานฟรีแลนซ์ให้คุ้ม',
+      description:
+        'คิดต้นทุนเวลา ค่าเครื่องมือ และภาษีที่ต้องจ่าย ออกมาเป็นเรตรายชั่วโมงและแพ็กเกจที่เสนอลูกค้าได้อย่างมั่นใจ',
+      category: 'ฟรีแลนซ์และงานอิสระ',
+      priceBaht: 800,
+      durationMinutes: 30,
+    },
+  ],
+  'pimchanok.k@advisory.demo': [
+    {
+      name: 'เปิดร้านออนไลน์ให้ถูกภาษี',
+      description:
+        'เลือกระหว่างบุคคลธรรมดากับนิติบุคคล ดูว่าต้องจด VAT เมื่อไร และเก็บหลักฐานยอดขายจากแพลตฟอร์มอย่างไรให้ยื่นภาษีได้ง่าย',
+      category: 'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
+      priceBaht: 1100,
+      durationMinutes: 60,
+    },
+  ],
+  'thanakrit.wt@advisory.demo': [
+    {
+      name: 'ยิงแอดร้านออนไลน์ให้คุ้มงบ',
+      description:
+        'ดูแคมเปญที่ใช้อยู่ ตั้งเป้าต้นทุนต่อออเดอร์ และวางแผนแบ่งงบทดสอบกับงบขยายผล เพื่อให้ทุกบาทที่จ่ายค่าโฆษณากลับมาเป็นยอดขาย',
+      category: 'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
+      priceBaht: 1500,
+      durationMinutes: 60,
+    },
+    {
+      name: 'ตั้งราคาสินค้าและคำนวณกำไรต่อชิ้น',
+      description:
+        'แยกต้นทุนสินค้า ค่าส่ง ค่าธรรมเนียมแพลตฟอร์ม และส่วนลด ออกมาเป็นกำไรจริงต่อชิ้น แล้วตั้งราคาที่ยังแข่งขันได้',
+      category: 'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
+      priceBaht: 1200,
+      durationMinutes: 60,
+    },
+  ],
+  'weerapat.k@advisory.demo': [
+    {
+      name: 'ทำพอร์ตให้ได้งานสายเทค',
+      description:
+        'เลือกโปรเจกต์ที่ควรใส่ เขียนเล่าที่มาและผลลัพธ์ให้คนสัมภาษณ์เห็นภาพ และจัดหน้าพอร์ตให้อ่านจบใน 2 นาที',
+      category: 'การศึกษาและอาชีพ',
+      priceBaht: 1000,
+      durationMinutes: 60,
+    },
+    {
+      name: 'รีวิวเรซูเม่ภาษาอังกฤษ',
+      description:
+        'อ่านเรซูเม่ทีละบรรทัด ปรับคำให้เป็นผลงานที่วัดได้ และจัดรูปแบบให้ผ่านระบบคัดกรองอัตโนมัติของบริษัทต่างชาติ',
+      category: 'การศึกษาและอาชีพ',
+      priceBaht: 700,
+      durationMinutes: 30,
+    },
+  ],
+};
+
 const ADVISEES = [
   {
     email: 'nattapong.d@advisory.demo',
-    displayName: 'ณัฐพงศ์ ด.',
+    displayName: 'ณัฐพงศ์ เดชอุดม',
     fullName: 'ณัฐพงศ์ เดชอุดม',
   },
   {
     email: 'supaporn.t@advisory.demo',
-    displayName: 'สุภาพร ท.',
+    displayName: 'สุภาพร ทองเจริญ',
     fullName: 'สุภาพร ทองเจริญ',
   },
 ] as const;
@@ -1578,6 +1743,38 @@ async function seedActivity(
     note(`identity ${i.advisor}`, true);
   }
 
+  // The home hero's advisors are there to be found and booked, and discovery
+  // lists only verified advisors (`isVerifiedAdvisor`), so each is verified.
+  // No ID scan stands behind it: they are demo people, and a fabricated ID
+  // card is not something to seed, so the key stays null and the console shows
+  // no document. An identity row already there, real or not, is left alone.
+  console.log('\nHero advisor identities');
+  const heroEmails = Object.entries(PORTRAITS)
+    .filter(([, portrait]) => portrait.startsWith(HERO_R2))
+    .map(([email]) => email);
+  for (const email of heroEmails) {
+    const advisorId = userId(email);
+    const [found] = await db
+      .select({ advisorId: advisorIdentity.advisorId })
+      .from(advisorIdentity)
+      .where(eq(advisorIdentity.advisorId, advisorId))
+      .limit(1);
+    if (found) {
+      note(`identity ${email}`, false);
+      continue;
+    }
+    await db.insert(advisorIdentity).values({
+      advisorId,
+      documentObjectKey: null,
+      verificationStatus: 'VERIFIED',
+      verifiedByAdminId: ctx.adminId,
+      rejectionReason: null,
+      submittedAt: bangkok(-40, 10),
+      verifiedAt: bangkok(-39, 15),
+    });
+    note(`identity ${email}`, true);
+  }
+
   // Approval is what makes an applicant an Advisor: better-auth's access control
   // reads `user.role`, and the admin console's approve writes it in the same
   // transaction as `VERIFIED`. The demo's verified identities were inserted rather
@@ -1694,12 +1891,24 @@ async function main(): Promise<void> {
       fullName: string;
     }): Promise<string> => {
       const [existing] = await db
-        .select({ id: user.id })
+        .select({ id: user.id, displayName: user.displayName })
         .from(user)
         .where(eq(user.email, person.email))
         .limit(1);
       if (existing) {
-        note(person.email, false);
+        // The first demo accounts went out with a surname cut to its initial
+        // ("อารยา ส."); they now carry the full name. Only a name still in that
+        // short form is replaced, so a name someone changed by hand stays.
+        if (
+          /\s\S\.$/u.test(existing.displayName) &&
+          existing.displayName !== person.displayName
+        ) {
+          await db
+            .update(user)
+            .set({ displayName: person.displayName })
+            .where(eq(user.id, existing.id));
+          note(`full name ${person.email}`, true);
+        } else note(person.email, false);
         userIdByEmail.set(person.email, existing.id);
         return existing.id;
       }
@@ -1876,7 +2085,10 @@ async function main(): Promise<void> {
         }
       }
 
-      for (const service of advisor.services) {
+      for (const service of [
+        ...advisor.services,
+        ...(MORE_SERVICES[advisor.email] ?? []),
+      ]) {
         const shape = {
           priceSatang: service.priceBaht * 100,
           durationMinutes: service.durationMinutes,
