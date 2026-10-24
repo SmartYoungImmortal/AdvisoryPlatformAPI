@@ -23,6 +23,7 @@ import {
   invalidTransitionMessage,
 } from './bookings.constants';
 import { BookingsRepository } from './bookings.repository';
+import { AdvisorBookingResponseDto } from './dtos/advisor-booking-response.dto';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
 import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
@@ -82,12 +83,12 @@ export class BookingsService {
   findAdvisorMine(
     user: SessionUser,
     page: OffsetPaginationDto,
-  ): Promise<PaginatedResult<BookingResponseDto>> {
+  ): Promise<PaginatedResult<AdvisorBookingResponseDto>> {
     return paginateQuery(
       page,
       (options) => this.repository.findManyForAdvisor(user.id, options),
       () => this.repository.countForAdvisor(user.id),
-      (item) => new BookingResponseDto(item),
+      (item) => new AdvisorBookingResponseDto(item),
     );
   }
 

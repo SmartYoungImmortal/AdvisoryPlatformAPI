@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type request from 'supertest';
-import { serviceAppointments } from '@/database/schema';
+import { serviceAppointments, services, user } from '@/database/schema';
 import { BookingsService } from '@/modules/bookings/bookings.service';
 import { approveAsAdvisor, signUpUser } from './support/accounts';
 import {
@@ -158,6 +158,35 @@ describe('booking lifecycle (e2e)', () => {
         .post(`/api/v1/bookings/${stringField(original, 'id')}/reschedule`)
         .send({ startTime: second })
         .expect(404);
+    });
+  });
+
+  describe('advisor list', () => {
+    it('names the Advisee and the service on each booking', async () => {
+      const { advisor, serviceId, first } = await seedService();
+      const advisee = await signUp();
+      const booking = await book(advisee.agent, serviceId, first);
+      const [person] = await e2e()
+        .db.select({ displayName: user.displayName })
+        .from(user)
+        .where(eq(user.id, advisee.userId));
+      const [offered] = await e2e()
+        .db.select({ name: services.name })
+        .from(services)
+        .where(eq(services.id, serviceId));
+
+      const response = await advisor.agent
+        .get('/api/v1/advisors/me/bookings')
+        .expect(200);
+      const items = object(data(response.body)).items as unknown[];
+      const listed = items
+        .map((item) => object(item))
+        .find((item) => item.id === stringField(booking, 'id'));
+
+      expect(listed).toMatchObject({
+        adviseeName: person.displayName,
+        serviceName: offered.name,
+      });
     });
   });
 
