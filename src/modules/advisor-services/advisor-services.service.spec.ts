@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import type { services } from '@/database/schema';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { AvailabilityService } from '@/modules/availability/availability.service';
 import type { AdvisorServicesRepository } from './advisor-services.repository';
 import { AdvisorServicesService } from './advisor-services.service';
 import type { PublicServiceDocument } from './advisor-services.types';
@@ -26,6 +27,7 @@ const publicService: PublicServiceDocument = {
   screeningRequired: false,
   trialEnabled: false,
   trialDurationMinutes: null,
+  createdAt: new Date('2026-08-29T00:00:00Z'),
 };
 
 function makeService(overrides: Partial<AdvisorService> = {}): AdvisorService {
@@ -69,6 +71,7 @@ describe('AdvisorServicesService', () => {
       | 'findPublishedById'
     >
   >;
+  let availability: jest.Mocked<Pick<AvailabilityService, 'hasOpenSlotOn'>>;
 
   beforeEach(() => {
     repository = {
@@ -86,8 +89,10 @@ describe('AdvisorServicesService', () => {
       countPublished: jest.fn(),
       findPublishedById: jest.fn(),
     };
+    availability = { hasOpenSlotOn: jest.fn() };
     service = new AdvisorServicesService(
       repository as unknown as AdvisorServicesRepository,
+      availability as unknown as AvailabilityService,
     );
   });
 
@@ -220,6 +225,35 @@ describe('AdvisorServicesService', () => {
       offset: 0,
     });
     expect(repository.countPublished).toHaveBeenCalledWith(query);
+  });
+
+  it('keeps only services with an open slot on the requested date, paging after the check', async () => {
+    const closed = {
+      ...publicService,
+      id: '55555555-5555-5555-5555-555555555555',
+    };
+    repository.findPublished.mockResolvedValue([publicService, closed]);
+    availability.hasOpenSlotOn.mockImplementation((id) =>
+      Promise.resolve(id === serviceId),
+    );
+    const query = Object.assign(new PublicServiceQueryDto(), {
+      page: 1,
+      limit: 20,
+      availableOn: '2026-10-24',
+    });
+
+    await expect(service.findPublished(query)).resolves.toEqual({
+      items: [expect.objectContaining({ id: serviceId })],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    expect(availability.hasOpenSlotOn).toHaveBeenCalledWith(
+      serviceId,
+      '2026-10-24',
+    );
+    expect(repository.countPublished).not.toHaveBeenCalled();
   });
 
   it('rejects an inverted public service price range before searching', async () => {

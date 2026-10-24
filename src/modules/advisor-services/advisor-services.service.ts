@@ -5,11 +5,13 @@ import {
 } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import {
+  paginate,
   paginateQuery,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { services } from '@/database/schema';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { AvailabilityService } from '@/modules/availability/availability.service';
 import { ADVISOR_SERVICE_MESSAGES } from './advisor-services.constants';
 import { AdvisorServicesRepository } from './advisor-services.repository';
 import { AdvisorServiceQueryDto } from './dtos/advisor-service-query.dto';
@@ -21,9 +23,15 @@ import { UpdateAdvisorServiceDto } from './dtos/update-advisor-service.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
 
+/** How many matching services an `availableOn` search checks before paging. */
+const AVAILABLE_ON_SCAN_LIMIT = 500;
+
 @Injectable()
 export class AdvisorServicesService {
-  constructor(private readonly repository: AdvisorServicesRepository) {}
+  constructor(
+    private readonly repository: AdvisorServicesRepository,
+    private readonly availability: AvailabilityService,
+  ) {}
 
   async findMany(
     user: SessionUser,
@@ -70,11 +78,42 @@ export class AdvisorServicesService {
       );
     }
 
+    if (query.availableOn)
+      return this.findPublishedAvailableOn(query, query.availableOn);
+
     return paginateQuery(
       query,
       (options) => this.repository.findPublished(query, options),
       () => this.repository.countPublished(query),
       (service) => new PublicServiceResponseDto(service),
+    );
+  }
+
+  /**
+   * Availability is derived from each advisor's schedule, not stored, so it
+   * cannot be a `where` clause: every service matching the other filters is
+   * checked, and the page is cut from the ones that pass, so the total and the
+   * last page stay true.
+   */
+  private async findPublishedAvailableOn(
+    query: PublicServiceQueryDto,
+    date: string,
+  ): Promise<PaginatedResult<PublicServiceResponseDto>> {
+    const candidates = await this.repository.findPublished(query, {
+      limit: AVAILABLE_ON_SCAN_LIMIT,
+      offset: 0,
+    });
+    const open = await Promise.all(
+      candidates.map((service) =>
+        this.availability.hasOpenSlotOn(service.id, date),
+      ),
+    );
+    const matching = candidates.filter((_, i) => open[i]);
+    const page = matching.slice(query.offset, query.offset + query.limit);
+    return paginate(
+      page.map((service) => new PublicServiceResponseDto(service)),
+      matching.length,
+      query,
     );
   }
 

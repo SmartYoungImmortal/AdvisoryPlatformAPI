@@ -9,4 +9,5 @@ export interface PublicServiceDocument {
   screeningRequired: boolean;
   trialEnabled: boolean;
   trialDurationMinutes: number | null;
+  createdAt: Date;
 }
