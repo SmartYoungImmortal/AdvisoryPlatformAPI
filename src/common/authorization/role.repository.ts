@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import { adminProfiles, advisorProfiles } from '@/database/schema';
+import { isVerifiedAdvisor } from './verified-advisor.predicate';
 
 export interface RoleMembership {
   isAdvisor: boolean;
@@ -12,12 +13,22 @@ export interface RoleMembership {
 export class RoleRepository {
   constructor(@Inject(DRIZZLE) private readonly database: DrizzleDB) {}
 
+  /**
+   * An applicant has an Advisor profile before an admin has looked at them, so
+   * Advisor membership is the profile *and* a verified identity — the same moment
+   * the approval writes `user.role = 'advisor'` for better-auth's access control.
+   */
   async findMembership(userId: string): Promise<RoleMembership> {
     const [advisor, admin] = await Promise.all([
       this.database
         .select({ userId: advisorProfiles.userId })
         .from(advisorProfiles)
-        .where(eq(advisorProfiles.userId, userId))
+        .where(
+          and(
+            eq(advisorProfiles.userId, userId),
+            isVerifiedAdvisor(advisorProfiles.userId),
+          ),
+        )
         .limit(1),
       this.database
         .select({ userId: adminProfiles.userId })

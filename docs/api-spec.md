@@ -74,10 +74,30 @@ All browser requests must use credentials so the HttpOnly session cookie is stor
 | `POST /api/auth/sign-in/email` | Create a session for an existing account | `email`, `password`                                 | `200`; returns `user` and sets the session cookie        |
 | `GET /api/auth/get-session`    | Read the current session                 | none                                                | `200`; returns `{ session, user }` or `null`             |
 | `POST /api/auth/sign-out`      | End the current session                  | none                                                | `200`; returns `{ success: true }` and clears the cookie |
+| `POST /api/auth/change-email`  | Request an email change                  | `newEmail`, optional `callbackURL`                  | `200`; returns Better Auth status; change is pending verification |
+| `POST /api/auth/change-password` | Change the signed-in user's password   | `currentPassword`, `newPassword`, optional `revokeOtherSessions` | `200`; verifies current password |
 
 `name` maps to the platform display name. `fullName` is the legal name and must never be included in
 public advisor responses. A newly registered user is always an Advisee; Advisor access is gained
 only through `POST /api/v1/advisors/me`.
+
+Signup sends an email verification link automatically. The link expires after one hour. Use
+Better Auth's `/api/auth/send-verification-email` endpoint to resend it. Password reset requests use
+`/api/auth/request-password-reset`; reset links also expire after one hour. Locally, messages are
+captured by Mailpit at `http://localhost:8025`. Production requires SMTP host, sender, username and
+password configuration.
+
+Email changes require a fresh signed-in session and verification. A verified account first receives
+a confirmation link at its current email address; opening it sends a verification link to the new
+address. The account email changes only after the new address is verified. Duplicate addresses are
+handled with Better Auth's non-enumerating response: the request does not change the account or
+send a confirmation message, and the response does not disclose whether the address is registered.
+The confirmation and verification links expire after one hour. Email-change requests accept
+`callbackURL` for the browser page to show after each link is opened.
+
+Password changes use Better Auth's `/api/auth/change-password`. The user must provide the current
+password; a wrong current password returns a `400` Better Auth error. Set `revokeOtherSessions: true`
+to revoke other sessions while retaining a refreshed session for the current browser.
 
 ### Signup — copy this body
 
@@ -153,14 +173,20 @@ safely paste an HttpOnly cookie into Swagger's JavaScript request.
 
 ## 3. Roles
 
-| Role      | Who                                        | How you get it                                                       |
-| --------- | ------------------------------------------ | -------------------------------------------------------------------- |
-| `Guest`   | no session                                 | default                                                              |
-| `Advisee` | any signed-up user                         | **default on signup**                                                |
-| `Advisor` | advisee who explicitly upgraded to advisor | creates an advisor profile; verification is a separate trust process |
-| `Admin`   | platform staff                             | seeded, never self-service                                           |
+| Role      | Who                                                 | How you get it                                                          |
+| --------- | --------------------------------------------------- | ----------------------------------------------------------------------- |
+| `Guest`   | no session                                          | default                                                                 |
+| `Advisee` | any signed-up user                                  | **default on signup**                                                   |
+| `Advisor` | advisee whose advisor application an admin approved | applies (`POST /advisors/me`), uploads an ID card; an admin verifies it |
+| `Admin`   | platform staff                                      | seeded, never self-service                                              |
 
 An Advisor **is** an Advisee — the roles stack. An advisor can book other advisors.
+
+**Applying is not becoming.** `POST /advisors/me` opens an application; the account stays an
+Advisee until an admin approves its identity (`POST /admin/identity-verifications/:id/approve`),
+which writes `VERIFIED` and `user.role = 'advisor'` in one transaction. Until then the Advisor
+workspace (availability, own services, own bookings, payouts) answers `403`, and nothing the
+applicant owns appears in discovery or can be booked.
 
 ---
 
@@ -287,10 +313,27 @@ perspective and returns the removed `{ avatarKey }` in the standard success enve
 best-effort removes the corresponding private SeaweedFS object; a cleanup failure does not restore the
 database reference.
 
+### `GET /api/v1/users/me/deletion-blockers` — `Advisee`
+
+Returns the account owner's upcoming appointments that must be cancelled or completed before
+account deletion. It includes future `PENDING_PAYMENT` and `BOOKED` appointments where the user is
+either the Advisor or Advisee. The response includes only appointment id, start time, and state.
+
 ### `DELETE /api/v1/users/me` — `Advisee`
 
 Permanently closes the authenticated account and returns the pre-anonymization, allowlisted own-user
 profile in the standard success envelope. The operation is atomic:
+
+This domain endpoint is the supported account-deletion flow. It does not ask for a password; the
+authenticated session authorizes the request. Do not substitute Better Auth's generic
+`/api/auth/delete-user`: the domain endpoint anonymizes retained platform records and removes related
+identity/proof data instead of deleting the user row and cascading through evidence records.
+
+The API rechecks upcoming appointments inside the deletion transaction and returns `409` without
+changing the account while any remain. The user interface can load the current appointment details
+from `GET /api/v1/users/me/deletion-blockers`. Advisor withdrawable balance is not a deletion
+blocker yet: although invoice and payout tables are modelled, the API has no implemented payout or
+withdrawable-balance contract from which to calculate an authoritative amount.
 
 - all sessions and authentication accounts are deleted immediately;
 - the user row is marked `DELETED` and direct identity fields are replaced with non-identifying
@@ -355,58 +398,72 @@ Public profile: headline, bio, all claimed skills, published services, rating su
 
 Never includes `fullName`, `email`, `nationalId`, `penaltyPoints`, or any document.
 
-`404` if the advisor does not exist, is `SUSPENDED`, or has never published a service.
-Suspension returns 404 rather than 403 — a 403 confirms the account exists.
+`404` if the advisor does not exist, is `SUSPENDED`, is not identity-verified, or has never
+published a service. Suspension returns 404 rather than 403 — a 403 confirms the account exists.
 
 ### `GET /api/v1/advisors/:id/reviews` — `Public`
 
 Paginated. Reviewer identified by their public display identity only. Includes `advisorReply` when
 present. Written up with the rest of the module in section 11.
 
+### Becoming an Advisor — the onboarding flow
+
+Matches Figma's "Advisor onboarding" stages. Every route below is held by any **Advisee**, because
+an applicant is still one.
+
+| Step    | Route                                                    | Result                                                      |
+| ------- | -------------------------------------------------------- | ----------------------------------------------------------- |
+| Stage 1 | `POST /api/v1/advisors/me`                               | profile created, `verificationStatus: NONE`, role unchanged |
+| Stage 2 | `POST /api/v1/advisors/me/identity-verification`         | ID card stored, `SUBMITTED`                                 |
+| Stage 3 | `POST /api/v1/advisors/me/skill-proofs` (once per skill) | proof `PENDING`, skill claimed                              |
+| Pending | `GET /api/v1/advisors/me` → `verificationStatus`         | `SUBMITTED` → pending screen                                |
+| Admin   | `POST /api/v1/admin/identity-verifications/:id/approve`  | `VERIFIED` + Advisor role                                   |
+| Admin   | `POST /api/v1/admin/identity-verifications/:id/reject`   | `REJECTED` + reason; may resubmit                           |
+
+The role change applies on the applicant's next request: permission checks read `user.role` from
+the database, not from the session cookie.
+
 ### `POST /api/v1/advisors/me` — `Advisee`
 
-Upgrade self to advisor. Every new account starts as an Advisee; there is no role selector or
-onboarding wizard. This creates `ADVISOR_PROFILES` for the current user. Identity and skill
-verification are separate from receiving the Advisor role.
+Opens the caller's Advisor application by creating `ADVISOR_PROFILES`. It does **not** grant the
+Advisor role — see the flow above. There is no role selector at signup.
 
-Body: `headline`, `bio`.
-`409` if already an advisor. This means the request is **not** idempotent; the endpoint wording and
-its implementation must remain aligned on this policy.
+Body: `headline`, `bio`. Response: the own-profile DTO with `verificationStatus: "NONE"`.
+`409` if the caller has already applied. The request is **not** idempotent.
 
-### `GET /api/v1/advisors/me` — `Advisor`
+### `GET /api/v1/advisors/me` — `Advisee` (own application)
 
 Own profile response only. It has a dedicated allowlist and is not reused for public discovery or
-admin lists, which each receive their own response DTO.
+admin lists, which each receive their own response DTO. `404` if the caller has not applied.
 
-Eventually includes everything the public view hides **except** `nationalId`: identity verification
-status, own documents, optional skill-proof documents, unpublished services.
+Includes `verificationStatus` (`NONE` | `SUBMITTED` | `VERIFIED` | `REJECTED`) so one call tells a
+client which onboarding screen to show. Only `VERIFIED` means the account is an Advisor.
 
 Deliberately excludes `penaltyPoints` — an advisor who can see their score will optimise against
 the detector rather than stop.
 
-### `PATCH /api/v1/advisors/me` — `Advisor`
+### `PATCH /api/v1/advisors/me` — `Advisee` (own application)
 
-Body: `headline`, `bio`. Both optional.
+Body: `headline`, `bio`. Both optional. Allowed while the application is pending as well.
 
-### `PUT /api/v1/advisors/me/skills` — `Advisor`
+### `PUT /api/v1/advisors/me/skills` — `Advisor` — _not implemented yet_
 
 Replaces the claimed skill set. Body: `{ "skillIds": ["uuid", ...] }`.
 
 Removing a skill soft-deletes its proof documents. Re-adding it restores only the skill claim, not
-previous proof documents.
+previous proof documents. `400` if any `skillId` is unknown. Until this exists, a skill is claimed
+by uploading its proof (below).
 
-`400` if any `skillId` is unknown.
+### `POST /api/v1/advisors/me/identity-verification` — `Advisee` (own application)
 
-### `POST /api/v1/advisors/me/identity` — `Advisor`
+Uploads the ID-card scan for review. `multipart/form-data` with one `document` part: JPG or PNG,
+at most 50 MB (Figma Stage 2 rejects anything else).
 
-Submit เลขบัตรประชาชน + document scan. `multipart/form-data`.
+The national ID **number is not submitted**: Figma's form never asks for it — the reviewer reads it
+off the card. Storing `nationalIdEncrypted` / `nationalIdHash` (and the duplicate-identity check
+they enable) is still open; it needs an encryption key in the environment.
 
-Fields: `nationalId` (13 digits, checksum-validated), `document` (image/pdf, ≤50MB).
-
-Server: validates checksum → hashes → checks `nationalIdHash` uniqueness → encrypts → stores the
-scan in SeaweedFS → sets `verificationStatus = SUBMITTED`.
-
-Response echoes **status only**. Never the ID, never a document URL.
+Response echoes **status only**. Never the ID, never a document key or URL.
 
 ```jsonc
 {
@@ -414,42 +471,60 @@ Response echoes **status only**. Never the ID, never a document URL.
   "message": "Identity submitted for review",
   "data": {
     "verificationStatus": "SUBMITTED",
-    "submittedAt": "2026-08-06T14:22:00+07:00",
+    "submittedAt": "2026-08-06T07:22:00.000Z",
   },
 }
 ```
 
-| Code | When                                                                         |
-| ---- | ---------------------------------------------------------------------------- |
-| 400  | Checksum fails, or file too large / wrong type                               |
-| 409  | `nationalIdHash` already used by another account                             |
-| 409  | Current status is `SUBMITTED` or `VERIFIED` — resubmit only after `REJECTED` |
+| Code | When                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------- |
+| 400  | no file, empty file, not JPG/PNG, or over 50 MB                                             |
+| 404  | the caller has not applied (`POST /advisors/me` first)                                      |
+| 409  | current status is `SUBMITTED` (under review) or `VERIFIED` — resubmit only after `REJECTED` |
+| 503  | object storage is unavailable                                                               |
 
-### `POST /api/v1/advisors/me/skills/:skillId/proof` — `Advisor`
+A resubmission after `REJECTED` clears the old ruling and deletes the replaced scan from storage.
 
-Upload a certificate for one claimed skill. `multipart/form-data`, ≤50MB.
-Creates an optional proof-document record with `PENDING` review status. It does not change the
-claimed skill or public profile.
+### `GET /api/v1/advisors/me/identity-verification` — `Advisee` (own application)
 
-`404` if the advisor has not claimed that skill.
+Status, rejection reason and times. It does not return the storage key. `404` until something has been submitted.
 
-### `GET /api/v1/admin/advisors/pending` — `Admin`
+### `POST /api/v1/advisors/me/skill-proofs` — `Advisee` (own application)
 
-Verification queue: identity submissions and skill proofs awaiting review, oldest first.
-Includes `fullName` and a **masked** national ID. Includes signed, short-lived document URLs.
+Uploads a certificate for one catalogue skill and claims that skill. `multipart/form-data`:
+`skillId` (uuid) and `file` (JPG, PNG or PDF, at most 50 MB). Creates a `PENDING` proof record.
+Approving or rejecting a proof does not change the skill claim or any public badge — identity is
+the only verification (docs/ER.README.md). Thai file names are stored as sent.
 
-### `PATCH /api/v1/admin/advisors/:id/identity` — `Admin`
+`400` bad file or unknown `skillId` · `404` not applied · `503` storage unavailable.
 
-Body: `{ "decision": "VERIFIED" | "REJECTED", "rejectionReason": "string" }`
-`rejectionReason` required when rejecting. Emits a `VERIFICATION_DECIDED` notification.
+### `GET /api/v1/advisors/me/skill-proofs` — `Advisee` (own application)
 
-`409` if the current status is not `SUBMITTED`.
+The caller's proof documents and their outcomes, paginated. An empty page, never a 404.
+Storage keys are omitted from the response.
 
-### `PATCH /api/v1/admin/advisors/:id/skills/:skillId/proof` — `Admin`
+### Admin review queues — `Admin`
 
-Body: `{ "decision": "APPROVED" | "REJECTED", "rejectionReason": "string" }`
-The decision updates the submitted document's review status only. It does not change the skill
-claim or any public badge.
+| Route                                                                                     |                                 |
+| ----------------------------------------------------------------------------------------- | ------------------------------- |
+| `GET /api/v1/admin/identity-verifications?status=SUBMITTED`                               | identity queue, oldest first    |
+| `GET /api/v1/admin/identity-verifications/:advisorId`                                     | one record                      |
+| `GET /api/v1/admin/identity-verifications/:advisorId/document-url`                        | short-lived ID scan URL         |
+| `POST /api/v1/admin/identity-verifications/:advisorId/approve`                            | `200`; grants the Advisor role  |
+| `POST /api/v1/admin/identity-verifications/:advisorId/reject`                             | `200`; body `{ "reason": "…" }` |
+| `GET /api/v1/admin/skill-proofs` · `/:proofId`                                            | proof queue                     |
+| `GET /api/v1/admin/skill-proofs/:proofId/document-url`                                    | short-lived proof URL           |
+| `POST /api/v1/admin/skill-proofs/:proofId/approve` · `/:proofId/reject`                   | proof decision                  |
+
+A file download URL is issued only to an Admin with the corresponding `read` permission, after
+looking up the record by its resource id. The response is `{ "url", "expiresInSeconds" }`; URLs
+expire after five minutes. Queue and owner DTOs omit the private storage key. The onboarding
+review client should request the relevant `document-url` route when opening an uploaded file and
+discard the URL after use; never construct an object-storage URL from a key.
+
+A ruling is accepted only from `SUBMITTED` (identity) or `PENDING` (proof); anything else is `409`.
+Not yet: masked national ID in the queue, and a `VERIFICATION_DECIDED`
+notification.
 
 ---
 
@@ -683,11 +758,13 @@ redelivered.
 window because the meeting summary never set one. Both are product decisions, not defaults to
 invent here.
 
-Screening-management, payment, payout, and refund endpoints are not yet written. Slot discovery
-and booking already enforce an accepted screening row when `screeningRequired` is enabled, but the
-HTTP workflow that creates questions, submits answers, and records the Advisor decision remains
-outstanding. The remaining paths and DTOs must be designed in the corresponding feature modules
-and preserve the following agreed behavior.
+Screening requests and refund cases have separate APIs. A cancellation only changes the booking;
+it does not create a refund case or issue a payment refund. An Advisee with an invoice for one of
+their appointments can open a case with `POST /api/v1/refunds` using `{ invoiceId, reason }` and
+read their cases from `GET /api/v1/refunds/me`. The response status is `OPEN`, `APPROVED`, or
+`REJECTED`; it is not included in `BookingResponseDto`. The payment owner remains responsible for
+Omise refunds and any policy that connects cancellation or rescheduling to a refund. Client flows
+that show refund-request status must read the separate refund-case API and correlate by invoice id.
 
 ### Availability and slots
 

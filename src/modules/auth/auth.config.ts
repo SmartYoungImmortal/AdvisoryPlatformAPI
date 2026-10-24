@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import type { ConfigService } from '@nestjs/config';
@@ -5,6 +6,7 @@ import type { DrizzleDB } from '@/database/database.module';
 import * as schema from '@/database/schema';
 import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
+import { createAuthEmailSender, createSmtpTransport } from './auth-email';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import {
@@ -17,9 +19,21 @@ const permissions = {
   profile: {
     selfManaged: ['read', 'updateSelf', 'deleteSelf'],
   },
+  /**
+   * The Advisor workspace — availability, own services, own bookings. Held only by an
+   * approved Advisor: `user.role` becomes `advisor` when an admin verifies the
+   * applicant's identity, never when the applicant asks.
+   */
   advisor: {
-    selfManaged: ['createSelf', 'read', 'updateSelf'],
-    selfCreateOrRead: ['createSelf', 'read'],
+    selfManaged: ['read', 'updateSelf'],
+  },
+  /**
+   * Applying to become an Advisor and keeping that profile up to date. Every Advisee
+   * may apply, so this is deliberately a separate resource from `advisor`: granting
+   * an applicant "read my application" must not also grant "read my availability".
+   */
+  advisorApplication: {
+    selfManaged: ['submitSelf', 'readSelf', 'updateSelf'],
   },
   advisorService: {
     selfManaged: ['createSelf', 'read', 'update', 'delete'],
@@ -76,6 +90,7 @@ const statements = {
   ...defaultStatements,
   profile: permissions.profile.selfManaged,
   advisor: permissions.advisor.selfManaged,
+  advisorApplication: permissions.advisorApplication.selfManaged,
   advisorService: permissions.advisorService.selfManaged,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.managed,
@@ -119,6 +134,7 @@ const advisorStatements = {
   ...userAc.statements,
   profile: permissions.profile.selfManaged,
   advisor: permissions.advisor.selfManaged,
+  advisorApplication: permissions.advisorApplication.selfManaged,
   advisorService: permissions.advisorService.selfManaged,
   serviceCategory: permissions.serviceCategory.managed,
   skills: permissions.skills.readAndCreate,
@@ -133,8 +149,12 @@ const advisorStatements = {
 const adviseeStatements = {
   ...userAc.statements,
   profile: permissions.profile.selfManaged,
-  advisor: permissions.advisor.selfCreateOrRead,
-  advisorService: permissions.advisorService.readOnly,
+  // An Advisee applies to become an Advisor and uploads the documents an admin
+  // reviews. They hold nothing on `advisor` or `advisorService`: the workspace opens
+  // only when the admin approves, which is what turns `user.role` into `advisor`.
+  advisorApplication: permissions.advisorApplication.selfManaged,
+  identityVerification: permissions.identityVerification.selfSubmit,
+  skillProof: permissions.skillProof.selfSubmit,
   serviceCategory: permissions.serviceCategory.readOnly,
   skills: permissions.skills.readOnly,
   // An Advisee opens their own refund case and reports another user, and reads
@@ -169,15 +189,109 @@ export const appRoles = {
  * schema object) — not the physical DB column. Since our Drizzle keys already match these
  * field names, no override is needed here.
  */
+/**
+ * The two `required` additional fields a social sign-up has no form to fill.
+ * better-auth creates the user from the provider's profile, so without these
+ * the insert is refused and the person lands back on the sign-in page.
+ * `fullName` is the provider's own name when it gives one (Apple gives it only
+ * on the very first consent, and only if the person shares it), otherwise the
+ * part of the email before the `@`; it stays editable from the profile.
+ */
+function socialUser(profile: { name?: string | null; email?: string | null }) {
+  const fullName =
+    profile.name?.trim() || profile.email?.split('@')[0] || 'Advisory user';
+  return { fullName, timezone: 'Asia/Bangkok' };
+}
+
+/**
+ * Each provider whose id and secret are both set, and no other: a provider
+ * listed without credentials would answer every click with an error from the
+ * provider's own page. The frontend draws all three buttons and reports
+ * better-auth's "provider not found" for one that is off.
+ */
+function socialProviders(config: ConfigService<Env, true>) {
+  type SocialKey =
+    | typeof ENV_KEYS.GOOGLE_CLIENT_ID
+    | typeof ENV_KEYS.GOOGLE_CLIENT_SECRET
+    | typeof ENV_KEYS.FACEBOOK_CLIENT_ID
+    | typeof ENV_KEYS.FACEBOOK_CLIENT_SECRET
+    | typeof ENV_KEYS.APPLE_CLIENT_ID
+    | typeof ENV_KEYS.APPLE_CLIENT_SECRET;
+  const pair = (id: SocialKey, secret: SocialKey) => {
+    const clientId = config.get(id, { infer: true });
+    const clientSecret = config.get(secret, { infer: true });
+    return clientId && clientSecret ? { clientId, clientSecret } : null;
+  };
+  const google = pair(ENV_KEYS.GOOGLE_CLIENT_ID, ENV_KEYS.GOOGLE_CLIENT_SECRET);
+  const facebook = pair(
+    ENV_KEYS.FACEBOOK_CLIENT_ID,
+    ENV_KEYS.FACEBOOK_CLIENT_SECRET,
+  );
+  const apple = pair(ENV_KEYS.APPLE_CLIENT_ID, ENV_KEYS.APPLE_CLIENT_SECRET);
+  return {
+    ...(google && {
+      // `select_account`: always the account chooser, even with one Google
+      // account signed in, so a shared machine never signs in as whoever was
+      // last there.
+      google: {
+        ...google,
+        prompt: 'select_account' as const,
+        mapProfileToUser: socialUser,
+      },
+    }),
+    ...(facebook && {
+      facebook: { ...facebook, mapProfileToUser: socialUser },
+    }),
+    ...(apple && { apple: { ...apple, mapProfileToUser: socialUser } }),
+  };
+}
+
 export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
+  const logger = new Logger('AuthEmail');
+  const sendEmail = createAuthEmailSender({
+    from:
+      config.get(ENV_KEYS.SMTP_FROM, { infer: true }) ??
+      'Advisory Platform <no-reply@localhost>',
+    transport: createSmtpTransport(config),
+  });
+  const providers = socialProviders(config);
+
   return betterAuth({
     database: drizzleAdapter(db, { provider: 'pg', schema }),
     secret: config.get(ENV_KEYS.BETTER_AUTH_SECRET, { infer: true }),
     baseURL: config.get(ENV_KEYS.BETTER_AUTH_URL, { infer: true }),
-    trustedOrigins: config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
+    trustedOrigins: [
+      ...config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
+      // Apple posts its callback from its own origin.
+      ...('apple' in providers ? ['https://appleid.apple.com'] : []),
+    ],
     emailAndPassword: {
       enabled: true,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      sendResetPassword: ({ user, url }) => {
+        void sendEmail({
+          kind: 'password-reset',
+          to: user.email,
+          name: user.name,
+          url,
+        }).catch(() => logger.error('Password reset email delivery failed'));
+        return Promise.resolve();
+      },
     },
+    emailVerification: {
+      sendOnSignUp: true,
+      expiresIn: 60 * 60,
+      sendVerificationEmail: ({ user, url }) => {
+        void sendEmail({
+          kind: 'verification',
+          to: user.email,
+          name: user.name,
+          url,
+        }).catch(() => logger.error('Verification email delivery failed'));
+        return Promise.resolve();
+      },
+    },
+    socialProviders: providers,
     /**
      * Five minutes of the session in a signed cookie, so the guard on every route
      * reads it from the request instead of querying `session` first. Against the
@@ -202,6 +316,18 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
       },
     },
     user: {
+      changeEmail: {
+        enabled: true,
+        updateEmailWithoutVerification: false,
+        sendChangeEmailConfirmation: ({ user, newEmail, url }) =>
+          sendEmail({
+            kind: 'change-email-confirmation',
+            to: user.email,
+            name: user.name,
+            newEmail,
+            url,
+          }),
+      },
       fields: {
         name: 'displayName',
       },

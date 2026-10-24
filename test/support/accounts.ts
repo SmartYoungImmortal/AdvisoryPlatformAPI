@@ -6,11 +6,16 @@ import {
   account,
   adminProfiles,
   advisorGlobalAvailability,
+  advisorIdentity,
   advisorProfiles,
+  advisorSkills,
+  pdpaConsents,
+  skillProofDocuments,
   session,
   user,
   verification,
 } from '@/database/schema';
+import type { E2eContext } from './e2e-app';
 import { object, stringField } from './response';
 
 export const E2E_TIMEZONE = 'Asia/Bangkok';
@@ -24,13 +29,15 @@ export interface SignedUpUser {
 }
 
 /**
- * Signs up through the real auth routes on a cookie-preserving agent. `label`
- * only distinguishes one spec's fixtures from another in the database.
+ * Signs up through the real auth routes on a cookie-preserving agent. `label` only
+ * distinguishes one spec's fixtures from another in the database; `overrides` adds or
+ * replaces sign-up payload fields, including ones the server is expected to ignore.
  */
 export async function signUpUser(
   app: NestExpressApplication,
   label: string,
   createdUserIds: string[],
+  overrides: Record<string, unknown> = {},
 ): Promise<SignedUpUser> {
   const agent = request.agent(app.getHttpServer());
   const email = `${label.toLowerCase().replace(/\s+/g, '-')}-${crypto.randomUUID()}@example.test`;
@@ -40,12 +47,60 @@ export async function signUpUser(
     email,
     password: E2E_PASSWORD,
     timezone: E2E_TIMEZONE,
+    ...overrides,
   });
   expect(response.status).toBe(200);
 
   const userId = stringField(object(object(response.body).user), 'id');
   createdUserIds.push(userId);
   return { agent, userId, email, password: E2E_PASSWORD };
+}
+
+/**
+ * Signs up and proves the server, not the client, owns the account status: whatever
+ * the payload asked for, the row lands ACTIVE.
+ */
+export async function signUpActiveUser(
+  { app, db }: E2eContext,
+  label: string,
+  createdUserIds: string[],
+  overrides: Record<string, unknown> = {},
+): Promise<SignedUpUser> {
+  const signedUp = await signUpUser(app, label, createdUserIds, overrides);
+  const [createdUser] = await db
+    .select({ status: user.status })
+    .from(user)
+    .where(eq(user.id, signedUp.userId));
+  expect(createdUser?.status).toBe('ACTIVE');
+  return signedUp;
+}
+
+/**
+ * Applies to be an Advisor and has the application approved, for specs whose subject
+ * is what an Advisor does rather than how one is approved — `advisor-onboarding`
+ * drives the real submit-and-approve flow over HTTP.
+ *
+ * It writes exactly what an admin's approval writes, a `VERIFIED` identity and
+ * `user.role = 'advisor'`. better-auth's permission check reads the role from the
+ * database by user id, so the agent's next request is an Advisor's.
+ */
+export async function approveAsAdvisor(
+  db: DrizzleDB,
+  advisor: SignedUpUser,
+  profile: { headline: string; bio?: string },
+): Promise<void> {
+  await advisor.agent.post('/api/v1/advisors/me').send(profile).expect(201);
+  await db.insert(advisorIdentity).values({
+    advisorId: advisor.userId,
+    verificationStatus: 'VERIFIED',
+    documentObjectKey: `identity/${advisor.userId}/fixture.jpg`,
+    submittedAt: new Date(),
+    verifiedAt: new Date(),
+  });
+  await db
+    .update(user)
+    .set({ role: 'advisor' })
+    .where(eq(user.id, advisor.userId));
 }
 
 /**
@@ -61,7 +116,13 @@ export async function deleteUsers(
     await db
       .delete(advisorGlobalAvailability)
       .where(eq(advisorGlobalAvailability.advisorId, id));
+    await db.delete(advisorIdentity).where(eq(advisorIdentity.advisorId, id));
+    await db
+      .delete(skillProofDocuments)
+      .where(eq(skillProofDocuments.advisorId, id));
+    await db.delete(advisorSkills).where(eq(advisorSkills.advisorId, id));
     await db.delete(advisorProfiles).where(eq(advisorProfiles.userId, id));
+    await db.delete(pdpaConsents).where(eq(pdpaConsents.userId, id));
     await db.delete(session).where(eq(session.userId, id));
     await db.delete(account).where(eq(account.userId, id));
     await db.delete(verification).where(eq(verification.value, id));

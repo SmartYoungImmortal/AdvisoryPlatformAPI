@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AdvisorServicesModule } from './modules/advisor-services/advisor-services.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { PdpaModule } from './modules/pdpa/pdpa.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
@@ -19,6 +20,8 @@ import { RefundsModule } from './modules/refunds/refunds.module';
 import { PayoutsModule } from './modules/payouts/payouts.module';
 import { SafetyModule } from './modules/safety/safety.module';
 import { AdminAccountsModule } from './modules/admin-accounts/admin-accounts.module';
+import { ScreeningModule } from './modules/screening/screening.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -33,6 +36,7 @@ import { AdminAccountsModule } from './modules/admin-accounts/admin-accounts.mod
     ChatModule,
     AdvisorServicesModule,
     PaymentModule,
+    PdpaModule,
     AvailabilityModule,
     BookingsModule,
     // The moderation queues. Each one owns an `admin/<queue>` prefix plus, where an
@@ -45,6 +49,8 @@ import { AdminAccountsModule } from './modules/admin-accounts/admin-accounts.mod
     PayoutsModule,
     SafetyModule,
     AdminAccountsModule,
+    ScreeningModule,
+    NotificationsModule,
     // Last, so the literal `advisors/me/...` controllers register before this module's
     // `advisors/:advisorId/reviews` and a request for `me` is never captured by the parameter.
     ReviewsModule,

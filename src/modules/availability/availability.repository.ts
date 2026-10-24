@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, gt, isNull, lt, type InferSelectModel } from 'drizzle-orm';
+import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   advisorGlobalAvailability,
@@ -169,12 +170,27 @@ export class AvailabilityRepository {
     return profile ? this.profileDetails(profile) : undefined;
   }
 
+  async isProfileInUse(profileId: string): Promise<boolean> {
+    const [service] = await this.db
+      .select({ id: services.id })
+      .from(services)
+      .where(eq(services.availabilityProfileId, profileId))
+      .limit(1);
+    return service !== undefined;
+  }
+
   async schedulingContext(serviceId: string) {
     const [serviceContext] = await this.db
       .select({ service: services, timezone: user.timezone })
       .from(services)
       .innerJoin(user, eq(user.id, services.advisorId))
-      .where(and(eq(services.id, serviceId), eq(services.isPublished, true)))
+      .where(
+        and(
+          eq(services.id, serviceId),
+          eq(services.isPublished, true),
+          isVerifiedAdvisor(services.advisorId),
+        ),
+      )
       .limit(1);
     const service = serviceContext?.service;
     if (!service?.availabilityProfileId) return undefined;

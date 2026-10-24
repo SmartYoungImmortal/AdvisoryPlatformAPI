@@ -5,6 +5,7 @@ export const AVAILABILITY_MESSAGES = {
   profileUpdated: 'Availability profile updated',
   profileDeleted: 'Availability profile deleted',
   profileNotFound: 'Availability profile not found',
+  profileInUse: 'Availability profile is assigned to a service',
   invalidWindows: 'Availability windows must not overlap',
   invalidRange: 'The requested date range is invalid',
   invalidTimezone: 'Advisor timezone is invalid',

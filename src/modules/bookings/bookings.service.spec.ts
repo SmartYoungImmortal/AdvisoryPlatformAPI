@@ -137,6 +137,25 @@ describe('BookingsService', () => {
       );
     });
 
+    it('reports an unpublished or missing service as not found', async () => {
+      repository.findPublishedService.mockResolvedValue(undefined);
+
+      await expect(
+        service.create(advisee, {
+          serviceId,
+          startTime: startTime.toISOString(),
+        }),
+      ).rejects.toThrow(NotFoundException);
+      expect(repository.createWithSchedulingLock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a malformed start time before asking for a slot', async () => {
+      await expect(
+        service.create(advisee, { serviceId, startTime: 'not-a-date' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(availability.findSlotAt).not.toHaveBeenCalled();
+    });
+
     it('adds the global buffer to the range the appointment blocks', async () => {
       availability.getGlobal.mockResolvedValue(
         makeGlobal({ bufferMinutes: 15 }),

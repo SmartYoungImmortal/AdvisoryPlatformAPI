@@ -15,6 +15,7 @@ import {
   advisorSkills,
   notifications,
   serviceCategories,
+  serviceAppointments,
   services,
   session,
   skillProofDocuments,
@@ -23,7 +24,11 @@ import {
   verification,
 } from '@/database/schema';
 import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
-import { deleteUsers } from './support/accounts';
+import {
+  approveAsAdvisor,
+  deleteUsers,
+  signUpActiveUser,
+} from './support/accounts';
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
@@ -32,6 +37,7 @@ describe('authentication and authorization (e2e)', () => {
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
   const createdServiceIds: string[] = [];
+  const createdAppointmentIds: string[] = [];
   const createdCategoryIds: string[] = [];
 
   function object(value: unknown): Record<string, unknown> {
@@ -61,6 +67,13 @@ describe('authentication and authorization (e2e)', () => {
   afterEach(async () => {
     storage.clear();
     await Promise.all(
+      createdAppointmentIds
+        .splice(0)
+        .map((id) =>
+          db.delete(serviceAppointments).where(eq(serviceAppointments.id, id)),
+        ),
+    );
+    await Promise.all(
       createdServiceIds
         .splice(0)
         .map((id) => db.delete(services).where(eq(services.id, id))),
@@ -84,35 +97,13 @@ describe('authentication and authorization (e2e)', () => {
     await app.close();
   });
 
-  async function signUp() {
-    const agent = request.agent(app.getHttpServer());
-    const email = `e2e-${crypto.randomUUID()}@example.test`;
-    const password = 'E2e-test-password-123!';
-    const response = await agent.post('/api/auth/sign-up/email').send({
+  // The payload asks for SUSPENDED so every signup also proves the server ignores it.
+  const signUp = () =>
+    signUpActiveUser({ app, db }, 'e2e', createdUserIds, {
       name: 'E2E User',
       fullName: 'E2E Test User',
-      email,
-      password,
-      timezone: 'Asia/Bangkok',
       status: 'SUSPENDED',
     });
-
-    expect(response.status).toBe(200);
-    const responseBody = object(response.body);
-    const responseUser = object(responseBody.user);
-    const userId = responseUser.id;
-    expect(userId).toEqual(expect.any(String));
-    if (typeof userId !== 'string') {
-      throw new Error('Signup response did not include a user id');
-    }
-    createdUserIds.push(userId);
-    const [createdUser] = await db
-      .select({ status: user.status })
-      .from(user)
-      .where(eq(user.id, userId));
-    expect(createdUser?.status).toBe('ACTIVE');
-    return { agent, email, password, userId };
-  }
 
   it('rejects a protected route without a session', async () => {
     await request(app.getHttpServer())
@@ -300,11 +291,14 @@ describe('authentication and authorization (e2e)', () => {
       objectKey: `proofs/${userId}.pdf`,
       originalFileName: 'personal-proof.pdf',
     });
+    // Approved, as an admin's approval would leave it: a verified identity and the
+    // Advisor role, so this deletes a working Advisor rather than an applicant.
     await db.insert(advisorIdentity).values({
       advisorId: userId,
       nationalIdHash: crypto.randomUUID(),
-      verificationStatus: 'SUBMITTED',
+      verificationStatus: 'VERIFIED',
     });
+    await db.update(user).set({ role: 'advisor' }).where(eq(user.id, userId));
     await db.insert(notifications).values({
       ownerId: userId,
       type: 'POLICY_WARNING',
@@ -350,6 +344,7 @@ describe('authentication and authorization (e2e)', () => {
         });
       });
 
+    // Account deletion removes the session and the next request is unauthorized.
     await agent.get('/api/v1/users/me').expect(401);
     expect(storage.hasObject(avatarKey)).toBe(false);
 
@@ -403,18 +398,94 @@ describe('authentication and authorization (e2e)', () => {
     expect(erasedRows.every((rows) => rows.length === 0)).toBe(true);
   });
 
-  it('creates an Advisee session, upgrades once, and then permits the Advisor route', async () => {
+  it('reports actual upcoming appointments and blocks account deletion until they are resolved', async () => {
+    const advisee = await signUp();
+    const advisor = await signUpActiveUser(
+      { app, db },
+      'Deletion blocker advisor',
+      createdUserIds,
+    );
+    await approveAsAdvisor(db, advisor, { headline: 'Advisor' });
+    const [category] = await db
+      .insert(serviceCategories)
+      .values({ name: `Deletion blocker ${crypto.randomUUID()}` })
+      .returning({ id: serviceCategories.id });
+    createdCategoryIds.push(category.id);
+    const [service] = await db
+      .insert(services)
+      .values({
+        advisorId: advisor.userId,
+        categoryId: category.id,
+        name: 'Deletion blocker service',
+        priceSatang: 10000,
+        durationMinutes: 30,
+      })
+      .returning({ id: services.id });
+    createdServiceIds.push(service.id);
+    const startTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const [appointment] = await db
+      .insert(serviceAppointments)
+      .values({
+        serviceId: service.id,
+        advisorId: advisor.userId,
+        adviseeId: advisee.userId,
+        startTime,
+        endTime: new Date(startTime.getTime() + 30 * 60 * 1000),
+        unavailableUntil: new Date(startTime.getTime() + 30 * 60 * 1000),
+        state: 'BOOKED',
+      })
+      .returning({ id: serviceAppointments.id });
+    createdAppointmentIds.push(appointment.id);
+
+    const blockers = await advisee.agent
+      .get('/api/v1/users/me/deletion-blockers')
+      .expect(200);
+    expect(object(object(blockers.body).data)).toEqual({
+      upcomingAppointments: [
+        {
+          appointmentId: appointment.id,
+          startTime: startTime.toISOString(),
+          state: 'BOOKED',
+        },
+      ],
+    });
+
+    await advisee.agent.delete('/api/v1/users/me').expect(409);
+    const profile = await advisee.agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(profile.body).data)).toMatchObject({
+      id: advisee.userId,
+      email: advisee.email,
+    });
+
+    await db
+      .update(serviceAppointments)
+      .set({
+        state: 'CANCELLED',
+        cancelledAt: new Date(),
+        cancelledByUserId: advisee.userId,
+      })
+      .where(eq(serviceAppointments.id, appointment.id));
+    await advisee.agent
+      .get('/api/v1/users/me/deletion-blockers')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(object(object(body).data)).toEqual({ upcomingAppointments: [] });
+      });
+  });
+
+  it('opens an application once, which does not grant the Advisor role on its own', async () => {
     const { agent } = await signUp();
 
     await agent.get('/api/v1/advisors/me').expect(404);
 
-    const upgraded = await agent
+    const applied = await agent
       .post('/api/v1/advisors/me')
       .send({ headline: 'Operations advisor', bio: 'Helping teams improve.' })
       .expect(201);
-    expect(object(object(upgraded.body).data)).toMatchObject({
+    expect(object(object(applied.body).data)).toMatchObject({
       headline: 'Operations advisor',
       bio: 'Helping teams improve.',
+      verificationStatus: 'NONE',
     });
 
     const profile = await agent.get('/api/v1/advisors/me').expect(200);
@@ -422,10 +493,13 @@ describe('authentication and authorization (e2e)', () => {
       headline: 'Operations advisor',
     });
 
+    // Still an Advisee: the role waits for an admin to verify the identity, and the
+    // Advisor workspace stays shut until then (see advisor-onboarding.e2e-spec.ts).
     const roles = await agent.get('/api/v1/users/me').expect(200);
     expect(object(object(roles.body).data)).toMatchObject({
-      roles: ['ADVISEE', 'ADVISOR'],
+      roles: ['ADVISEE'],
     });
+    await agent.get('/api/v1/advisors/me/availability/global').expect(403);
 
     const updated = await agent
       .patch('/api/v1/advisors/me')
@@ -496,17 +570,15 @@ describe('authentication and authorization (e2e)', () => {
   });
 
   it('allows only Advisors and Admins to manage service categories', async () => {
-    const { agent } = await signUp();
+    const advisor = await signUp();
+    const { agent } = advisor;
 
     await agent
       .post('/api/v1/service-categories')
       .send({ name: 'Blocked category' })
       .expect(403);
 
-    await agent
-      .post('/api/v1/advisors/me')
-      .send({ headline: 'Category advisor' })
-      .expect(201);
+    await approveAsAdvisor(db, advisor, { headline: 'Category advisor' });
 
     const created = await agent
       .post('/api/v1/service-categories')

@@ -13,7 +13,12 @@ import {
   isoWeekday,
   zonedDateTimeToUtc,
 } from '@/modules/availability/availability-time';
-import { E2E_TIMEZONE, deleteUsers, signUpUser } from './accounts';
+import {
+  E2E_TIMEZONE,
+  approveAsAdvisor,
+  deleteUsers,
+  signUpUser,
+} from './accounts';
 import type { SignedUpUser } from './accounts';
 import type { E2eContext } from './e2e-app';
 import { data, stringField } from './response';
@@ -39,6 +44,7 @@ export interface SeedServiceOptions {
 export interface SeededService {
   advisor: SignedUpUser;
   serviceId: string;
+  profileId: string;
   bookingDate: string;
   /** The UTC instant of `time` on the seeded booking date, as the API returns it. */
   slotAt: (time: string) => string;
@@ -54,10 +60,10 @@ export async function seedAdvisorService(
   { label, windowStart = '09:00', windowEnd = '12:00' }: SeedServiceOptions,
 ): Promise<SeededService> {
   const advisor = await signUpUser(app, label, ids.userIds);
-  await advisor.agent
-    .post('/api/v1/advisors/me')
-    .send({ headline: label, bio: `${label} fixture` })
-    .expect(201);
+  await approveAsAdvisor(db, advisor, {
+    headline: label,
+    bio: `${label} fixture`,
+  });
   await advisor.agent
     .put('/api/v1/advisors/me/availability/global')
     .send({
@@ -109,6 +115,7 @@ export async function seedAdvisorService(
   return {
     advisor,
     serviceId: service.id,
+    profileId,
     bookingDate,
     slotAt: (time: string) =>
       zonedDateTimeToUtc(bookingDate, time, E2E_TIMEZONE).toISOString(),

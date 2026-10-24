@@ -9,13 +9,13 @@ import type { IdentityVerificationStatus } from '../identity-verification.consta
  * point. They are the most sensitive column pair in the schema — the ER states the
  * plaintext is never returned by any endpoint, and the hash is just as identifying
  * because it is a lookup key for a number an attacker can enumerate. No screen in
- * this product needs either one: the queue shows who submitted, the document key and
- * the outcome. The repository never selects them, so this shape cannot leak them by
+ * this product needs either one: the queue shows who submitted and the outcome.
+ * The repository never selects them, so this shape cannot leak them by
  * spreading a row, the same allowlist discipline
  * `AdvisorOwnProfileResponseDto` asks for.
  *
- * `documentObjectKey` is a SeaweedFS object key, not a URL. Presigning it is the
- * storage service's job, so naming the key here exposes nothing fetchable.
+ * The document key stays out of the response. Admins get a short-lived URL from the
+ * dedicated document-url route after the same read permission check.
  */
 export interface IdentityVerificationRow {
   advisorId: string;
@@ -36,12 +36,6 @@ export class IdentityVerificationResponseDto {
   @ApiProperty() email: string;
   @ApiProperty({ enum: identityVerificationStatusEnum.enumValues })
   verificationStatus: IdentityVerificationStatus;
-  @ApiProperty({
-    nullable: true,
-    type: String,
-    description: 'SeaweedFS object key of the uploaded scan, not a URL.',
-  })
-  documentObjectKey: string | null;
   @ApiProperty({ nullable: true, type: String }) rejectionReason: string | null;
   @ApiProperty({ format: 'date-time', nullable: true, type: String })
   submittedAt: Date | null;
@@ -55,7 +49,6 @@ export class IdentityVerificationResponseDto {
     this.displayName = row.displayName;
     this.email = row.email;
     this.verificationStatus = row.verificationStatus;
-    this.documentObjectKey = row.documentObjectKey;
     this.rejectionReason = row.rejectionReason;
     this.submittedAt = row.submittedAt;
     this.verifiedAt = row.verifiedAt;
