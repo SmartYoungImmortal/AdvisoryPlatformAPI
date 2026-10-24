@@ -116,7 +116,7 @@ describe('chat sockets (e2e)', () => {
     }
     const setCookie: unknown = response.headers['set-cookie'];
     if (!Array.isArray(setCookie) || typeof setCookie[0] !== 'string') {
-      throw new Error('Signup did not return a session cookie');
+      throw new TypeError('Signup did not return a session cookie');
     }
     userIds.push(body.user.id);
     return { userId: body.user.id, cookie: setCookie[0].split(';', 1)[0] };

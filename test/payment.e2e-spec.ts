@@ -1,7 +1,7 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '@/app.module';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import { inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@/database/database.module';
 import { DRIZZLE } from '@/database/database.module';

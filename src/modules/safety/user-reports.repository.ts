@@ -33,7 +33,7 @@ export class UserReportsRepository extends EntityRepository<
     status: UserReportStatus | undefined,
     options: { limit: number; offset: number },
   ): Promise<AdminReportRow[]> {
-    return this.selectForAdmin()
+    return await this.selectForAdmin()
       .where(this.queueWhere(status))
       .orderBy(desc(userReports.createdAt), desc(userReports.id))
       .limit(options.limit)
@@ -73,7 +73,7 @@ export class UserReportsRepository extends EntityRepository<
     reporterUserId: string,
     options: { limit: number; offset: number },
   ): Promise<OwnReportRow[]> {
-    return this.selectForReporter()
+    return await this.selectForReporter()
       .where(eq(userReports.reporterUserId, reporterUserId))
       .orderBy(desc(userReports.createdAt), desc(userReports.id))
       .limit(options.limit)

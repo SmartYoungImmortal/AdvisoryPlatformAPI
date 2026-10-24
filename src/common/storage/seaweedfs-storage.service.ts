@@ -108,9 +108,7 @@ export class SeaweedFsStorageService {
   }
 
   private async ensureBucket(): Promise<void> {
-    if (!this.bucketReady) {
-      this.bucketReady = this.initializeBucket();
-    }
+    this.bucketReady ??= this.initializeBucket();
 
     try {
       await this.bucketReady;

@@ -146,7 +146,10 @@ function modelName(model: Type, override: string | undefined): string {
   const words = model.name
     .replace(/(?:Response)?Dto$/, '')
     .replace(/([a-z\d])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    // An acronym run before a word ("HTTPServer" -> "HTTP Server"): a space
+    // after the capital that starts the next word, found without the
+    // backtracking a `[A-Z]+[A-Z]` pattern needs.
+    .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ')
     .toLowerCase();
 
   return words.charAt(0).toUpperCase() + words.slice(1);

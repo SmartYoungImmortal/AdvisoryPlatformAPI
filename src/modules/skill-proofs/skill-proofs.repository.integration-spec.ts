@@ -19,6 +19,10 @@ import { SkillProofsRepository } from './skill-proofs.repository';
  * together, a second proof does not claim twice — and the admin queue's filters,
  * which the unit tests can only mock.
  */
+function query(filters: Partial<SkillProofQueryDto>): SkillProofQueryDto {
+  return Object.assign(new SkillProofQueryDto(), filters);
+}
+
 describe('SkillProofsRepository (integration)', () => {
   let pool: Pool;
   let db: DrizzleDB;
@@ -45,10 +49,6 @@ describe('SkillProofsRepository (integration)', () => {
       objectKey: `skill-proofs/${advisorId}/${crypto.randomUUID()}.pdf`,
       originalFileName: name,
     };
-  }
-
-  function query(filters: Partial<SkillProofQueryDto>): SkillProofQueryDto {
-    return Object.assign(new SkillProofQueryDto(), filters);
   }
 
   beforeAll(async () => {

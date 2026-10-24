@@ -16,6 +16,7 @@ import {
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { EntityRepository } from '@/common/repositories/entity.repository';
+import { escapeLike } from '@/common/utils/escape-like';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   availabilityProfiles,
@@ -40,7 +41,7 @@ export class AdvisorServicesRepository extends EntityRepository<
     advisorId: string,
     options: { limit: number; offset: number },
   ): Promise<AdvisorService[]> {
-    return this.db
+    return await this.db
       .select()
       .from(services)
       .where(eq(services.advisorId, advisorId))
@@ -134,7 +135,7 @@ export class AdvisorServicesRepository extends EntityRepository<
     query: PublicServiceQueryDto,
     options: { limit: number; offset: number },
   ): Promise<PublicServiceDocument[]> {
-    return this.selectPublished(query)
+    return await this.selectPublished(query)
       .orderBy(asc(services.createdAt), asc(services.id))
       .limit(options.limit)
       .offset(options.offset);
@@ -222,8 +223,8 @@ export class AdvisorServicesRepository extends EntityRepository<
     const text = query?.q?.trim();
     const textPredicate = text
       ? or(
-          ilike(services.name, `%${this.escapeLikePattern(text)}%`),
-          ilike(services.description, `%${this.escapeLikePattern(text)}%`),
+          ilike(services.name, `%${escapeLike(text)}%`),
+          ilike(services.description, `%${escapeLike(text)}%`),
         )
       : undefined;
 
@@ -242,9 +243,5 @@ export class AdvisorServicesRepository extends EntityRepository<
         : undefined,
       textPredicate,
     ) as SQL;
-  }
-
-  private escapeLikePattern(value: string): string {
-    return value.replace(/[\\%_]/g, '\\$&');
   }
 }
