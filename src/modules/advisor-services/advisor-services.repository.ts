@@ -169,6 +169,7 @@ export class AdvisorServicesRepository extends EntityRepository<
         screeningRequired: services.screeningRequired,
         trialEnabled: services.trialEnabled,
         trialDurationMinutes: services.trialDurationMinutes,
+        createdAt: services.createdAt,
       })
       .from(services)
       .innerJoin(user, eq(user.id, services.advisorId))
