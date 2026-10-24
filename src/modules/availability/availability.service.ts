@@ -111,6 +111,24 @@ export class AvailabilityService {
     );
   }
 
+  /**
+   * Whether a published service has any bookable slot on one date, for the
+   * discovery filter. It answers yes or no only, never the times, so it skips
+   * the screening gate `findSlots` applies before showing a viewer the slots.
+   * A service whose schedule cannot be read counts as not available rather than
+   * failing the whole list.
+   */
+  async hasOpenSlotOn(serviceId: string, date: string): Promise<boolean> {
+    if (!isIsoDate(date)) return false;
+    try {
+      const context = await this.getSchedulingContext(serviceId);
+      const slots = await this.deriveSlots(context, date, date);
+      return slots.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
   private async assertCanViewSlots(
     context: SchedulingContext,
     adviseeId: string,

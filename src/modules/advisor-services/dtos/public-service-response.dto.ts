@@ -13,6 +13,8 @@ export class PublicServiceResponseDto {
   @ApiProperty() screeningRequired: boolean;
   @ApiProperty() trialEnabled: boolean;
   @ApiPropertyOptional({ nullable: true }) trialDurationMinutes: number | null;
+  /** When the service was listed, so discovery can sort newest first. */
+  @ApiProperty({ format: 'date-time' }) createdAt: Date;
 
   constructor(service: PublicServiceDocument) {
     this.id = service.id;
@@ -25,5 +27,6 @@ export class PublicServiceResponseDto {
     this.screeningRequired = service.screeningRequired;
     this.trialEnabled = service.trialEnabled;
     this.trialDurationMinutes = service.trialDurationMinutes;
+    this.createdAt = service.createdAt;
   }
 }
