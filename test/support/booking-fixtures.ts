@@ -7,6 +7,7 @@ import {
   chatMembers,
   chatMessages,
   chatRooms,
+  notifications,
   serviceAppointments,
   serviceCategories,
   services,
@@ -159,6 +160,13 @@ export async function deleteBookingFixtures(
   }
   for (const id of ids.categoryIds.splice(0)) {
     await db.delete(serviceCategories).where(eq(serviceCategories.id, id));
+  }
+  // A confirmed booking and its messages notify both sides, and a notification
+  // belongs to its owner: those go before the users.
+  if (ids.userIds.length > 0) {
+    await db
+      .delete(notifications)
+      .where(inArray(notifications.ownerId, ids.userIds));
   }
   await deleteUsers(db, ids.userIds);
 }
