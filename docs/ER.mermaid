@@ -231,7 +231,6 @@ erDiagram
 
     SERVICE_INVOICES {
         uuid invoiceId pk
-        uuid appointmentId fk
         int amountSatang
         int platformFeeSatang
         varchar providerChargeId
@@ -240,6 +239,11 @@ erDiagram
         datetimetz payoutEligibleAt
         datetimetz createdAt
         datetimetz modifiedAt
+    }
+
+    SERVICE_APPOINTMENTS_ON_SERVICE_INVOICES {
+        uuid appointmentId fk,pk
+        uuid invoiceId pk,fk
     }
 
     PAYOUTS {
@@ -405,7 +409,9 @@ erDiagram
     CHAT_ROOMS ||--o| SERVICE_APPOINTMENTS : "hosts"
     SERVICE_APPOINTMENTS ||--o| SERVICE_REVIEWS : "reviewed by"
 
-    SERVICE_APPOINTMENTS ||--o| SERVICE_INVOICES : "paid by"
+    SERVICE_APPOINTMENTS_ON_SERVICE_INVOICES }|--|| SERVICE_INVOICES : "paid by"
+    SERVICE_APPOINTMENTS_ON_SERVICE_INVOICES ||--|{ SERVICE_APPOINTMENTS : "including"
+
     SERVICE_INVOICES ||--o{ PAYOUT_INVOICES : "settled by"
     PAYOUTS ||--o{ PAYOUT_INVOICES : "settles"
     ADVISOR_PROFILES ||--o{ PAYOUTS : "receives"
