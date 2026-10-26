@@ -21,6 +21,10 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import {
+  AdvisorRatingSummariesDto,
+  AdvisorRatingSummariesQueryDto,
+} from './dtos/advisor-rating-summaries.dto';
 import { AdvisorRatingSummaryDto } from './dtos/advisor-rating-summary.dto';
 import { ReplyToReviewDto } from './dtos/reply-to-review.dto';
 import { ReviewResponseDto } from './dtos/review-response.dto';
@@ -55,6 +59,22 @@ export class AdvisorReviewsController {
     @Body() dto: ReplyToReviewDto,
   ): Promise<ReviewResponseDto> {
     return this.reviews.reply(user, bookingId, dto);
+  }
+
+  /**
+   * The summaries for a list of advisors at once, for a directory page that would otherwise ask
+   * once per advisor. Declared before `:advisorId` like the `me` routes.
+   */
+  @Public()
+  @Get('reviews/summaries')
+  @ApiGetOne(AdvisorRatingSummariesDto, {
+    name: 'Advisor rating summaries',
+    public: true,
+  })
+  summaries(
+    @Query() query: AdvisorRatingSummariesQueryDto,
+  ): Promise<AdvisorRatingSummariesDto> {
+    return this.reviews.summariesForAdvisors(query.ids);
   }
 
   @Public()

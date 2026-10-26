@@ -27,7 +27,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
   public readonly omise: Omise.IOmise;
 
   constructor(
-    private config: ConfigService,
+    private readonly config: ConfigService,
     private readonly repo: OmiseRepository,
   ) {
     this.omise = Omise({

@@ -1,4 +1,5 @@
 import {
+  boolean,
   check,
   integer,
   pgEnum,
@@ -10,7 +11,6 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { boolean } from 'drizzle-orm/pg-core';
 import {
   user,
   advisorProfiles,

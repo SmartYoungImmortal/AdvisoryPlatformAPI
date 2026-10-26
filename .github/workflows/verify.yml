@@ -38,9 +38,18 @@ jobs:
           SEAWEEDFS_S3_SECRET_KEY: ${{ secrets.SEAWEEDFS_S3_SECRET_KEY }}
         ports:
           - 8333:8333
+      mailpit:
+        image: axllent/mailpit:v1.31.5
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       BETTER_AUTH_URL: http://localhost:3000
       TRUSTED_ORIGINS: http://localhost:3001
+      SMTP_HOST: localhost
+      SMTP_PORT: 1025
+      SMTP_SECURE: false
+      SMTP_FROM: 'Advisory Platform <no-reply@localhost>'
       POSTGRES_USER: advisory
       POSTGRES_DB: advisory_platform
       # CI verifies the code against the throwaway service container above, never against

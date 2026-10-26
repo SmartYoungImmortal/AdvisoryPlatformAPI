@@ -119,8 +119,8 @@ describe('ReviewsRepository (integration)', () => {
         stars: 6,
         comment: null,
       });
-    } catch (thrown: unknown) {
-      error = thrown;
+    } catch (error_: unknown) {
+      error = error_;
     }
 
     expect(error).toBeInstanceOf(Error);

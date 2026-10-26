@@ -1,29 +1,40 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '@/app.module';
-import { ConfigService } from '@nestjs/config';
-import { ENV_KEYS } from '@/config/env.constants';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import { inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@/database/database.module';
 import { DRIZZLE } from '@/database/database.module';
 import { user } from '@/database/schema';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { configureApp } from '@/app.factory';
-import type Omise from 'omise';
 import { signUpActiveUser } from './support/accounts';
+import { IPaymentProvider } from '@/modules/payment/providers/interface';
+import type { SessionUser } from '@/modules/auth/auth.config';
+import type { ChargeStatus } from '@/modules/payment/providers/providers';
 
 describe('PaymentController (e2e)', () => {
   let app: NestExpressApplication;
-  let configService: ConfigService;
   const createdUserIds: string[] = [];
-  let omisePublicKey: string;
   let db: DrizzleDB;
+  let chargeArgs: [SessionUser, number, string, string] | undefined;
+  const paymentProvider: IPaymentProvider = {
+    chargeSpecificCard(...args): Promise<ChargeStatus> {
+      chargeArgs = args;
+      return Promise.resolve({
+        status: 'success',
+        redirectUrl: 'https://pay.omise.co/charges/chrg_test/authorize',
+      });
+    },
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(IPaymentProvider)
+      .useValue(paymentProvider)
+      .compile();
 
     app = moduleFixture.createNestApplication<NestExpressApplication>({
       bodyParser: false,
@@ -31,13 +42,7 @@ describe('PaymentController (e2e)', () => {
     configureApp(app);
     await app.init();
 
-    configService = app.get(ConfigService);
     db = app.get<DrizzleDB>(DRIZZLE);
-    omisePublicKey = configService.get<string>(ENV_KEYS.OMISE_PUBLIC_KEY) || '';
-
-    if (!omisePublicKey) {
-      throw new Error('OMISE_PUBLIC_KEY is not defined in the environment.');
-    }
   });
 
   afterAll(async () => {
@@ -53,55 +58,14 @@ describe('PaymentController (e2e)', () => {
       fullName: 'E2E Test User',
     });
 
-  async function getOmiseToken(publicKey: string): Promise<string> {
-    const url = 'https://vault.omise.co/tokens';
-
-    const authHeader = `Basic ${Buffer.from(publicKey + ':').toString('base64')}`;
-
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: authHeader,
-      },
-      body: JSON.stringify({
-        card: {
-          expiration_month: 2,
-          expiration_year: 2029,
-          name: 'Somchai Prasert',
-          number: '4242424242424242',
-          security_code: '123',
-          street1: '476 Fifth Avenue',
-          city: 'New York',
-          state: 'NY',
-          postal_code: '10320',
-          country: 'US',
-        },
-      }),
-    };
-
-    const response = await fetch(url, options);
-    const data = (await response.json()) as Omise.Tokens.IToken;
-
-    if (data.object !== 'token') {
-      throw new Error(
-        `Failed to generate Omise token: ${JSON.stringify(data)}`,
-      );
-    }
-
-    return data.id;
-  }
-
-  it('should complete checkout flow and redirect to 3DS validation URL', async () => {
-    const { agent } = await signUp();
-
-    const cardToken = await getOmiseToken(omisePublicKey);
-    expect(cardToken).toMatch(/^tokn_test_/);
+  it('redirects to 3DS after the payment provider accepts the checkout', async () => {
+    const { agent, userId } = await signUp();
+    chargeArgs = undefined;
 
     const checkoutPayload = {
       serviceId: crypto.randomUUID(),
       startTimes: [new Date().toISOString()],
-      cardToken: cardToken,
+      cardToken: 'tokn_test_checkout',
     };
 
     const response = await agent
@@ -113,5 +77,9 @@ describe('PaymentController (e2e)', () => {
     const redirectUrl = response.headers['location'];
     expect(redirectUrl).toBeDefined();
     expect(redirectUrl).toMatch(/^https:\/\/(pay|api)\.omise\.co\//);
+    expect(chargeArgs?.[0].id).toBe(userId);
+    expect(typeof chargeArgs?.[1]).toBe('number');
+    expect(chargeArgs?.[2]).toBe('tokn_test_checkout');
+    expect(chargeArgs?.[3]).toContain('/payments/verify/');
   });
 });

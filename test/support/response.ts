@@ -20,7 +20,7 @@ export function stringField(
 ): string {
   const value = source[key];
   if (typeof value !== 'string') {
-    throw new Error(`Expected ${key} to be a string`);
+    throw new TypeError(`Expected ${key} to be a string`);
   }
   return value;
 }

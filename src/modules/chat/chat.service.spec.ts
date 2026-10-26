@@ -80,6 +80,44 @@ describe('ChatService', () => {
     });
   });
 
+  it('names the other member of each room, and nobody in an anonymous room', async () => {
+    const counterpart = {
+      id: '55555555-5555-4555-8555-555555555555',
+      displayName: 'Kanya P.',
+      image: 'https://example.test/kanya.jpg',
+    };
+    const room = {
+      id: roomId,
+      isAnonymous: false,
+      lastReadAt: null,
+      unreadCount: 0,
+      createdAt: new Date('2026-08-15T00:00:00Z'),
+      counterpart,
+    };
+    repository.findRoomsForMember.mockResolvedValue([
+      room,
+      {
+        ...room,
+        id: '66666666-6666-4666-8666-666666666666',
+        isAnonymous: true,
+      },
+      {
+        ...room,
+        id: '77777777-7777-4777-8777-777777777777',
+        counterpart: null,
+      },
+    ]);
+    repository.countRoomsForMember.mockResolvedValue(3);
+
+    const { items } = await service.findRooms(memberId, new ChatQueryDto());
+
+    expect(items.map((item) => item.counterpart)).toEqual([
+      counterpart,
+      null,
+      null,
+    ]);
+  });
+
   it('returns deterministic cursor-paginated room history to a member', async () => {
     const cursorMessage = message();
     const query = Object.assign(new ChatMessageQueryDto(), {

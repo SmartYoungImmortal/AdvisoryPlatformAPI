@@ -20,12 +20,14 @@ import {
   ApiUpdate,
 } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { ClearSessionCookiesInterceptor } from '@/common/interceptors/clear-session-cookies.interceptor';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { UpdateUserProfileDto } from './dtos/update-user-profile.dto';
 import { UserAvatarResponseDto } from './dtos/user-avatar-response.dto';
 import { UserAvatarUrlResponseDto } from './dtos/user-avatar-url-response.dto';
 import { UserOwnProfileResponseDto } from './dtos/user-own-profile-response.dto';
+import { AccountDeletionBlockersResponseDto } from './dtos/account-deletion-blockers-response.dto';
 import { MAX_AVATAR_BYTES } from './avatar.constants';
 import { USER_MESSAGES } from './users.constants';
 import { UsersService } from './users.service';
@@ -62,6 +64,21 @@ export class UsersController {
     @Body() dto: UpdateUserProfileDto,
   ): Promise<UserOwnProfileResponseDto> {
     return this.usersService.updateMe(currentUser.id, dto);
+  }
+
+  @UserHasPermission({
+    permission: {
+      profile: ['read'],
+    },
+  })
+  @Get('me/deletion-blockers')
+  @ApiGetOne(AccountDeletionBlockersResponseDto, {
+    name: 'Account deletion blockers',
+  })
+  getDeletionBlockers(
+    @CurrentUser() currentUser: SessionUser,
+  ): Promise<AccountDeletionBlockersResponseDto> {
+    return this.usersService.getDeletionBlockers(currentUser.id);
   }
 
   @UserHasPermission({
@@ -127,6 +144,7 @@ export class UsersController {
     },
   })
   @Delete('me')
+  @UseInterceptors(ClearSessionCookiesInterceptor)
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(USER_MESSAGES.deleted)
   @ApiDelete(UserOwnProfileResponseDto, { name: 'Account' })

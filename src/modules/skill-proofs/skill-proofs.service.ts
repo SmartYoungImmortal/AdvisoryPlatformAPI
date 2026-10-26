@@ -1,30 +1,54 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { DownloadUrlResponseDto } from '@/common/storage/download-url-response.dto';
 import {
   paginateQuery,
   type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
+import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { OwnSkillProofResponseDto } from './dtos/own-skill-proof-response.dto';
 import { RejectSkillProofDto } from './dtos/reject-skill-proof.dto';
 import { SkillProofQueryDto } from './dtos/skill-proof-query.dto';
 import { SkillProofResponseDto } from './dtos/skill-proof-response.dto';
+import { SubmitSkillProofDto } from './dtos/submit-skill-proof.dto';
 import {
   DECIDABLE_SKILL_PROOF_STATUSES,
+  MAX_SKILL_PROOF_BYTES,
+  SKILL_PROOF_EXTENSIONS,
   SKILL_PROOF_MESSAGES,
+  SKILL_PROOF_URL_EXPIRY_SECONDS,
+  decodeUploadedFileName,
+  skillProofObjectKey,
 } from './skill-proofs.constants';
 import {
   SkillProofsRepository,
   type SkillProofReview,
 } from './skill-proofs.repository';
 
+/** The part of a multer file a submission reads. */
+export interface SkillProofUpload {
+  buffer: Buffer;
+  mimetype: string;
+  size: number;
+  originalname: string;
+}
+
 @Injectable()
 export class SkillProofsService {
-  constructor(private readonly repository: SkillProofsRepository) {}
+  private readonly logger = new Logger(SkillProofsService.name);
+
+  constructor(
+    private readonly repository: SkillProofsRepository,
+    private readonly storage: SeaweedFsStorageService,
+  ) {}
 
   findManyForAdmin(
     query: SkillProofQueryDto,
@@ -43,6 +67,78 @@ export class SkillProofsService {
       throw new NotFoundException(SKILL_PROOF_MESSAGES.notFound);
     }
     return new SkillProofResponseDto(row);
+  }
+
+  async createDocumentUrlForAdmin(
+    proofId: string,
+  ): Promise<DownloadUrlResponseDto> {
+    const row = await this.repository.findOneForAdmin(proofId);
+    if (!row) {
+      throw new NotFoundException(SKILL_PROOF_MESSAGES.notFound);
+    }
+    try {
+      const url = await this.storage.createDownloadUrl(
+        row.objectKey,
+        SKILL_PROOF_URL_EXPIRY_SECONDS,
+      );
+      return new DownloadUrlResponseDto(url, SKILL_PROOF_URL_EXPIRY_SECONDS);
+    } catch {
+      throw new ServiceUnavailableException(
+        SKILL_PROOF_MESSAGES.storageUnavailable,
+      );
+    }
+  }
+
+  /**
+   * The applicant files a document proving one of their skills, which also claims
+   * that skill. Stored first and recorded second, so a record never names an object
+   * that never landed; if the record write fails, the object is removed again.
+   */
+  async submit(
+    user: SessionUser,
+    dto: SubmitSkillProofDto,
+    upload: SkillProofUpload | undefined,
+  ): Promise<OwnSkillProofResponseDto> {
+    this.validateUpload(upload);
+    const [applied, skillExists] = await Promise.all([
+      this.repository.applicationExists(user.id),
+      this.repository.skillExists(dto.skillId),
+    ]);
+    if (!applied) {
+      throw new NotFoundException(SKILL_PROOF_MESSAGES.applicationRequired);
+    }
+    if (!skillExists) {
+      throw new BadRequestException(SKILL_PROOF_MESSAGES.skillNotFound);
+    }
+
+    const objectKey = skillProofObjectKey(
+      user.id,
+      SKILL_PROOF_EXTENSIONS[upload.mimetype],
+    );
+    try {
+      await this.storage.putObject({
+        key: objectKey,
+        body: upload.buffer,
+        contentType: upload.mimetype,
+      });
+    } catch {
+      throw new ServiceUnavailableException(
+        SKILL_PROOF_MESSAGES.storageUnavailable,
+      );
+    }
+
+    try {
+      const row = await this.repository.createForAdvisor({
+        advisorId: user.id,
+        skillId: dto.skillId,
+        objectKey,
+        originalFileName: decodeUploadedFileName(upload.originalname),
+      });
+      return new OwnSkillProofResponseDto(row);
+    } catch (error: unknown) {
+      await this.removeOrphan(objectKey);
+      throw error;
+    }
   }
 
   /** The Advisor's own documents and their outcomes. An empty page, never a 404. */
@@ -116,5 +212,30 @@ export class SkillProofsService {
     return current
       ? new ConflictException(SKILL_PROOF_MESSAGES.alreadyReviewed)
       : new NotFoundException(SKILL_PROOF_MESSAGES.notFound);
+  }
+
+  private validateUpload(
+    upload: SkillProofUpload | undefined,
+  ): asserts upload is SkillProofUpload {
+    if (!upload || upload.size === 0) {
+      throw new BadRequestException(SKILL_PROOF_MESSAGES.fileRequired);
+    }
+    if (!SKILL_PROOF_EXTENSIONS[upload.mimetype]) {
+      throw new BadRequestException(SKILL_PROOF_MESSAGES.fileInvalidType);
+    }
+    if (upload.size > MAX_SKILL_PROOF_BYTES) {
+      throw new BadRequestException(SKILL_PROOF_MESSAGES.fileTooLarge);
+    }
+  }
+
+  private async removeOrphan(key: string): Promise<void> {
+    try {
+      await this.storage.removeObject(key);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not remove orphaned object ${key}; it must be cleaned up separately.`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 }

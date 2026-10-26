@@ -10,12 +10,19 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { serviceAppointments, services } from '@/database/schema';
+import { serviceAppointments, services, user } from '@/database/schema';
+import { openBookingChatRoom } from '@/modules/chat/booking-chat-room';
 import type { AppointmentState } from './booking-states';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
+/** A booking as the Advisor's own list returns it. */
+export type AdvisorAppointment = Appointment & {
+  adviseeName: string;
+  serviceName: string;
+};
 type NewAppointment = InferInsertModel<typeof serviceAppointments>;
 type AppointmentUpdate = PgUpdateSetSource<typeof serviceAppointments>;
 type Transaction = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0];
@@ -28,11 +35,18 @@ export class BookingsRepository extends EntityRepository<
     super(db, serviceAppointments);
   }
 
+  /** A Service an Advisee may book: published, by an Advisor an admin has verified. */
   async findPublishedService(serviceId: string) {
     const [service] = await this.db
       .select()
       .from(services)
-      .where(and(eq(services.id, serviceId), eq(services.isPublished, true)))
+      .where(
+        and(
+          eq(services.id, serviceId),
+          eq(services.isPublished, true),
+          isVerifiedAdvisor(services.advisorId),
+        ),
+      )
       .limit(1);
     return service;
   }
@@ -41,6 +55,9 @@ export class BookingsRepository extends EntityRepository<
    * Serializes the eligibility recheck and insert per Advisor. This closes the
    * race for daily limits while the exclusion constraint remains the final
    * guarantee against overlapping appointment ranges.
+   *
+   * The booking's chat room is opened in the same transaction, so the two commit
+   * or roll back together; see `openBookingChatRoom`.
    */
   createWithSchedulingLock(
     advisorId: string,
@@ -53,7 +70,7 @@ export class BookingsRepository extends EntityRepository<
         .insert(serviceAppointments)
         .values(values)
         .returning();
-      return appointment;
+      return openBookingChatRoom(tx, appointment);
     });
   }
 
@@ -63,6 +80,10 @@ export class BookingsRepository extends EntityRepository<
    * picks the new slot. `replacementValues` receives the pre-cancellation row because
    * the replacement inherits the state the original had reached. An undefined result
    * means the original was no longer cancellable.
+   *
+   * The replacement keeps the conversation: it carries the original's room when
+   * `replacementValues` passes `chatRoomId` on, and is given one only when the
+   * original had none.
    */
   rescheduleWithSchedulingLock(
     advisorId: string,
@@ -87,7 +108,7 @@ export class BookingsRepository extends EntityRepository<
         .insert(serviceAppointments)
         .values(await replacementValues(original))
         .returning();
-      return replacement;
+      return openBookingChatRoom(tx, replacement);
     });
   }
 
@@ -162,14 +183,33 @@ export class BookingsRepository extends EntityRepository<
     );
   }
 
+  /**
+   * The Advisor's bookings with who booked and what, because the Advisor's desk
+   * has to say both and the Advisor cannot read another user's profile or a
+   * service by id on its own. Only the Advisee's public display name is read.
+   */
   async findManyForAdvisor(
     advisorId: string,
     options: { limit: number; offset: number },
-  ): Promise<Appointment[]> {
-    return this.findManyByParticipant(
-      eq(serviceAppointments.advisorId, advisorId),
-      options,
-    );
+  ): Promise<AdvisorAppointment[]> {
+    const rows = await this.db
+      .select({
+        appointment: serviceAppointments,
+        adviseeName: user.displayName,
+        serviceName: services.name,
+      })
+      .from(serviceAppointments)
+      .innerJoin(user, eq(user.id, serviceAppointments.adviseeId))
+      .innerJoin(services, eq(services.id, serviceAppointments.serviceId))
+      .where(eq(serviceAppointments.advisorId, advisorId))
+      .orderBy(serviceAppointments.startTime)
+      .limit(options.limit)
+      .offset(options.offset);
+    return rows.map((row) => ({
+      ...row.appointment,
+      adviseeName: row.adviseeName,
+      serviceName: row.serviceName,
+    }));
   }
 
   async countForAdvisor(advisorId: string): Promise<number> {

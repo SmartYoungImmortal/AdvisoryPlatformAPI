@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
@@ -13,6 +14,7 @@ import {
 import type { serviceAppointments } from '@/database/schema';
 import { AvailabilityService } from '@/modules/availability/availability.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
   ALLOWED_SOURCE_STATES,
   reopensAvailability,
@@ -20,9 +22,11 @@ import {
 } from './booking-states';
 import {
   BOOKING_MESSAGES,
+  BOOKING_NOTIFICATION_TITLES,
   invalidTransitionMessage,
 } from './bookings.constants';
 import { BookingsRepository } from './bookings.repository';
+import { AdvisorBookingResponseDto } from './dtos/advisor-booking-response.dto';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
 import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
@@ -33,9 +37,12 @@ type AppointmentUpdate = Parameters<BookingsRepository['transition']>[2];
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     private readonly repository: BookingsRepository,
     private readonly availability: AvailabilityService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(
@@ -82,12 +89,12 @@ export class BookingsService {
   findAdvisorMine(
     user: SessionUser,
     page: OffsetPaginationDto,
-  ): Promise<PaginatedResult<BookingResponseDto>> {
+  ): Promise<PaginatedResult<AdvisorBookingResponseDto>> {
     return paginateQuery(
       page,
       (options) => this.repository.findManyForAdvisor(user.id, options),
       () => this.repository.countForAdvisor(user.id),
-      (item) => new BookingResponseDto(item),
+      (item) => new AdvisorBookingResponseDto(item),
     );
   }
 
@@ -142,7 +149,8 @@ export class BookingsService {
   /**
    * A reschedule is a cancellation plus a replacement booking rather than an update in
    * place, so the original row survives as history and the replacement carries the
-   * payment state the Advisee already reached.
+   * payment state the Advisee already reached, and the chat room: the two people
+   * carry on the conversation they already had rather than starting a second one.
    */
   async reschedule(
     user: SessionUser,
@@ -167,6 +175,7 @@ export class BookingsService {
             startTime,
           )),
           state: current.state,
+          chatRoomId: current.chatRoomId,
         }),
       ),
     );
@@ -185,10 +194,53 @@ export class BookingsService {
       ALLOWED_SOURCE_STATES.BOOKED,
       { state: 'BOOKED' },
     );
-    if (appointment) return new BookingResponseDto(appointment);
+    if (appointment) {
+      await this.notifyConfirmed(appointment);
+      return new BookingResponseDto(appointment);
+    }
     const existing = await this.repository.findById(bookingId);
     if (!existing) throw new NotFoundException(BOOKING_MESSAGES.notFound);
     return new BookingResponseDto(existing);
+  }
+
+  /**
+   * Tells both parties. Only the call that actually moved the appointment to BOOKED gets here, so a
+   * redelivered webhook does not notify twice. A failure here must not undo the payment.
+   */
+  private async notifyConfirmed(appointment: Appointment): Promise<void> {
+    try {
+      const service = await this.repository.findPublishedService(
+        appointment.serviceId,
+      );
+      const when = new Intl.DateTimeFormat('th-TH', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Bangkok',
+      }).format(appointment.startTime);
+      const content = service ? `${service.name} · ${when}` : when;
+      await Promise.all([
+        this.notifications.notify({
+          ownerId: appointment.adviseeId,
+          type: 'BOOKING_CONFIRMED',
+          title: BOOKING_NOTIFICATION_TITLES.confirmed,
+          content,
+          resourceId: appointment.id,
+        }),
+        this.notifications.notify({
+          ownerId: appointment.advisorId,
+          type: 'BOOKING_RECEIVED',
+          title: BOOKING_NOTIFICATION_TITLES.received,
+          content,
+          resourceId: appointment.id,
+        }),
+      ]);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not notify booking ${appointment.id}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   private async cancel(

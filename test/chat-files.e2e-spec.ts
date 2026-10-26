@@ -17,6 +17,18 @@ import { object, stringField } from './support/response';
  * AP-033 and AP-037. Proves member-scoped authorization, the 50 MB type/size rule, and
  * that only object keys are persisted, against a real database and the real HTTP stack.
  */
+function upload(
+  agent: request.Agent,
+  roomId: string,
+  body: Buffer,
+  filename = 'brief.pdf',
+  contentType = 'application/pdf',
+) {
+  return agent
+    .post(`/api/v1/chat/rooms/${roomId}/files`)
+    .attach('file', body, { filename, contentType });
+}
+
 describe('chat files (e2e)', () => {
   let app: NestExpressApplication;
   let db: DrizzleDB;
@@ -63,18 +75,6 @@ describe('chat files (e2e)', () => {
     return { roomId: room.id, sender, peer, outsider };
   }
 
-  function upload(
-    agent: request.Agent,
-    roomId: string,
-    body: Buffer,
-    filename = 'brief.pdf',
-    contentType = 'application/pdf',
-  ) {
-    return agent
-      .post(`/api/v1/chat/rooms/${roomId}/files`)
-      .attach('file', body, { filename, contentType });
-  }
-
   it('stores an object key rather than a URL and never returns the key', async () => {
     const { roomId, sender } = await seedRoom();
 
@@ -99,7 +99,7 @@ describe('chat files (e2e)', () => {
       .from(chatFiles)
       .where(eq(chatFiles.id, stringField(file, 'id')));
     expect(row.objectKey).toMatch(
-      new RegExp(`^chat-files/${roomId}/.*\\.pdf$`),
+      new RegExp(String.raw`^chat-files/${roomId}/.*\.pdf$`),
     );
     expect(row.objectKey).not.toMatch(/^https?:/);
     expect(storage.hasObject(row.objectKey)).toBe(true);
@@ -149,10 +149,26 @@ describe('chat files (e2e)', () => {
   });
 
   it('requires a session', async () => {
-    const { roomId } = await seedRoom();
+    const { roomId, sender } = await seedRoom();
+    const uploaded = await upload(
+      sender.agent,
+      roomId,
+      Buffer.from('private'),
+    ).expect(201);
+    const fileId = stringField(object(object(uploaded.body).data), 'id');
 
     await request(app.getHttpServer())
       .get(`/api/v1/chat/rooms/${roomId}/files`)
+      .expect(401);
+    await request(app.getHttpServer())
+      .post(`/api/v1/chat/rooms/${roomId}/files`)
+      .attach('file', Buffer.from('unauthenticated'))
+      .expect(401);
+    await request(app.getHttpServer())
+      .get(`/api/v1/chat/rooms/${roomId}/files/${fileId}`)
+      .expect(401);
+    await request(app.getHttpServer())
+      .delete(`/api/v1/chat/rooms/${roomId}/files/${fileId}`)
       .expect(401);
   });
 

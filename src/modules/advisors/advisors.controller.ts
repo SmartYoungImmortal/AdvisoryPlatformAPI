@@ -15,6 +15,11 @@ import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 import { AdvisorsService } from './advisors.service';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
+/**
+ * The caller's own Advisor profile, which is also their application: it exists from
+ * the moment they apply, while the Advisor role waits for an admin to verify their
+ * identity. So these routes are held by every Advisee, not only by Advisors.
+ */
 @ApiTags('Advisors')
 @Controller('advisors')
 export class AdvisorsController {
@@ -22,23 +27,23 @@ export class AdvisorsController {
 
   @UserHasPermission({
     permission: {
-      advisor: ['createSelf'],
+      advisorApplication: ['submitSelf'],
     },
   })
   @Post('me')
   @ResponseMessage(ADVISOR_MESSAGES.created)
-  @ApiCreate(AdvisorOwnProfileResponseDto, { name: 'Advisor profile' })
+  @ApiCreate(AdvisorOwnProfileResponseDto, { name: 'Advisor application' })
   @ApiConflictResponse({ description: ADVISOR_MESSAGES.alreadyExists })
-  upgrade(
+  apply(
     @CurrentUser() user: SessionUser,
     @Body() dto: CreateAdvisorProfileDto,
   ): Promise<AdvisorOwnProfileResponseDto> {
-    return this.advisorsService.upgrade(user, dto);
+    return this.advisorsService.apply(user, dto);
   }
 
   @UserHasPermission({
     permission: {
-      advisor: ['read'],
+      advisorApplication: ['readSelf'],
     },
   })
   @Get('me')
@@ -51,7 +56,7 @@ export class AdvisorsController {
 
   @UserHasPermission({
     permission: {
-      advisor: ['updateSelf'],
+      advisorApplication: ['updateSelf'],
     },
   })
   @Patch('me')

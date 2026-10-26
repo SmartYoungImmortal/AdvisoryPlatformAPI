@@ -48,6 +48,11 @@ export class SeaweedFsStorageStub implements StorageBoundary {
     return this.objects.has(key);
   }
 
+  /** How many objects are stored — for proving a refused upload left nothing behind. */
+  objectCount(): number {
+    return this.objects.size;
+  }
+
   clear(): void {
     this.objects.clear();
   }

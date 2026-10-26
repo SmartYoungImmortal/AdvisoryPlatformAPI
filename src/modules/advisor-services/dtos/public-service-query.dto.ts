@@ -1,9 +1,11 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsInt,
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -37,4 +39,14 @@ export class PublicServiceQueryDto extends OffsetPaginationDto {
   @Min(0)
   @Max(2_147_483_647)
   maxPriceSatang?: number;
+
+  /**
+   * Only services with at least one bookable slot on this calendar date
+   * (`YYYY-MM-DD`), read in each advisor's own time zone. The caller sends its
+   * own "today", so the date is the reader's rather than the server's.
+   */
+  @ApiPropertyOptional({ example: '2026-10-24' })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  availableOn?: string;
 }

@@ -13,8 +13,22 @@ export class PublicServiceResponseDto {
   @ApiProperty() screeningRequired: boolean;
   @ApiProperty() trialEnabled: boolean;
   @ApiPropertyOptional({ nullable: true }) trialDurationMinutes: number | null;
+  /** When the service was listed, so discovery can sort newest first. */
+  @ApiProperty({ format: 'date-time' }) createdAt: Date;
+  /**
+   * The service's photographs from `service_images`, in carousel order. A key
+   * stored as an absolute URL is returned as it is; a storage key is presigned,
+   * on the detail route only, so a page of results never waits on storage.
+   */
+  @ApiProperty({
+    type: [String],
+    format: 'uri',
+    description:
+      'Absolute photograph URLs in carousel order. The list carries only URLs that need no signing; the detail route adds presigned storage objects.',
+  })
+  images: string[];
 
-  constructor(service: PublicServiceDocument) {
+  constructor(service: PublicServiceDocument, images: readonly string[]) {
     this.id = service.id;
     this.advisorId = service.advisorId;
     this.categoryId = service.categoryId;
@@ -25,5 +39,7 @@ export class PublicServiceResponseDto {
     this.screeningRequired = service.screeningRequired;
     this.trialEnabled = service.trialEnabled;
     this.trialDurationMinutes = service.trialDurationMinutes;
+    this.createdAt = service.createdAt;
+    this.images = [...images];
   }
 }

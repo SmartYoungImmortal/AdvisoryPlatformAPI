@@ -15,6 +15,7 @@ import {
   advisorSkills,
   notifications,
   serviceCategories,
+  serviceAppointments,
   services,
   session,
   skillProofDocuments,
@@ -23,7 +24,18 @@ import {
   verification,
 } from '@/database/schema';
 import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
-import { deleteUsers, signUpActiveUser } from './support/accounts';
+import {
+  approveAsAdvisor,
+  deleteUsers,
+  signUpActiveUser,
+} from './support/accounts';
+
+function object(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new TypeError('Expected an object response');
+  }
+  return value as Record<string, unknown>;
+}
 
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
@@ -32,14 +44,8 @@ describe('authentication and authorization (e2e)', () => {
   const createdUserIds: string[] = [];
   const createdSkillIds: string[] = [];
   const createdServiceIds: string[] = [];
+  const createdAppointmentIds: string[] = [];
   const createdCategoryIds: string[] = [];
-
-  function object(value: unknown): Record<string, unknown> {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      throw new Error('Expected an object response');
-    }
-    return value as Record<string, unknown>;
-  }
 
   beforeAll(async () => {
     storage = new SeaweedFsStorageStub();
@@ -60,6 +66,13 @@ describe('authentication and authorization (e2e)', () => {
 
   afterEach(async () => {
     storage.clear();
+    await Promise.all(
+      createdAppointmentIds
+        .splice(0)
+        .map((id) =>
+          db.delete(serviceAppointments).where(eq(serviceAppointments.id, id)),
+        ),
+    );
     await Promise.all(
       createdServiceIds
         .splice(0)
@@ -163,7 +176,9 @@ describe('authentication and authorization (e2e)', () => {
     const firstAvatar = object(object(uploaded.body).data);
     const firstKey = firstAvatar.avatarKey;
     if (typeof firstKey !== 'string') {
-      throw new Error('Avatar upload response did not include an object key');
+      throw new TypeError(
+        'Avatar upload response did not include an object key',
+      );
     }
     expect(firstKey).toEqual(
       expect.stringMatching(new RegExp(`^avatars/${userId}/`)),
@@ -189,7 +204,7 @@ describe('authentication and authorization (e2e)', () => {
       .expect(201);
     const replacementKey = object(object(replacement.body).data).avatarKey;
     if (typeof replacementKey !== 'string') {
-      throw new Error(
+      throw new TypeError(
         'Avatar replacement response did not include an object key',
       );
     }
@@ -256,7 +271,9 @@ describe('authentication and authorization (e2e)', () => {
       .expect(201);
     const avatarKey = object(object(avatar.body).data).avatarKey;
     if (typeof avatarKey !== 'string') {
-      throw new Error('Avatar upload response did not include an object key');
+      throw new TypeError(
+        'Avatar upload response did not include an object key',
+      );
     }
     expect(storage.hasObject(avatarKey)).toBe(true);
     await agent
@@ -278,11 +295,14 @@ describe('authentication and authorization (e2e)', () => {
       objectKey: `proofs/${userId}.pdf`,
       originalFileName: 'personal-proof.pdf',
     });
+    // Approved, as an admin's approval would leave it: a verified identity and the
+    // Advisor role, so this deletes a working Advisor rather than an applicant.
     await db.insert(advisorIdentity).values({
       advisorId: userId,
       nationalIdHash: crypto.randomUUID(),
-      verificationStatus: 'SUBMITTED',
+      verificationStatus: 'VERIFIED',
     });
+    await db.update(user).set({ role: 'advisor' }).where(eq(user.id, userId));
     await db.insert(notifications).values({
       ownerId: userId,
       type: 'POLICY_WARNING',
@@ -328,6 +348,7 @@ describe('authentication and authorization (e2e)', () => {
         });
       });
 
+    // Account deletion removes the session and the next request is unauthorized.
     await agent.get('/api/v1/users/me').expect(401);
     expect(storage.hasObject(avatarKey)).toBe(false);
 
@@ -381,18 +402,94 @@ describe('authentication and authorization (e2e)', () => {
     expect(erasedRows.every((rows) => rows.length === 0)).toBe(true);
   });
 
-  it('creates an Advisee session, upgrades once, and then permits the Advisor route', async () => {
+  it('reports actual upcoming appointments and blocks account deletion until they are resolved', async () => {
+    const advisee = await signUp();
+    const advisor = await signUpActiveUser(
+      { app, db },
+      'Deletion blocker advisor',
+      createdUserIds,
+    );
+    await approveAsAdvisor(db, advisor, { headline: 'Advisor' });
+    const [category] = await db
+      .insert(serviceCategories)
+      .values({ name: `Deletion blocker ${crypto.randomUUID()}` })
+      .returning({ id: serviceCategories.id });
+    createdCategoryIds.push(category.id);
+    const [service] = await db
+      .insert(services)
+      .values({
+        advisorId: advisor.userId,
+        categoryId: category.id,
+        name: 'Deletion blocker service',
+        priceSatang: 10000,
+        durationMinutes: 30,
+      })
+      .returning({ id: services.id });
+    createdServiceIds.push(service.id);
+    const startTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const [appointment] = await db
+      .insert(serviceAppointments)
+      .values({
+        serviceId: service.id,
+        advisorId: advisor.userId,
+        adviseeId: advisee.userId,
+        startTime,
+        endTime: new Date(startTime.getTime() + 30 * 60 * 1000),
+        unavailableUntil: new Date(startTime.getTime() + 30 * 60 * 1000),
+        state: 'BOOKED',
+      })
+      .returning({ id: serviceAppointments.id });
+    createdAppointmentIds.push(appointment.id);
+
+    const blockers = await advisee.agent
+      .get('/api/v1/users/me/deletion-blockers')
+      .expect(200);
+    expect(object(object(blockers.body).data)).toEqual({
+      upcomingAppointments: [
+        {
+          appointmentId: appointment.id,
+          startTime: startTime.toISOString(),
+          state: 'BOOKED',
+        },
+      ],
+    });
+
+    await advisee.agent.delete('/api/v1/users/me').expect(409);
+    const profile = await advisee.agent.get('/api/v1/users/me').expect(200);
+    expect(object(object(profile.body).data)).toMatchObject({
+      id: advisee.userId,
+      email: advisee.email,
+    });
+
+    await db
+      .update(serviceAppointments)
+      .set({
+        state: 'CANCELLED',
+        cancelledAt: new Date(),
+        cancelledByUserId: advisee.userId,
+      })
+      .where(eq(serviceAppointments.id, appointment.id));
+    await advisee.agent
+      .get('/api/v1/users/me/deletion-blockers')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(object(object(body).data)).toEqual({ upcomingAppointments: [] });
+      });
+  });
+
+  it('opens an application once, which does not grant the Advisor role on its own', async () => {
     const { agent } = await signUp();
 
     await agent.get('/api/v1/advisors/me').expect(404);
 
-    const upgraded = await agent
+    const applied = await agent
       .post('/api/v1/advisors/me')
       .send({ headline: 'Operations advisor', bio: 'Helping teams improve.' })
       .expect(201);
-    expect(object(object(upgraded.body).data)).toMatchObject({
+    expect(object(object(applied.body).data)).toMatchObject({
       headline: 'Operations advisor',
       bio: 'Helping teams improve.',
+      verificationStatus: 'NONE',
     });
 
     const profile = await agent.get('/api/v1/advisors/me').expect(200);
@@ -400,10 +497,13 @@ describe('authentication and authorization (e2e)', () => {
       headline: 'Operations advisor',
     });
 
+    // Still an Advisee: the role waits for an admin to verify the identity, and the
+    // Advisor workspace stays shut until then (see advisor-onboarding.e2e-spec.ts).
     const roles = await agent.get('/api/v1/users/me').expect(200);
     expect(object(object(roles.body).data)).toMatchObject({
-      roles: ['ADVISEE', 'ADVISOR'],
+      roles: ['ADVISEE'],
     });
+    await agent.get('/api/v1/advisors/me/availability/global').expect(403);
 
     const updated = await agent
       .patch('/api/v1/advisors/me')
@@ -462,7 +562,7 @@ describe('authentication and authorization (e2e)', () => {
     const createdData = object(object(created.body).data);
     const skillId = createdData.id;
     if (typeof skillId !== 'string') {
-      throw new Error('Skill creation response did not include an id');
+      throw new TypeError('Skill creation response did not include an id');
     }
     createdSkillIds.push(skillId);
 
@@ -474,17 +574,15 @@ describe('authentication and authorization (e2e)', () => {
   });
 
   it('allows only Advisors and Admins to manage service categories', async () => {
-    const { agent } = await signUp();
+    const advisor = await signUp();
+    const { agent } = advisor;
 
     await agent
       .post('/api/v1/service-categories')
       .send({ name: 'Blocked category' })
       .expect(403);
 
-    await agent
-      .post('/api/v1/advisors/me')
-      .send({ headline: 'Category advisor' })
-      .expect(201);
+    await approveAsAdvisor(db, advisor, { headline: 'Category advisor' });
 
     const created = await agent
       .post('/api/v1/service-categories')
@@ -492,7 +590,7 @@ describe('authentication and authorization (e2e)', () => {
       .expect(201);
     const categoryId = object(object(created.body).data).id;
     if (typeof categoryId !== 'string') {
-      throw new Error('Category creation response did not include an id');
+      throw new TypeError('Category creation response did not include an id');
     }
     createdCategoryIds.push(categoryId);
 

@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import type { AvailabilityRepository } from './availability.repository';
 import { AvailabilityService } from './availability.service';
 import type { AvailabilityProfileDetails } from './availability.types';
@@ -155,13 +159,16 @@ type AvailabilityRepositoryMock = jest.Mocked<
   Pick<
     AvailabilityRepository,
     | 'schedulingContext'
+    | 'schedulingContexts'
     | 'findBlockingAppointments'
+    | 'findBlockingAppointmentsForAdvisors'
     | 'hasAcceptedScreening'
     | 'findGlobal'
     | 'upsertGlobal'
     | 'findProfiles'
     | 'saveProfile'
     | 'findOwnedProfile'
+    | 'isProfileInUse'
     | 'softDelete'
   >
 >;
@@ -172,13 +179,16 @@ function makeService(): {
 } {
   const repository: AvailabilityRepositoryMock = {
     schedulingContext: jest.fn(),
+    schedulingContexts: jest.fn().mockResolvedValue(new Map()),
     findBlockingAppointments: jest.fn().mockResolvedValue([]),
+    findBlockingAppointmentsForAdvisors: jest.fn().mockResolvedValue([]),
     hasAcceptedScreening: jest.fn().mockResolvedValue(true),
     findGlobal: jest.fn(),
     upsertGlobal: jest.fn(),
     findProfiles: jest.fn(),
     saveProfile: jest.fn(),
     findOwnedProfile: jest.fn(),
+    isProfileInUse: jest.fn(),
     softDelete: jest.fn(),
   };
   return {
@@ -216,6 +226,20 @@ describe('AvailabilityService slot derivation', () => {
       '2026-09-07T03:30:00.000Z',
       '2026-09-07T04:00:00.000Z',
     ]);
+  });
+
+  it('returns an empty slot list when the profile has no available windows', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ weeklyWindows: [], specificWindows: [] }),
+    );
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toEqual([]);
   });
 
   it('combines weekly and specific-date availability without duplicate slots', async () => {
@@ -329,6 +353,62 @@ describe('AvailabilityService slot derivation', () => {
         adviseeId,
       ),
     ).resolves.toEqual([]);
+  });
+
+  it('hides remaining slots when earlier consultations exceed the global daily limit', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ globalLimit: 120 }),
+    );
+    repository.findBlockingAppointments.mockResolvedValue([
+      appointment(
+        '2026-09-06T18:00:00.000Z',
+        '2026-09-06T20:00:00.000Z',
+        '2026-09-06T20:00:00.000Z',
+      ),
+    ]);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  it('hides remaining slots when earlier consultations exceed the service daily limit', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ serviceLimit: 120 }),
+    );
+    repository.findBlockingAppointments.mockResolvedValue([
+      appointment(
+        '2026-09-06T18:00:00.000Z',
+        '2026-09-06T20:00:00.000Z',
+        '2026-09-06T20:00:00.000Z',
+      ),
+    ]);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  it('preserves repository errors while deriving slots', async () => {
+    const failure = new Error('database unavailable');
+    repository.schedulingContext.mockResolvedValue(context());
+    repository.findBlockingAppointments.mockRejectedValue(failure);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).rejects.toBe(failure);
   });
 
   it('leaves the global limit alone when another Service has not filled it', async () => {
@@ -451,6 +531,13 @@ describe('AvailabilityService slot derivation', () => {
     await expect(
       service.findSlots(
         serviceId,
+        { from: 'next monday', to: '2026-03-01' },
+        adviseeId,
+      ),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.findSlots(
+        serviceId,
         { from: '2026-02-30', to: '2026-03-01' },
         adviseeId,
       ),
@@ -506,6 +593,103 @@ describe('AvailabilityService slot derivation', () => {
         adviseeId,
       ),
     ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('AvailabilityService.openOn', () => {
+  const otherAdvisorId = '88888888-8888-8888-8888-888888888888';
+  const monday = '2026-09-07';
+  let service: AvailabilityService;
+  let repository: AvailabilityRepositoryMock;
+
+  /** A context for another service, of this advisor or another. */
+  function contextFor(id: string, advisor = advisorId): SchedulingContext {
+    const base = context();
+    return {
+      ...base,
+      service: { ...base.service, id, advisorId: advisor },
+      global: { ...base.global, advisorId: advisor },
+    };
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00.000Z'));
+    ({ service, repository } = makeService());
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('answers as hasOpenSlotOn does, service by service', async () => {
+    const open = contextFor(serviceId, advisorId);
+    const full = contextFor(otherServiceId, otherAdvisorId);
+    // The other advisor is booked through the whole 09:00–12:00 window (Bangkok).
+    const booked = {
+      ...appointment('2026-09-07T02:00:00.000Z', '2026-09-07T05:00:00.000Z'),
+      advisorId: otherAdvisorId,
+      serviceId: otherServiceId,
+    };
+    repository.schedulingContexts.mockResolvedValue(
+      new Map([
+        [serviceId, open],
+        [otherServiceId, full],
+      ]),
+    );
+    repository.findBlockingAppointmentsForAdvisors.mockResolvedValue([booked]);
+
+    const batch = await service.openOn([serviceId, otherServiceId], monday);
+
+    repository.schedulingContext.mockImplementation((id) =>
+      Promise.resolve(id === serviceId ? open : full),
+    );
+    repository.findBlockingAppointments.mockImplementation((advisor) =>
+      Promise.resolve(advisor === otherAdvisorId ? [booked] : []),
+    );
+    const one = await service.hasOpenSlotOn(serviceId, monday);
+    const other = await service.hasOpenSlotOn(otherServiceId, monday);
+
+    expect([...batch]).toEqual([serviceId]);
+    expect(one).toBe(true);
+    expect(other).toBe(false);
+    // One read of schedules and one of appointments, whatever the count.
+    expect(repository.schedulingContexts).toHaveBeenCalledTimes(1);
+    expect(
+      repository.findBlockingAppointmentsForAdvisors,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not let one advisor's bookings close another's service", async () => {
+    repository.schedulingContexts.mockResolvedValue(
+      new Map([[serviceId, contextFor(serviceId, advisorId)]]),
+    );
+    repository.findBlockingAppointmentsForAdvisors.mockResolvedValue([
+      {
+        ...appointment('2026-09-07T02:00:00.000Z', '2026-09-07T05:00:00.000Z'),
+        advisorId: otherAdvisorId,
+      },
+    ]);
+
+    await expect(service.openOn([serviceId], monday)).resolves.toEqual(
+      new Set([serviceId]),
+    );
+  });
+
+  it('leaves out a service with no schedule, and answers nothing for a bad date', async () => {
+    repository.schedulingContexts.mockResolvedValue(new Map());
+
+    await expect(service.openOn([serviceId], monday)).resolves.toEqual(
+      new Set(),
+    );
+    await expect(service.openOn([serviceId], '2026-13-40')).resolves.toEqual(
+      new Set(),
+    );
+  });
+
+  it('is closed rather than failing when the schedules cannot be read', async () => {
+    repository.schedulingContexts.mockRejectedValue(new Error('db down'));
+
+    await expect(service.openOn([serviceId], monday)).resolves.toEqual(
+      new Set(),
+    );
   });
 });
 
@@ -655,6 +839,8 @@ describe('AvailabilityService profiles', () => {
 
   it('soft-deletes a profile the Advisor owns', async () => {
     const details = profileDetails();
+    repository.findOwnedProfile.mockResolvedValue(details.profile);
+    repository.isProfileInUse.mockResolvedValue(false);
     repository.softDelete.mockResolvedValue(details);
 
     await expect(service.deleteProfile(advisorId, profileId)).resolves.toBe(
@@ -663,11 +849,24 @@ describe('AvailabilityService profiles', () => {
   });
 
   it('reports a missing profile on delete', async () => {
-    repository.softDelete.mockResolvedValue(undefined);
+    repository.findOwnedProfile.mockResolvedValue(undefined);
 
     await expect(service.deleteProfile(advisorId, profileId)).rejects.toThrow(
       NotFoundException,
     );
+    expect(repository.isProfileInUse).not.toHaveBeenCalled();
+    expect(repository.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('refuses to delete a profile assigned to a Service', async () => {
+    repository.findOwnedProfile.mockResolvedValue(profileDetails().profile);
+    repository.isProfileInUse.mockResolvedValue(true);
+
+    await expect(service.deleteProfile(advisorId, profileId)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(repository.isProfileInUse).toHaveBeenCalledWith(profileId);
+    expect(repository.softDelete).not.toHaveBeenCalled();
   });
 
   describe('window validation', () => {
@@ -717,6 +916,32 @@ describe('AvailabilityService profiles', () => {
         upsertDto({
           blockedPeriods: [
             { blockedDate: '2026-09-09', startTime: '10:00', endTime: '09:00' },
+          ],
+        }),
+      ],
+      [
+        'a blocked period with an invalid wall-clock time',
+        upsertDto({
+          blockedPeriods: [
+            { blockedDate: '2026-09-09', startTime: '09:00', endTime: '99:00' },
+          ],
+        }),
+      ],
+      [
+        'a blocked period date with a time component',
+        upsertDto({
+          blockedPeriods: [{ blockedDate: '2026-09-09T00:00:00.000Z' }],
+        }),
+      ],
+      [
+        'a specific availability date with a time component',
+        upsertDto({
+          specificWindows: [
+            {
+              availableDate: '2026-09-08T00:00:00.000Z',
+              startTime: '13:00',
+              endTime: '15:00',
+            },
           ],
         }),
       ],

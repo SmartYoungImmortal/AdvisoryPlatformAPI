@@ -3,6 +3,7 @@ import { WsException } from '@nestjs/websockets';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { ChatSocket } from './chat-socket-session.service';
 import type { ChatSocketSessionService } from './chat-socket-session.service';
+import type { ChatMessageNotifier } from './chat-message-notifier';
 import { ChatGateway } from './chat.gateway';
 import type { ChatService } from './chat.service';
 
@@ -29,6 +30,10 @@ describe('ChatGateway', () => {
   let socketSession: jest.Mocked<
     Pick<ChatSocketSessionService, 'authenticate'>
   >;
+  let messageNotifier: jest.Mocked<
+    Pick<ChatMessageNotifier, 'notifyAbsentMembers'>
+  >;
+  let fetchSockets: jest.Mock;
   let client: ChatSocket;
   let emit: jest.Mock;
 
@@ -39,9 +44,14 @@ describe('ChatGateway', () => {
       markRead: jest.fn(),
     };
     socketSession = { authenticate: jest.fn().mockResolvedValue(user()) };
+    messageNotifier = {
+      notifyAbsentMembers: jest.fn().mockResolvedValue(undefined),
+    };
+    fetchSockets = jest.fn().mockResolvedValue([]);
     gateway = new ChatGateway(
       service as unknown as ChatService,
       socketSession as unknown as ChatSocketSessionService,
+      messageNotifier as unknown as ChatMessageNotifier,
     );
     client = {
       data: {},
@@ -50,7 +60,10 @@ describe('ChatGateway', () => {
     } as unknown as ChatSocket;
     emit = jest.fn();
     Object.assign(gateway, {
-      server: { to: jest.fn(() => ({ emit })) },
+      server: {
+        to: jest.fn(() => ({ emit })),
+        in: jest.fn(() => ({ fetchSockets })),
+      },
     });
   });
 
@@ -95,6 +108,28 @@ describe('ChatGateway', () => {
 
     expect(emit).toHaveBeenCalledWith('chat:message', message);
     expect(emit).toHaveBeenCalledWith('chat:read', read);
+  });
+
+  it('notifies only the members who are not in the room after a send', async () => {
+    const message = {
+      id: messageId,
+      chatRoomId: roomId,
+      senderUserId: userId,
+      message: 'hello',
+      createdAt: new Date(),
+    };
+    service.sendMessage.mockResolvedValue(message);
+    fetchSockets.mockResolvedValue([
+      { data: { user: { id: userId } } },
+      { data: {} },
+    ]);
+
+    await gateway.send(client, { chatRoomId: roomId, message: 'hello' });
+
+    expect(messageNotifier.notifyAbsentMembers).toHaveBeenCalledWith(
+      message,
+      new Set([userId]),
+    );
   });
 
   it.each([

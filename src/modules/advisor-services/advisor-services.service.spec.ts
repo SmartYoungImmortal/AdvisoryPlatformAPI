@@ -1,7 +1,10 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
+import type { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { services } from '@/database/schema';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { AvailabilityService } from '@/modules/availability/availability.service';
+import { SERVICE_IMAGE_URL_EXPIRY_SECONDS } from './advisor-services.constants';
 import type { AdvisorServicesRepository } from './advisor-services.repository';
 import { AdvisorServicesService } from './advisor-services.service';
 import type { PublicServiceDocument } from './advisor-services.types';
@@ -26,6 +29,7 @@ const publicService: PublicServiceDocument = {
   screeningRequired: false,
   trialEnabled: false,
   trialDurationMinutes: null,
+  createdAt: new Date('2026-08-29T00:00:00Z'),
 };
 
 function makeService(overrides: Partial<AdvisorService> = {}): AdvisorService {
@@ -67,8 +71,11 @@ describe('AdvisorServicesService', () => {
       | 'findPublished'
       | 'countPublished'
       | 'findPublishedById'
+      | 'findImageKeysFor'
     >
   >;
+  let availability: jest.Mocked<Pick<AvailabilityService, 'openOn'>>;
+  let storage: jest.Mocked<Pick<SeaweedFsStorageService, 'createDownloadUrl'>>;
 
   beforeEach(() => {
     repository = {
@@ -85,9 +92,14 @@ describe('AdvisorServicesService', () => {
       findPublished: jest.fn(),
       countPublished: jest.fn(),
       findPublishedById: jest.fn(),
+      findImageKeysFor: jest.fn().mockResolvedValue([]),
     };
+    availability = { openOn: jest.fn() };
+    storage = { createDownloadUrl: jest.fn() };
     service = new AdvisorServicesService(
       repository as unknown as AdvisorServicesRepository,
+      availability as unknown as AvailabilityService,
+      storage as unknown as SeaweedFsStorageService,
     );
   });
 
@@ -222,6 +234,35 @@ describe('AdvisorServicesService', () => {
     expect(repository.countPublished).toHaveBeenCalledWith(query);
   });
 
+  it('keeps only services with an open slot on the requested date, paging after the check', async () => {
+    const closed = {
+      ...publicService,
+      id: '55555555-5555-5555-5555-555555555555',
+    };
+    repository.findPublished.mockResolvedValue([publicService, closed]);
+    availability.openOn.mockResolvedValue(new Set([serviceId]));
+    const query = Object.assign(new PublicServiceQueryDto(), {
+      page: 1,
+      limit: 20,
+      availableOn: '2026-10-24',
+    });
+
+    await expect(service.findPublished(query)).resolves.toEqual({
+      items: [expect.objectContaining({ id: serviceId })],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    // Every candidate in one batch.
+    expect(availability.openOn).toHaveBeenCalledTimes(1);
+    expect(availability.openOn).toHaveBeenCalledWith(
+      [serviceId, closed.id],
+      '2026-10-24',
+    );
+    expect(repository.countPublished).not.toHaveBeenCalled();
+  });
+
   it('rejects an inverted public service price range before searching', async () => {
     const query = Object.assign(new PublicServiceQueryDto(), {
       minPriceSatang: 200000,
@@ -269,6 +310,133 @@ describe('AdvisorServicesService', () => {
     await expect(service.findPublishedById(serviceId)).rejects.toThrow(
       NotFoundException,
     );
+    expect(repository.findImageKeysFor).not.toHaveBeenCalled();
+  });
+
+  describe('photographs', () => {
+    const otherId = '66666666-6666-6666-6666-666666666666';
+    const other = { ...publicService, id: otherId };
+    const photo = (name: string) => `https://cdn.example.test/${name}.jpg`;
+    const page = Object.assign(new PublicServiceQueryDto(), {
+      page: 1,
+      limit: 20,
+    });
+
+    it('reads a whole page of photographs in one query and keeps each service in carousel order', async () => {
+      repository.findPublished.mockResolvedValue([publicService, other]);
+      repository.countPublished.mockResolvedValue(2);
+      // Interleaved on purpose: grouping must keep each service's own order.
+      repository.findImageKeysFor.mockResolvedValue([
+        { serviceId, objectKey: photo('a-1') },
+        { serviceId: otherId, objectKey: photo('b-1') },
+        { serviceId, objectKey: photo('a-2') },
+      ]);
+
+      const result = await service.findPublished(page);
+
+      expect(repository.findImageKeysFor).toHaveBeenCalledTimes(1);
+      expect(repository.findImageKeysFor).toHaveBeenCalledWith([
+        serviceId,
+        otherId,
+      ]);
+      expect(result.items.map((item) => item.images)).toEqual([
+        [photo('a-1'), photo('a-2')],
+        [photo('b-1')],
+      ]);
+    });
+
+    it('gives a listed service with no photographs an empty list', async () => {
+      repository.findPublished.mockResolvedValue([publicService]);
+      repository.countPublished.mockResolvedValue(1);
+
+      const result = await service.findPublished(page);
+
+      expect(result.items[0].images).toEqual([]);
+    });
+
+    it('lists only URL keys, unchanged, and never presigns for a page of results', async () => {
+      repository.findPublished.mockResolvedValue([publicService]);
+      repository.countPublished.mockResolvedValue(1);
+      repository.findImageKeysFor.mockResolvedValue([
+        { serviceId, objectKey: 'services/stored-in-seaweedfs.jpg' },
+        { serviceId, objectKey: 'http://cdn.example.test/plain-http.jpg' },
+        { serviceId, objectKey: photo('a-2') },
+      ]);
+
+      const result = await service.findPublished(page);
+
+      expect(result.items[0].images).toEqual([
+        'http://cdn.example.test/plain-http.jpg',
+        photo('a-2'),
+      ]);
+      expect(storage.createDownloadUrl).not.toHaveBeenCalled();
+    });
+
+    it('reads photographs only for the page an available-today search returns', async () => {
+      repository.findPublished.mockResolvedValue([publicService, other]);
+      availability.openOn.mockResolvedValue(new Set([otherId]));
+      repository.findImageKeysFor.mockResolvedValue([
+        { serviceId: otherId, objectKey: photo('b-1') },
+      ]);
+
+      const result = await service.findPublished(
+        Object.assign(new PublicServiceQueryDto(), {
+          page: 1,
+          limit: 20,
+          availableOn: '2026-10-24',
+        }),
+      );
+
+      expect(repository.findImageKeysFor).toHaveBeenCalledTimes(1);
+      expect(repository.findImageKeysFor).toHaveBeenCalledWith([otherId]);
+      expect(result.items).toEqual([
+        expect.objectContaining({ id: otherId, images: [photo('b-1')] }),
+      ]);
+    });
+
+    it('passes URL keys through and presigns storage keys on the detail route, in carousel order', async () => {
+      repository.findPublishedById.mockResolvedValue(publicService);
+      repository.findImageKeysFor.mockResolvedValue([
+        { serviceId, objectKey: photo('a-1') },
+        { serviceId, objectKey: 'services/a-2.jpg' },
+        { serviceId, objectKey: photo('a-3') },
+      ]);
+      storage.createDownloadUrl.mockResolvedValue(
+        'http://seaweedfs.test/signed-a-2',
+      );
+
+      const result = await service.findPublishedById(serviceId);
+
+      expect(repository.findImageKeysFor).toHaveBeenCalledWith([serviceId]);
+      expect(result.images).toEqual([
+        photo('a-1'),
+        'http://seaweedfs.test/signed-a-2',
+        photo('a-3'),
+      ]);
+      expect(storage.createDownloadUrl).toHaveBeenCalledTimes(1);
+      expect(storage.createDownloadUrl).toHaveBeenCalledWith(
+        'services/a-2.jpg',
+        SERVICE_IMAGE_URL_EXPIRY_SECONDS,
+      );
+    });
+
+    it('leaves out a photograph storage cannot sign instead of failing the detail', async () => {
+      const warn = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      repository.findPublishedById.mockResolvedValue(publicService);
+      repository.findImageKeysFor.mockResolvedValue([
+        { serviceId, objectKey: 'services/a-1.jpg' },
+        { serviceId, objectKey: photo('a-2') },
+      ]);
+      storage.createDownloadUrl.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      await expect(service.findPublishedById(serviceId)).resolves.toEqual(
+        expect.objectContaining({ id: serviceId, images: [photo('a-2')] }),
+      );
+      expect(warn).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
+    });
   });
 
   it('rejects service creation against a category that does not exist', async () => {

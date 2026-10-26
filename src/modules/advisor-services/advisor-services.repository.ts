@@ -6,17 +6,22 @@ import {
   eq,
   gte,
   ilike,
+  inArray,
+  isNull,
   lte,
   or,
   type InferSelectModel,
   type SQL,
 } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { EntityRepository } from '@/common/repositories/entity.repository';
+import { escapeLike } from '@/common/utils/escape-like';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   availabilityProfiles,
   serviceCategories,
+  serviceImages,
   services,
   user,
 } from '@/database/schema';
@@ -36,7 +41,7 @@ export class AdvisorServicesRepository extends EntityRepository<
     advisorId: string,
     options: { limit: number; offset: number },
   ): Promise<AdvisorService[]> {
-    return this.db
+    return await this.db
       .select()
       .from(services)
       .where(eq(services.advisorId, advisorId))
@@ -76,6 +81,7 @@ export class AdvisorServicesRepository extends EntityRepository<
         and(
           eq(availabilityProfiles.id, profileId),
           eq(availabilityProfiles.advisorId, advisorId),
+          isNull(availabilityProfiles.deletedAt),
         ),
       )
       .limit(1);
@@ -94,21 +100,42 @@ export class AdvisorServicesRepository extends EntityRepository<
     return service;
   }
 
+  /**
+   * The service and its photographs, in one transaction.
+   *
+   * `service_images` references the service with no cascade, so deleting the
+   * row alone fails as soon as it has photographs, which every seeded service
+   * now does. The photographs go only once the same `ownedWhere` has found the
+   * service, so another advisor's id deletes nothing, and a service that still
+   * cannot go (it has bookings) keeps its photographs when the delete rolls back.
+   */
   async deleteOwned(
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.deleteWhere(
-      this.ownedWhere(advisorId, serviceId),
-    );
-    return service;
+    return this.db.transaction(async (tx) => {
+      const [owned] = await tx
+        .select({ id: services.id })
+        .from(services)
+        .where(this.ownedWhere(advisorId, serviceId));
+      if (!owned) return undefined;
+
+      await tx
+        .delete(serviceImages)
+        .where(eq(serviceImages.serviceId, serviceId));
+      const [service] = await tx
+        .delete(services)
+        .where(this.ownedWhere(advisorId, serviceId))
+        .returning();
+      return service;
+    });
   }
 
   async findPublished(
     query: PublicServiceQueryDto,
     options: { limit: number; offset: number },
   ): Promise<PublicServiceDocument[]> {
-    return this.selectPublished(query)
+    return await this.selectPublished(query)
       .orderBy(asc(services.createdAt), asc(services.id))
       .limit(options.limit)
       .offset(options.offset);
@@ -146,6 +173,25 @@ export class AdvisorServicesRepository extends EntityRepository<
     return service;
   }
 
+  /**
+   * The photograph keys for a set of services, in one query rather than one per
+   * row: a flat list for the caller to group, each service's keys in carousel
+   * order.
+   */
+  async findImageKeysFor(
+    serviceIds: readonly string[],
+  ): Promise<{ serviceId: string; objectKey: string }[]> {
+    if (serviceIds.length === 0) return [];
+    return this.db
+      .select({
+        serviceId: serviceImages.serviceId,
+        objectKey: serviceImages.objectKey,
+      })
+      .from(serviceImages)
+      .where(inArray(serviceImages.serviceId, [...serviceIds]))
+      .orderBy(asc(serviceImages.serviceId), asc(serviceImages.carouselIndex));
+  }
+
   private ownedWhere(advisorId: string, serviceId: string): SQL {
     return and(
       eq(services.id, serviceId),
@@ -166,6 +212,7 @@ export class AdvisorServicesRepository extends EntityRepository<
         screeningRequired: services.screeningRequired,
         trialEnabled: services.trialEnabled,
         trialDurationMinutes: services.trialDurationMinutes,
+        createdAt: services.createdAt,
       })
       .from(services)
       .innerJoin(user, eq(user.id, services.advisorId))
@@ -176,8 +223,8 @@ export class AdvisorServicesRepository extends EntityRepository<
     const text = query?.q?.trim();
     const textPredicate = text
       ? or(
-          ilike(services.name, `%${this.escapeLikePattern(text)}%`),
-          ilike(services.description, `%${this.escapeLikePattern(text)}%`),
+          ilike(services.name, `%${escapeLike(text)}%`),
+          ilike(services.description, `%${escapeLike(text)}%`),
         )
       : undefined;
 
@@ -185,6 +232,7 @@ export class AdvisorServicesRepository extends EntityRepository<
       eq(services.isPublished, true),
       eq(user.status, 'ACTIVE'),
       eq(user.banned, false),
+      isVerifiedAdvisor(services.advisorId),
       query?.categoryId ? eq(services.categoryId, query.categoryId) : undefined,
       query?.advisorId ? eq(services.advisorId, query.advisorId) : undefined,
       query?.minPriceSatang !== undefined
@@ -195,9 +243,5 @@ export class AdvisorServicesRepository extends EntityRepository<
         : undefined,
       textPredicate,
     ) as SQL;
-  }
-
-  private escapeLikePattern(value: string): string {
-    return value.replace(/[\\%_]/g, '\\$&');
   }
 }
