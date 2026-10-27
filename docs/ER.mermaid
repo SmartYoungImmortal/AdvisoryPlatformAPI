@@ -294,6 +294,8 @@ erDiagram
         uuid chatRoomId fk,pk
         uuid memberUserId fk,pk
         datetimetz lastReadAt
+        %% null while the room notifies this member
+        datetimetz mutedAt
         datetimetz createdAt
     }
 

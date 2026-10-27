@@ -14,6 +14,7 @@ export const CHAT_MESSAGES = {
   messagesFound: 'Chat messages found',
   roomsFound: 'Chat rooms found',
   readUpdated: 'Chat read state updated',
+  muteUpdated: 'Chat room mute updated',
   authenticationRequired: 'Socket authentication required',
   inactiveAccount: 'Socket connection requires an active account',
   internalError: 'Unable to process chat event',

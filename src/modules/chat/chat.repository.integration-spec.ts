@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Pool } from 'pg';
 import type { DrizzleDB } from '@/database/database.module';
 import { chatMembers, chatMessages, chatRooms, user } from '@/database/schema';
@@ -167,5 +167,90 @@ describe('ChatRepository (integration)', () => {
         '00000000-0000-4000-8000-000000000000',
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it('mutes a room for one member: they stop being a recipient, nothing else changes', async () => {
+    const mutedAtOf = async (memberUserId: string) => {
+      const [row] = await db
+        .select({ mutedAt: chatMembers.mutedAt })
+        .from(chatMembers)
+        .where(
+          and(
+            eq(chatMembers.chatRoomId, roomId),
+            eq(chatMembers.memberUserId, memberUserId),
+          ),
+        );
+      return row?.mutedAt;
+    };
+    await repository.createMessageForMember(roomId, secondUserId, 'muted');
+
+    await expect(
+      repository.setMutedForMember(roomId, outsiderId, true),
+    ).resolves.toBe(false);
+    await expect(
+      repository.setMutedForMember(roomId, firstUserId, true),
+    ).resolves.toBe(true);
+    const firstMutedAt = await mutedAtOf(firstUserId);
+    expect(firstMutedAt).toBeInstanceOf(Date);
+    // Muting a muted room changes nothing, not even the time.
+    await expect(
+      repository.setMutedForMember(roomId, firstUserId, true),
+    ).resolves.toBe(true);
+    await expect(mutedAtOf(firstUserId)).resolves.toEqual(firstMutedAt);
+
+    const muted = await repository.findRoomForMember(firstUserId, roomId);
+    expect(muted).toEqual(
+      expect.objectContaining({ id: roomId, isMuted: true }),
+    );
+    // Its messages still count as unread.
+    expect(muted?.unreadCount).toBeGreaterThan(0);
+    const [listed] = await repository.findRoomsForMember(firstUserId, 20, 0);
+    expect(listed?.isMuted).toBe(true);
+    // Muting is the muter's alone.
+    await expect(
+      repository.findRoomForMember(secondUserId, roomId),
+    ).resolves.toEqual(expect.objectContaining({ isMuted: false }));
+    await expect(
+      repository.findRoomForMember(outsiderId, roomId),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      repository.findMessageRecipients(roomId, secondUserId),
+    ).resolves.toEqual({ recipientUserIds: [], senderName: 'Chat Member' });
+    await expect(
+      repository.findMessageRecipients(roomId, firstUserId),
+    ).resolves.toEqual(
+      expect.objectContaining({ recipientUserIds: [secondUserId] }),
+    );
+
+    await expect(
+      repository.setMutedForMember(roomId, firstUserId, false),
+    ).resolves.toBe(true);
+    await expect(mutedAtOf(firstUserId)).resolves.toBeNull();
+    await expect(
+      repository.findMessageRecipients(roomId, secondUserId),
+    ).resolves.toEqual(
+      expect.objectContaining({ recipientUserIds: [firstUserId] }),
+    );
+    await expect(
+      repository.findRoomForMember(firstUserId, roomId),
+    ).resolves.toEqual(expect.objectContaining({ isMuted: false }));
+  });
+
+  it('does not let a member who is no longer active mute a room', async () => {
+    await db
+      .update(user)
+      .set({ status: 'SUSPENDED' })
+      .where(eq(user.id, secondUserId));
+    try {
+      await expect(
+        repository.setMutedForMember(roomId, secondUserId, true),
+      ).resolves.toBe(false);
+    } finally {
+      await db
+        .update(user)
+        .set({ status: 'ACTIVE' })
+        .where(eq(user.id, secondUserId));
+    }
   });
 });

@@ -31,6 +31,8 @@ export const chatMembers = pgTable(
       .notNull()
       .references(() => user.id),
     lastReadAt: timestamp('last_read_at', { withTimezone: true }),
+    /** When this member muted the room; null while its messages notify them. */
+    mutedAt: timestamp('muted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
