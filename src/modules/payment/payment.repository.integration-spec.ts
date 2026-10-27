@@ -14,6 +14,20 @@ import {
 } from '@/database/schema';
 import { PaymentServiceInvoicesRepository } from './payment.repository';
 
+/** An hour on the given day of November 2026, as the receipt's `session` reads it. */
+function session(day: number) {
+  return {
+    startTime: new Date(Date.UTC(2026, 10, day, 7)),
+    endTime: new Date(Date.UTC(2026, 10, day, 8)),
+  };
+}
+
+/** The same hour as an appointment row, which also records when the Advisor is free again. */
+function booked(day: number) {
+  const times = session(day);
+  return { ...times, unavailableUntil: times.endTime };
+}
+
 /**
  * The Advisee's transaction history against real Postgres: ownership through the appointments an
  * invoice pays for, one row per invoice however many appointments it covers, and the invoice
@@ -40,20 +54,6 @@ describe('PaymentServiceInvoicesRepository advisee invoices (integration)', () =
   const cancelledInvoiceId = crypto.randomUUID();
   const otherInvoiceId = crypto.randomUUID();
   const invoiceIds = [twoSessionInvoiceId, cancelledInvoiceId, otherInvoiceId];
-
-  /** An hour on the given day of November 2026, as the receipt's `session` reads it. */
-  function session(day: number) {
-    return {
-      startTime: new Date(Date.UTC(2026, 10, day, 7)),
-      endTime: new Date(Date.UTC(2026, 10, day, 8)),
-    };
-  }
-
-  /** The same hour as an appointment row, which also records when the Advisor is free again. */
-  function booked(day: number) {
-    const times = session(day);
-    return { ...times, unavailableUntil: times.endTime };
-  }
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
