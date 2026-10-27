@@ -90,12 +90,18 @@ const kinds = (statements: readonly Statement[]) =>
       )?.[0] ?? sql,
   );
 
+const translationInserts = (statements: readonly Statement[]) =>
+  statements.filter(({ sql }) =>
+    sql.startsWith('insert into "notification_translations"'),
+  );
+
+/** Each translation row written, as `[notificationId, locale, title, content]`. */
 const translationWrites = (statements: readonly Statement[]) =>
-  statements
-    .filter(({ sql }) =>
-      sql.startsWith('insert into "notification_translations"'),
-    )
-    .map(({ params }) => params.slice(0, 4));
+  translationInserts(statements).flatMap(({ params }) =>
+    Array.from({ length: params.length / 4 }, (_, row) =>
+      params.slice(row * 4, row * 4 + 4),
+    ),
+  );
 
 describe('NotificationsRepository languages', () => {
   it('writes a new notification and both its languages in one transaction', async () => {
@@ -106,7 +112,6 @@ describe('NotificationsRepository languages', () => {
     expect(kinds(statements)).toEqual([
       'begin',
       'insert into "notifications"',
-      'insert into "notification_translations"',
       'insert into "notification_translations"',
       'select',
       'commit',
@@ -164,11 +169,14 @@ describe('NotificationsRepository languages', () => {
       'begin',
       'insert into "notifications"',
       'insert into "notification_translations"',
-      'insert into "notification_translations"',
       'select',
       'commit',
     ]);
     expect(statements[1].sql).toContain('on conflict');
+    // Each language's conflict takes the text that language tried to insert.
+    const [translations] = translationInserts(statements);
+    expect(translations.sql).toContain('excluded.title');
+    expect(translations.sql).toContain('excluded.content');
     expect(translationWrites(statements)).toEqual([
       [
         notificationId,

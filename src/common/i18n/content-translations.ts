@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import type { DrizzleDB } from '@/database/database.module';
 import {
   advisorProfileTranslations,
@@ -100,28 +101,41 @@ export async function saveAdvisorProfileTranslation(
     });
 }
 
-export async function saveScreeningQuestionTranslation(
+/**
+ * A Service's questions are written together, so their translations go in as one
+ * statement. `excluded` is the row each conflict tried to insert, so every
+ * question keeps its own text.
+ */
+export async function saveScreeningQuestionTranslations(
   db: Writer,
-  questionId: string,
-  question: string,
+  questions: readonly { readonly id: string; readonly question: string }[],
   locale: ContentLocale = currentLocale(),
 ): Promise<void> {
+  if (questions.length === 0) return;
   await db
     .insert(screeningQuestionTranslations)
-    .values({ questionId, locale, question })
+    .values(
+      questions.map(({ id, question }) => ({
+        questionId: id,
+        locale,
+        question,
+      })),
+    )
     .onConflictDoUpdate({
       target: [
         screeningQuestionTranslations.questionId,
         screeningQuestionTranslations.locale,
       ],
-      set: { question },
+      set: { question: sql`excluded.question` },
     });
 }
 
 /**
  * A notification in every language it was written in at once: the system
  * writes notifications, not a reader, so each one is written in Thai and in
- * English when it is created, and shows in whichever the reader uses.
+ * English when it is created, and shows in whichever the reader uses. Every
+ * language goes in as one statement; `excluded` is the row each conflict tried
+ * to insert, so each language keeps its own text.
  */
 export async function saveNotificationTranslations(
   db: Writer,
@@ -140,16 +154,17 @@ export async function saveNotificationTranslations(
     ][]
   ).map(([locale, text]) => ({ notificationId, locale, ...text }));
   if (rows.length === 0) return;
-  for (const row of rows) {
-    await db
-      .insert(notificationTranslations)
-      .values(row)
-      .onConflictDoUpdate({
-        target: [
-          notificationTranslations.notificationId,
-          notificationTranslations.locale,
-        ],
-        set: { title: row.title, content: row.content },
-      });
-  }
+  await db
+    .insert(notificationTranslations)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [
+        notificationTranslations.notificationId,
+        notificationTranslations.locale,
+      ],
+      set: {
+        title: sql`excluded.title`,
+        content: sql`excluded.content`,
+      },
+    });
 }

@@ -59,6 +59,16 @@ describe('NotificationsRepository (integration)', () => {
       createdAt: new Date(Date.now() - minutesAgo * 60_000),
     });
 
+  /** A chat message's notification for the room, in Thai and English. */
+  const message = (content: string) => ({
+    ownerId,
+    type: 'NEW_MESSAGE' as const,
+    title: 'ข้อความใหม่จาก อารยา ส.',
+    content,
+    en: { title: 'New message from อารยา ส.', content },
+    resourceId: roomId,
+  });
+
   it("pages the owner's feed newest first, and only theirs", async () => {
     await insertAt(ownerId, 3);
     await insertAt(ownerId, 2);
@@ -97,15 +107,6 @@ describe('NotificationsRepository (integration)', () => {
   });
 
   it('keeps one unread notification per chat room, and starts a new one once read', async () => {
-    const message = (content: string) => ({
-      ownerId,
-      type: 'NEW_MESSAGE' as const,
-      title: 'ข้อความใหม่จาก อารยา ส.',
-      content,
-      en: { title: 'New message from อารยา ส.', content },
-      resourceId: roomId,
-    });
-
     const first = await repository.upsertUnreadMessage(message('สวัสดีครับ'));
     const second = await repository.upsertUnreadMessage(
       message('ขอเลื่อนเป็นวันพฤหัสได้ไหม'),
@@ -171,15 +172,6 @@ describe('NotificationsRepository (integration)', () => {
   });
 
   it('rewrites the English of a room notification with each new message', async () => {
-    const message = (content: string) => ({
-      ownerId,
-      type: 'NEW_MESSAGE' as const,
-      title: 'ข้อความใหม่จาก อารยา ส.',
-      content,
-      en: { title: 'New message from อารยา ส.', content },
-      resourceId: roomId,
-    });
-
     await repository.upsertUnreadMessage(message('สวัสดีครับ'));
     await repository.upsertUnreadMessage(message('See you Thursday'));
 

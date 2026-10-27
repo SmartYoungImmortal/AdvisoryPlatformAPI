@@ -2651,18 +2651,13 @@ async function main(): Promise<void> {
     const categoryIds = new Map<string, string>();
     for (const category of CATEGORIES) {
       const { name, description } = category;
-      const categoryId = await ensureNamed(
-        db,
-        serviceCategories,
-        name,
-        description,
-      );
-      categoryIds.set(name, categoryId);
-      const written = await db
+      const id = await ensureNamed(db, serviceCategories, name, description); // NOSONAR: the seed writes rows in order on purpose
+      categoryIds.set(name, id);
+      const written = await db // NOSONAR: the seed writes rows in order on purpose
         .insert(serviceCategoryTranslations)
         .values([
-          { categoryId, locale: 'th', name, description },
-          { categoryId, locale: 'en', ...category.en },
+          { categoryId: id, locale: 'th', name, description },
+          { categoryId: id, locale: 'en', ...category.en },
         ])
         .onConflictDoNothing()
         .returning({ locale: serviceCategoryTranslations.locale });
@@ -2672,9 +2667,9 @@ async function main(): Promise<void> {
     console.log('\nSkills');
     const skillIds = new Map<string, string>();
     for (const [name, english] of SKILLS) {
-      const skillId = await ensureNamed(db, skills, name, null);
+      const skillId = await ensureNamed(db, skills, name, null); // NOSONAR: the seed writes rows in order on purpose
       skillIds.set(name, skillId);
-      const written = await db
+      const written = await db // NOSONAR: the seed writes rows in order on purpose
         .insert(skillTranslations)
         .values([
           { skillId, locale: 'th', name, description: null },
@@ -2744,7 +2739,7 @@ async function main(): Promise<void> {
         });
         note('profile', true);
       }
-      const profileWritten = await db
+      const profileWritten = await db // NOSONAR: the seed writes rows in order on purpose
         .insert(advisorProfileTranslations)
         .values([
           {
@@ -2843,7 +2838,7 @@ async function main(): Promise<void> {
             ...shape,
           });
           await ensureGallery(db, found.id, service.name);
-          await ensureServiceTranslations(db, found.id, service);
+          await ensureServiceTranslations(db, found.id, service); // NOSONAR: the seed writes rows in order on purpose
           continue;
         }
         const [inserted] = await db
@@ -2869,7 +2864,7 @@ async function main(): Promise<void> {
           ...shape,
         });
         await ensureGallery(db, inserted.id, service.name);
-        await ensureServiceTranslations(db, inserted.id, service);
+        await ensureServiceTranslations(db, inserted.id, service); // NOSONAR: the seed writes rows in order on purpose
       }
     }
 

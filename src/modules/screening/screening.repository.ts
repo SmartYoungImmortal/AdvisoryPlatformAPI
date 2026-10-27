@@ -12,7 +12,7 @@ import {
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import {
   saveNotificationTranslations,
-  saveScreeningQuestionTranslation,
+  saveScreeningQuestionTranslations,
 } from '@/common/i18n/content-translations';
 import {
   screeningQuestionText,
@@ -156,13 +156,7 @@ export class ScreeningRepository extends EntityRepository<
           })),
         )
         .returning();
-      for (const question of created) {
-        await saveScreeningQuestionTranslation(
-          tx,
-          question.id,
-          question.question,
-        );
-      }
+      await saveScreeningQuestionTranslations(tx, created);
 
       await tx
         .update(screeningRequests)
