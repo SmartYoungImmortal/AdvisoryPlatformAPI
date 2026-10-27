@@ -1,13 +1,18 @@
-import { eq, inArray } from 'drizzle-orm';
+import { asc, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { runWithLocale } from '@/common/i18n/request-locale';
 import type { DrizzleDB } from '@/database/database.module';
-import { notifications, user } from '@/database/schema';
+import {
+  notificationTranslations,
+  notifications,
+  user,
+} from '@/database/schema';
 import { NotificationsRepository } from './notifications.repository';
 
 /**
- * These tests use a real Postgres database to check paging, owner checks and the chat-message
- * upsert.
+ * These tests use a real Postgres database to check paging, owner checks, the chat-message
+ * upsert, and that each notification reads in the request's language.
  */
 describe('NotificationsRepository (integration)', () => {
   let pool: Pool;
@@ -97,6 +102,7 @@ describe('NotificationsRepository (integration)', () => {
       type: 'NEW_MESSAGE' as const,
       title: 'ข้อความใหม่จาก อารยา ส.',
       content,
+      en: { title: 'New message from อารยา ส.', content },
       resourceId: roomId,
     });
 
@@ -119,5 +125,82 @@ describe('NotificationsRepository (integration)', () => {
       .from(notifications)
       .where(eq(notifications.ownerId, ownerId));
     expect(rows).toHaveLength(2);
+  });
+
+  it('writes both languages and reads each notification in the one the request asks for', async () => {
+    const created = await runWithLocale('en', () =>
+      repository.createWithTranslations({
+        ownerId,
+        type: 'BOOKING_CONFIRMED',
+        title: 'การจองของคุณได้รับการยืนยันแล้ว',
+        content: 'ปรึกษาการเงิน · 20 ก.ย. 2569 10:00',
+        en: {
+          title: 'Your booking is confirmed',
+          content: 'ปรึกษาการเงิน · 20 Sept 2026, 10:00',
+        },
+      }),
+    );
+    expect(created.title).toBe('Your booking is confirmed');
+
+    const translations = await db
+      .select()
+      .from(notificationTranslations)
+      .where(eq(notificationTranslations.notificationId, created.id))
+      .orderBy(asc(notificationTranslations.locale));
+    expect(translations.map((row) => [row.locale, row.title])).toEqual([
+      ['th', 'การจองของคุณได้รับการยืนยันแล้ว'],
+      ['en', 'Your booking is confirmed'],
+    ]);
+
+    const [inEnglish] = await runWithLocale('en', () =>
+      repository.findPageForOwner(ownerId, 20),
+    );
+    expect(inEnglish).toEqual(
+      expect.objectContaining({
+        title: 'Your booking is confirmed',
+        content: 'ปรึกษาการเงิน · 20 Sept 2026, 10:00',
+      }),
+    );
+    const [inThai] = await repository.findPageForOwner(ownerId, 20);
+    expect(inThai.title).toBe('การจองของคุณได้รับการยืนยันแล้ว');
+
+    const read = await runWithLocale('en', () =>
+      repository.markRead(created.id, ownerId),
+    );
+    expect(read?.title).toBe('Your booking is confirmed');
+  });
+
+  it('rewrites the English of a room notification with each new message', async () => {
+    const message = (content: string) => ({
+      ownerId,
+      type: 'NEW_MESSAGE' as const,
+      title: 'ข้อความใหม่จาก อารยา ส.',
+      content,
+      en: { title: 'New message from อารยา ส.', content },
+      resourceId: roomId,
+    });
+
+    await repository.upsertUnreadMessage(message('สวัสดีครับ'));
+    await repository.upsertUnreadMessage(message('See you Thursday'));
+
+    const page = await runWithLocale('en', () =>
+      repository.findPageForOwner(ownerId, 20),
+    );
+    expect(page).toHaveLength(1);
+    expect(page[0]).toEqual(
+      expect.objectContaining({
+        title: 'New message from อารยา ส.',
+        content: 'See you Thursday',
+      }),
+    );
+  });
+
+  it('falls back to the Thai on the row for a notification with no translations', async () => {
+    await insertAt(ownerId, 1);
+
+    const [row] = await runWithLocale('en', () =>
+      repository.findPageForOwner(ownerId, 20),
+    );
+    expect(row.title).toBe('1 minutes ago');
   });
 });

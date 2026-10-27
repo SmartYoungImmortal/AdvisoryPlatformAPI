@@ -1,10 +1,44 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, getColumns, lt, or, sql, type SQL } from 'drizzle-orm';
+import { saveNotificationTranslations } from '@/common/i18n/content-translations';
+import {
+  notificationContent,
+  notificationTitle,
+} from '@/common/i18n/localized-columns';
 import type { KeysetCursor } from '@/common/pagination/cursor-pagination.dto';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import { notifications } from '@/database/schema';
 import type { Notification, NotifyInput } from './notifications.types';
+
+/** The transaction a notification and its translations are written in. */
+type Transaction = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0];
+
+/**
+ * Every column of a notification, with the title and content in the request's
+ * language. A function, not a constant: the language is read when the query is
+ * built, so each query gets the one its request asks for.
+ */
+const localizedNotification = () => ({
+  ...getColumns(notifications),
+  title: notificationTitle(),
+  content: notificationContent(),
+});
+
+/**
+ * The notifications row itself: the Thai text, which is also the fallback for a
+ * language with no translation row. Picked field by field so `en` never reaches
+ * the insert.
+ */
+function sourceRow(input: NotifyInput) {
+  return {
+    ownerId: input.ownerId,
+    type: input.type,
+    title: input.title,
+    content: input.content ?? null,
+    resourceId: input.resourceId ?? null,
+  };
+}
 
 @Injectable()
 export class NotificationsRepository extends EntityRepository<
@@ -14,14 +48,14 @@ export class NotificationsRepository extends EntityRepository<
     super(db, notifications);
   }
 
-  /** Newest first. Paged with a cursor on (createdAt, id). */
+  /** Newest first, in the request's language. Paged with a cursor on (createdAt, id). */
   findPageForOwner(
     ownerId: string,
     limit: number,
     cursor?: KeysetCursor,
   ): Promise<Notification[]> {
     return this.db
-      .select()
+      .select(localizedNotification())
       .from(notifications)
       .where(
         and(
@@ -45,15 +79,19 @@ export class NotificationsRepository extends EntityRepository<
     return this.count(this.unreadWhere(ownerId));
   }
 
-  /** Returns `undefined` if the notification does not belong to the owner. */
+  /**
+   * Returns `undefined` if the notification does not belong to the owner. The
+   * returned text is in the request's language, read in the same statement.
+   */
   async markRead(
     id: string,
     ownerId: string,
   ): Promise<Notification | undefined> {
-    const [row] = await this.updateWhere(
-      and(eq(notifications.id, id), eq(notifications.ownerId, ownerId)) as SQL,
-      { isRead: true },
-    );
+    const [row] = await this.db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.id, id), eq(notifications.ownerId, ownerId)))
+      .returning(localizedNotification());
     return row;
   }
 
@@ -66,24 +104,62 @@ export class NotificationsRepository extends EntityRepository<
   }
 
   /**
+   * Adds a notification in Thai and English in one transaction, so it is never
+   * readable in only one of them. Returned in the request's language.
+   */
+  createWithTranslations(input: NotifyInput): Promise<Notification> {
+    return this.db.transaction(async (tx) => {
+      const [{ id }] = await tx
+        .insert(notifications)
+        .values(sourceRow(input))
+        .returning({ id: notifications.id });
+      return this.saveTranslationsAndRead(tx, id, input);
+    });
+  }
+
+  /**
    * For a new chat message: if the chat room already has an unread notification, update it and move
    * it to the top instead of adding a new one. The partial unique index keeps this correct when two
-   * messages arrive at the same time.
+   * messages arrive at the same time. Both translations are rewritten with the row, in the same
+   * transaction, so the room's notification shows the latest message in either language.
    */
-  async upsertUnreadMessage(values: NotifyInput): Promise<Notification> {
-    const [row] = await this.db
-      .insert(notifications)
-      .values(values)
-      .onConflictDoUpdate({
-        target: [notifications.ownerId, notifications.resourceId],
-        targetWhere: sql`${notifications.type} = 'NEW_MESSAGE' AND ${notifications.isRead} = false`,
-        set: {
-          title: values.title,
-          content: values.content ?? null,
-          createdAt: sql`now()`,
-        },
-      })
-      .returning();
+  upsertUnreadMessage(input: NotifyInput): Promise<Notification> {
+    return this.db.transaction(async (tx) => {
+      const [{ id }] = await tx
+        .insert(notifications)
+        .values(sourceRow(input))
+        .onConflictDoUpdate({
+          target: [notifications.ownerId, notifications.resourceId],
+          targetWhere: sql`${notifications.type} = 'NEW_MESSAGE' AND ${notifications.isRead} = false`,
+          set: {
+            title: input.title,
+            content: input.content ?? null,
+            createdAt: sql`now()`,
+          },
+        })
+        .returning({ id: notifications.id });
+      return this.saveTranslationsAndRead(tx, id, input);
+    });
+  }
+
+  /**
+   * Writes both languages of a notification just written on `tx`, then reads it
+   * back in the request's language; `returning()` cannot, as the translation rows
+   * do not exist yet when the notification row is written.
+   */
+  private async saveTranslationsAndRead(
+    tx: Transaction,
+    id: string,
+    input: NotifyInput,
+  ): Promise<Notification> {
+    await saveNotificationTranslations(tx, id, {
+      th: { title: input.title, content: input.content ?? null },
+      en: { title: input.en.title, content: input.en.content ?? null },
+    });
+    const [row] = await tx
+      .select(localizedNotification())
+      .from(notifications)
+      .where(eq(notifications.id, id));
     return row;
   }
 

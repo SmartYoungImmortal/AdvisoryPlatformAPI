@@ -1,6 +1,24 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, isNull, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  getColumns,
+  isNull,
+  type SQL,
+} from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import {
+  saveNotificationTranslations,
+  saveScreeningQuestionTranslation,
+} from '@/common/i18n/content-translations';
+import {
+  screeningQuestionText,
+  serviceName,
+} from '@/common/i18n/localized-columns';
+import { runWithLocale } from '@/common/i18n/request-locale';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
@@ -10,6 +28,7 @@ import {
   serviceScreeningQuestions,
   services,
   user,
+  type ContentLocale,
 } from '@/database/schema';
 import type {
   AdvisorScreeningRequestRow,
@@ -65,11 +84,33 @@ export class ScreeningRepository extends EntityRepository<
     return service;
   }
 
+  /**
+   * A Service's name in each language, for a notification that is written in all of them at once
+   * whatever language the request that sends it is in.
+   */
+  async findServiceNames(
+    serviceId: string,
+  ): Promise<Record<ContentLocale, string> | undefined> {
+    const [names] = await this.db
+      .select({
+        th: runWithLocale('th', serviceName),
+        en: runWithLocale('en', serviceName),
+      })
+      .from(services)
+      .where(eq(services.id, serviceId))
+      .limit(1);
+    return names;
+  }
+
   /* --------------------------------------------------------------- questions */
 
+  /** The Service's current questions, their text in the request's language. */
   findActiveQuestions(serviceId: string): Promise<ScreeningQuestion[]> {
     return this.db
-      .select()
+      .select({
+        ...getColumns(serviceScreeningQuestions),
+        question: screeningQuestionText(),
+      })
       .from(serviceScreeningQuestions)
       .where(
         and(
@@ -84,6 +125,9 @@ export class ScreeningRepository extends EntityRepository<
    * Replaces all questions of a Service. Old questions are soft-deleted because old answers still
    * point to them. Accepted requests become EXPIRED, so the Advisee has to answer the new
    * questions. Pending requests keep their saved answers.
+   *
+   * The new questions are written in the request's language: each one's text is that language's
+   * translation as well as the row's own fallback for any other.
    */
   replaceQuestions(
     serviceId: string,
@@ -112,6 +156,13 @@ export class ScreeningRepository extends EntityRepository<
           })),
         )
         .returning();
+      for (const question of created) {
+        await saveScreeningQuestionTranslation(
+          tx,
+          question.id,
+          question.question,
+        );
+      }
 
       await tx
         .update(screeningRequests)
@@ -181,9 +232,10 @@ export class ScreeningRepository extends EntityRepository<
           answer: answer.answer,
         })),
       );
-      await tx
-        .insert(notifications)
-        .values({ ...notification, resourceId: request.id });
+      await this.insertNotification(tx, {
+        ...notification,
+        resourceId: request.id,
+      });
 
       return request;
     });
@@ -232,7 +284,10 @@ export class ScreeningRepository extends EntityRepository<
     return row;
   }
 
-  /** Answers in question order, with the question text as it was when answered. */
+  /**
+   * Answers in question order, with the question text as it was when answered. That copy is in the
+   * language the Advisee read it in, and is shown as saved rather than translated, like the answer.
+   */
   findAnswers(requestId: string): Promise<ScreeningAnswerRow[]> {
     return this.db
       .select({
@@ -287,18 +342,36 @@ export class ScreeningRepository extends EntityRepository<
       if (!decided) {
         return undefined;
       }
-      await tx.insert(notifications).values(notification);
+      await this.insertNotification(tx, notification);
       return decided;
     });
   }
 
   /* ----------------------------------------------------------------- helpers */
 
+  /**
+   * Writes a notification in both its languages: the Thai on the row, the source, and each
+   * language as its own translation, so the reader sees whichever they use.
+   */
+  private async insertNotification(
+    db: Pick<DrizzleDB, 'insert'>,
+    { en, ...notification }: ScreeningNotification,
+  ): Promise<void> {
+    const [row] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning({ id: notifications.id });
+    await saveNotificationTranslations(db, row.id, {
+      th: { title: notification.title, content: notification.content },
+      en,
+    });
+  }
+
   private serviceSelect() {
     return this.db
       .select({
         id: services.id,
-        name: services.name,
+        name: serviceName(),
         advisorId: services.advisorId,
         screeningRequired: services.screeningRequired,
       })
@@ -311,7 +384,7 @@ export class ScreeningRepository extends EntityRepository<
       .select({
         id: screeningRequests.id,
         serviceId: screeningRequests.serviceId,
-        serviceName: services.name,
+        serviceName: serviceName(),
         adviseeId: screeningRequests.adviseeId,
         adviseeDisplayName: user.displayName,
         status: screeningRequests.status,

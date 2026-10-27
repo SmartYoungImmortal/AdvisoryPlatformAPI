@@ -1,3 +1,4 @@
+import { serviceName } from '@/common/i18n/localized-columns';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
@@ -63,7 +64,7 @@ export class PaymentServiceInvoicesRepository extends EntityRepository<
         },
         service: {
           advisorFullName: user.fullName,
-          name: services.name,
+          name: serviceName(),
         },
       })
       .from(serviceInvoices)

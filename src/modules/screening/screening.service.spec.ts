@@ -93,6 +93,7 @@ describe('ScreeningService', () => {
       ScreeningRepository,
       | 'findOwnedService'
       | 'findPublishedService'
+      | 'findServiceNames'
       | 'findActiveQuestions'
       | 'replaceQuestions'
       | 'findLatestForAdvisee'
@@ -111,6 +112,7 @@ describe('ScreeningService', () => {
     repository = {
       findOwnedService: jest.fn(),
       findPublishedService: jest.fn(),
+      findServiceNames: jest.fn(),
       findActiveQuestions: jest.fn(),
       replaceQuestions: jest.fn(),
       findLatestForAdvisee: jest.fn(),
@@ -251,7 +253,20 @@ describe('ScreeningService', () => {
           type: 'SCREENING_REQUESTED',
           title: SCREENING_NOTIFICATIONS.requestedTitle,
           content: SCREENING_NOTIFICATIONS.requestedContent('ณัฐพงษ์ ส.', 1),
+          en: {
+            title: 'New screening request',
+            content: 'ณัฐพงษ์ ส. sent 1 screening answer',
+          },
         },
+      );
+    });
+
+    it('words the English answer count in the singular and the plural', () => {
+      expect(SCREENING_NOTIFICATIONS.en.requestedContent('Mali', 1)).toBe(
+        'Mali sent 1 screening answer',
+      );
+      expect(SCREENING_NOTIFICATIONS.en.requestedContent('Mali', 3)).toBe(
+        'Mali sent 3 screening answers',
       );
     });
 
@@ -429,12 +444,51 @@ describe('ScreeningService', () => {
           resourceId: serviceId,
           title: SCREENING_NOTIFICATIONS.acceptedTitle,
           content: SCREENING_NOTIFICATIONS.acceptedContent(advisor.name),
+          en: {
+            title: SCREENING_NOTIFICATIONS.en.acceptedTitle,
+            content: SCREENING_NOTIFICATIONS.en.acceptedContent(advisor.name),
+          },
         },
+      );
+      expect(repository.findServiceNames).not.toHaveBeenCalled();
+    });
+
+    it('names the service in each language when declining, not in the advisor’s', async () => {
+      // The advisor reads in English, so their row carries the English name.
+      repository.findOneForAdvisor.mockResolvedValue(
+        makeRow({ serviceName: 'Final project advice' }),
+      );
+      repository.findServiceNames.mockResolvedValue({
+        th: service.name,
+        en: 'Final project advice',
+      });
+      repository.decidePending.mockResolvedValue(
+        makeRequest({ status: 'DECLINED' }),
+      );
+
+      await service_.decline(advisor, requestId, {});
+
+      expect(repository.findServiceNames).toHaveBeenCalledWith(serviceId);
+      expect(repository.decidePending).toHaveBeenCalledWith(
+        requestId,
+        expect.anything(),
+        expect.objectContaining({
+          title: SCREENING_NOTIFICATIONS.declinedTitle,
+          content: service.name,
+          en: {
+            title: SCREENING_NOTIFICATIONS.en.declinedTitle,
+            content: 'Final project advice',
+          },
+        }),
       );
     });
 
     it('declines with the optional message, and without one', async () => {
       repository.findOneForAdvisor.mockResolvedValue(makeRow());
+      repository.findServiceNames.mockResolvedValue({
+        th: service.name,
+        en: service.name,
+      });
       repository.decidePending.mockResolvedValue(
         makeRequest({ status: 'DECLINED' }),
       );

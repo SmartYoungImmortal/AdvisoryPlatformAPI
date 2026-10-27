@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { asc, desc, eq } from 'drizzle-orm';
+import { serviceName } from '@/common/i18n/localized-columns';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   chatMessages,
@@ -102,7 +103,7 @@ export class CaseContextRepository {
         .select({
           id: serviceAppointments.id,
           serviceId: serviceAppointments.serviceId,
-          serviceName: services.name,
+          serviceName: serviceName(),
           advisorId: serviceAppointments.advisorId,
           adviseeId: serviceAppointments.adviseeId,
           type: serviceAppointments.type,

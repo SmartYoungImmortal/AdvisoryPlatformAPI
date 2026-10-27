@@ -4,7 +4,8 @@ import { ChatRepository } from './chat.repository';
 import type { ChatMessageResponseDto } from './dtos/chat-message-response.dto';
 
 const PREVIEW_LENGTH = 140;
-const FALLBACK_SENDER = 'ผู้ใช้';
+/** Who the title names when the sender has no name to show, in each language. */
+const FALLBACK_SENDER = { th: 'ผู้ใช้', en: 'a user' } as const;
 
 /**
  * Turns a sent chat message into a notification (and device push) for the members who are not
@@ -42,8 +43,13 @@ export class ChatMessageNotifier {
             this.notifications.notify({
               ownerId,
               type: 'NEW_MESSAGE',
-              title: `ข้อความใหม่จาก ${senderName ?? FALLBACK_SENDER}`,
+              title: `ข้อความใหม่จาก ${senderName ?? FALLBACK_SENDER.th}`,
               content: preview,
+              // The preview is the message as its sender wrote it, in either language.
+              en: {
+                title: `New message from ${senderName ?? FALLBACK_SENDER.en}`,
+                content: preview,
+              },
               resourceId: message.chatRoomId,
             }),
           ),

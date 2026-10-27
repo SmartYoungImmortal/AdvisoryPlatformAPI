@@ -21,15 +21,15 @@ export class ServiceCategoriesService {
   ): Promise<PaginatedResult<ServiceCategoryResponseDto>> {
     return paginateQuery(
       query,
-      (options) =>
-        this.serviceCategoriesRepository.findMany(undefined, options),
+      (options) => this.serviceCategoriesRepository.findManyLocalized(options),
       () => this.serviceCategoriesRepository.count(),
       (category) => new ServiceCategoryResponseDto(category),
     );
   }
 
   async findOne(id: string): Promise<ServiceCategoryResponseDto> {
-    const category = await this.serviceCategoriesRepository.findById(id);
+    const category =
+      await this.serviceCategoriesRepository.findByIdLocalized(id);
 
     if (!category) {
       throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);
@@ -43,7 +43,7 @@ export class ServiceCategoriesService {
     dto: CreateServiceCategoryDto,
     actorId: string,
   ): Promise<ServiceCategoryResponseDto> {
-    const category = await this.serviceCategoriesRepository.create({
+    const category = await this.serviceCategoriesRepository.createLocalized({
       ...dto,
       createdByUserId: actorId,
       updatedByUserId: actorId,
@@ -51,15 +51,16 @@ export class ServiceCategoriesService {
     return new ServiceCategoryResponseDto(category);
   }
 
+  /** In English, the name and description change for English readers only; see `updateLocalized`. */
   async update(
     id: string,
     dto: UpdateServiceCategoryDto,
     actorId: string,
   ): Promise<ServiceCategoryResponseDto> {
-    const category = await this.serviceCategoriesRepository.updateById(id, {
-      ...dto,
-      updatedByUserId: actorId,
-    });
+    const category = await this.serviceCategoriesRepository.updateLocalized(
+      id,
+      { ...dto, updatedByUserId: actorId },
+    );
 
     if (!category) {
       throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);
@@ -69,7 +70,7 @@ export class ServiceCategoriesService {
   }
 
   async delete(id: string): Promise<ServiceCategoryResponseDto> {
-    const category = await this.serviceCategoriesRepository.deleteById(id);
+    const category = await this.serviceCategoriesRepository.deleteLocalized(id);
 
     if (!category) {
       throw new NotFoundException(SERVICE_CATEGORY_MESSAGES.notFound);

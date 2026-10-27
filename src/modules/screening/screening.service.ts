@@ -185,6 +185,13 @@ export class ScreeningService {
             adviseeName,
             answers.length,
           ),
+          en: {
+            title: SCREENING_NOTIFICATIONS.en.requestedTitle,
+            content: SCREENING_NOTIFICATIONS.en.requestedContent(
+              adviseeName,
+              answers.length,
+            ),
+          },
         },
       );
       return new ScreeningRequestResponseDto(request);
@@ -244,11 +251,12 @@ export class ScreeningService {
         ? {
             title: SCREENING_NOTIFICATIONS.acceptedTitle,
             content: SCREENING_NOTIFICATIONS.acceptedContent(advisorName),
+            en: {
+              title: SCREENING_NOTIFICATIONS.en.acceptedTitle,
+              content: SCREENING_NOTIFICATIONS.en.acceptedContent(advisorName),
+            },
           }
-        : {
-            title: SCREENING_NOTIFICATIONS.declinedTitle,
-            content: current.serviceName,
-          };
+        : await this.declinedMessage(current);
     const decided = await this.repository.decidePending(
       requestId,
       { status, decisionReason, decidedAt: new Date() },
@@ -272,9 +280,25 @@ export class ScreeningService {
   }
 
   /**
-   * Matches each answer to its question and keeps a copy of the question text. Each answer must
-   * belong to a current question of this Service, only once, and every required question must be
-   * answered.
+   * The decline notification names the Service. It is read in each language rather than taken from
+   * `row`, whose name is in the Advisor's language, not necessarily the one the Advisee reads.
+   */
+  private async declinedMessage(row: AdvisorScreeningRequestRow) {
+    const names = await this.repository.findServiceNames(row.serviceId);
+    return {
+      title: SCREENING_NOTIFICATIONS.declinedTitle,
+      content: names?.th ?? row.serviceName,
+      en: {
+        title: SCREENING_NOTIFICATIONS.en.declinedTitle,
+        content: names?.en ?? row.serviceName,
+      },
+    };
+  }
+
+  /**
+   * Matches each answer to its question and keeps a copy of the question text, in the language the
+   * Advisee read it in. Each answer must belong to a current question of this Service, only once,
+   * and every required question must be answered.
    */
   private matchAnswers(
     questions: ScreeningQuestion[],

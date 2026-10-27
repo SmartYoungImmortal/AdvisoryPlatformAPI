@@ -27,18 +27,23 @@ describe('SkillsService', () => {
   let repository: jest.Mocked<
     Pick<
       SkillsRepository,
-      'findMany' | 'count' | 'findById' | 'create' | 'updateById' | 'deleteById'
+      | 'findManyLocalized'
+      | 'count'
+      | 'findByIdLocalized'
+      | 'createLocalized'
+      | 'updateLocalized'
+      | 'deleteLocalized'
     >
   >;
 
   beforeEach(() => {
     repository = {
-      findMany: jest.fn(),
+      findManyLocalized: jest.fn(),
       count: jest.fn(),
-      findById: jest.fn(),
-      create: jest.fn(),
-      updateById: jest.fn(),
-      deleteById: jest.fn(),
+      findByIdLocalized: jest.fn(),
+      createLocalized: jest.fn(),
+      updateLocalized: jest.fn(),
+      deleteLocalized: jest.fn(),
     };
     service = new SkillsService(repository as unknown as SkillsRepository);
   });
@@ -46,12 +51,12 @@ describe('SkillsService', () => {
   describe('findMany', () => {
     it('paginates and maps rows to response DTOs', async () => {
       const query = Object.assign(new SkillQueryDto(), { page: 2, limit: 10 });
-      repository.findMany.mockResolvedValue([makeSkill()]);
+      repository.findManyLocalized.mockResolvedValue([makeSkill()]);
       repository.count.mockResolvedValue(11);
 
       const result = await service.findMany(query);
 
-      expect(repository.findMany).toHaveBeenCalledWith(undefined, {
+      expect(repository.findManyLocalized).toHaveBeenCalledWith({
         limit: 10,
         offset: 10,
       });
@@ -72,7 +77,7 @@ describe('SkillsService', () => {
 
   describe('findOne', () => {
     it('returns the mapped skill when found', async () => {
-      repository.findById.mockResolvedValue(makeSkill());
+      repository.findByIdLocalized.mockResolvedValue(makeSkill());
 
       const result = await service.findOne(makeSkill().id);
 
@@ -80,7 +85,7 @@ describe('SkillsService', () => {
     });
 
     it('throws NotFoundException when missing', async () => {
-      repository.findById.mockResolvedValue(undefined);
+      repository.findByIdLocalized.mockResolvedValue(undefined);
 
       await expect(service.findOne('missing-id')).rejects.toThrow(
         NotFoundException,
@@ -90,11 +95,13 @@ describe('SkillsService', () => {
 
   describe('create', () => {
     it('creates and returns the mapped skill', async () => {
-      repository.create.mockResolvedValue(makeSkill({ name: 'New skill' }));
+      repository.createLocalized.mockResolvedValue(
+        makeSkill({ name: 'New skill' }),
+      );
 
       const result = await service.create({ name: 'New skill' }, ACTOR_ID);
 
-      expect(repository.create).toHaveBeenCalledWith({
+      expect(repository.createLocalized).toHaveBeenCalledWith({
         name: 'New skill',
         createdByUserId: ACTOR_ID,
         updatedByUserId: ACTOR_ID,
@@ -105,7 +112,9 @@ describe('SkillsService', () => {
 
   describe('update', () => {
     it('updates and returns the mapped skill', async () => {
-      repository.updateById.mockResolvedValue(makeSkill({ name: 'Updated' }));
+      repository.updateLocalized.mockResolvedValue(
+        makeSkill({ name: 'Updated' }),
+      );
 
       const result = await service.update(
         makeSkill().id,
@@ -113,7 +122,7 @@ describe('SkillsService', () => {
         ACTOR_ID,
       );
 
-      expect(repository.updateById).toHaveBeenCalledWith(makeSkill().id, {
+      expect(repository.updateLocalized).toHaveBeenCalledWith(makeSkill().id, {
         name: 'Updated',
         updatedByUserId: ACTOR_ID,
       });
@@ -121,7 +130,7 @@ describe('SkillsService', () => {
     });
 
     it('throws NotFoundException when the skill does not exist', async () => {
-      repository.updateById.mockResolvedValue(undefined);
+      repository.updateLocalized.mockResolvedValue(undefined);
 
       await expect(
         service.update('missing-id', { name: 'X' }, ACTOR_ID),
@@ -131,7 +140,7 @@ describe('SkillsService', () => {
 
   describe('delete', () => {
     it('returns the deleted skill', async () => {
-      repository.deleteById.mockResolvedValue(makeSkill());
+      repository.deleteLocalized.mockResolvedValue(makeSkill());
 
       await expect(service.delete(makeSkill().id)).resolves.toEqual(
         expect.objectContaining({
@@ -142,7 +151,7 @@ describe('SkillsService', () => {
     });
 
     it('throws NotFoundException when the skill does not exist', async () => {
-      repository.deleteById.mockResolvedValue(undefined);
+      repository.deleteLocalized.mockResolvedValue(undefined);
 
       await expect(service.delete('missing-id')).rejects.toThrow(
         NotFoundException,
