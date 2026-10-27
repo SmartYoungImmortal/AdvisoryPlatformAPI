@@ -7,6 +7,8 @@ function validConfig(overrides: Record<string, unknown> = {}) {
     BETTER_AUTH_SECRET: 'a'.repeat(32),
     BETTER_AUTH_URL: 'http://localhost:4000',
     TRUSTED_ORIGINS: 'http://localhost:3000',
+    FRONTEND_URL: 'http://localhost:3000',
+    BACKEND_PUBLIC_URL: 'http://localhost:4000',
     OMISE_PUBLIC_KEY: '',
     OMISE_SECRET_KEY: '',
     ...overrides,

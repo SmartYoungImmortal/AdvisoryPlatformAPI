@@ -5,6 +5,7 @@ import {
   chatMessages,
   refundCases,
   serviceAppointments,
+  serviceAppointmentsOnInvoice,
   serviceInvoices,
   services,
   user,
@@ -96,30 +97,41 @@ export class CaseContextRepository {
 
   /** One field list for every appointment read, invoice left-joined. */
   private selectAppointment() {
-    return this.db
-      .select({
-        id: serviceAppointments.id,
-        serviceId: serviceAppointments.serviceId,
-        serviceName: services.name,
-        advisorId: serviceAppointments.advisorId,
-        adviseeId: serviceAppointments.adviseeId,
-        type: serviceAppointments.type,
-        state: serviceAppointments.state,
-        startTime: serviceAppointments.startTime,
-        endTime: serviceAppointments.endTime,
-        cancelledAt: serviceAppointments.cancelledAt,
-        cancelledByUserId: serviceAppointments.cancelledByUserId,
-        jitsiRoomName: serviceAppointments.jitsiRoomName,
-        chatRoomId: serviceAppointments.chatRoomId,
-        invoiceAmountSatang: serviceInvoices.amountSatang,
-        invoiceStatus: serviceInvoices.status,
-      })
-      .from(serviceAppointments)
-      .innerJoin(services, eq(services.id, serviceAppointments.serviceId))
-      .leftJoin(
-        serviceInvoices,
-        eq(serviceInvoices.appointmentId, serviceAppointments.id),
-      )
-      .$dynamic();
+    return (
+      this.db
+        .select({
+          id: serviceAppointments.id,
+          serviceId: serviceAppointments.serviceId,
+          serviceName: services.name,
+          advisorId: serviceAppointments.advisorId,
+          adviseeId: serviceAppointments.adviseeId,
+          type: serviceAppointments.type,
+          state: serviceAppointments.state,
+          startTime: serviceAppointments.startTime,
+          endTime: serviceAppointments.endTime,
+          cancelledAt: serviceAppointments.cancelledAt,
+          cancelledByUserId: serviceAppointments.cancelledByUserId,
+          jitsiRoomName: serviceAppointments.jitsiRoomName,
+          chatRoomId: serviceAppointments.chatRoomId,
+          invoiceAmountSatang: serviceInvoices.amountSatang,
+          invoiceStatus: serviceInvoices.status,
+        })
+        .from(serviceAppointments)
+        .innerJoin(services, eq(services.id, serviceAppointments.serviceId))
+        // The appointment's invoice, through the junction table (an appointment
+        // is on at most one invoice: `serviceAppointmentId` is unique there).
+        .leftJoin(
+          serviceAppointmentsOnInvoice,
+          eq(
+            serviceAppointmentsOnInvoice.serviceAppointmentId,
+            serviceAppointments.id,
+          ),
+        )
+        .leftJoin(
+          serviceInvoices,
+          eq(serviceInvoices.id, serviceAppointmentsOnInvoice.serviceInvoiceId),
+        )
+        .$dynamic()
+    );
   }
 }

@@ -82,6 +82,7 @@ import {
   refundCaseEvidence,
   refundCases,
   serviceAppointments,
+  serviceAppointmentsOnInvoice,
   serviceCategories,
   serviceImages,
   serviceInvoices,
@@ -1753,16 +1754,18 @@ async function seedActivity(
 
     const amountSatang = service.priceSatang;
     const feeSatang = Math.round(amountSatang * FEE_RATE);
+    // An invoice reaches its appointment through the junction table.
     let [invoice] = await db
-      .select({ id: serviceInvoices.id })
-      .from(serviceInvoices)
-      .where(eq(serviceInvoices.appointmentId, appointment.id))
+      .select({ id: serviceAppointmentsOnInvoice.serviceInvoiceId })
+      .from(serviceAppointmentsOnInvoice)
+      .where(
+        eq(serviceAppointmentsOnInvoice.serviceAppointmentId, appointment.id),
+      )
       .limit(1);
     if (!invoice) {
       [invoice] = await db
         .insert(serviceInvoices)
         .values({
-          appointmentId: appointment.id,
           amountSatang,
           platformFeeSatang: feeSatang,
           providerChargeId: `chrg_demo_${b.key}`,
@@ -1772,6 +1775,10 @@ async function seedActivity(
           createdAt: new Date(start.getTime() - 3 * DAY + MINUTE),
         })
         .returning({ id: serviceInvoices.id });
+      await db.insert(serviceAppointmentsOnInvoice).values({
+        serviceAppointmentId: appointment.id,
+        serviceInvoiceId: invoice.id,
+      });
     }
 
     if (b.review) {

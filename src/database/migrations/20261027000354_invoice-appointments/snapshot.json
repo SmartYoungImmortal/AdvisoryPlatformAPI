@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "f2d63002-dc17-4976-a0a1-7a47fbacdc90",
+  "id": "f20d20d9-5269-4832-a33d-079340defdb9",
   "prevIds": [
-    "e133f0bd-c2bd-45e7-a095-4f196bd6f32e"
+    "74ecfdf3-5191-41e6-a59d-232c30182568"
   ],
   "ddl": [
     {
@@ -41,7 +41,8 @@
       "values": [
         "PENDING",
         "ACCEPTED",
-        "DECLINED"
+        "DECLINED",
+        "EXPIRED"
       ],
       "name": "screening_status",
       "entityType": "enums",
@@ -127,9 +128,13 @@
         "PAYMENT_SUCCEEDED",
         "SESSION_REMINDER",
         "NEW_MESSAGE",
+        "SCREENING_REQUESTED",
         "SCREENING_DECIDED",
         "VERIFICATION_DECIDED",
-        "POLICY_WARNING"
+        "POLICY_WARNING",
+        "BOOKING_RECEIVED",
+        "PAYOUT_SENT",
+        "REVIEW_RECEIVED"
       ],
       "name": "notification_type",
       "entityType": "enums",
@@ -378,6 +383,12 @@
     {
       "isRlsEnabled": false,
       "name": "notifications",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "push_subscriptions",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1422,6 +1433,32 @@
       "table": "skills"
     },
     {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "skills"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "skills"
+    },
+    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -1877,6 +1914,32 @@
       "table": "service_categories"
     },
     {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "service_categories"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "service_categories"
+    },
+    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -2183,6 +2246,19 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "question_text",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "screening_answers"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "answer",
       "entityType": "columns",
       "schema": "public",
@@ -2293,6 +2369,19 @@
       "table": "screening_requests"
     },
     {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "viewed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "screening_requests"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -2332,6 +2421,19 @@
       "table": "service_screening_questions"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "is_required",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "service_screening_questions"
+    },
+    {
       "type": "integer",
       "typeSchema": null,
       "notNull": true,
@@ -2353,6 +2455,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "service_screening_questions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
       "entityType": "columns",
       "schema": "public",
       "table": "service_screening_questions"
@@ -3138,19 +3253,6 @@
       "table": "service_invoices"
     },
     {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "appointment_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "service_invoices"
-    },
-    {
       "type": "integer",
       "typeSchema": null,
       "notNull": true,
@@ -3801,6 +3903,19 @@
       "table": "notifications"
     },
     {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "resource_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "notifications"
+    },
+    {
       "type": "boolean",
       "typeSchema": null,
       "notNull": true,
@@ -3825,6 +3940,97 @@
       "entityType": "columns",
       "schema": "public",
       "table": "notifications"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "push_subscriptions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "push_subscriptions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "endpoint",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "push_subscriptions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "p256dh",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "push_subscriptions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "auth",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "push_subscriptions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_agent",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "push_subscriptions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "push_subscriptions"
     },
     {
       "nameExplicit": true,
@@ -3936,11 +4142,11 @@
         }
       ],
       "isUnique": true,
-      "where": null,
+      "where": "\"status\" = 'PENDING'",
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "screening_requests_advisee_service_key",
+      "name": "screening_requests_pending_advisee_service_key",
       "entityType": "indexes",
       "schema": "public",
       "table": "screening_requests"
@@ -4000,6 +4206,90 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "chat_messages"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "created_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "notifications_owner_created_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "notifications"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "resource_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"type\" = 'NEW_MESSAGE' AND \"is_read\" = false",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "notifications_unread_message_owner_resource_key",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "notifications"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "push_subscriptions_user_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "push_subscriptions"
     },
     {
       "nameExplicit": false,
@@ -4208,6 +4498,40 @@
     {
       "nameExplicit": false,
       "columns": [
+        "created_by_user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "skills_created_by_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "skills"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "updated_by_user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "skills_updated_by_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "skills"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "advisor_id"
       ],
       "schemaTo": "public",
@@ -4289,6 +4613,40 @@
       "entityType": "fks",
       "schema": "public",
       "table": "availability_weekly_windows"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "created_by_user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "service_categories_created_by_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "service_categories"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "updated_by_user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "service_categories_updated_by_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "service_categories"
     },
     {
       "nameExplicit": false,
@@ -4786,23 +5144,6 @@
     {
       "nameExplicit": false,
       "columns": [
-        "appointment_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "service_appointments",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "service_invoices_appointment_id_service_appointments_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "service_invoices"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
         "chat_room_id"
       ],
       "schemaTo": "public",
@@ -5020,6 +5361,23 @@
       "entityType": "fks",
       "schema": "public",
       "table": "notifications"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "push_subscriptions_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "push_subscriptions"
     },
     {
       "columns": [
@@ -5441,6 +5799,16 @@
       "entityType": "pks"
     },
     {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "push_subscriptions_pkey",
+      "schema": "public",
+      "table": "push_subscriptions",
+      "entityType": "pks"
+    },
+    {
       "nameExplicit": false,
       "columns": [
         "token"
@@ -5515,6 +5883,17 @@
       "name": "service_appointments_on_service_invoices_serviceAppointmentId_key",
       "schema": "public",
       "table": "service_appointments_on_service_invoices",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "endpoint"
+      ],
+      "nullsNotDistinct": false,
+      "name": "push_subscriptions_endpoint_key",
+      "schema": "public",
+      "table": "push_subscriptions",
       "entityType": "uniques"
     },
     {
