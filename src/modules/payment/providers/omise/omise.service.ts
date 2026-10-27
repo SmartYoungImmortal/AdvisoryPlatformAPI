@@ -127,6 +127,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
       if (chargeRes.failure_code) {
         return {
           status: 'failed',
+          brand: chargeRes.card.brand,
           lastDigits: chargeRes.card.last_digits,
           errorCode: FailureCodeKeys.parse(chargeRes.failure_code),
           message: FailureCodeEnum.parse(chargeRes.failure_code),
@@ -134,6 +135,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
       }
       return {
         status: 'success',
+        brand: chargeRes.card.brand,
         lastDigits: chargeRes.card.last_digits,
         redirectUrl: chargeRes.authorize_uri,
         chargeId: chargeRes.id,
@@ -142,6 +144,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
       console.error(error);
       return {
         status: 'failed',
+        brand: '',
         lastDigits: '',
         errorCode: 'unspecified',
         message: FailureCodeEnum.parse('unspecified'),
@@ -155,6 +158,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
       if (chargeRes.failure_code) {
         return {
           status: 'failed',
+          brand: chargeRes.card.brand,
           lastDigits: chargeRes.card.last_digits,
           errorCode: FailureCodeKeys.parse(chargeRes.failure_code),
           message: FailureCodeEnum.parse(chargeRes.failure_code),
@@ -162,6 +166,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
       }
       return {
         status: 'success',
+        brand: chargeRes.card.brand,
         lastDigits: chargeRes.card.last_digits,
         redirectUrl: chargeRes.authorize_uri,
         chargeId: chargeRes.id,
@@ -170,6 +175,7 @@ export class OmisePaymentProvider implements IPaymentProvider {
       console.error(error);
       return {
         status: 'failed',
+        brand: '',
         lastDigits: '',
         errorCode: 'unspecified',
         message: FailureCodeEnum.parse('unspecified'),

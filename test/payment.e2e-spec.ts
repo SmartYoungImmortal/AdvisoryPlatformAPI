@@ -38,6 +38,7 @@ describe('PaymentController (e2e)', () => {
       charges.push(args);
       return Promise.resolve({
         status: 'success',
+        brand: 'Visa',
         lastDigits: '4242',
         chargeId: 'chrg_test_checkout',
         redirectUrl: 'https://pay.omise.co/charges/chrg_test/authorize',
@@ -115,6 +116,9 @@ describe('PaymentController (e2e)', () => {
       .select({
         amountSatang: serviceInvoices.amountSatang,
         providerChargeId: serviceInvoices.providerChargeId,
+        cardBrand: serviceInvoices.cardBrand,
+        cardLastDigits: serviceInvoices.cardLastDigits,
+        paidAt: serviceInvoices.paidAt,
       })
       .from(serviceInvoices)
       .where(eq(serviceInvoices.id, invoiceId));
@@ -125,5 +129,63 @@ describe('PaymentController (e2e)', () => {
     expect(cardToken).toBe('tokn_test_checkout');
     expect(redirectUri).toContain(`/api/v1/payment/callback/${invoiceId}`);
     expect(invoice.providerChargeId).toBe('chrg_test_checkout');
+    // The charge names its card; its outcome waits for the 3-D Secure return.
+    expect(invoice).toMatchObject({
+      cardBrand: 'Visa',
+      cardLastDigits: '4242',
+      paidAt: null,
+    });
+  });
+
+  it("lists the Advisee's invoices as receipts, and hides them from everyone else", async () => {
+    const seeded = await seedAdvisorService({ app, db }, ids, {
+      label: 'Receipt',
+    });
+    const advisee = await signUpUser(app, 'Receipt payer', ids.userIds);
+    const stranger = await signUpUser(app, 'Receipt stranger', ids.userIds);
+    const startTime = seeded.slotAt('10:00');
+    const created = await advisee.agent
+      .post('/api/v1/payment/invoice')
+      .send({ serviceId: seeded.serviceId, startTimes: [startTime] })
+      .expect(201);
+    const invoiceId = stringField(data(created.body), 'id');
+
+    const list = await advisee.agent
+      .get('/api/v1/payment/invoices?page=1&limit=20')
+      .expect(200);
+    expect(data(list.body)).toMatchObject({
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    const items = data(list.body).items as Record<string, unknown>[];
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: invoiceId,
+      status: 'pending',
+      refundSatang: null,
+      paidAt: null,
+      service: { id: seeded.serviceId },
+      session: { startTime },
+      booking: 'unconfirmed',
+      card: null,
+    });
+    expect(stringField(items[0], 'invoiceNumber')).toMatch(
+      /^INV-\d{4}-\d{6,}$/,
+    );
+
+    const receipt = await advisee.agent
+      .get(`/api/v1/payment/invoices/${invoiceId}`)
+      .expect(200);
+    expect(data(receipt.body)).toEqual(items[0]);
+
+    await stranger.agent
+      .get(`/api/v1/payment/invoices/${invoiceId}`)
+      .expect(404);
+    const strangerList = await stranger.agent
+      .get('/api/v1/payment/invoices')
+      .expect(200);
+    expect(data(strangerList.body)).toMatchObject({ items: [], total: 0 });
   });
 });

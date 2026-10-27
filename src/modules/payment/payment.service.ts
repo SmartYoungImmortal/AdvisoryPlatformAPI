@@ -25,6 +25,23 @@ import { ConfigService } from '@nestjs/config';
 import { ENV_KEYS } from '@/config/env.constants';
 import { InvoiceDto } from '@/modules/payment/dto/invoice.dto';
 import { PaymentServiceInvoicesRepository } from '@/modules/payment/payment.repository';
+import { AdviseeInvoiceResponseDto } from '@/modules/payment/dto/advisee-invoice-response.dto';
+import {
+  paginateQuery,
+  type OffsetPaginationDto,
+  type PaginatedResult,
+} from '@/common/pagination/offset-pagination.dto';
+
+/**
+ * The card a charge result names, as the two columns a receipt shows. The provider answers an
+ * empty string when it never reached a card, which is stored as unknown rather than blank.
+ */
+function chargedCard(result: { brand: string; lastDigits: string }) {
+  return {
+    cardBrand: result.brand || null,
+    cardLastDigits: result.lastDigits || null,
+  };
+}
 
 @Injectable()
 export class PaymentService {
@@ -188,6 +205,34 @@ export class PaymentService {
     return invoice;
   }
 
+  /** The user's transaction history as the Advisee: every invoice in any status, newest first. */
+  findMyInvoices(
+    user: SessionUser,
+    page: OffsetPaginationDto,
+  ): Promise<PaginatedResult<AdviseeInvoiceResponseDto>> {
+    return paginateQuery(
+      page,
+      (options) =>
+        this.serviceInvoiceRepository.findManyForAdvisee(user.id, options),
+      () => this.serviceInvoiceRepository.countForAdvisee(user.id),
+      (row) => new AdviseeInvoiceResponseDto(row),
+    );
+  }
+
+  /** One receipt. Another user's invoice is the same 404 as one that does not exist. */
+  async findMyInvoice(
+    user: SessionUser,
+    invoiceId: string,
+  ): Promise<AdviseeInvoiceResponseDto> {
+    const row = await this.serviceInvoiceRepository.findOneForAdvisee(
+      invoiceId,
+      user.id,
+    );
+    if (!row)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+    return new AdviseeInvoiceResponseDto(row);
+  }
+
   async getPaymentStatus(
     user: SessionUser,
     invoiceId: string,
@@ -230,6 +275,14 @@ export class PaymentService {
     const chargeResult = await this.paymentProvider.getChargeStatus(
       invoice.providerChargeId,
     );
+    // The 3-D Secure return is where a charge's outcome is first known. Checkout clears `paidAt`
+    // for every new charge, so recording only into an empty `paidAt` keeps the first moment when
+    // this page is reloaded.
+    if (chargeResult.status !== 'pending' && !invoice.paidAt)
+      await this.serviceInvoiceRepository.updateById(invoice.id, {
+        ...chargedCard(chargeResult),
+        paidAt: new Date(),
+      });
 
     return {
       url: `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.checkoutCallback.redirectPaths[chargeResult.status]}?invoiceId=${invoice.id}`,
@@ -252,11 +305,20 @@ export class PaymentService {
       dto.cardToken,
       redirectUrl,
     );
+    // A declined charge is an outcome too: the receipt dates the failure and names the card.
+    if (chargeResult.status === 'failed')
+      await this.serviceInvoiceRepository.updateById(invoice.id, {
+        ...chargedCard(chargeResult),
+        paidAt: new Date(),
+      });
     if (chargeResult.status !== 'success')
       throw new InternalServerErrorException(chargeResult);
-    // save omise charge id
+    // save omise charge id. The card is known now; the outcome only once 3-D Secure returns, so
+    // any earlier attempt's `paidAt` is cleared for the callback to fill.
     await this.serviceInvoiceRepository.updateById(dto.invoiceId, {
       providerChargeId: chargeResult.chargeId,
+      ...chargedCard(chargeResult),
+      paidAt: null,
     });
     // redirect to 3ds w/ redirect uri to service booking
     return { url: chargeResult.redirectUrl };

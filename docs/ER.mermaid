@@ -231,11 +231,16 @@ erDiagram
 
     SERVICE_INVOICES {
         uuid invoiceId pk
+        %% INV-<year>-<sequence>, assigned by the database default
+        varchar invoiceNumber uk
         int amountSatang
         int platformFeeSatang
         varchar providerChargeId
         %% enum: PENDING, HELD_IN_ESCROW, RELEASED, REFUNDED, FAILED
         enum status
+        datetimetz paidAt
+        varchar cardBrand
+        varchar cardLastDigits
         datetimetz payoutEligibleAt
         datetimetz createdAt
         datetimetz modifiedAt

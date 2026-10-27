@@ -42,11 +42,13 @@ export type ChargeStatusDto =
     }
   | {
       status: 'success';
+      brand: string;
       lastDigits: string;
       redirectUrl: string;
     }
   | {
       status: 'failed';
+      brand: string;
       lastDigits: string;
       errorCode:
         | 'confirmed_amount_mismatch'

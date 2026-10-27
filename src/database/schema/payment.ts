@@ -3,6 +3,7 @@ import {
   check,
   integer,
   pgEnum,
+  pgSequence,
   pgTable,
   primaryKey,
   text,
@@ -38,14 +39,35 @@ export const refundCaseStatusEnum = pgEnum('refund_case_status', [
   'REJECTED',
 ]);
 
+/** Feeds `service_invoices.invoice_number`; one sequence for every user, so a number is never reused. */
+export const serviceInvoiceNumberSeq = pgSequence('service_invoice_number_seq');
+
 export const serviceInvoices = pgTable(
   'service_invoices',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // The receipt number, e.g. INV-2026-000123, assigned by Postgres when the row is inserted so
+    // no client and no API process can choose or collide on one. The year is the Bangkok calendar
+    // year of the insert, which is `created_at`'s year whenever `created_at` takes its own default.
+    // A column default cannot read another column, hence `now()` rather than `created_at`.
+    // 'FM999999000000' pads to six digits and keeps growing past 999999 instead of truncating.
+    invoiceNumber: varchar('invoice_number')
+      .notNull()
+      .unique()
+      .default(
+        sql`'INV-' || to_char(now() AT TIME ZONE 'Asia/Bangkok', 'YYYY') || '-' || to_char(nextval('service_invoice_number_seq'), 'FM999999000000')`,
+      ),
     amountSatang: integer('amount_satang').notNull(),
     platformFeeSatang: integer('platform_fee_satang').notNull(),
     providerChargeId: varchar('provider_charge_id'),
     status: invoiceStatusEnum('status').notNull().default('PENDING'),
+    // When the latest charge outcome was recorded: the success, or the failure. Null while no
+    // charge has finished.
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    // The card as the payment provider describes it on the charge: its brand and last four
+    // digits only. The full number never reaches this API.
+    cardBrand: varchar('card_brand'),
+    cardLastDigits: varchar('card_last_digits', { length: 4 }),
     // Set to consultation completion + seven days before it may enter a payout.
     payoutEligibleAt: timestamp('payout_eligible_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })

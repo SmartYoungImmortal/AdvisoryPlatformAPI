@@ -235,6 +235,7 @@ describe('OmisePaymentProvider', () => {
         id: 'chrg_test123',
         authorize_uri: 'https://omise.co/redirect',
         card: {
+          brand: 'Visa',
           last_digits: '1234',
         },
       });
@@ -256,6 +257,7 @@ describe('OmisePaymentProvider', () => {
 
       expect(result).toEqual({
         status: 'success',
+        brand: 'Visa',
         lastDigits: '1234',
         redirectUrl: 'https://omise.co/redirect',
         chargeId: 'chrg_test123',
@@ -289,6 +291,7 @@ describe('OmisePaymentProvider', () => {
       mockChargesCreate.mockResolvedValueOnce({
         failure_code: 'insufficient_funds',
         card: {
+          brand: 'MasterCard',
           last_digits: '9999',
         },
       });
@@ -302,6 +305,7 @@ describe('OmisePaymentProvider', () => {
 
       expect(result).toEqual({
         status: 'failed',
+        brand: 'MasterCard',
         lastDigits: '9999',
         errorCode: 'insufficient_funds',
         message: 'Mocked message for insufficient_funds',
@@ -328,6 +332,7 @@ describe('OmisePaymentProvider', () => {
         status: 'failed',
         errorCode: 'unspecified',
         message: 'Mocked message for unspecified',
+        brand: '',
         lastDigits: '',
       });
 
@@ -341,6 +346,7 @@ describe('OmisePaymentProvider', () => {
         id: 'chrg_ret123',
         authorize_uri: 'https://omise.co/redirect',
         card: {
+          brand: 'JCB',
           last_digits: '1234',
         },
       });
@@ -350,6 +356,7 @@ describe('OmisePaymentProvider', () => {
       expect(mockChargesRetrieve).toHaveBeenCalledWith('chrg_ret123');
       expect(result).toEqual({
         status: 'success',
+        brand: 'JCB',
         lastDigits: '1234',
         redirectUrl: 'https://omise.co/redirect',
         chargeId: 'chrg_ret123',
@@ -360,6 +367,7 @@ describe('OmisePaymentProvider', () => {
       mockChargesRetrieve.mockResolvedValueOnce({
         failure_code: 'rejected',
         card: {
+          brand: 'Visa',
           last_digits: '4321',
         },
       });
@@ -368,6 +376,7 @@ describe('OmisePaymentProvider', () => {
 
       expect(result).toEqual({
         status: 'failed',
+        brand: 'Visa',
         lastDigits: '4321',
         errorCode: 'rejected',
         message: 'Mocked message for rejected',
@@ -386,6 +395,7 @@ describe('OmisePaymentProvider', () => {
 
       expect(result).toEqual({
         status: 'failed',
+        brand: '',
         lastDigits: '',
         errorCode: 'unspecified',
         message: 'Mocked message for unspecified',
