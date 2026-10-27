@@ -212,25 +212,39 @@ export class BookingsService {
       const service = await this.repository.findPublishedService(
         appointment.serviceId,
       );
-      const when = new Intl.DateTimeFormat('th-TH', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-        timeZone: 'Asia/Bangkok',
-      }).format(appointment.startTime);
-      const content = service ? `${service.name} · ${when}` : when;
+      // The Service's name is its stored text in both languages: `findPublishedService` reads the
+      // row itself, not its translations. Only the date is written the way each language writes one.
+      const describe = (dateLocale: string) => {
+        const when = new Intl.DateTimeFormat(dateLocale, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+          timeZone: 'Asia/Bangkok',
+        }).format(appointment.startTime);
+        return service ? `${service.name} · ${when}` : when;
+      };
+      const content = describe('th-TH');
+      const contentEn = describe('en-GB');
       await Promise.all([
         this.notifications.notify({
           ownerId: appointment.adviseeId,
           type: 'BOOKING_CONFIRMED',
-          title: BOOKING_NOTIFICATION_TITLES.confirmed,
+          title: BOOKING_NOTIFICATION_TITLES.confirmed.th,
           content,
+          en: {
+            title: BOOKING_NOTIFICATION_TITLES.confirmed.en,
+            content: contentEn,
+          },
           resourceId: appointment.id,
         }),
         this.notifications.notify({
           ownerId: appointment.advisorId,
           type: 'BOOKING_RECEIVED',
-          title: BOOKING_NOTIFICATION_TITLES.received,
+          title: BOOKING_NOTIFICATION_TITLES.received.th,
           content,
+          en: {
+            title: BOOKING_NOTIFICATION_TITLES.received.en,
+            content: contentEn,
+          },
           resourceId: appointment.id,
         }),
       ]);

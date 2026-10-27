@@ -19,14 +19,14 @@ export class SkillsService {
   ): Promise<PaginatedResult<SkillResponseDto>> {
     return paginateQuery(
       query,
-      (options) => this.skillsRepository.findMany(undefined, options),
+      (options) => this.skillsRepository.findManyLocalized(options),
       () => this.skillsRepository.count(),
       (skill) => new SkillResponseDto(skill),
     );
   }
 
   async findOne(id: string): Promise<SkillResponseDto> {
-    const skill = await this.skillsRepository.findById(id);
+    const skill = await this.skillsRepository.findByIdLocalized(id);
 
     if (!skill) {
       throw new NotFoundException(SKILL_MESSAGES.notFound);
@@ -40,7 +40,7 @@ export class SkillsService {
     dto: CreateSkillDto,
     actorId: string,
   ): Promise<SkillResponseDto> {
-    const skill = await this.skillsRepository.create({
+    const skill = await this.skillsRepository.createLocalized({
       ...dto,
       createdByUserId: actorId,
       updatedByUserId: actorId,
@@ -48,12 +48,13 @@ export class SkillsService {
     return new SkillResponseDto(skill);
   }
 
+  /** In English, the name and description change for English readers only; see `updateLocalized`. */
   async update(
     id: string,
     dto: UpdateSkillDto,
     actorId: string,
   ): Promise<SkillResponseDto> {
-    const skill = await this.skillsRepository.updateById(id, {
+    const skill = await this.skillsRepository.updateLocalized(id, {
       ...dto,
       updatedByUserId: actorId,
     });
@@ -66,7 +67,7 @@ export class SkillsService {
   }
 
   async delete(id: string): Promise<SkillResponseDto> {
-    const skill = await this.skillsRepository.deleteById(id);
+    const skill = await this.skillsRepository.deleteLocalized(id);
 
     if (!skill) {
       throw new NotFoundException(SKILL_MESSAGES.notFound);

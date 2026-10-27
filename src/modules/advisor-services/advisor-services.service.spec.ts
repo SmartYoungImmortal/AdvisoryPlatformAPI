@@ -58,14 +58,14 @@ describe('AdvisorServicesService', () => {
   let repository: jest.Mocked<
     Pick<
       AdvisorServicesRepository,
-      | 'findMany'
+      | 'findManyLocalized'
       | 'count'
       | 'findManyByAdvisorId'
       | 'countByAdvisorId'
       | 'findOwnedById'
       | 'categoryExists'
       | 'availabilityProfileOwned'
-      | 'create'
+      | 'createLocalized'
       | 'updateOwned'
       | 'deleteOwned'
       | 'findPublished'
@@ -79,14 +79,14 @@ describe('AdvisorServicesService', () => {
 
   beforeEach(() => {
     repository = {
-      findMany: jest.fn(),
+      findManyLocalized: jest.fn(),
       count: jest.fn(),
       findManyByAdvisorId: jest.fn(),
       countByAdvisorId: jest.fn(),
       findOwnedById: jest.fn(),
       categoryExists: jest.fn(),
       availabilityProfileOwned: jest.fn(),
-      create: jest.fn(),
+      createLocalized: jest.fn(),
       updateOwned: jest.fn(),
       deleteOwned: jest.fn(),
       findPublished: jest.fn(),
@@ -127,7 +127,7 @@ describe('AdvisorServicesService', () => {
   it('creates an owned service only for an existing category and own profile', async () => {
     repository.categoryExists.mockResolvedValue(true);
     repository.availabilityProfileOwned.mockResolvedValue(true);
-    repository.create.mockResolvedValue(makeService());
+    repository.createLocalized.mockResolvedValue(makeService());
 
     await expect(
       service.create(advisor, {
@@ -139,7 +139,7 @@ describe('AdvisorServicesService', () => {
       }),
     ).resolves.toEqual(expect.objectContaining({ id: serviceId }));
 
-    expect(repository.create).toHaveBeenCalledWith(
+    expect(repository.createLocalized).toHaveBeenCalledWith(
       expect.objectContaining({
         advisorId: advisor.id,
         categoryId,
@@ -276,7 +276,7 @@ describe('AdvisorServicesService', () => {
   });
 
   it('lists every Service for an Admin rather than one advisor', async () => {
-    repository.findMany.mockResolvedValue([makeService()]);
+    repository.findManyLocalized.mockResolvedValue([makeService()]);
     repository.count.mockResolvedValue(1);
     const query = Object.assign(new AdvisorServiceQueryDto(), {
       page: 1,
@@ -290,7 +290,7 @@ describe('AdvisorServicesService', () => {
       limit: 20,
       totalPages: 1,
     });
-    expect(repository.findMany).toHaveBeenCalledWith(undefined, {
+    expect(repository.findManyLocalized).toHaveBeenCalledWith({
       limit: 20,
       offset: 0,
     });
@@ -452,7 +452,7 @@ describe('AdvisorServicesService', () => {
         durationMinutes: 60,
       }),
     ).rejects.toThrow(BadRequestException);
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createLocalized).not.toHaveBeenCalled();
   });
 
   it('rejects a trial duration while trial is disabled', async () => {
@@ -474,7 +474,7 @@ describe('AdvisorServicesService', () => {
   it('stores the trial duration when trial is enabled on create', async () => {
     repository.categoryExists.mockResolvedValue(true);
     repository.availabilityProfileOwned.mockResolvedValue(true);
-    repository.create.mockResolvedValue(
+    repository.createLocalized.mockResolvedValue(
       makeService({ trialEnabled: true, trialDurationMinutes: 30 }),
     );
 
@@ -488,7 +488,7 @@ describe('AdvisorServicesService', () => {
       trialDurationMinutes: 30,
     });
 
-    expect(repository.create).toHaveBeenCalledWith(
+    expect(repository.createLocalized).toHaveBeenCalledWith(
       expect.objectContaining({ trialEnabled: true, trialDurationMinutes: 30 }),
     );
   });

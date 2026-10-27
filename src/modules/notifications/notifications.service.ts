@@ -77,19 +77,21 @@ export class NotificationsService {
   }
 
   /**
-   * Creates a notification; other modules call this. For a new chat message with a room id, the
-   * room's unread notification is updated instead of adding a new one.
+   * Creates a notification in Thai and English; other modules call this. For a new chat message
+   * with a room id, the room's unread notification is updated instead of adding a new one. The
+   * result is in the language of the request that caused it, not necessarily the owner's.
    */
   async notify(input: NotifyInput): Promise<NotificationResponseDto> {
     const row =
       input.type === 'NEW_MESSAGE' && input.resourceId
         ? await this.repository.upsertUnreadMessage(input)
-        : await this.repository.create(input);
+        : await this.repository.createWithTranslations(input);
     // Not awaited: the request that caused the notification must not wait on push services.
-    // `sendToUser` never rejects.
+    // `sendToUser` never rejects. Sent in Thai, the source language: the owner's own language is
+    // not stored anywhere, and `row` is in the language of the request that caused it.
     void this.push.sendToUser(row.ownerId, {
-      title: row.title,
-      body: row.content ?? '',
+      title: input.title,
+      body: input.content ?? '',
       url: pushUrlFor(row.type),
       tag: row.resourceId ? `${row.type}:${row.resourceId}` : undefined,
     });

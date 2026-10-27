@@ -634,6 +634,41 @@ describe('BookingsService', () => {
       );
     });
 
+    it('writes each notification in Thai and in English, with the date as each language writes it', async () => {
+      repository.transition.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+      repository.findPublishedService.mockResolvedValue({
+        id: serviceId,
+        name: 'ปรึกษาการเงิน',
+      } as AdvisorService);
+
+      await service.confirmPayment(bookingId);
+
+      // 2026-09-20T03:00Z is 10:00 in Bangkok.
+      const [[confirmed], [received]] = notifications.notify.mock.calls;
+      expect(confirmed).toEqual(
+        expect.objectContaining({
+          title: 'การจองของคุณได้รับการยืนยันแล้ว',
+          content: 'ปรึกษาการเงิน · 20 ก.ย. 2569 10:00',
+          en: {
+            title: 'Your booking is confirmed',
+            content: 'ปรึกษาการเงิน · 20 Sept 2026, 10:00',
+          },
+        }),
+      );
+      expect(received).toEqual(
+        expect.objectContaining({
+          title: 'มีการจองใหม่',
+          content: 'ปรึกษาการเงิน · 20 ก.ย. 2569 10:00',
+          en: {
+            title: 'You have a new booking',
+            content: 'ปรึกษาการเงิน · 20 Sept 2026, 10:00',
+          },
+        }),
+      );
+    });
+
     it('still confirms when a notification cannot be created', async () => {
       repository.transition.mockResolvedValue(
         makeAppointment({ state: 'BOOKED' }),

@@ -31,7 +31,7 @@ describe('ChatMessageNotifier', () => {
     );
   });
 
-  it('notifies members who are not in the room, titled with the sender', async () => {
+  it('notifies members who are not in the room, titled with the sender in both languages', async () => {
     repository.findMessageRecipients.mockResolvedValue({
       recipientUserIds: [recipient],
       senderName: 'อารยา ส.',
@@ -45,6 +45,10 @@ describe('ChatMessageNotifier', () => {
       type: 'NEW_MESSAGE',
       title: 'ข้อความใหม่จาก อารยา ส.',
       content: 'ขอเลื่อนเป็นวันพฤหัสได้ไหม',
+      en: {
+        title: 'New message from อารยา ส.',
+        content: 'ขอเลื่อนเป็นวันพฤหัสได้ไหม',
+      },
       resourceId: roomId,
     });
   });
@@ -74,6 +78,10 @@ describe('ChatMessageNotifier', () => {
     const [input] = notifications.notify.mock.calls[0];
     expect(input.content).toBe(`${'ก'.repeat(140)}…`);
     expect(input.title).toBe('ข้อความใหม่จาก ผู้ใช้');
+    expect(input.en).toEqual({
+      title: 'New message from a user',
+      content: `${'ก'.repeat(140)}…`,
+    });
   });
 
   it('does not throw when the lookup fails', async () => {

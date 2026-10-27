@@ -51,12 +51,16 @@ export interface ScreeningAnswerRow {
   answer: string;
 }
 
-/** A notification saved in the same transaction as the action that caused it. */
+/**
+ * A notification saved in the same transaction as the action that caused it. `title` and
+ * `content` are the Thai, kept on the row; `en` is the same notification in English.
+ */
 export interface ScreeningNotification {
   ownerId: string;
   type: 'SCREENING_REQUESTED' | 'SCREENING_DECIDED';
   title: string;
   content: string | null;
+  en: { title: string; content: string | null };
   /**
    * The request id in the Advisor's notification; the Service id in the Advisee's, because their
    * status is per Service.
