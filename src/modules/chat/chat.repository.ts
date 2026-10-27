@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   gt,
+  inArray,
   isNull,
   lt,
   ne,
@@ -76,6 +77,7 @@ export class ChatRepository {
         chatRoomId: chatMembers.chatRoomId,
         memberUserId: chatMembers.memberUserId,
         lastReadAt: chatMembers.lastReadAt,
+        mutedAt: chatMembers.mutedAt,
         createdAt: chatMembers.createdAt,
       })
       .from(chatMembers)
@@ -85,7 +87,39 @@ export class ChatRepository {
     return membership;
   }
 
-  /** The room's active members other than the sender, and the sender's name for a notification. */
+  /**
+   * Mutes or unmutes the room for an active member, and says whether they are one. Muting
+   * a muted room keeps the time it was first muted, so the call is safe to repeat.
+   */
+  async setMutedForMember(
+    chatRoomId: string,
+    memberUserId: string,
+    muted: boolean,
+  ): Promise<boolean> {
+    const activeUserIds = this.db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.status, 'ACTIVE'));
+    const [updated] = await this.db
+      .update(chatMembers)
+      .set({
+        mutedAt: muted ? sql`coalesce(${chatMembers.mutedAt}, now())` : null,
+      })
+      .where(
+        and(
+          this.memberships.where({ chatRoomId, memberUserId }),
+          inArray(chatMembers.memberUserId, activeUserIds),
+        ),
+      )
+      .returning({ chatRoomId: chatMembers.chatRoomId });
+    return updated !== undefined;
+  }
+
+  /**
+   * The room's active members other than the sender who have not muted it, and the
+   * sender's name for a notification. A muted member still gets the message; only the
+   * notification and its push are withheld.
+   */
   async findMessageRecipients(
     chatRoomId: string,
     senderUserId: string,
@@ -100,6 +134,7 @@ export class ChatRepository {
             eq(chatMembers.chatRoomId, chatRoomId),
             ne(chatMembers.memberUserId, senderUserId),
             eq(user.status, 'ACTIVE'),
+            isNull(chatMembers.mutedAt),
           ),
         ),
       this.db
@@ -121,10 +156,34 @@ export class ChatRepository {
    * join, so a room can never come back twice or count its unread lines twice
    * however many members it holds. A booking's room holds exactly two.
    */
-  async findRoomsForMember(
+  findRoomsForMember(
     memberUserId: string,
     limit: number,
     offset: number,
+  ): Promise<ChatRoomView[]> {
+    return this.selectRoomsForMember(memberUserId, { limit, offset });
+  }
+
+  /** One of the member's rooms, read exactly as the room list reads it. */
+  async findRoomForMember(
+    memberUserId: string,
+    chatRoomId: string,
+  ): Promise<ChatRoomView | undefined> {
+    const [room] = await this.selectRoomsForMember(memberUserId, {
+      limit: 1,
+      offset: 0,
+      chatRoomId,
+    });
+    return room;
+  }
+
+  private async selectRoomsForMember(
+    memberUserId: string,
+    {
+      limit,
+      offset,
+      chatRoomId,
+    }: { limit: number; offset: number; chatRoomId?: string },
   ): Promise<ChatRoomView[]> {
     const counterpart = this.db
       .select({
@@ -164,6 +223,7 @@ export class ChatRepository {
         id: chatRooms.id,
         isAnonymous: chatRooms.isAnonymous,
         lastReadAt: chatMembers.lastReadAt,
+        isMuted: sql<boolean>`${chatMembers.mutedAt} is not null`,
         unreadCount: count(chatMessages.id),
         createdAt: chatRooms.createdAt,
         counterpartId: counterpart.id,
@@ -189,12 +249,18 @@ export class ChatRepository {
           ),
         ),
       )
-      .where(eq(chatMembers.memberUserId, memberUserId))
+      .where(
+        and(
+          eq(chatMembers.memberUserId, memberUserId),
+          chatRoomId ? eq(chatMembers.chatRoomId, chatRoomId) : undefined,
+        ),
+      )
       .groupBy(
         chatRooms.id,
         chatRooms.isAnonymous,
         chatRooms.createdAt,
         chatMembers.lastReadAt,
+        chatMembers.mutedAt,
         counterpart.id,
         counterpart.displayName,
         counterpart.image,

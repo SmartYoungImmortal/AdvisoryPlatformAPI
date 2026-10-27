@@ -111,6 +111,32 @@ export class ChatService {
     return new ChatReadResponseDto(readState);
   }
 
+  /**
+   * Mutes or unmutes the room for this member and answers it as the room list shows it.
+   * Muting only withholds their notifications; messages, socket events and the unread
+   * count are untouched.
+   */
+  async setMuted(
+    memberUserId: string,
+    chatRoomId: string,
+    muted: boolean,
+  ): Promise<ChatRoomResponseDto> {
+    const isMember = await this.chatRepository.setMutedForMember(
+      chatRoomId,
+      memberUserId,
+      muted,
+    );
+    const room = isMember
+      ? await this.chatRepository.findRoomForMember(memberUserId, chatRoomId)
+      : undefined;
+
+    if (!room) {
+      throw new NotFoundException(CHAT_MESSAGES.roomNotFound);
+    }
+
+    return new ChatRoomResponseDto(room);
+  }
+
   async assertMember(chatRoomId: string, memberUserId: string): Promise<void> {
     const membership = await this.chatRepository.findMembership(
       chatRoomId,
