@@ -1763,6 +1763,9 @@ async function seedActivity(
       )
       .limit(1);
     if (!invoice) {
+      const createdAt = new Date(start.getTime() - 3 * DAY + MINUTE);
+      // `invoice_number` is left to its database default. Every demo invoice was charged a
+      // minute after it was raised, on the provider's test card.
       [invoice] = await db
         .insert(serviceInvoices)
         .values({
@@ -1772,7 +1775,10 @@ async function seedActivity(
           status: b.invoice,
           payoutEligibleAt:
             b.state === 'COMPLETED' ? new Date(end.getTime() + 7 * DAY) : null,
-          createdAt: new Date(start.getTime() - 3 * DAY + MINUTE),
+          createdAt,
+          paidAt: new Date(createdAt.getTime() + MINUTE),
+          cardBrand: 'Visa',
+          cardLastDigits: '4242',
         })
         .returning({ id: serviceInvoices.id });
       await db.insert(serviceAppointmentsOnInvoice).values({

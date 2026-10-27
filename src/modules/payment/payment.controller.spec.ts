@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
+import { HttpStatus, NotFoundException } from '@nestjs/common';
+import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import type { Response } from 'express';
@@ -17,6 +18,8 @@ describe('PaymentController', () => {
     getInvoiceById: jest.fn(),
     getPaymentStatus: jest.fn(),
     paymentCallback: jest.fn(),
+    findMyInvoices: jest.fn(),
+    findMyInvoice: jest.fn(),
   };
 
   const mockUser: SessionUser = {
@@ -104,6 +107,45 @@ describe('PaymentController', () => {
       expect(service.getInvoiceById).toHaveBeenCalledTimes(1);
       expect(service.getInvoiceById).toHaveBeenCalledWith(mockUser, invoiceId);
       expect(result).toEqual(expectedInvoice);
+    });
+  });
+
+  describe('listMyInvoices', () => {
+    it('hands the signed-in user and the page to the service and returns its page as is', async () => {
+      const query = new OffsetPaginationDto();
+      query.page = 2;
+      const page = { items: [], total: 0, page: 2, limit: 20, totalPages: 0 };
+      mockPaymentService.findMyInvoices.mockResolvedValue(page);
+
+      const result = await controller.listMyInvoices(mockUser, query);
+
+      expect(service.findMyInvoices).toHaveBeenCalledWith(mockUser, query);
+      expect(result).toBe(page);
+    });
+  });
+
+  describe('getMyInvoice', () => {
+    it('reads one receipt for the signed-in user', async () => {
+      const receipt = { id: 'inv-uuid-123', status: 'paid' };
+      mockPaymentService.findMyInvoice.mockResolvedValue(receipt);
+
+      const result = await controller.getMyInvoice(mockUser, 'inv-uuid-123');
+
+      expect(service.findMyInvoice).toHaveBeenCalledWith(
+        mockUser,
+        'inv-uuid-123',
+      );
+      expect(result).toBe(receipt);
+    });
+
+    it("passes the 404 for an invoice that is not the user's straight through", async () => {
+      mockPaymentService.findMyInvoice.mockRejectedValue(
+        new NotFoundException('Invoice not found'),
+      );
+
+      await expect(
+        controller.getMyInvoice(mockUser, 'inv-uuid-123'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

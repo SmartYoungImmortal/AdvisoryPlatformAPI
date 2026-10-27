@@ -13,8 +13,12 @@ import type {
   CheckoutResponse,
 } from '@/modules/payment/dto/checkout.dto';
 import { IPaymentProvider } from '@/modules/payment/providers/interface';
-import { PaymentServiceInvoicesRepository } from '@/modules/payment/payment.repository';
+import {
+  PaymentServiceInvoicesRepository,
+  type AdviseeInvoiceRow,
+} from '@/modules/payment/payment.repository';
 import { DRIZZLE } from '@/database/database.module';
+import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
 
 const mockConfigService = {
   get: jest.fn((key: string) => {
@@ -34,7 +38,40 @@ const mockInvoicesRepository = {
   findWithServiceById: jest.fn(),
   findById: jest.fn(),
   updateById: jest.fn(),
+  findManyForAdvisee: jest.fn(),
+  findOneForAdvisee: jest.fn(),
+  countForAdvisee: jest.fn(),
 };
+
+/** A receipt row as the repository returns it; each test overrides what it is about. */
+function receiptRow(
+  invoice: Partial<AdviseeInvoiceRow['invoice']> = {},
+  appointment: Partial<AdviseeInvoiceRow['appointment']> = {},
+): AdviseeInvoiceRow {
+  return {
+    invoice: {
+      id: 'uuid-invoice-1',
+      invoiceNumber: 'INV-2026-000123',
+      status: 'HELD_IN_ESCROW',
+      amountSatang: 150000,
+      platformFeeSatang: 30000,
+      createdAt: new Date('2026-10-20T03:00:00.000Z'),
+      paidAt: new Date('2026-10-20T03:02:00.000Z'),
+      cardBrand: 'Visa',
+      cardLastDigits: '4242',
+      ...invoice,
+    },
+    service: { id: 'uuid-service-10', name: 'Tax planning' },
+    advisor: { id: 'uuid-advisor-7', displayName: 'Araya' },
+    appointment: {
+      startTime: new Date('2026-10-25T03:00:00.000Z'),
+      endTime: new Date('2026-10-25T04:00:00.000Z'),
+      state: 'BOOKED',
+      cancelledAt: null,
+      ...appointment,
+    },
+  };
+}
 
 const mockTx = {
   update: jest.fn().mockReturnThis(),
@@ -210,6 +247,172 @@ describe('PaymentService', () => {
     });
   });
 
+  describe('findMyInvoices', () => {
+    it("pages the Advisee's own invoices and counts over the same owner", async () => {
+      mockInvoicesRepository.findManyForAdvisee.mockResolvedValue([
+        receiptRow(),
+      ]);
+      mockInvoicesRepository.countForAdvisee.mockResolvedValue(21);
+      const page = new OffsetPaginationDto();
+      page.page = 2;
+      page.limit = 20;
+
+      const result = await service.findMyInvoices(mockUser, page);
+
+      expect(mockInvoicesRepository.findManyForAdvisee).toHaveBeenCalledWith(
+        mockUser.id,
+        { limit: 20, offset: 20 },
+      );
+      expect(mockInvoicesRepository.countForAdvisee).toHaveBeenCalledWith(
+        mockUser.id,
+      );
+      expect(result).toMatchObject({
+        total: 21,
+        page: 2,
+        limit: 20,
+        totalPages: 2,
+      });
+      expect(result.items).toHaveLength(1);
+    });
+
+    it('shapes a paid invoice into the receipt, and nothing else', async () => {
+      mockInvoicesRepository.findManyForAdvisee.mockResolvedValue([
+        receiptRow(),
+      ]);
+      mockInvoicesRepository.countForAdvisee.mockResolvedValue(1);
+
+      const { items } = await service.findMyInvoices(
+        mockUser,
+        new OffsetPaginationDto(),
+      );
+
+      expect({ ...items[0] }).toEqual({
+        id: 'uuid-invoice-1',
+        invoiceNumber: 'INV-2026-000123',
+        status: 'paid',
+        amountSatang: 150000,
+        platformFeeSatang: 30000,
+        priceSatang: 120000,
+        refundSatang: null,
+        createdAt: new Date('2026-10-20T03:00:00.000Z'),
+        paidAt: new Date('2026-10-20T03:02:00.000Z'),
+        service: { id: 'uuid-service-10', name: 'Tax planning' },
+        advisor: { id: 'uuid-advisor-7', displayName: 'Araya' },
+        session: {
+          startTime: new Date('2026-10-25T03:00:00.000Z'),
+          endTime: new Date('2026-10-25T04:00:00.000Z'),
+        },
+        booking: 'confirmed',
+        card: { brand: 'Visa', lastDigits: '4242' },
+      });
+    });
+
+    it.each([
+      ['PENDING', 'pending'],
+      ['HELD_IN_ESCROW', 'paid'],
+      ['RELEASED', 'paid'],
+      ['REFUNDED', 'refunded'],
+      ['FAILED', 'failed'],
+    ] as const)('reports a %s invoice as %s', async (status, expected) => {
+      mockInvoicesRepository.findManyForAdvisee.mockResolvedValue([
+        receiptRow({ status }),
+      ]);
+      mockInvoicesRepository.countForAdvisee.mockResolvedValue(1);
+
+      const { items } = await service.findMyInvoices(
+        mockUser,
+        new OffsetPaginationDto(),
+      );
+
+      expect(items[0].status).toBe(expected);
+    });
+
+    it('refunds the whole charge only on a refunded invoice', async () => {
+      mockInvoicesRepository.findManyForAdvisee.mockResolvedValue([
+        receiptRow({ status: 'REFUNDED' }),
+        receiptRow({ status: 'RELEASED' }),
+      ]);
+      mockInvoicesRepository.countForAdvisee.mockResolvedValue(2);
+
+      const { items } = await service.findMyInvoices(
+        mockUser,
+        new OffsetPaginationDto(),
+      );
+
+      expect(items.map((item) => item.refundSatang)).toEqual([150000, null]);
+    });
+
+    it.each([
+      ['PENDING_PAYMENT', null, 'unconfirmed'],
+      ['BOOKED', null, 'confirmed'],
+      ['IN_PROGRESS', null, 'confirmed'],
+      ['COMPLETED', null, 'confirmed'],
+      ['NO_SHOW', null, 'confirmed'],
+      ['CANCELLED', new Date('2026-10-21T00:00:00.000Z'), 'cancelled'],
+      ['CANCELLED', null, 'cancelled'],
+      ['BOOKED', new Date('2026-10-21T00:00:00.000Z'), 'cancelled'],
+    ] as const)(
+      'calls a %s appointment (cancelled at %s) %s',
+      async (state, cancelledAt, expected) => {
+        mockInvoicesRepository.findManyForAdvisee.mockResolvedValue([
+          receiptRow({}, { state, cancelledAt }),
+        ]);
+        mockInvoicesRepository.countForAdvisee.mockResolvedValue(1);
+
+        const { items } = await service.findMyInvoices(
+          mockUser,
+          new OffsetPaginationDto(),
+        );
+
+        expect(items[0].booking).toBe(expected);
+      },
+    );
+
+    it('has no card until a charge named both its brand and last digits', async () => {
+      mockInvoicesRepository.findManyForAdvisee.mockResolvedValue([
+        receiptRow({ cardBrand: null, cardLastDigits: null, paidAt: null }),
+        receiptRow({ cardBrand: null, cardLastDigits: '4242' }),
+      ]);
+      mockInvoicesRepository.countForAdvisee.mockResolvedValue(2);
+
+      const { items } = await service.findMyInvoices(
+        mockUser,
+        new OffsetPaginationDto(),
+      );
+
+      expect(items.map((item) => item.card)).toEqual([null, null]);
+      expect(items[0].paidAt).toBeNull();
+    });
+  });
+
+  describe('findMyInvoice', () => {
+    it("returns one of the user's own invoices as a receipt", async () => {
+      mockInvoicesRepository.findOneForAdvisee.mockResolvedValue(
+        receiptRow({ status: 'FAILED' }),
+      );
+
+      const receipt = await service.findMyInvoice(mockUser, 'uuid-invoice-1');
+
+      expect(mockInvoicesRepository.findOneForAdvisee).toHaveBeenCalledWith(
+        'uuid-invoice-1',
+        mockUser.id,
+      );
+      expect(receipt).toMatchObject({
+        id: 'uuid-invoice-1',
+        status: 'failed',
+        priceSatang: 120000,
+      });
+    });
+
+    it("answers 404 for someone else's invoice or a missing one alike", async () => {
+      mockInvoicesRepository.findOneForAdvisee.mockResolvedValue(undefined);
+
+      await expect(
+        service.findMyInvoice(mockUser, 'uuid-invoice-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('getPaymentStatus', () => {
     const invoiceId = 'uuid-invoice-1';
 
@@ -282,6 +485,86 @@ describe('PaymentService', () => {
       expect(result.url).toContain(`invoiceId=${invoiceId}`);
     });
 
+    it.each(['success', 'failed'] as const)(
+      'records a %s outcome: the card it names and when it was known',
+      async (status) => {
+        mockInvoicesRepository.findById.mockResolvedValue({
+          id: invoiceId,
+          providerChargeId: 'ch_123',
+          paidAt: null,
+        });
+        mockPaymentProvider.getChargeStatus.mockResolvedValue({
+          status,
+          brand: 'Visa',
+          lastDigits: '4242',
+        });
+
+        await service.paymentCallback(mockUser, invoiceId);
+
+        expect(mockInvoicesRepository.updateById).toHaveBeenCalledWith(
+          invoiceId,
+          {
+            cardBrand: 'Visa',
+            cardLastDigits: '4242',
+            paidAt: expect.any(Date) as Date,
+          },
+        );
+      },
+    );
+
+    it('keeps the first recorded moment when the return page is reloaded', async () => {
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'ch_123',
+        paidAt: new Date('2026-10-20T03:02:00.000Z'),
+      });
+      mockPaymentProvider.getChargeStatus.mockResolvedValue({
+        status: 'success',
+        brand: 'Visa',
+        lastDigits: '4242',
+      });
+
+      await service.paymentCallback(mockUser, invoiceId);
+
+      expect(mockInvoicesRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('records nothing while the charge is still pending', async () => {
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'ch_123',
+        paidAt: null,
+      });
+      mockPaymentProvider.getChargeStatus.mockResolvedValue({
+        status: 'pending',
+      });
+
+      await service.paymentCallback(mockUser, invoiceId);
+
+      expect(mockInvoicesRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('stores an unknown card, not a blank one, when the provider never reached it', async () => {
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'ch_123',
+        paidAt: null,
+      });
+      mockPaymentProvider.getChargeStatus.mockResolvedValue({
+        status: 'failed',
+        brand: '',
+        lastDigits: '',
+        errorCode: 'unspecified',
+      });
+
+      await service.paymentCallback(mockUser, invoiceId);
+
+      expect(mockInvoicesRepository.updateById).toHaveBeenCalledWith(
+        invoiceId,
+        expect.objectContaining({ cardBrand: null, cardLastDigits: null }),
+      );
+    });
+
     it('should throw NotFoundException if invoice missing or lacks chargeId', async () => {
       mockInvoicesRepository.findById.mockResolvedValue({
         id: invoiceId,
@@ -307,6 +590,8 @@ describe('PaymentService', () => {
       });
       mockPaymentProvider.chargeSpecificCard.mockResolvedValue({
         status: 'success',
+        brand: 'MasterCard',
+        lastDigits: '5454',
         chargeId: 'ch_999',
         redirectUrl: 'https://3dsecure.gateway.com/verify',
       });
@@ -319,12 +604,45 @@ describe('PaymentService', () => {
         'tok_123',
         expect.any(String),
       );
+      // The card is known once the charge exists; its outcome is left for the callback.
+      expect(mockInvoicesRepository.updateById).toHaveBeenCalledTimes(1);
       expect(mockInvoicesRepository.updateById).toHaveBeenCalledWith(
         'uuid-invoice-1',
-        { providerChargeId: 'ch_999' },
+        {
+          providerChargeId: 'ch_999',
+          cardBrand: 'MasterCard',
+          cardLastDigits: '5454',
+          paidAt: null,
+        },
       );
 
       expect(result.url).toBe('https://3dsecure.gateway.com/verify');
+    });
+
+    it('records a declined charge as a dated failure on its card, then reports it', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue({
+        id: 'uuid-invoice-1',
+        amountSatang: 500,
+      });
+      mockPaymentProvider.chargeSpecificCard.mockResolvedValue({
+        status: 'failed',
+        brand: 'Visa',
+        lastDigits: '0002',
+        errorCode: 'payment_rejected',
+        message: 'Payment rejected by issuer.',
+      });
+
+      await expect(service.checkout(mockUser, dto)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      expect(mockInvoicesRepository.updateById).toHaveBeenCalledWith(
+        'uuid-invoice-1',
+        {
+          cardBrand: 'Visa',
+          cardLastDigits: '0002',
+          paidAt: expect.any(Date) as Date,
+        },
+      );
     });
 
     it('should throw NotFoundException if invoice does not exist', async () => {

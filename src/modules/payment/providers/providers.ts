@@ -36,14 +36,18 @@ export const FailureCodeEnum = FailureCodeKeys.transform(
 
 export const chargeStatus = z.discriminatedUnion('status', [
   z.object({ status: z.literal('pending') }),
+  // `brand` and `lastDigits` are all a receipt may say about the card; an empty string means
+  // the provider gave no card (the request itself failed).
   z.object({
     status: z.literal('success'),
+    brand: z.string(),
     lastDigits: z.string(),
     redirectUrl: z.url(),
     chargeId: z.string(),
   }),
   z.object({
     status: z.literal('failed'),
+    brand: z.string(),
     lastDigits: z.string(),
     errorCode: FailureCodeKeys,
     message: z.string(),
