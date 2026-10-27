@@ -35,13 +35,14 @@ type Statement = { readonly sql: string; readonly params: readonly unknown[] };
  * `notifications` returns `notificationId`; a read returns the notification in
  * English when the statement asks the translations for `en` and in Thai
  * otherwise, as the localized columns' coalesce does. `failOn` makes the first
- * statement containing it fail.
+ * statement containing it fail; `conflicts` makes the notifications insert hit
+ * an existing row, so `on conflict do nothing` returns none.
  */
-function fakePostgres(failOn?: string) {
+function fakePostgres(failOn?: string, conflicts = false) {
   const statements: Statement[] = [];
   const answer = ({ sql, params }: Statement): unknown[][] => {
     if (sql.startsWith('insert into "notifications"')) {
-      return [[notificationId]];
+      return conflicts ? [] : [[notificationId]];
     }
     if (sql.startsWith('select') || sql.includes(' returning ')) {
       const text =
@@ -190,6 +191,66 @@ describe('NotificationsRepository languages', () => {
         'New message from อารยา ส.',
         'ขอเลื่อนเป็นวันพฤหัสได้ไหม',
       ],
+    ]);
+  });
+
+  it("writes an account's welcome in both languages, once per account", async () => {
+    const { repository, statements } = fakePostgres();
+    const welcome: NotifyInput = {
+      ownerId,
+      type: 'WELCOME',
+      title: 'ยินดีต้อนรับสู่ Advisory',
+      content: 'เริ่มจากหาผู้เชี่ยวชาญที่ใช่สำหรับคำถามของคุณ',
+      en: {
+        title: 'Welcome to Advisory',
+        content: 'Start by finding the right expert for your question',
+      },
+    };
+
+    await expect(repository.createWelcome(welcome)).resolves.toEqual(
+      expect.objectContaining({ id: notificationId }),
+    );
+
+    expect(kinds(statements)).toEqual([
+      'begin',
+      'insert into "notifications"',
+      'insert into "notification_translations"',
+      'select',
+      'commit',
+    ]);
+    // The welcome index is the conflict target, so a second welcome is a no-op.
+    expect(statements[1].sql).toContain(
+      `on conflict ("owner_id") where "notifications"."type" = 'WELCOME' do nothing`,
+    );
+    expect(statements[1].params).toEqual([
+      ownerId,
+      'WELCOME',
+      welcome.title,
+      welcome.content,
+      null,
+    ]);
+    expect(translationWrites(statements)).toEqual([
+      [notificationId, 'th', welcome.title, welcome.content],
+      [notificationId, 'en', welcome.en.title, welcome.en.content],
+    ]);
+  });
+
+  it('writes nothing more when the account already has its welcome', async () => {
+    const { repository, statements } = fakePostgres(undefined, true);
+
+    await expect(
+      repository.createWelcome({
+        ownerId,
+        type: 'WELCOME',
+        title: 'ยินดีต้อนรับสู่ Advisory',
+        en: { title: 'Welcome to Advisory' },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(kinds(statements)).toEqual([
+      'begin',
+      'insert into "notifications"',
+      'commit',
     ]);
   });
 

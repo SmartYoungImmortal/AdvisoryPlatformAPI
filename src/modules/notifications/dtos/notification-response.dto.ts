@@ -17,7 +17,9 @@ export class NotificationResponseDto {
     type: String,
     description:
       'The record to open: a screening request (SCREENING_REQUESTED), a Service ' +
-      '(SCREENING_DECIDED), a chat room (NEW_MESSAGE), a booking (BOOKING_*), and so on.',
+      '(SCREENING_DECIDED), a chat room (NEW_MESSAGE), a booking (BOOKING_*), and so on. ' +
+      "On WELCOME it is null for an Advisee's welcome (open the expert search) and the " +
+      "Advisor's own user id for an Advisor's (open their profile editor).",
   })
   resourceId: string | null;
   @ApiProperty() isRead: boolean;

@@ -37,6 +37,7 @@ describe('NotificationsService', () => {
       | 'markRead'
       | 'markAllRead'
       | 'createWithTranslations'
+      | 'createWelcome'
       | 'upsertUnreadMessage'
     >
   >;
@@ -51,6 +52,7 @@ describe('NotificationsService', () => {
       markRead: jest.fn(),
       markAllRead: jest.fn(),
       createWithTranslations: jest.fn(),
+      createWelcome: jest.fn(),
       upsertUnreadMessage: jest.fn(),
     };
     service = new NotificationsService(
@@ -250,6 +252,44 @@ describe('NotificationsService', () => {
 
       expect(repository.createWithTranslations).toHaveBeenCalled();
       expect(repository.upsertUnreadMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('welcome', () => {
+    it("writes the Advisee welcome in both languages, with no resource, and doesn't push it", async () => {
+      repository.createWelcome.mockResolvedValue(
+        makeNotification({
+          type: 'WELCOME',
+          title: 'ยินดีต้อนรับสู่ Advisory',
+          content: 'เริ่มจากหาผู้เชี่ยวชาญที่ใช่สำหรับคำถามของคุณ',
+          resourceId: null,
+        }),
+      );
+
+      const result = await service.welcome(ownerId);
+
+      expect(repository.createWelcome).toHaveBeenCalledWith({
+        ownerId,
+        type: 'WELCOME',
+        title: 'ยินดีต้อนรับสู่ Advisory',
+        content: 'เริ่มจากหาผู้เชี่ยวชาญที่ใช่สำหรับคำถามของคุณ',
+        en: {
+          title: 'Welcome to Advisory',
+          content: 'Start by finding the right expert for your question',
+        },
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ type: 'WELCOME', resourceId: null }),
+      );
+      expect(result).not.toHaveProperty('ownerId');
+      expect(push.sendToUser).not.toHaveBeenCalled();
+    });
+
+    it('is undefined for an account that already has its welcome', async () => {
+      repository.createWelcome.mockResolvedValue(undefined);
+
+      await expect(service.welcome(ownerId)).resolves.toBeUndefined();
+      expect(push.sendToUser).not.toHaveBeenCalled();
     });
   });
 });

@@ -9,6 +9,7 @@ import {
   advisorIdentity,
   advisorProfiles,
   advisorSkills,
+  notifications,
   pdpaConsents,
   skillProofDocuments,
   session,
@@ -104,14 +105,16 @@ export async function approveAsAdvisor(
 }
 
 /**
- * Drains `userIds`, removing each account and the profile, session, and verification
- * rows that reference it. Specs that create none of those are unaffected.
+ * Drains `userIds`, removing each account and the profile, session, verification and
+ * notification rows that reference it (every sign-up writes a welcome). Specs that
+ * create none of those are unaffected.
  */
 export async function deleteUsers(
   db: DrizzleDB,
   userIds: string[],
 ): Promise<void> {
   for (const id of userIds.splice(0)) {
+    await db.delete(notifications).where(eq(notifications.ownerId, id));
     await db.delete(adminProfiles).where(eq(adminProfiles.userId, id));
     await db
       .delete(advisorGlobalAvailability)

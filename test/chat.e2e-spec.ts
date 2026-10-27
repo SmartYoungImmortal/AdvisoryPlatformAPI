@@ -13,6 +13,7 @@ import {
   chatMembers,
   chatMessages,
   chatRooms,
+  notifications,
   session,
   user,
 } from '@/database/schema';
@@ -81,6 +82,8 @@ describe('chat sockets (e2e)', () => {
       await db.delete(chatRooms).where(eq(chatRooms.id, roomId));
     }
     for (const userId of userIds.splice(0)) {
+      // Sign-up wrote the account's welcome.
+      await db.delete(notifications).where(eq(notifications.ownerId, userId));
       await db.delete(session).where(eq(session.userId, userId));
       await db.delete(account).where(eq(account.userId, userId));
       await db.delete(user).where(eq(user.id, userId));
