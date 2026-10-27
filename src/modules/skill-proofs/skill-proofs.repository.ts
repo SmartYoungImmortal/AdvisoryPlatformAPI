@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, count, eq, inArray, type SQL } from 'drizzle-orm';
+import { skillName } from '@/common/i18n/localized-columns';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
@@ -14,17 +15,21 @@ import type { SkillProofQueryDto } from './dtos/skill-proof-query.dto';
 import type { SkillProofRow } from './dtos/skill-proof-response.dto';
 import type { SkillProofReviewStatus } from './skill-proofs.constants';
 
-/** The owner's view of a document, shared by their list and by a fresh upload. */
-const OWN_COLUMNS = {
+/**
+ * The owner's view of a document, shared by their list and by a fresh upload. A
+ * function, not a constant: the skill's name is read in the request's language,
+ * which is only known once a query is built.
+ */
+const ownColumns = () => ({
   id: skillProofDocuments.id,
   skillId: skillProofDocuments.skillId,
-  skillName: skills.name,
+  skillName: skillName(),
   originalFileName: skillProofDocuments.originalFileName,
   reviewStatus: skillProofDocuments.reviewStatus,
   rejectionReason: skillProofDocuments.rejectionReason,
   reviewedAt: skillProofDocuments.reviewedAt,
   createdAt: skillProofDocuments.createdAt,
-};
+});
 
 /** The columns a review writes. Nothing else about the document is a reviewer's to change. */
 export interface SkillProofReview {
@@ -137,7 +142,7 @@ export class SkillProofsRepository extends EntityRepository<
         .values(document)
         .returning({ id: skillProofDocuments.id });
       const [row] = await tx
-        .select(OWN_COLUMNS)
+        .select(ownColumns())
         .from(skillProofDocuments)
         .innerJoin(skills, eq(skills.id, skillProofDocuments.skillId))
         .where(eq(skillProofDocuments.id, created.id));
@@ -184,7 +189,7 @@ export class SkillProofsRepository extends EntityRepository<
         advisorId: skillProofDocuments.advisorId,
         advisorDisplayName: user.displayName,
         skillId: skillProofDocuments.skillId,
-        skillName: skills.name,
+        skillName: skillName(),
         objectKey: skillProofDocuments.objectKey,
         originalFileName: skillProofDocuments.originalFileName,
         reviewStatus: skillProofDocuments.reviewStatus,
@@ -203,7 +208,7 @@ export class SkillProofsRepository extends EntityRepository<
   /** The owner's shape: the skill name is joined, the submitter is not. */
   private selectForAdvisor(where: SQL | undefined) {
     return this.db
-      .select(OWN_COLUMNS)
+      .select(ownColumns())
       .from(skillProofDocuments)
       .innerJoin(skills, eq(skills.id, skillProofDocuments.skillId))
       .where(where)

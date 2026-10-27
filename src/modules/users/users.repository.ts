@@ -4,6 +4,7 @@ import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
   advisorIdentity,
+  advisorProfileTranslations,
   advisorProfiles,
   advisorSkills,
   notifications,
@@ -185,6 +186,11 @@ export class UsersRepository extends EntityRepository<typeof user> {
         .update(services)
         .set({ isPublished: false, modifiedAt: now })
         .where(eq(services.advisorId, userId));
+      // The translations go too, or a reader in their language would still
+      // see the old headline and bio over the placeholder.
+      await tx
+        .delete(advisorProfileTranslations)
+        .where(eq(advisorProfileTranslations.advisorId, userId));
       await tx
         .update(advisorProfiles)
         .set({ headline: 'Deleted advisor', bio: null, modifiedAt: now })

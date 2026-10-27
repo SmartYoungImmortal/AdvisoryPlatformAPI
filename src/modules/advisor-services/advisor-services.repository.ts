@@ -4,21 +4,34 @@ import {
   asc,
   count,
   eq,
+  getTableColumns,
   gte,
   ilike,
+  inArray,
   isNull,
   lte,
   or,
+  type InferInsertModel,
   type InferSelectModel,
   type SQL,
 } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
+import {
+  saveServiceTranslation,
+  writesSourceText,
+} from '@/common/i18n/content-translations';
+import {
+  serviceDescription,
+  serviceName,
+} from '@/common/i18n/localized-columns';
 import { EntityRepository } from '@/common/repositories/entity.repository';
+import { escapeLike } from '@/common/utils/escape-like';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   availabilityProfiles,
   serviceCategories,
+  serviceImages,
   services,
   user,
 } from '@/database/schema';
@@ -26,6 +39,29 @@ import type { PublicServiceDocument } from './advisor-services.types';
 import type { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
+type Reader = Pick<DrizzleDB, 'select'>;
+
+/**
+ * An Advisor's edit to their Service. The name and description are in the
+ * request's language, so they are typed apart from the rest: they go through
+ * the translation, everything else straight to the row.
+ */
+export type AdvisorServiceEdit = Omit<
+  PgUpdateSetSource<typeof services>,
+  'name' | 'description'
+> & { name?: string; description?: string | null };
+
+/**
+ * Every column of a Service, its name and description in the request's
+ * language. A function, not a constant: the language is the request's, so it is
+ * read when each query is built.
+ */
+const localizedColumns = () => ({
+  ...getTableColumns(services),
+  name: serviceName(),
+  description: serviceDescription(),
+});
+
 @Injectable()
 export class AdvisorServicesRepository extends EntityRepository<
   typeof services
@@ -38,8 +74,8 @@ export class AdvisorServicesRepository extends EntityRepository<
     advisorId: string,
     options: { limit: number; offset: number },
   ): Promise<AdvisorService[]> {
-    return this.db
-      .select()
+    return await this.db
+      .select(localizedColumns())
       .from(services)
       .where(eq(services.advisorId, advisorId))
       .orderBy(services.createdAt)
@@ -51,11 +87,48 @@ export class AdvisorServicesRepository extends EntityRepository<
     return this.count(eq(services.advisorId, advisorId));
   }
 
+  /** Every Advisor's Services for the admin console, in the inherited `findMany`'s id order. */
+  findManyLocalized(options: {
+    limit: number;
+    offset: number;
+  }): Promise<AdvisorService[]> {
+    return this.db
+      .select(localizedColumns())
+      .from(services)
+      .orderBy(asc(services.id))
+      .limit(options.limit)
+      .offset(options.offset);
+  }
+
   async findOwnedById(
     advisorId: string,
     serviceId: string,
+    db: Reader = this.db,
   ): Promise<AdvisorService | undefined> {
-    return this.findOne(this.ownedWhere(advisorId, serviceId));
+    const [service] = await db
+      .select(localizedColumns())
+      .from(services)
+      .where(this.ownedWhere(advisorId, serviceId))
+      .limit(1);
+    return service;
+  }
+
+  /**
+   * A new Service, its text written twice in one transaction: to the row's own
+   * columns, the fallback for a language with no translation, and to the
+   * translation for the language the Advisor wrote it in.
+   */
+  createLocalized(
+    values: InferInsertModel<typeof services>,
+  ): Promise<AdvisorService> {
+    return this.db.transaction(async (tx) => {
+      const [service] = await tx.insert(services).values(values).returning();
+      await saveServiceTranslation(tx, service.id, {
+        name: service.name,
+        description: service.description,
+      });
+      return service;
+    });
   }
 
   async categoryExists(categoryId: string): Promise<boolean> {
@@ -85,33 +158,74 @@ export class AdvisorServicesRepository extends EntityRepository<
     return profile !== undefined;
   }
 
-  async updateOwned(
+  /**
+   * The edit's name and description go to the translation for the request's
+   * language, merged over what that language reads now so a partial edit keeps
+   * the other field. The row's own columns take them only in Thai, the source:
+   * an edit made in English leaves the Thai as it was. Every other field goes to
+   * the row as before. Returns the Service as the request's language now reads it.
+   */
+  updateOwned(
     advisorId: string,
     serviceId: string,
-    values: PgUpdateSetSource<typeof services>,
+    { name, description, ...values }: AdvisorServiceEdit,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.updateWhere(
-      this.ownedWhere(advisorId, serviceId),
-      values,
-    );
-    return service;
+    return this.db.transaction(async (tx) => {
+      const current = await this.findOwnedById(advisorId, serviceId, tx);
+      if (!current) return undefined;
+
+      const edited = name !== undefined || description !== undefined;
+      const text = {
+        name: name ?? current.name,
+        description:
+          description === undefined ? current.description : description,
+      };
+      const [service] = await tx
+        .update(services)
+        .set(edited && writesSourceText() ? { ...values, ...text } : values)
+        .where(this.ownedWhere(advisorId, serviceId))
+        .returning();
+      if (!service) return undefined;
+      if (edited) await saveServiceTranslation(tx, serviceId, text);
+      return { ...service, ...text };
+    });
   }
 
+  /**
+   * The service and its photographs, in one transaction.
+   *
+   * `service_images` references the service with no cascade, so deleting the
+   * row alone fails as soon as it has photographs, which every seeded service
+   * now does. The photographs go only once the same `ownedWhere` has found the
+   * service, so another advisor's id deletes nothing, and a service that still
+   * cannot go (it has bookings) keeps its photographs when the delete rolls back.
+   * Its translations cascade, so what is returned is the localized read made
+   * before the delete.
+   */
   async deleteOwned(
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    const [service] = await this.deleteWhere(
-      this.ownedWhere(advisorId, serviceId),
-    );
-    return service;
+    return this.db.transaction(async (tx) => {
+      const owned = await this.findOwnedById(advisorId, serviceId, tx);
+      if (!owned) return undefined;
+
+      await tx
+        .delete(serviceImages)
+        .where(eq(serviceImages.serviceId, serviceId));
+      const deleted = await tx
+        .delete(services)
+        .where(this.ownedWhere(advisorId, serviceId))
+        .returning({ id: services.id });
+      return deleted.length > 0 ? owned : undefined;
+    });
   }
 
   async findPublished(
     query: PublicServiceQueryDto,
     options: { limit: number; offset: number },
   ): Promise<PublicServiceDocument[]> {
-    return this.selectPublished(query)
+    return await this.selectPublished(query)
       .orderBy(asc(services.createdAt), asc(services.id))
       .limit(options.limit)
       .offset(options.offset);
@@ -149,6 +263,25 @@ export class AdvisorServicesRepository extends EntityRepository<
     return service;
   }
 
+  /**
+   * The photograph keys for a set of services, in one query rather than one per
+   * row: a flat list for the caller to group, each service's keys in carousel
+   * order.
+   */
+  async findImageKeysFor(
+    serviceIds: readonly string[],
+  ): Promise<{ serviceId: string; objectKey: string }[]> {
+    if (serviceIds.length === 0) return [];
+    return this.db
+      .select({
+        serviceId: serviceImages.serviceId,
+        objectKey: serviceImages.objectKey,
+      })
+      .from(serviceImages)
+      .where(inArray(serviceImages.serviceId, [...serviceIds]))
+      .orderBy(asc(serviceImages.serviceId), asc(serviceImages.carouselIndex));
+  }
+
   private ownedWhere(advisorId: string, serviceId: string): SQL {
     return and(
       eq(services.id, serviceId),
@@ -162,8 +295,8 @@ export class AdvisorServicesRepository extends EntityRepository<
         id: services.id,
         advisorId: services.advisorId,
         categoryId: services.categoryId,
-        name: services.name,
-        description: services.description,
+        name: serviceName(),
+        description: serviceDescription(),
         priceSatang: services.priceSatang,
         durationMinutes: services.durationMinutes,
         screeningRequired: services.screeningRequired,
@@ -178,10 +311,11 @@ export class AdvisorServicesRepository extends EntityRepository<
 
   private publishedWhere(query?: PublicServiceQueryDto): SQL {
     const text = query?.q?.trim();
+    // Searches the text the reader is shown, in their language, not the Thai source.
     const textPredicate = text
       ? or(
-          ilike(services.name, `%${this.escapeLikePattern(text)}%`),
-          ilike(services.description, `%${this.escapeLikePattern(text)}%`),
+          ilike(serviceName(), `%${escapeLike(text)}%`),
+          ilike(serviceDescription(), `%${escapeLike(text)}%`),
         )
       : undefined;
 
@@ -200,9 +334,5 @@ export class AdvisorServicesRepository extends EntityRepository<
         : undefined,
       textPredicate,
     ) as SQL;
-  }
-
-  private escapeLikePattern(value: string): string {
-    return value.replace(/[\\%_]/g, '\\$&');
   }
 }

@@ -1,5 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, gt, isNull, lt, type InferSelectModel } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  type InferSelectModel,
+} from 'drizzle-orm';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
@@ -253,8 +261,121 @@ export class AvailabilityRepository {
       : undefined;
   }
 
+  /**
+   * `schedulingContext` for many services in one pass: the services, then
+   * each table of their schedules once for the lot, assembled per service by
+   * the same rules (published, verified advisor, a live profile, a global
+   * setting). A service that would get `undefined` alone is simply absent.
+   */
+  async schedulingContexts(serviceIds: readonly string[]) {
+    type Context = NonNullable<
+      Awaited<ReturnType<AvailabilityRepository['schedulingContext']>>
+    >;
+    const contexts = new Map<string, Context>();
+    if (serviceIds.length === 0) return contexts;
+    const rows = await this.db
+      .select({ service: services, timezone: user.timezone })
+      .from(services)
+      .innerJoin(user, eq(user.id, services.advisorId))
+      .where(
+        and(
+          inArray(services.id, [...serviceIds]),
+          eq(services.isPublished, true),
+          isVerifiedAdvisor(services.advisorId),
+        ),
+      );
+    const scheduled = rows.filter((row) => row.service.availabilityProfileId);
+    if (scheduled.length === 0) return contexts;
+    const advisorIds = [
+      ...new Set(scheduled.map((row) => row.service.advisorId)),
+    ];
+    const profileIds = [
+      ...new Set(scheduled.map((row) => row.service.availabilityProfileId!)),
+    ];
+    const [globals, profiles, weekly, specific, blocked] = await Promise.all([
+      this.db
+        .select()
+        .from(advisorGlobalAvailability)
+        .where(inArray(advisorGlobalAvailability.advisorId, advisorIds)),
+      this.db
+        .select({ id: availabilityProfiles.id })
+        .from(availabilityProfiles)
+        .where(
+          and(
+            inArray(availabilityProfiles.id, profileIds),
+            isNull(availabilityProfiles.deletedAt),
+          ),
+        ),
+      this.db
+        .select()
+        .from(availabilityWeeklyWindows)
+        .where(
+          inArray(availabilityWeeklyWindows.availabilityProfileId, profileIds),
+        ),
+      this.db
+        .select()
+        .from(availabilitySpecificWindows)
+        .where(
+          inArray(
+            availabilitySpecificWindows.availabilityProfileId,
+            profileIds,
+          ),
+        ),
+      this.db
+        .select()
+        .from(availabilityBlockedPeriods)
+        .where(
+          inArray(availabilityBlockedPeriods.availabilityProfileId, profileIds),
+        ),
+    ]);
+    const globalOf = new Map(
+      globals.map((global) => [global.advisorId, global]),
+    );
+    const liveProfiles = new Set(profiles.map((profile) => profile.id));
+    for (const { service, timezone } of scheduled) {
+      const profileId = service.availabilityProfileId!;
+      const global = globalOf.get(service.advisorId);
+      if (!global || !liveProfiles.has(profileId)) continue;
+      contexts.set(service.id, {
+        service,
+        timezone,
+        global,
+        weeklyWindows: weekly.filter(
+          (w) => w.availabilityProfileId === profileId,
+        ),
+        specificWindows: specific.filter(
+          (w) => w.availabilityProfileId === profileId,
+        ),
+        blockedPeriods: blocked.filter(
+          (p) => p.availabilityProfileId === profileId,
+        ),
+      });
+    }
+    return contexts;
+  }
+
+  /** `findBlockingAppointments` for many advisors over one span, in one query. */
+  async findBlockingAppointmentsForAdvisors(
+    advisorIds: readonly string[],
+    from: Date,
+    to: Date,
+  ) {
+    if (advisorIds.length === 0) return [];
+    return await this.db
+      .select()
+      .from(serviceAppointments)
+      .where(
+        and(
+          inArray(serviceAppointments.advisorId, [...advisorIds]),
+          eq(serviceAppointments.blocksAvailability, true),
+          lt(serviceAppointments.startTime, to),
+          gt(serviceAppointments.unavailableUntil, from),
+        ),
+      );
+  }
+
   async findBlockingAppointments(advisorId: string, from: Date, to: Date) {
-    return this.db
+    return await this.db
       .select()
       .from(serviceAppointments)
       .where(

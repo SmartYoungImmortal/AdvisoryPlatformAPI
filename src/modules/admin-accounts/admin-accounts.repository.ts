@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
 import { EntityRepository } from '@/common/repositories/entity.repository';
+import { escapeLike } from '@/common/utils/escape-like';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import { advisorProfiles, user } from '@/database/schema';
 import {
@@ -49,7 +50,7 @@ export class AdminAccountsRepository extends EntityRepository<typeof user> {
     query: AccountQueryDto,
     options: { limit: number; offset: number },
   ): Promise<AdminAccountRow[]> {
-    return this.db
+    return await this.db
       .select(accountColumns)
       .from(user)
       .where(this.listWhere(query))
@@ -157,7 +158,7 @@ export class AdminAccountsRepository extends EntityRepository<typeof user> {
    */
   private listWhere(query: AccountQueryDto): SQL | undefined {
     const text = query.q?.trim();
-    const pattern = text ? `%${this.escapeLikePattern(text)}%` : undefined;
+    const pattern = text ? `%${escapeLike(text)}%` : undefined;
 
     return and(
       query.status ? eq(user.status, query.status) : undefined,
@@ -166,9 +167,5 @@ export class AdminAccountsRepository extends EntityRepository<typeof user> {
         ? or(ilike(user.displayName, pattern), ilike(user.email, pattern))
         : undefined,
     );
-  }
-
-  private escapeLikePattern(value: string): string {
-    return value.replace(/[\\%_]/g, '\\$&');
   }
 }

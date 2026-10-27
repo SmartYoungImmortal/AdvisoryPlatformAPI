@@ -1,5 +1,12 @@
 import { crudMessages } from '@/common/constants/crud-messages';
 
+/**
+ * How long a presigned service photograph stays readable. Longer than the five
+ * minutes private documents get: these are public pictures, and a gallery's
+ * later photos load lazily, well after the detail response arrived.
+ */
+export const SERVICE_IMAGE_URL_EXPIRY_SECONDS = 60 * 60;
+
 export const ADVISOR_SERVICE_MESSAGES = {
   ...crudMessages('Service'),
   categoryNotFound: 'Service category not found',

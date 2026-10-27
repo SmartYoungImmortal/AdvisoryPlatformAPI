@@ -22,6 +22,7 @@ import type {
   ChatSocketData,
   ChatSocketError,
 } from './chat-socket.types';
+import { ChatMessageNotifier } from './chat-message-notifier';
 import { ChatSocketSessionService } from './chat-socket-session.service';
 import type { ChatSocket } from './chat-socket-session.service';
 import { ChatService } from './chat.service';
@@ -38,6 +39,19 @@ type ChatServer = Server<
   ChatSocketData
 >;
 
+/** An HTTP exception's sentence: its string body, its body's `message`, or its own. */
+function httpExceptionMessage(error: HttpException): string {
+  const response = error.getResponse();
+  if (typeof response === 'string') return response;
+  if (
+    typeof response === 'object' &&
+    response !== null &&
+    'message' in response
+  )
+    return String(response.message);
+  return error.message;
+}
+
 @WebSocketGateway({ namespace: CHAT_NAMESPACE })
 @UsePipes(
   new ValidationPipe({
@@ -50,11 +64,12 @@ type ChatServer = Server<
 )
 export class ChatGateway implements OnGatewayInit<ChatServer> {
   @WebSocketServer()
-  private server!: ChatServer;
+  private readonly server!: ChatServer;
 
   constructor(
     private readonly chatService: ChatService,
     private readonly socketSession: ChatSocketSessionService,
+    private readonly messageNotifier: ChatMessageNotifier,
   ) {}
 
   afterInit(server: ChatServer): void {
@@ -116,8 +131,28 @@ export class ChatGateway implements OnGatewayInit<ChatServer> {
       this.server
         .to(chatSocketRoom(dto.chatRoomId))
         .emit(CHAT_EVENTS.message, message);
+      await this.messageNotifier.notifyAbsentMembers(
+        message,
+        await this.userIdsInRoom(dto.chatRoomId),
+      );
       return message;
     });
+  }
+
+  /** Users with a socket in the room right now; they got the message live and need no push. */
+  private async userIdsInRoom(chatRoomId: string): Promise<Set<string>> {
+    try {
+      const sockets = await this.server
+        .in(chatSocketRoom(chatRoomId))
+        .fetchSockets();
+      return new Set(
+        sockets.flatMap((socket) =>
+          socket.data.user ? [socket.data.user.id] : [],
+        ),
+      );
+    } catch {
+      return new Set();
+    }
   }
 
   @SubscribeMessage(CHAT_EVENTS.markRead)
@@ -161,16 +196,10 @@ export class ChatGateway implements OnGatewayInit<ChatServer> {
 
   private socketError(error: unknown): ChatSocketError {
     if (error instanceof HttpException) {
-      const response = error.getResponse();
-      const message =
-        typeof response === 'string'
-          ? response
-          : typeof response === 'object' &&
-              response !== null &&
-              'message' in response
-            ? String(response.message)
-            : error.message;
-      return { statusCode: error.getStatus(), message };
+      return {
+        statusCode: error.getStatus(),
+        message: httpExceptionMessage(error),
+      };
     }
     return { statusCode: 500, message: CHAT_MESSAGES.internalError };
   }

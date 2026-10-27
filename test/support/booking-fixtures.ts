@@ -1,10 +1,17 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@/database/database.module';
 import {
   availabilityProfiles,
   availabilityWeeklyWindows,
+  chatFiles,
+  chatMembers,
+  chatMessages,
+  chatRooms,
+  notifications,
   serviceAppointments,
+  serviceAppointmentsOnInvoice,
   serviceCategories,
+  serviceInvoices,
   services,
 } from '@/database/schema';
 import {
@@ -122,15 +129,34 @@ export async function seedAdvisorService(
   };
 }
 
-/** Deletes in dependency order: appointments before Services, windows before profiles. */
+/**
+ * Deletes in dependency order: appointments before Services, windows before profiles,
+ * and the chat room each booking opened after the appointments that name it and
+ * before the users who are its members.
+ */
 export async function deleteBookingFixtures(
   db: DrizzleDB,
   ids: BookingFixtureIds,
 ): Promise<void> {
   for (const id of ids.serviceIds.splice(0)) {
+    const rooms = await db
+      .select({
+        appointmentId: serviceAppointments.id,
+        chatRoomId: serviceAppointments.chatRoomId,
+      })
+      .from(serviceAppointments)
+      .where(eq(serviceAppointments.serviceId, id));
+    await deleteInvoices(
+      db,
+      rooms.map((room) => room.appointmentId),
+    );
     await db
       .delete(serviceAppointments)
       .where(eq(serviceAppointments.serviceId, id));
+    await deleteChatRooms(
+      db,
+      rooms.flatMap((room) => (room.chatRoomId ? [room.chatRoomId] : [])),
+    );
     await db.delete(services).where(eq(services.id, id));
   }
   for (const id of ids.profileIds.splice(0)) {
@@ -144,5 +170,47 @@ export async function deleteBookingFixtures(
   for (const id of ids.categoryIds.splice(0)) {
     await db.delete(serviceCategories).where(eq(serviceCategories.id, id));
   }
+  // A confirmed booking and its messages notify both sides, and a notification
+  // belongs to its owner: those go before the users.
+  if (ids.userIds.length > 0) {
+    await db
+      .delete(notifications)
+      .where(inArray(notifications.ownerId, ids.userIds));
+  }
   await deleteUsers(db, ids.userIds);
+}
+
+/** A booking's room and everything written in it; a reschedule shares one room. */
+async function deleteChatRooms(
+  db: DrizzleDB,
+  roomIds: string[],
+): Promise<void> {
+  const unique = [...new Set(roomIds)];
+  if (unique.length === 0) return;
+  await db.delete(chatMessages).where(inArray(chatMessages.chatRoomId, unique));
+  await db.delete(chatFiles).where(inArray(chatFiles.chatRoomId, unique));
+  await db.delete(chatMembers).where(inArray(chatMembers.chatRoomId, unique));
+  await db.delete(chatRooms).where(inArray(chatRooms.id, unique));
+}
+
+/** The invoices a booking was paid through, and the links that tie them to it. */
+async function deleteInvoices(
+  db: DrizzleDB,
+  appointmentIds: string[],
+): Promise<void> {
+  if (appointmentIds.length === 0) return;
+  const links = await db
+    .delete(serviceAppointmentsOnInvoice)
+    .where(
+      inArray(
+        serviceAppointmentsOnInvoice.serviceAppointmentId,
+        appointmentIds,
+      ),
+    )
+    .returning({ invoiceId: serviceAppointmentsOnInvoice.serviceInvoiceId });
+  const invoiceIds = [...new Set(links.map((link) => link.invoiceId))];
+  if (invoiceIds.length === 0) return;
+  await db
+    .delete(serviceInvoices)
+    .where(inArray(serviceInvoices.id, invoiceIds));
 }

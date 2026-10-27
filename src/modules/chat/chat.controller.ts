@@ -23,6 +23,7 @@ import { ChatService } from './chat.service';
 import { ChatMessageResponseDto } from './dtos/chat-message-response.dto';
 import { ChatMessageQueryDto, ChatQueryDto } from './dtos/chat-query.dto';
 import { MarkChatReadDto } from './dtos/mark-chat-read.dto';
+import { MuteChatRoomDto } from './dtos/mute-chat-room.dto';
 import { ChatReadResponseDto } from './dtos/chat-read-response.dto';
 import { ChatRoomResponseDto } from './dtos/chat-room-response.dto';
 
@@ -61,5 +62,16 @@ export class ChatController {
     @Body() dto: MarkChatReadDto,
   ): Promise<ChatReadResponseDto> {
     return this.chatService.markRead(user.id, chatRoomId, dto.messageId);
+  }
+
+  @Patch(':chatRoomId/mute')
+  @ResponseMessage(CHAT_MESSAGES.muteUpdated)
+  @ApiUpdate(ChatRoomResponseDto)
+  setMuted(
+    @CurrentUser() user: SessionUser,
+    @Param('chatRoomId', ParseUUIDPipe) chatRoomId: string,
+    @Body() dto: MuteChatRoomDto,
+  ): Promise<ChatRoomResponseDto> {
+    return this.chatService.setMuted(user.id, chatRoomId, dto.muted);
   }
 }

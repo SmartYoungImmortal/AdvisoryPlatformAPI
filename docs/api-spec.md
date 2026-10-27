@@ -576,8 +576,14 @@ filters. An inverted price range is `400`.
 
 Search queries Postgres directly. The public allowlist is `id`, `advisorId`,
 `categoryId`, `name`, `description`, `priceSatang`, `durationMinutes`, `screeningRequired`,
-`trialEnabled`, and `trialDurationMinutes`. It never reuses the owner DTO or exposes availability
-profile, daily-limit, publishing, or other owner-only fields.
+`trialEnabled`, `trialDurationMinutes`, `createdAt`, and `images`. It never reuses the owner DTO or
+exposes availability profile, daily-limit, publishing, or other owner-only fields.
+
+`images` is the Service's `service_images` rows as absolute URLs in `carousel_index` order; index 0
+is reserved for the cover. An `object_key` that is already an `http(s)` URL is returned unchanged.
+Any other key is a storage key, presigned on the detail route only: the search route reads every
+listed Service's keys in one query and returns just the URL keys, so a page never waits on storage.
+A key that cannot be presigned is left out rather than failing the request.
 
 `GET /api/v1/admin/services?page=1&limit=20` is an Admin-only offset-paginated view of all
 Services. It returns the same administrative allowlist above, including unpublished Services, so
@@ -588,8 +594,13 @@ operational staff can review ownership and publishing state without using an Adv
 ## 9. Module: Chat
 
 Chat rooms are created only by the appointment or granted-trial workflows. There is no public
-room-create or membership-management endpoint. Until those upstream workflows are implemented,
-tests and operational fixtures may create their linked room records directly; clients may not.
+room-create or membership-management endpoint. `POST /api/v1/bookings` opens the booking's room in
+the same transaction as the appointment: one `chat_rooms` row stamped with the appointment's
+`createdAt`, the Advisee and the Advisor as its two members, and the room's id on
+`service_appointments.chat_room_id`. A reschedule's replacement keeps the original's room, so the
+conversation carries on. Both are idempotent per appointment. The granted-trial workflow is not
+implemented yet; until it is, tests and operational fixtures may create their linked room records
+directly; clients may not.
 
 Every HTTP route and socket event below requires an `ACTIVE` Better Auth cookie session. A user who
 is not a room member receives `404`, not `403`, so room UUID probing does not reveal whether a room
@@ -598,8 +609,14 @@ exists.
 ### HTTP history and read model
 
 - `GET /api/v1/chat/rooms?page=1&limit=20` lists only the current user's rooms, newest room first.
-  Each item is `{ id, isAnonymous, lastReadAt, unreadCount, createdAt }`. `unreadCount` counts only
-  messages from other members strictly after this member's read marker.
+  Each item is
+  `{ id, isAnonymous, lastReadAt, isMuted, unreadCount, createdAt, counterpart, lastMessage }`.
+  `isMuted` is whether the current member has muted the room (see the mute route below).
+  `unreadCount` counts only messages from other members strictly after this member's read marker.
+  `counterpart` is the other member as `{ id, displayName, image }` (`image` is the public portrait
+  URL or `null`, never a storage key), or `null` for an anonymous room or a room with no other member.
+  `lastMessage` is the room's newest message in the message shape (the first item the messages
+  route would return), or `null` in an empty room, so a list needs no per-room read.
 - `GET /api/v1/chat/rooms/:chatRoomId/messages?limit=20&cursor=<opaque>` returns member-only
   history, newest message first. Omit `cursor` for the first page, then pass `nextCursor` back
   unchanged while `hasMore` is true. Ties are ordered by UUID so pagination remains stable when
@@ -609,6 +626,13 @@ exists.
   `{ chatRoomId, memberUserId, messageId, lastReadAt }`. The message must belong to that room.
   Markers only move forward: a delayed request for an older message cannot make later messages
   unread again.
+- `PATCH /api/v1/chat/rooms/:chatRoomId/mute` accepts `{ "muted": boolean }` (required) and returns
+  the room in the room-list item shape above. Muting is per member: while a member has a room
+  muted, a new message in it creates no `NEW_MESSAGE` notification and sends no device push to
+  them. The message is still stored, still broadcast on the socket, and still counted in their
+  `unreadCount`. Unmuting restores notifications for messages sent from then on; nothing missed
+  while muted is backfilled. Repeating either call changes nothing (a repeated mute keeps the
+  original `chat_members.muted_at`).
 
 ### Files
 
@@ -837,6 +861,7 @@ primary key and every route addresses it as that booking's subresource. There is
 | `PATCH /api/v1/advisors/me/reviews/:bookingId/reply` | `Advisor` | Write or rewrite the reply          |
 | `GET /api/v1/advisors/:advisorId/reviews`            | `Public`  | Paginated public list               |
 | `GET /api/v1/advisors/:advisorId/reviews/summary`    | `Public`  | Score and star distribution         |
+| `GET /api/v1/advisors/reviews/summaries?ids=a,b,c`   | `Public`  | The same summary for up to 100 advisors at once, `{ items: [{ advisorId, average, total, distribution }] }`; an advisor the single route would 404 is left out |
 
 **What may be reviewed.** Only an appointment in `COMPLETED`, and only by its Advisee — a
 consultation is rated after it has happened. `stars` is an integer 1–5, enforced both by the DTO

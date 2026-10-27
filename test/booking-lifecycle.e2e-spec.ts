@@ -15,6 +15,18 @@ import { data, object, stringField } from './support/response';
  * the repository, so the transaction in rescheduleWithSchedulingLock, the conditional
  * transition updates, and the cancellation check constraint are only proven here.
  */
+async function book(
+  agent: request.Agent,
+  serviceId: string,
+  startTime: string,
+) {
+  const response = await agent
+    .post('/api/v1/bookings')
+    .send({ serviceId, startTime })
+    .expect(201);
+  return data(response.body);
+}
+
 describe('booking lifecycle (e2e)', () => {
   let bookings: BookingsService;
   const ids = createBookingFixtureIds();
@@ -33,18 +45,6 @@ describe('booking lifecycle (e2e)', () => {
       first: seeded.slotAt('09:00'),
       second: seeded.slotAt('10:00'),
     };
-  }
-
-  async function book(
-    agent: request.Agent,
-    serviceId: string,
-    startTime: string,
-  ) {
-    const response = await agent
-      .post('/api/v1/bookings')
-      .send({ serviceId, startTime })
-      .expect(201);
-    return data(response.body);
   }
 
   async function readState(bookingId: string) {

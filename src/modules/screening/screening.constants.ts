@@ -30,8 +30,9 @@ export const SCREENING_ANSWER_MAX_LENGTH = 1_000;
 export const SCREENING_DECLINE_MESSAGE_MAX_LENGTH = 1_000;
 
 /**
- * Notification text. It is in Thai because users see it, and the wording comes from the Figma
- * designs.
+ * Notification text. The Thai is the source, kept on the notification row, and its wording comes
+ * from the Figma designs; `en` is the same text in English, written alongside it so a reader sees
+ * whichever language they use.
  */
 export const SCREENING_NOTIFICATIONS = {
   requestedTitle: 'มีคำขอคัดกรองใหม่',
@@ -41,4 +42,13 @@ export const SCREENING_NOTIFICATIONS = {
   acceptedContent: (advisorName: string) =>
     `${advisorName} รับคำขอ จองเวลาได้เลย`,
   declinedTitle: 'ที่ปรึกษาคนนี้ยังไม่ว่าง',
+  en: {
+    requestedTitle: 'New screening request',
+    requestedContent: (adviseeName: string, answerCount: number) =>
+      `${adviseeName} sent ${answerCount} screening ${answerCount === 1 ? 'answer' : 'answers'}`,
+    acceptedTitle: 'Consultation request approved',
+    acceptedContent: (advisorName: string) =>
+      `${advisorName} accepted your request. You can book a time now.`,
+    declinedTitle: 'This advisor isn’t available right now',
+  },
 } as const;

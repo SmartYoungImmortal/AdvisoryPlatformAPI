@@ -29,18 +29,23 @@ describe('ServiceCategoriesService', () => {
   let repository: jest.Mocked<
     Pick<
       ServiceCategoriesRepository,
-      'findMany' | 'count' | 'findById' | 'create' | 'updateById' | 'deleteById'
+      | 'findManyLocalized'
+      | 'count'
+      | 'findByIdLocalized'
+      | 'createLocalized'
+      | 'updateLocalized'
+      | 'deleteLocalized'
     >
   >;
 
   beforeEach(() => {
     repository = {
-      findMany: jest.fn(),
+      findManyLocalized: jest.fn(),
       count: jest.fn(),
-      findById: jest.fn(),
-      create: jest.fn(),
-      updateById: jest.fn(),
-      deleteById: jest.fn(),
+      findByIdLocalized: jest.fn(),
+      createLocalized: jest.fn(),
+      updateLocalized: jest.fn(),
+      deleteLocalized: jest.fn(),
     };
     service = new ServiceCategoriesService(
       repository as unknown as ServiceCategoriesRepository,
@@ -53,12 +58,12 @@ describe('ServiceCategoriesService', () => {
         page: 1,
         limit: 20,
       });
-      repository.findMany.mockResolvedValue([makeCategory()]);
+      repository.findManyLocalized.mockResolvedValue([makeCategory()]);
       repository.count.mockResolvedValue(1);
 
       const result = await service.findMany(query);
 
-      expect(repository.findMany).toHaveBeenCalledWith(undefined, {
+      expect(repository.findManyLocalized).toHaveBeenCalledWith({
         limit: 20,
         offset: 0,
       });
@@ -76,7 +81,7 @@ describe('ServiceCategoriesService', () => {
 
   describe('findOne', () => {
     it('returns the mapped category when found', async () => {
-      repository.findById.mockResolvedValue(makeCategory());
+      repository.findByIdLocalized.mockResolvedValue(makeCategory());
 
       const result = await service.findOne(makeCategory().id);
 
@@ -84,7 +89,7 @@ describe('ServiceCategoriesService', () => {
     });
 
     it('throws NotFoundException when missing', async () => {
-      repository.findById.mockResolvedValue(undefined);
+      repository.findByIdLocalized.mockResolvedValue(undefined);
 
       await expect(service.findOne('missing-id')).rejects.toThrow(
         NotFoundException,
@@ -94,11 +99,13 @@ describe('ServiceCategoriesService', () => {
 
   describe('create', () => {
     it('creates and returns the mapped category', async () => {
-      repository.create.mockResolvedValue(makeCategory({ name: 'Legal' }));
+      repository.createLocalized.mockResolvedValue(
+        makeCategory({ name: 'Legal' }),
+      );
 
       const result = await service.create({ name: 'Legal' }, ACTOR_ID);
 
-      expect(repository.create).toHaveBeenCalledWith({
+      expect(repository.createLocalized).toHaveBeenCalledWith({
         name: 'Legal',
         createdByUserId: ACTOR_ID,
         updatedByUserId: ACTOR_ID,
@@ -109,7 +116,7 @@ describe('ServiceCategoriesService', () => {
 
   describe('update', () => {
     it('updates and returns the mapped category', async () => {
-      repository.updateById.mockResolvedValue(
+      repository.updateLocalized.mockResolvedValue(
         makeCategory({ name: 'Updated' }),
       );
 
@@ -119,15 +126,15 @@ describe('ServiceCategoriesService', () => {
         ACTOR_ID,
       );
 
-      expect(repository.updateById).toHaveBeenCalledWith(makeCategory().id, {
-        name: 'Updated',
-        updatedByUserId: ACTOR_ID,
-      });
+      expect(repository.updateLocalized).toHaveBeenCalledWith(
+        makeCategory().id,
+        { name: 'Updated', updatedByUserId: ACTOR_ID },
+      );
       expect(result.name).toBe('Updated');
     });
 
     it('throws NotFoundException when the category does not exist', async () => {
-      repository.updateById.mockResolvedValue(undefined);
+      repository.updateLocalized.mockResolvedValue(undefined);
 
       await expect(
         service.update('missing-id', { name: 'X' }, ACTOR_ID),
@@ -137,7 +144,7 @@ describe('ServiceCategoriesService', () => {
 
   describe('delete', () => {
     it('returns the deleted category', async () => {
-      repository.deleteById.mockResolvedValue(makeCategory());
+      repository.deleteLocalized.mockResolvedValue(makeCategory());
 
       await expect(service.delete(makeCategory().id)).resolves.toEqual(
         expect.objectContaining({
@@ -148,7 +155,7 @@ describe('ServiceCategoriesService', () => {
     });
 
     it('throws NotFoundException when the category does not exist', async () => {
-      repository.deleteById.mockResolvedValue(undefined);
+      repository.deleteLocalized.mockResolvedValue(undefined);
 
       await expect(service.delete('missing-id')).rejects.toThrow(
         NotFoundException,

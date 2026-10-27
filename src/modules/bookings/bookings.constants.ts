@@ -14,6 +14,18 @@ export const BOOKING_MESSAGES = {
   noShowTooEarly: 'A no-show cannot be recorded before the appointment starts',
 } as const;
 
+/**
+ * Titles of the notifications (and device pushes) sent when payment confirms a booking, in each
+ * language a notification is written in.
+ */
+export const BOOKING_NOTIFICATION_TITLES = {
+  confirmed: {
+    th: 'การจองของคุณได้รับการยืนยันแล้ว',
+    en: 'Your booking is confirmed',
+  },
+  received: { th: 'มีการจองใหม่', en: 'You have a new booking' },
+} as const;
+
 export function invalidTransitionMessage(
   to: TransitionTarget,
   from: readonly AppointmentState[],

@@ -5,12 +5,15 @@ import {
 } from '@/common/pagination/cursor-pagination.dto';
 import type { NotificationsRepository } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
+import type { PushService } from './push/push.service';
 import type { Notification } from './notifications.types';
 
 const ownerId = '11111111-1111-1111-1111-111111111111';
 const roomId = '22222222-2222-2222-2222-222222222222';
 
-const makeNotification = (overrides: Partial<Notification> = {}) => ({
+const makeNotification = (
+  overrides: Partial<Notification> = {},
+): Notification => ({
   id: '33333333-3333-3333-3333-333333333333',
   ownerId,
   type: 'SCREENING_REQUESTED',
@@ -33,23 +36,28 @@ describe('NotificationsService', () => {
       | 'countUnread'
       | 'markRead'
       | 'markAllRead'
-      | 'create'
+      | 'createWithTranslations'
+      | 'createWelcome'
       | 'upsertUnreadMessage'
     >
   >;
+  let push: jest.Mocked<Pick<PushService, 'sendToUser'>>;
   let service: NotificationsService;
 
   beforeEach(() => {
+    push = { sendToUser: jest.fn().mockResolvedValue(undefined) };
     repository = {
       findPageForOwner: jest.fn(),
       countUnread: jest.fn(),
       markRead: jest.fn(),
       markAllRead: jest.fn(),
-      create: jest.fn(),
+      createWithTranslations: jest.fn(),
+      createWelcome: jest.fn(),
       upsertUnreadMessage: jest.fn(),
     };
     service = new NotificationsService(
       repository as unknown as NotificationsRepository,
+      push as unknown as PushService,
     );
   });
 
@@ -139,19 +147,20 @@ describe('NotificationsService', () => {
   });
 
   describe('notify', () => {
-    it('adds an ordinary notification', async () => {
+    it('adds an ordinary notification in both languages', async () => {
       const input = {
         ownerId,
         type: 'BOOKING_RECEIVED' as const,
         title: 'มีการจองใหม่',
+        en: { title: 'You have a new booking' },
       };
-      repository.create.mockResolvedValue(
+      repository.createWithTranslations.mockResolvedValue(
         makeNotification({ type: 'BOOKING_RECEIVED' }),
       );
 
       await service.notify(input);
 
-      expect(repository.create).toHaveBeenCalledWith(input);
+      expect(repository.createWithTranslations).toHaveBeenCalledWith(input);
       expect(repository.upsertUnreadMessage).not.toHaveBeenCalled();
     });
 
@@ -161,6 +170,10 @@ describe('NotificationsService', () => {
         type: 'NEW_MESSAGE' as const,
         title: 'ข้อความใหม่จาก อารยา ส.',
         content: 'ขอเลื่อนเป็นวันพฤหัสได้ไหม',
+        en: {
+          title: 'New message from อารยา ส.',
+          content: 'ขอเลื่อนเป็นวันพฤหัสได้ไหม',
+        },
         resourceId: roomId,
       };
       repository.upsertUnreadMessage.mockResolvedValue(
@@ -170,11 +183,63 @@ describe('NotificationsService', () => {
       await service.notify(input);
 
       expect(repository.upsertUnreadMessage).toHaveBeenCalledWith(input);
-      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.createWithTranslations).not.toHaveBeenCalled();
+    });
+
+    it('pushes the new notification to the owner with the page it opens', async () => {
+      repository.createWithTranslations.mockResolvedValue(
+        makeNotification({
+          type: 'BOOKING_CONFIRMED',
+          title: 'จองสำเร็จ',
+          content: 'พรุ่งนี้ 10:00',
+          resourceId: '44444444-4444-4444-4444-444444444444',
+        }),
+      );
+
+      await service.notify({
+        ownerId,
+        type: 'BOOKING_CONFIRMED',
+        title: 'จองสำเร็จ',
+        content: 'พรุ่งนี้ 10:00',
+        en: { title: 'Booking confirmed', content: 'Tomorrow 10:00' },
+        resourceId: '44444444-4444-4444-4444-444444444444',
+      });
+
+      expect(push.sendToUser).toHaveBeenCalledWith(ownerId, {
+        title: 'จองสำเร็จ',
+        body: 'พรุ่งนี้ 10:00',
+        url: '/bookings',
+        tag: 'BOOKING_CONFIRMED:44444444-4444-4444-4444-444444444444',
+      });
+    });
+
+    it('pushes in Thai even when the notification came back in English', async () => {
+      // The row is in the language of the request that caused it, not the owner's.
+      repository.createWithTranslations.mockResolvedValue(
+        makeNotification({
+          type: 'BOOKING_CONFIRMED',
+          title: 'Booking confirmed',
+          content: 'Tomorrow 10:00',
+        }),
+      );
+
+      const result = await service.notify({
+        ownerId,
+        type: 'BOOKING_CONFIRMED',
+        title: 'จองสำเร็จ',
+        content: 'พรุ่งนี้ 10:00',
+        en: { title: 'Booking confirmed', content: 'Tomorrow 10:00' },
+      });
+
+      expect(result.title).toBe('Booking confirmed');
+      expect(push.sendToUser).toHaveBeenCalledWith(
+        ownerId,
+        expect.objectContaining({ title: 'จองสำเร็จ', body: 'พรุ่งนี้ 10:00' }),
+      );
     });
 
     it('adds a chat message without a room as a plain notification', async () => {
-      repository.create.mockResolvedValue(
+      repository.createWithTranslations.mockResolvedValue(
         makeNotification({ type: 'NEW_MESSAGE', resourceId: null }),
       );
 
@@ -182,10 +247,49 @@ describe('NotificationsService', () => {
         ownerId,
         type: 'NEW_MESSAGE',
         title: 'ข้อความใหม่',
+        en: { title: 'New message' },
       });
 
-      expect(repository.create).toHaveBeenCalled();
+      expect(repository.createWithTranslations).toHaveBeenCalled();
       expect(repository.upsertUnreadMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('welcome', () => {
+    it("writes the Advisee welcome in both languages, with no resource, and doesn't push it", async () => {
+      repository.createWelcome.mockResolvedValue(
+        makeNotification({
+          type: 'WELCOME',
+          title: 'ยินดีต้อนรับสู่ Advisory',
+          content: 'เริ่มจากหาผู้เชี่ยวชาญที่ใช่สำหรับคำถามของคุณ',
+          resourceId: null,
+        }),
+      );
+
+      const result = await service.welcome(ownerId);
+
+      expect(repository.createWelcome).toHaveBeenCalledWith({
+        ownerId,
+        type: 'WELCOME',
+        title: 'ยินดีต้อนรับสู่ Advisory',
+        content: 'เริ่มจากหาผู้เชี่ยวชาญที่ใช่สำหรับคำถามของคุณ',
+        en: {
+          title: 'Welcome to Advisory',
+          content: 'Start by finding the right expert for your question',
+        },
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ type: 'WELCOME', resourceId: null }),
+      );
+      expect(result).not.toHaveProperty('ownerId');
+      expect(push.sendToUser).not.toHaveBeenCalled();
+    });
+
+    it('is undefined for an account that already has its welcome', async () => {
+      repository.createWelcome.mockResolvedValue(undefined);
+
+      await expect(service.welcome(ownerId)).resolves.toBeUndefined();
+      expect(push.sendToUser).not.toHaveBeenCalled();
     });
   });
 });

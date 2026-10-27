@@ -6,6 +6,7 @@ import {
   count,
   eq,
   exists,
+  getColumns,
   ilike,
   inArray,
   or,
@@ -13,6 +14,16 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
+import {
+  saveAdvisorProfileTranslation,
+  writesSourceText,
+} from '@/common/i18n/content-translations';
+import {
+  advisorBio,
+  advisorHeadline,
+  skillName,
+} from '@/common/i18n/localized-columns';
+import { escapeLike } from '@/common/utils/escape-like';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   advisorGlobalAvailability,
@@ -52,9 +63,14 @@ export interface PublicAdvisorRow {
 export class AdvisorsRepository {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
+  /** The profile, its headline and bio in the request's language. */
   async findByUserId(userId: string): Promise<AdvisorProfile | undefined> {
     const [advisor] = await this.db
-      .select()
+      .select({
+        ...getColumns(advisorProfiles),
+        headline: advisorHeadline(),
+        bio: advisorBio(),
+      })
       .from(advisorProfiles)
       .where(eq(advisorProfiles.userId, userId))
       .limit(1);
@@ -92,6 +108,15 @@ export class AdvisorsRepository {
         .onConflictDoNothing()
         .returning();
 
+      // The text is also the translation for the language it was written in;
+      // the profile's own columns are the fallback for any other.
+      if (advisor) {
+        await saveAdvisorProfileTranslation(tx, userId, {
+          headline: advisor.headline,
+          bio: advisor.bio,
+        });
+      }
+
       await tx
         .insert(advisorGlobalAvailability)
         .values({ advisorId: userId })
@@ -103,16 +128,45 @@ export class AdvisorsRepository {
     return advisor;
   }
 
+  /**
+   * Edits the headline and bio in the request's language: that language's
+   * translation row, with the current text kept for a field left out. The
+   * profile's own columns change only in Thai, the source, so an English edit
+   * leaves the Thai as it was. Returns the profile as that language reads it.
+   */
   async updateByUserId(
     userId: string,
     dto: UpdateAdvisorProfileDto,
   ): Promise<AdvisorProfile | undefined> {
-    const [advisor] = await this.db
-      .update(advisorProfiles)
-      .set({ ...dto, modifiedAt: new Date() })
-      .where(eq(advisorProfiles.userId, userId))
-      .returning();
-    return advisor;
+    return await this.db.transaction(async (tx) => {
+      // Locked, so two partial edits at once cannot each merge over stale text.
+      const [current] = await tx
+        .select({ headline: advisorHeadline(), bio: advisorBio() })
+        .from(advisorProfiles)
+        .where(eq(advisorProfiles.userId, userId))
+        .for('update');
+      if (!current) return undefined;
+
+      const edited = dto.headline !== undefined || dto.bio !== undefined;
+      const text = {
+        headline: dto.headline ?? current.headline,
+        bio: dto.bio === undefined ? current.bio : dto.bio,
+      };
+      const [advisor] = await tx
+        .update(advisorProfiles)
+        .set({
+          ...(edited && writesSourceText() ? text : {}),
+          modifiedAt: new Date(),
+        })
+        .where(eq(advisorProfiles.userId, userId))
+        .returning();
+      // An empty edit writes no translation: it would copy the fallback text
+      // into a language it was never written in.
+      if (edited) {
+        await saveAdvisorProfileTranslation(tx, userId, text);
+      }
+      return { ...advisor, ...text };
+    });
   }
 
   /* ---------------------------------------------------------------- discovery */
@@ -128,12 +182,12 @@ export class AdvisorsRepository {
    * not a listing, and leaving them in produces rows a visitor cannot act on. It
    * is an `exists` subquery rather than a join so that an Advisor with six
    * services is still one row.
+   *
+   * The text search matches the headline the reader sees, in their language.
    */
   private discoverableWhere(query?: PublicAdvisorQueryDto): SQL {
     const text = query?.q?.trim();
-    const pattern = text
-      ? `%${text.replace(/[\\%_]/g, (match) => `\\${match}`)}%`
-      : undefined;
+    const pattern = text ? `%${escapeLike(text)}%` : undefined;
 
     return and(
       eq(userSchema.status, 'ACTIVE'),
@@ -153,7 +207,7 @@ export class AdvisorsRepository {
       pattern
         ? or(
             ilike(userSchema.displayName, pattern),
-            ilike(advisorProfiles.headline, pattern),
+            ilike(advisorHeadline(), pattern),
           )
         : undefined,
       query?.skillId
@@ -194,7 +248,7 @@ export class AdvisorsRepository {
     query: PublicAdvisorQueryDto,
     options: { limit: number; offset: number },
   ): Promise<PublicAdvisorRow[]> {
-    return this.selectDiscoverable()
+    return await this.selectDiscoverable()
       .where(this.discoverableWhere(query))
       .orderBy(asc(advisorProfiles.createdAt), asc(advisorProfiles.userId))
       .limit(options.limit)
@@ -224,12 +278,13 @@ export class AdvisorsRepository {
     advisorIds: readonly string[],
   ): Promise<{ advisorId: string; name: string }[]> {
     if (advisorIds.length === 0) return [];
-    return this.db
-      .select({ advisorId: advisorSkills.advisorId, name: skills.name })
+    const name = skillName();
+    return await this.db
+      .select({ advisorId: advisorSkills.advisorId, name })
       .from(advisorSkills)
       .innerJoin(skills, eq(skills.id, advisorSkills.skillId))
       .where(inArray(advisorSkills.advisorId, [...advisorIds]))
-      .orderBy(asc(skills.name));
+      .orderBy(asc(name));
   }
 
   private selectDiscoverable() {
@@ -237,8 +292,8 @@ export class AdvisorsRepository {
       .select({
         id: advisorProfiles.userId,
         displayName: userSchema.displayName,
-        headline: advisorProfiles.headline,
-        bio: advisorProfiles.bio,
+        headline: advisorHeadline(),
+        bio: advisorBio(),
         avatarKey: userSchema.avatarKey,
         image: userSchema.image,
         publishedServiceCount: sql<number>`(

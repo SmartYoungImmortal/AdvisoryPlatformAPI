@@ -8,4 +8,5 @@ export abstract class IPaymentProvider {
     cardId: string,
     redirectUri: string,
   ): Promise<ChargeStatus>;
+  abstract getChargeStatus(chargeId: string): Promise<ChargeStatus>;
 }

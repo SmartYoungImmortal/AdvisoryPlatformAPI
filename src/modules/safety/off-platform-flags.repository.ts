@@ -24,7 +24,7 @@ export class OffPlatformFlagsRepository extends EntityRepository<
     status: OffPlatformFlagStatus | undefined,
     options: { limit: number; offset: number },
   ): Promise<OffPlatformFlag[]> {
-    return this.db
+    return await this.db
       .select()
       .from(offPlatformFlags)
       .where(this.queueWhere(status))

@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, sql, type SQL } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   payoutInvoices,
   payouts,
+  serviceAppointmentsOnInvoice,
   serviceInvoices,
   user,
 } from '@/database/schema';
@@ -59,12 +60,24 @@ export class PayoutsRepository extends EntityRepository<typeof payouts> {
     return row;
   }
 
-  /** The invoices this payout settles, reached through the `payout_invoices` junction table. */
+  /**
+   * The invoices this payout settles, reached through the `payout_invoices` junction table.
+   * One row per invoice: an invoice can now cover several appointments
+   * (`service_appointments_on_service_invoices`), and joining them would repeat
+   * its amount. `appointmentId` is its first appointment.
+   */
   findInvoices(payoutId: string): Promise<PayoutInvoiceRow[]> {
+    const firstAppointment = sql<string>`(
+      select ${serviceAppointmentsOnInvoice.serviceAppointmentId}
+      from ${serviceAppointmentsOnInvoice}
+      where ${serviceAppointmentsOnInvoice.serviceInvoiceId} = ${serviceInvoices.id}
+      order by ${serviceAppointmentsOnInvoice.serviceAppointmentId}
+      limit 1
+    )`;
     return this.db
       .select({
         invoiceId: serviceInvoices.id,
-        appointmentId: serviceInvoices.appointmentId,
+        appointmentId: firstAppointment,
         amountSatang: serviceInvoices.amountSatang,
         platformFeeSatang: serviceInvoices.platformFeeSatang,
         status: serviceInvoices.status,

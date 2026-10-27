@@ -30,6 +30,13 @@ import {
   signUpActiveUser,
 } from './support/accounts';
 
+function object(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new TypeError('Expected an object response');
+  }
+  return value as Record<string, unknown>;
+}
+
 describe('authentication and authorization (e2e)', () => {
   let app: NestExpressApplication;
   let db: DrizzleDB;
@@ -39,13 +46,6 @@ describe('authentication and authorization (e2e)', () => {
   const createdServiceIds: string[] = [];
   const createdAppointmentIds: string[] = [];
   const createdCategoryIds: string[] = [];
-
-  function object(value: unknown): Record<string, unknown> {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      throw new Error('Expected an object response');
-    }
-    return value as Record<string, unknown>;
-  }
 
   beforeAll(async () => {
     storage = new SeaweedFsStorageStub();
@@ -163,6 +163,39 @@ describe('authentication and authorization (e2e)', () => {
       .expect(400);
   });
 
+  it('gives a new account one welcome, in the language the reader asks for', async () => {
+    const { agent, userId } = await signUp();
+
+    const inThai = await agent.get('/api/v1/notifications').expect(200);
+    expect(object(object(inThai.body).data).items).toEqual([
+      expect.objectContaining({
+        type: 'WELCOME',
+        title: 'ยินดีต้อนรับสู่ Advisory',
+        content: 'เริ่มจากหาผู้เชี่ยวชาญที่ใช่สำหรับคำถามของคุณ',
+        resourceId: null,
+        isRead: false,
+      }),
+    ]);
+
+    const inEnglish = await agent
+      .get('/api/v1/notifications')
+      .set('Accept-Language', 'en')
+      .expect(200);
+    expect(object(object(inEnglish.body).data).items).toEqual([
+      expect.objectContaining({
+        type: 'WELCOME',
+        title: 'Welcome to Advisory',
+        content: 'Start by finding the right expert for your question',
+      }),
+    ]);
+
+    const rows = await db
+      .select({ type: notifications.type })
+      .from(notifications)
+      .where(eq(notifications.ownerId, userId));
+    expect(rows).toEqual([{ type: 'WELCOME' }]);
+  });
+
   it('uploads, reads, replaces, and removes the authenticated avatar', async () => {
     const { agent, userId } = await signUp();
 
@@ -176,7 +209,9 @@ describe('authentication and authorization (e2e)', () => {
     const firstAvatar = object(object(uploaded.body).data);
     const firstKey = firstAvatar.avatarKey;
     if (typeof firstKey !== 'string') {
-      throw new Error('Avatar upload response did not include an object key');
+      throw new TypeError(
+        'Avatar upload response did not include an object key',
+      );
     }
     expect(firstKey).toEqual(
       expect.stringMatching(new RegExp(`^avatars/${userId}/`)),
@@ -202,7 +237,7 @@ describe('authentication and authorization (e2e)', () => {
       .expect(201);
     const replacementKey = object(object(replacement.body).data).avatarKey;
     if (typeof replacementKey !== 'string') {
-      throw new Error(
+      throw new TypeError(
         'Avatar replacement response did not include an object key',
       );
     }
@@ -269,7 +304,9 @@ describe('authentication and authorization (e2e)', () => {
       .expect(201);
     const avatarKey = object(object(avatar.body).data).avatarKey;
     if (typeof avatarKey !== 'string') {
-      throw new Error('Avatar upload response did not include an object key');
+      throw new TypeError(
+        'Avatar upload response did not include an object key',
+      );
     }
     expect(storage.hasObject(avatarKey)).toBe(true);
     await agent
@@ -558,7 +595,7 @@ describe('authentication and authorization (e2e)', () => {
     const createdData = object(object(created.body).data);
     const skillId = createdData.id;
     if (typeof skillId !== 'string') {
-      throw new Error('Skill creation response did not include an id');
+      throw new TypeError('Skill creation response did not include an id');
     }
     createdSkillIds.push(skillId);
 
@@ -586,7 +623,7 @@ describe('authentication and authorization (e2e)', () => {
       .expect(201);
     const categoryId = object(object(created.body).data).id;
     if (typeof categoryId !== 'string') {
-      throw new Error('Category creation response did not include an id');
+      throw new TypeError('Category creation response did not include an id');
     }
     createdCategoryIds.push(categoryId);
 

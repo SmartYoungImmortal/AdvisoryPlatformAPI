@@ -29,13 +29,32 @@
  * nothing and changes nothing, which is what makes it safe to run again after a
  * migration rather than something that has to be got right first time.
  *
+ * ## Two languages
+ *
+ * The catalogue is read in Thai or English, from the translation tables
+ * (`schema/translation.ts`), so every category, skill, Service and Advisor
+ * profile it writes also gets a `th` row, from the same Thai it writes to the
+ * parent, and an `en` row, from the `en` beside that Thai here. Each row is
+ * written only while its locale has none (`onConflictDoNothing` on the
+ * (parent, locale) key): a re-run changes nothing, a translation edited in the
+ * app since is kept, as a parent the seed finds keeps its own text, and a
+ * database seeded before the tables existed gets its English on the next run.
+ * The seed writes no notifications or screening questions, so it writes none of
+ * their translations either.
+ *
  * ## What it deliberately does not seed
  *
- * `service_images` takes a SeaweedFS object key, which the API presigns on read.
- * Writing the frontend's R2 URLs into that column would produce keys that cannot
- * be presigned and reads that fail, so images are left out: they need SeaweedFS up
- * and a real upload. The frontend keeps serving covers from its own R2 bucket
- * until then.
+ * Service covers. `service_images` holds a service's photographs in carousel
+ * order, and index 0 is the cover's — but the web app still picks covers itself
+ * (`COVER_BY_TITLE` and the hero-ring photos in its `lib/catalogue/live.ts`), so
+ * the seed leaves index 0 empty and writes only the gallery, at 1 and 2. When
+ * covers move into the database they take index 0 without renumbering a row.
+ *
+ * The gallery rows (`GALLERY`, keyed on the service's name so they survive a
+ * database reset) hold absolute URLs into the web app's R2 bucket, not SeaweedFS
+ * keys. The API returns an `object_key` that is already an http(s) URL unchanged
+ * and presigns anything else, so these read back with no SeaweedFS running, and a
+ * real upload's storage key still works beside them.
  *
  * ## Demo activity
  *
@@ -63,6 +82,7 @@ import {
   adminProfiles,
   advisorGlobalAvailability,
   advisorIdentity,
+  advisorProfileTranslations,
   advisorProfiles,
   advisorSkills,
   availabilityProfiles,
@@ -76,11 +96,16 @@ import {
   refundCaseEvidence,
   refundCases,
   serviceAppointments,
+  serviceAppointmentsOnInvoice,
   serviceCategories,
+  serviceCategoryTranslations,
+  serviceImages,
   serviceInvoices,
   serviceReviews,
+  serviceTranslations,
   services,
   skillProofDocuments,
+  skillTranslations,
   skills,
   user,
   userReports,
@@ -89,38 +114,135 @@ import { createAuth } from '@/modules/auth/auth.config';
 
 /* ------------------------------------------------------------------ the data */
 
-const CATEGORIES = [
-  ['ธุรกิจและการตลาด', 'วางแผนธุรกิจ กลยุทธ์การตลาด และการขยายกิจการ'],
-  ['การเงินและภาษี', 'ภาษีบุคคลและนิติบุคคล การวางแผนการเงินส่วนบุคคล'],
-  ['กฎหมายและสัญญา', 'ร่างและตรวจสัญญา ข้อพิพาท และการจดทะเบียน'],
-  ['การศึกษาและอาชีพ', 'เลือกเส้นทางการศึกษา เตรียมสมัครงาน และพัฒนาสายอาชีพ'],
-  ['สุขภาพใจ', 'ความเครียด ความสัมพันธ์ และการดูแลสุขภาพใจ'],
-  [
-    'เทคโนโลยีและงานดิจิทัล',
-    'พัฒนาซอฟต์แวร์ ข้อมูล และการใช้เครื่องมือดิจิทัล',
-  ],
-  ['อสังหาริมทรัพย์และบ้าน', 'ซื้อ เช่า และวางแผนการเงินเพื่อที่อยู่อาศัย'],
-  ['สินเชื่อและการจัดการหนี้', 'ขอสินเชื่อ รีไฟแนนซ์ และวางแผนปลดหนี้'],
-  ['ทรัพยากรบุคคลและการจ้างงาน', 'สรรหาคน โครงสร้างเงินเดือน และระบบงานบุคคล'],
-  ['บัญชีและการตรวจสอบ', 'ระบบบัญชี ปิดงบ และเตรียมรับการตรวจสอบ'],
-  ['ฟรีแลนซ์และงานอิสระ', 'ตั้งราคา หาลูกค้า และทำสัญญางานอิสระ'],
-  [
-    'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
-    'เปิดร้าน ตั้งราคา ทำโฆษณา และภาษีของร้านออนไลน์',
-  ],
-] as const;
+/** A seeded row's name and description in English: its `en` translation. */
+interface InEnglish {
+  readonly name: string;
+  readonly description: string;
+}
 
+const CATEGORIES: readonly {
+  readonly name: string;
+  readonly description: string;
+  readonly en: InEnglish;
+}[] = [
+  {
+    name: 'ธุรกิจและการตลาด',
+    description: 'วางแผนธุรกิจ กลยุทธ์การตลาด และการขยายกิจการ',
+    en: {
+      name: 'Business & Marketing',
+      description:
+        'Business planning, marketing strategy, and growing your business',
+    },
+  },
+  {
+    name: 'การเงินและภาษี',
+    description: 'ภาษีบุคคลและนิติบุคคล การวางแผนการเงินส่วนบุคคล',
+    en: {
+      name: 'Finance & Tax',
+      description:
+        'Personal and corporate tax, plus personal financial planning',
+    },
+  },
+  {
+    name: 'กฎหมายและสัญญา',
+    description: 'ร่างและตรวจสัญญา ข้อพิพาท และการจดทะเบียน',
+    en: {
+      name: 'Law & Contracts',
+      description:
+        'Contract drafting and review, disputes, and business registration',
+    },
+  },
+  {
+    name: 'การศึกษาและอาชีพ',
+    description: 'เลือกเส้นทางการศึกษา เตรียมสมัครงาน และพัฒนาสายอาชีพ',
+    en: {
+      name: 'Education & Careers',
+      description:
+        'Choosing an education path, preparing job applications, and growing your career',
+    },
+  },
+  {
+    name: 'สุขภาพใจ',
+    description: 'ความเครียด ความสัมพันธ์ และการดูแลสุขภาพใจ',
+    en: {
+      name: 'Mental Wellbeing',
+      description:
+        'Stress, relationships, and looking after your mental health',
+    },
+  },
+  {
+    name: 'เทคโนโลยีและงานดิจิทัล',
+    description: 'พัฒนาซอฟต์แวร์ ข้อมูล และการใช้เครื่องมือดิจิทัล',
+    en: {
+      name: 'Tech & Digital',
+      description: 'Software development, data, and using digital tools',
+    },
+  },
+  {
+    name: 'อสังหาริมทรัพย์และบ้าน',
+    description: 'ซื้อ เช่า และวางแผนการเงินเพื่อที่อยู่อาศัย',
+    en: {
+      name: 'Real Estate & Housing',
+      description: 'Buying, renting, and financial planning for a home',
+    },
+  },
+  {
+    name: 'สินเชื่อและการจัดการหนี้',
+    description: 'ขอสินเชื่อ รีไฟแนนซ์ และวางแผนปลดหนี้',
+    en: {
+      name: 'Loans & Debt Management',
+      description:
+        'Applying for loans, refinancing, and planning to pay off debt',
+    },
+  },
+  {
+    name: 'ทรัพยากรบุคคลและการจ้างงาน',
+    description: 'สรรหาคน โครงสร้างเงินเดือน และระบบงานบุคคล',
+    en: {
+      name: 'HR & Employment',
+      description: 'Recruiting, salary structures, and HR systems',
+    },
+  },
+  {
+    name: 'บัญชีและการตรวจสอบ',
+    description: 'ระบบบัญชี ปิดงบ และเตรียมรับการตรวจสอบ',
+    en: {
+      name: 'Accounting & Auditing',
+      description:
+        'Accounting systems, year-end closing, and audit preparation',
+    },
+  },
+  {
+    name: 'ฟรีแลนซ์และงานอิสระ',
+    description: 'ตั้งราคา หาลูกค้า และทำสัญญางานอิสระ',
+    en: {
+      name: 'Freelance & Independent Work',
+      description: 'Pricing, finding clients, and freelance contracts',
+    },
+  },
+  {
+    name: 'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
+    description: 'เปิดร้าน ตั้งราคา ทำโฆษณา และภาษีของร้านออนไลน์',
+    en: {
+      name: 'Online Stores & E-commerce',
+      description:
+        'Opening a store, pricing, advertising, and taxes for online sellers',
+    },
+  },
+];
+
+/** Each skill's name, Thai first, then its English. Skills have no description. */
 const SKILLS = [
-  'การวางแผนภาษี',
-  'บัญชีและงบการเงิน',
-  'กฎหมายแรงงาน',
-  'สัญญาธุรกิจ',
-  'การตลาดดิจิทัล',
-  'การวางแผนธุรกิจ',
-  'การให้คำปรึกษาด้านอาชีพ',
-  'จิตวิทยาการปรึกษา',
-  'พัฒนาเว็บแอปพลิเคชัน',
-  'วิทยาการข้อมูล',
+  ['การวางแผนภาษี', 'Tax Planning'],
+  ['บัญชีและงบการเงิน', 'Accounting & Financial Statements'],
+  ['กฎหมายแรงงาน', 'Labor Law'],
+  ['สัญญาธุรกิจ', 'Business Contracts'],
+  ['การตลาดดิจิทัล', 'Digital Marketing'],
+  ['การวางแผนธุรกิจ', 'Business Planning'],
+  ['การให้คำปรึกษาด้านอาชีพ', 'Career Counseling'],
+  ['จิตวิทยาการปรึกษา', 'Counseling Psychology'],
+  ['พัฒนาเว็บแอปพลิเคชัน', 'Web Application Development'],
+  ['วิทยาการข้อมูล', 'Data Science'],
 ] as const;
 
 /** A password every demo account shares. It is a demo credential, not a secret. */
@@ -166,10 +288,13 @@ interface AdvisorSeed {
   readonly fullName: string;
   readonly headline: string;
   readonly bio: string;
+  /** The profile's headline and bio in English: its `en` translation. */
+  readonly en: { readonly headline: string; readonly bio: string };
   readonly skills: readonly string[];
   readonly services: readonly {
     readonly name: string;
     readonly description: string;
+    readonly en: InEnglish;
     readonly category: string;
     readonly priceBaht: number;
     readonly durationMinutes: number;
@@ -185,12 +310,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'อารยา สุวรรณเกษม',
     headline: 'นักวางแผนภาษีและการเงินส่วนบุคคล',
     bio: 'ที่ปรึกษาภาษีที่ทำงานกับฟรีแลนซ์และเจ้าของกิจการขนาดเล็กมา 9 ปี ถนัดเรื่องการยื่นภาษีของคนที่มีรายได้หลายทาง และการวางค่าลดหย่อนให้ใช้ได้เต็มสิทธิ์',
+    en: {
+      headline: 'Tax and Personal Finance Planner',
+      bio: "Tax advisor who has worked with freelancers and small business owners for 9 years. Specializes in filing for people with income from several sources, and in planning deductions so you claim everything you're entitled to.",
+    },
     skills: ['การวางแผนภาษี', 'บัญชีและงบการเงิน'],
     services: [
       {
         name: 'วางแผนภาษีสำหรับฟรีแลนซ์',
         description:
           'ไล่ดูรายได้ทุกทางที่คุณมีในปีนี้ แล้ววางว่าควรยื่นแบบไหน ใช้ค่าลดหย่อนอะไรได้ และต้องเก็บหลักฐานอะไรไว้ จบด้วยแผนที่เอาไปทำตามได้ทันที',
+        en: {
+          name: 'Tax Planning for Freelancers',
+          description:
+            "We go through every source of income you've had this year, then work out which form to file, which deductions you can claim, and what records to keep. You leave with a plan you can act on right away.",
+        },
         category: 'การเงินและภาษี',
         priceBaht: 1200,
         durationMinutes: 60,
@@ -201,6 +335,11 @@ const ADVISORS: readonly AdvisorSeed[] = [
         name: 'ตรวจแผนภาษีก่อนยื่น',
         description:
           'มีแผนอยู่แล้วแต่ไม่แน่ใจ ส่งมาให้ตรวจก่อนยื่นจริง ดูว่ามีช่องที่พลาดหรือค่าลดหย่อนที่ยังไม่ได้ใช้',
+        en: {
+          name: 'Tax Plan Review Before Filing',
+          description:
+            "Already have a plan but not sure about it? Send it over for a check before you file, and we'll look for anything you got wrong or deductions you haven't used yet.",
+        },
         category: 'การเงินและภาษี',
         priceBaht: 800,
         durationMinutes: 30,
@@ -209,6 +348,11 @@ const ADVISORS: readonly AdvisorSeed[] = [
         name: 'ปิดงบบริษัทเล็กครั้งแรก',
         description:
           'สำหรับเจ้าของกิจการที่ต้องปิดงบปีแรก ไล่ตั้งแต่เอกสารที่ต้องมี ไปจนถึงลำดับการยื่นและกำหนดเวลาของแต่ละแบบ',
+        en: {
+          name: 'First Year-End Close for a Small Company',
+          description:
+            'For business owners closing their books for the first year. We cover everything from the documents you need to the filing order and the deadline for each form.',
+        },
         category: 'การเงินและภาษี',
         priceBaht: 2500,
         durationMinutes: 90,
@@ -221,12 +365,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'กัญญา พรหมมา',
     headline: 'ที่ปรึกษากฎหมายธุรกิจและสัญญา',
     bio: 'ทนายความที่ทำงานฝั่งสัญญาธุรกิจและกฎหมายแรงงาน รับตรวจสัญญาให้สตาร์ตอัปและธุรกิจครอบครัว เน้นอธิบายให้เข้าใจว่าแต่ละข้อผูกอะไรไว้กับใคร',
+    en: {
+      headline: 'Business Law and Contracts Advisor',
+      bio: 'Lawyer working in business contracts and labor law. Reviews contracts for startups and family businesses, with a focus on explaining exactly what each clause commits you to, and to whom.',
+    },
     skills: ['กฎหมายแรงงาน', 'สัญญาธุรกิจ'],
     services: [
       {
         name: 'ตรวจสัญญาก่อนเซ็น',
         description:
           'ส่งสัญญามาก่อนนัด แล้วคุยกันทีละข้อว่าข้อไหนเสียเปรียบ ข้อไหนแก้ได้ และข้อไหนควรยืนยันให้ตัดออก',
+        en: {
+          name: 'Contract Review Before You Sign',
+          description:
+            'Send your contract before the session, then we go through it clause by clause: which ones put you at a disadvantage, which can be changed, and which you should insist on removing.',
+        },
         category: 'กฎหมายและสัญญา',
         priceBaht: 1500,
         durationMinutes: 60,
@@ -236,6 +389,11 @@ const ADVISORS: readonly AdvisorSeed[] = [
         name: 'ปัญหาลูกจ้างและกฎหมายแรงงาน',
         description:
           'เลิกจ้าง ค่าชดเชย สัญญาจ้าง หรือข้อพิพาทกับลูกจ้าง คุยเพื่อให้รู้ว่ากฎหมายกำหนดอะไรไว้และทางเลือกที่มีคืออะไร',
+        en: {
+          name: 'Employee Issues and Labor Law',
+          description:
+            'Dismissals, severance pay, employment contracts, or disputes with staff. We talk it through so you know what the law requires and what options you have.',
+        },
         category: 'กฎหมายและสัญญา',
         priceBaht: 1800,
         durationMinutes: 60,
@@ -248,12 +406,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'ธนกฤต วงศ์อารีย์',
     headline: 'ที่ปรึกษาการตลาดดิจิทัลและการวางแผนธุรกิจ',
     bio: 'ทำการตลาดให้แบรนด์ไทยมา 11 ปี ทั้งฝั่งเอเจนซีและฝั่งแบรนด์ ถนัดช่วยธุรกิจที่ยอดนิ่งหาว่าปัญหาอยู่ที่สินค้า ราคา หรือช่องทาง',
+    en: {
+      headline: 'Digital Marketing and Business Planning Advisor',
+      bio: 'Has marketed Thai brands for 11 years, both agency-side and in-house. Specializes in helping businesses with flat sales work out whether the problem is the product, the price, or the channel.',
+    },
     skills: ['การตลาดดิจิทัล', 'การวางแผนธุรกิจ'],
     services: [
       {
         name: 'ตรวจสุขภาพการตลาดของร้าน',
         description:
           'ดูของที่คุณทำอยู่ทั้งหมด แล้วบอกว่าอันไหนคุ้มให้ทำต่อ อันไหนควรหยุด และอันไหนที่ยังไม่ได้ลองแต่ควรลอง',
+        en: {
+          name: 'Store Marketing Health Check',
+          description:
+            "We look at everything you're doing now and tell you what's worth continuing, what to stop, and what you haven't tried yet but should.",
+        },
         category: 'ธุรกิจและการตลาด',
         priceBaht: 1500,
         durationMinutes: 60,
@@ -263,6 +430,11 @@ const ADVISORS: readonly AdvisorSeed[] = [
         name: 'วางแผนเปิดธุรกิจใหม่',
         description:
           'ตั้งแต่กลุ่มลูกค้า ราคา ไปจนถึงงบที่ต้องมีก่อนเริ่ม จบด้วยแผน 90 วันแรกที่ทำตามได้',
+        en: {
+          name: 'Plan a New Business Launch',
+          description:
+            'From your target customers and pricing to the budget you need before you start, ending with a first-90-days plan you can follow.',
+        },
         category: 'ธุรกิจและการตลาด',
         priceBaht: 2800,
         durationMinutes: 90,
@@ -276,12 +448,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'พิมพ์ชนก รัตนโกศล',
     headline: 'นักจิตวิทยาการปรึกษาและที่ปรึกษาด้านอาชีพ',
     bio: 'นักจิตวิทยาการปรึกษาที่ทำงานกับคนวัยทำงานเรื่องความเครียดจากงานและการตัดสินใจเปลี่ยนสายอาชีพ คุยแบบไม่ตัดสิน และไม่รีบสรุปแทนคุณ',
+    en: {
+      headline: 'Counseling Psychologist and Career Advisor',
+      bio: 'Counseling psychologist who works with working adults on job stress and decisions about changing careers. Listens without judgment, and never rushes to conclusions for you.',
+    },
     skills: ['จิตวิทยาการปรึกษา', 'การให้คำปรึกษาด้านอาชีพ'],
     services: [
       {
         name: 'คุยเรื่องความเครียดจากงาน',
         description:
           'พื้นที่หนึ่งชั่วโมงสำหรับเล่าว่าเกิดอะไรขึ้น แล้วค่อยๆ แยกว่าอะไรที่เปลี่ยนได้และอะไรที่ต้องหาวิธีอยู่กับมัน',
+        en: {
+          name: 'Talk Through Work Stress',
+          description:
+            "An hour of space to talk about what's been happening, then gently sort out what you can change and what you'll need to find a way to live with.",
+        },
         category: 'สุขภาพใจ',
         priceBaht: 1000,
         durationMinutes: 60,
@@ -291,6 +472,11 @@ const ADVISORS: readonly AdvisorSeed[] = [
         name: 'ทบทวนเส้นทางอาชีพ',
         description:
           'สำหรับคนที่กำลังลังเลว่าจะอยู่ต่อหรือเปลี่ยน ไล่ดูว่าอะไรที่คุณให้ค่าจริง แล้วเทียบกับทางเลือกที่มีอยู่ตรงหน้า',
+        en: {
+          name: 'Rethink Your Career Path',
+          description:
+            'For anyone torn between staying and making a change. We look at what you truly value, then weigh it against the options in front of you.',
+        },
         category: 'การศึกษาและอาชีพ',
         priceBaht: 1200,
         durationMinutes: 60,
@@ -303,12 +489,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'ศราวุธ กิตติวัฒน์',
     headline: 'วิศวกรซอฟต์แวร์และที่ปรึกษาด้านข้อมูล',
     bio: 'เขียนซอฟต์แวร์มา 12 ปี ปัจจุบันดูฝั่งข้อมูลให้บริษัทค้าปลีก รับปรึกษาเรื่องเลือกสแตก การวางโครงสร้างข้อมูล และการสัมภาษณ์งานสายเทค',
+    en: {
+      headline: 'Software Engineer and Data Consultant',
+      bio: 'Has been writing software for 12 years and now works on the data side for a retail company. Advises on choosing a tech stack, data modeling, and tech job interviews.',
+    },
     skills: ['พัฒนาเว็บแอปพลิเคชัน', 'วิทยาการข้อมูล'],
     services: [
       {
         name: 'เลือกสแตกให้โปรเจกต์แรก',
         description:
           'เล่าโปรเจกต์ที่อยากทำมา แล้วคุยกันว่าควรใช้อะไร ไม่ควรใช้อะไร และงานส่วนไหนที่จะกินเวลามากกว่าที่คิด',
+        en: {
+          name: 'Pick a Stack for Your First Project',
+          description:
+            "Tell me about the project you want to build, and we'll talk through what to use, what to avoid, and which parts will take longer than you think.",
+        },
         category: 'เทคโนโลยีและงานดิจิทัล',
         priceBaht: 900,
         durationMinutes: 45,
@@ -317,6 +512,11 @@ const ADVISORS: readonly AdvisorSeed[] = [
         name: 'ซ้อมสัมภาษณ์งานสายเทค',
         description:
           'สัมภาษณ์จริงหนึ่งรอบ แล้วให้ฟีดแบ็กตรงๆ ว่าคำตอบไหนยังไม่ผ่าน และควรเล่าใหม่อย่างไร',
+        en: {
+          name: 'Tech Job Interview Practice',
+          description:
+            "One realistic interview round, followed by straight feedback on which answers don't land yet and how to tell them better.",
+        },
         category: 'เทคโนโลยีและงานดิจิทัล',
         priceBaht: 1100,
         durationMinutes: 60,
@@ -332,12 +532,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'ธนกฤต วงศ์ทอง',
     headline: 'ที่ปรึกษาธุรกิจ SME · กรุงเทพฯ',
     bio: 'ช่วยเจ้าของกิจการรายย่อยเปิดร้านแรกมาแล้วกว่า 80 ราย ถนัดเรื่องคำนวณต้นทุน ตั้งราคา และวางแผนเงินทุนช่วงหกเดือนแรก',
+    en: {
+      headline: 'SME Business Advisor · Bangkok',
+      bio: 'Has helped more than 80 small business owners open their first shop. Specializes in costing, pricing, and planning cash for the first six months.',
+    },
     skills: ['การวางแผนธุรกิจ'],
     services: [
       {
         name: 'วางแผนเปิดร้านแรก',
         description:
           'คุยตั้งแต่ไอเดีย ทำเล ต้นทุน ไปจนถึงเงินที่ต้องเตรียมไว้ก่อนเปิด จบด้วยรายการสิ่งที่ต้องทำก่อนวันแรก',
+        en: {
+          name: 'Plan Your First Shop Opening',
+          description:
+            'We cover everything from the idea, location, and costs to the money to set aside before you open, ending with a checklist for before day one.',
+        },
         category: 'ธุรกิจและการตลาด',
         priceBaht: 1500,
         durationMinutes: 60,
@@ -350,12 +559,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'Sarah Jenskins',
     headline: 'ภาษีและบัญชี · กรุงเทพฯ',
     bio: 'นักบัญชีรับอนุญาตที่ทำงานกับพนักงานบริษัทและชาวต่างชาติที่มีรายได้ในไทย อธิบายภาษีเป็นภาษาไทยและอังกฤษ',
+    en: {
+      headline: 'Tax & Accounting · Bangkok',
+      bio: 'Certified accountant who works with salaried employees and foreigners earning income in Thailand. Explains tax in both Thai and English.',
+    },
     skills: ['การวางแผนภาษี', 'บัญชีและงบการเงิน'],
     services: [
       {
         name: 'ยื่นภาษีบุคคลธรรมดาให้ครบสิทธิ์',
         description:
           'ไล่ดูรายได้และค่าลดหย่อนทั้งหมดของคุณ แล้วยื่นให้ถูกแบบ ใช้สิทธิ์ครบ และเก็บเอกสารที่ต้องใช้ไว้ถูกต้อง',
+        en: {
+          name: 'File Personal Income Tax and Claim Every Deduction',
+          description:
+            "We go through all your income and deductions, then file the right form, claim everything you're entitled to, and keep the documents you need properly on file.",
+        },
         category: 'การเงินและภาษี',
         priceBaht: 1200,
         durationMinutes: 60,
@@ -369,12 +587,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'พิมพ์ชนก แก้วใส',
     headline: 'ภาษีร้านค้าออนไลน์ · เชียงใหม่',
     bio: 'ดูแลบัญชีให้แม่ค้าออนไลน์บน Shopee, Lazada และ TikTok Shop มา 6 ปี รู้ว่ายอดแบบไหนต้องจด VAT และแบบไหนยังไม่ต้อง',
+    en: {
+      headline: 'Online Store Tax · Chiang Mai',
+      bio: "Has kept the books for online sellers on Shopee, Lazada, and TikTok Shop for 6 years. Knows which sales levels mean registering for VAT, and which don't yet.",
+    },
     skills: ['การวางแผนภาษี'],
     services: [
       {
         name: 'ภาษีสำหรับร้านขายของออนไลน์',
         description:
           'ยอดขายเท่านี้ต้องเสียภาษีแบบไหน ต้องจด VAT เมื่อไร และควรเก็บหลักฐานอะไรไว้บ้าง คุยให้จบในชั่วโมงเดียว',
+        en: {
+          name: 'Tax for Online Sellers',
+          description:
+            'Which tax your sales put you in, when you need to register for VAT, and which records to keep, all sorted within an hour.',
+        },
         category: 'การเงินและภาษี',
         priceBaht: 900,
         durationMinutes: 45,
@@ -387,12 +614,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'เมธาวี คงสวัสดิ์',
     headline: 'วางแผนการเงิน · กรุงเทพฯ',
     bio: 'นักวางแผนการเงินที่ช่วยคนวัยทำงานจัดเงินเดือนให้มีเงินเก็บจริง ตั้งเป้าเงินฉุกเฉิน และเริ่มลงทุนแบบไม่ต้องเดา',
+    en: {
+      headline: 'Financial Planning · Bangkok',
+      bio: 'Financial planner who helps working people budget their salary so they actually save, set an emergency fund target, and start investing without guesswork.',
+    },
     skills: ['บัญชีและงบการเงิน'],
     services: [
       {
         name: 'วางแผนการเงินส่วนบุคคล',
         description:
           'ดูรายรับรายจ่ายจริงของคุณ แล้ววางแผนเงินเก็บ เงินฉุกเฉิน และเป้าหมายระยะยาว ให้เอาไปทำต่อได้เองทุกเดือน',
+        en: {
+          name: 'Personal Financial Planning',
+          description:
+            'We look at your real income and spending, then plan your savings, emergency fund, and long-term goals in a way you can keep following yourself every month.',
+        },
         category: 'การเงินและภาษี',
         priceBaht: 1300,
         durationMinutes: 60,
@@ -406,12 +642,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'วีรภัทร กิตติวงศ์',
     headline: 'สายอาชีพเทค · กรุงเทพฯ',
     bio: 'หัวหน้าทีมวิศวกรที่สัมภาษณ์คนเข้าทีมมาแล้วหลายร้อยคน ช่วยคนที่อยากย้ายเข้าสายเทคเลือกเส้นทางและเตรียมพอร์ตให้ตรงงาน',
+    en: {
+      headline: 'Tech Careers · Bangkok',
+      bio: 'Engineering team lead who has interviewed hundreds of candidates. Helps people moving into tech choose a path and build a portfolio that fits the role.',
+    },
     skills: ['การให้คำปรึกษาด้านอาชีพ', 'พัฒนาเว็บแอปพลิเคชัน'],
     services: [
       {
         name: 'วางแผนย้ายเข้าสายงานเทค',
         description:
           'ดูพื้นฐานที่คุณมีอยู่ แล้วเลือกตำแหน่งที่เข้าทางที่สุด พร้อมลำดับสิ่งที่ต้องเรียนและพอร์ตที่ควรทำ',
+        en: {
+          name: 'Plan Your Move Into Tech',
+          description:
+            'We look at the background you already have, pick the role that suits you best, and map out what to learn, in what order, and which portfolio projects to build.',
+        },
         category: 'การศึกษาและอาชีพ',
         priceBaht: 900,
         durationMinutes: 45,
@@ -424,12 +669,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'ศิรประภา ตันติ',
     headline: 'ภาษีฟรีแลนซ์ · ขอนแก่น',
     bio: 'ที่ปรึกษาภาษีของฟรีแลนซ์สายครีเอทีฟ ช่วยแยกเงินได้ 40(2) กับ 40(8) ให้ถูก และวางแผนหักค่าใช้จ่ายให้คุ้ม',
+    en: {
+      headline: 'Freelance Tax · Khon Kaen',
+      bio: 'Tax advisor for creative freelancers. Helps you sort Section 40(2) income from 40(8) income correctly, and plan your expense deductions to get the most from them.',
+    },
     skills: ['การวางแผนภาษี'],
     services: [
       {
         name: 'ภาษีฟรีแลนซ์ฉบับเข้าใจง่าย',
         description:
           'รายได้ฟรีแลนซ์ของคุณเป็นเงินได้ประเภทไหน หักค่าใช้จ่ายได้เท่าไร และต้องยื่นกลางปีหรือไม่ อธิบายพร้อมตัวเลขของคุณเอง',
+        en: {
+          name: 'Freelance Tax Made Simple',
+          description:
+            'Which income type your freelance earnings fall under, how much you can deduct in expenses, and whether you need to file mid-year, explained with your own numbers.',
+        },
         category: 'การเงินและภาษี',
         priceBaht: 800,
         durationMinutes: 45,
@@ -442,12 +696,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'ปิยะพงศ์ จันทร์เพ็ญ',
     headline: 'กฎหมายแรงงาน · กรุงเทพฯ',
     bio: 'ทนายความด้านแรงงานที่ทำคดีทั้งฝั่งลูกจ้างและนายจ้าง อธิบายสิทธิตามกฎหมายคุ้มครองแรงงานให้เข้าใจและตัดสินใจได้',
+    en: {
+      headline: 'Labor Law · Bangkok',
+      bio: 'Labor lawyer who has taken cases for both employees and employers. Explains your rights under the Labor Protection Act clearly enough for you to make a decision.',
+    },
     skills: ['กฎหมายแรงงาน'],
     services: [
       {
         name: 'สิทธิลูกจ้างเมื่อถูกเลิกจ้าง',
         description:
           'ถูกเลิกจ้าง ถูกลดเงินเดือน หรือถูกบังคับให้ลาออก คุยให้รู้ว่าคุณได้รับอะไรตามกฎหมาย และควรทำอะไรต่อ',
+        en: {
+          name: "Your Rights When You're Dismissed",
+          description:
+            "Dismissed, had your pay cut, or pressured to resign? Find out what you're entitled to under the law and what to do next.",
+        },
         category: 'กฎหมายและสัญญา',
         priceBaht: 1500,
         durationMinutes: 60,
@@ -461,12 +724,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'ธนภัทร วิไลวรรณ',
     headline: 'สินเชื่อธุรกิจ · ชลบุรี',
     bio: 'อดีตเจ้าหน้าที่สินเชื่อธนาคารพาณิชย์ 10 ปี รู้ว่าธนาคารดูอะไรในคำขอกู้ และช่วยเตรียมเอกสารให้ผ่านในครั้งแรก',
+    en: {
+      headline: 'Business Loans · Chon Buri',
+      bio: 'Former commercial bank loan officer of 10 years. Knows what banks look for in a loan application, and helps you prepare documents that get approved the first time.',
+    },
     skills: ['การวางแผนธุรกิจ', 'บัญชีและงบการเงิน'],
     services: [
       {
         name: 'เตรียมยื่นกู้สินเชื่อธุรกิจ',
         description:
           'ดูงบ รายได้ และหลักประกันที่มี แล้วบอกว่าควรยื่นสินเชื่อแบบไหน กับใคร และต้องแก้อะไรก่อนยื่น',
+        en: {
+          name: 'Prepare a Business Loan Application',
+          description:
+            'We look at your financial statements, income, and collateral, then tell you which type of loan to apply for, with whom, and what to fix before you apply.',
+        },
         category: 'ธุรกิจและการตลาด',
         priceBaht: 1800,
         durationMinutes: 60,
@@ -479,12 +751,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'วรินทร มณีรัตน์',
     headline: 'HR และการจ้างงาน · ภูเก็ต',
     bio: 'ผู้จัดการฝ่ายบุคคลในธุรกิจโรงแรมมา 12 ปี ช่วยเจ้าของกิจการวางระบบจ้างงาน สัญญา และสวัสดิการให้ถูกกฎหมาย',
+    en: {
+      headline: 'HR & Employment · Phuket',
+      bio: 'HR manager in the hotel industry for 12 years. Helps business owners set up hiring, employment contracts, and benefits that comply with the law.',
+    },
     skills: ['กฎหมายแรงงาน', 'การให้คำปรึกษาด้านอาชีพ'],
     services: [
       {
         name: 'วางระบบจ้างพนักงานคนแรก',
         description:
           'ตั้งแต่ประกาศรับสมัคร สัญญาจ้าง ประกันสังคม ไปจนถึงวันทดลองงาน วางให้ครบก่อนรับพนักงานคนแรก',
+        en: {
+          name: 'Set Up Hiring for Your First Employee',
+          description:
+            'From the job posting, employment contract, and social security to the probation period, get it all in place before you hire your first employee.',
+        },
         category: 'กฎหมายและสัญญา',
         priceBaht: 1400,
         durationMinutes: 60,
@@ -497,12 +778,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'อนุชา ศรีสุข',
     headline: 'ผู้สอบบัญชี · นครราชสีมา',
     bio: 'ผู้สอบบัญชีรับอนุญาตที่ตรวจงบให้บริษัทขนาดเล็กและกลาง ช่วยเตรียมงบให้พร้อมก่อนส่งตรวจ ลดเวลาแก้ไขไปมา',
+    en: {
+      headline: 'Auditor · Nakhon Ratchasima',
+      bio: 'Certified public accountant who audits small and mid-sized companies. Helps you get your financial statements ready before they go to audit, so there is less back-and-forth.',
+    },
     skills: ['บัญชีและงบการเงิน'],
     services: [
       {
         name: 'ตรวจงบก่อนส่งผู้สอบบัญชี',
         description:
           'ไล่ดูงบและเอกสารประกอบก่อนส่งตรวจจริง ชี้จุดที่ผู้สอบจะถาม และสิ่งที่ควรแก้ให้เรียบร้อยก่อน',
+        en: {
+          name: 'Pre-Audit Financial Statement Review',
+          description:
+            'We go through your financial statements and supporting documents before the actual audit, flag what the auditor will ask about, and list what to tidy up first.',
+        },
         category: 'การเงินและภาษี',
         priceBaht: 2200,
         durationMinutes: 90,
@@ -516,12 +806,21 @@ const ADVISORS: readonly AdvisorSeed[] = [
     fullName: 'ณัฐวุฒิ ธนสาร',
     headline: 'ที่ปรึกษาฟรีแลนซ์ · เชียงราย',
     bio: 'ฟรีแลนซ์สายออกแบบมา 9 ปีก่อนมาเป็นโค้ช ช่วยคนที่เพิ่งออกจากงานประจำตั้งราคา หาลูกค้า และจัดการงานไม่ให้ล้นมือ',
+    en: {
+      headline: 'Freelance Advisor · Chiang Rai',
+      bio: 'Freelance designer for 9 years before becoming a coach. Helps people who have just left a full-time job set their rates, find clients, and keep their workload from piling up.',
+    },
     skills: ['การให้คำปรึกษาด้านอาชีพ'],
     services: [
       {
         name: 'เริ่มต้นเป็นฟรีแลนซ์ให้รอด',
         description:
           'ตั้งราคางาน หาลูกค้ากลุ่มแรก และวางระบบรับงานให้รายได้ไม่ขาดช่วง สำหรับคนที่เพิ่งเริ่มหรือกำลังจะลาออก',
+        en: {
+          name: 'Start Freelancing and Stay Afloat',
+          description:
+            'Set your rates, land your first clients, and set up a way of taking on work that keeps your income steady. For people just starting out or about to quit their job.',
+        },
         category: 'การศึกษาและอาชีพ',
         priceBaht: 1000,
         durationMinutes: 60,
@@ -544,6 +843,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'วางแผนซื้อบ้านหลังแรก',
       description:
         'ดูรายได้ เงินเก็บ และภาระที่มีอยู่ แล้วคำนวณว่าซื้อบ้านราคาเท่าไรได้จริง ต้องเก็บเงินดาวน์เท่าไร และผ่อนเดือนละเท่าไรโดยไม่ตึงมือ',
+      en: {
+        name: 'Plan Your First Home Purchase',
+        description:
+          "We look at your income, savings, and existing debts, then work out what home price you can really afford, how much to save for a down payment, and a monthly installment that won't stretch you thin.",
+      },
       category: 'อสังหาริมทรัพย์และบ้าน',
       priceBaht: 1500,
       durationMinutes: 60,
@@ -552,6 +856,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'ปลดหนี้บัตรเครดิตอย่างมีแผน',
       description:
         'รวมหนี้ทุกก้อนมาไว้ในตารางเดียว เรียงว่าควรปิดก้อนไหนก่อน และวางแผนรายเดือนที่ทำได้จริงจนหนี้หมด พร้อมทางเลือกถ้าต้องรวมหนี้',
+      en: {
+        name: 'Pay Off Credit Card Debt With a Plan',
+        description:
+          "Put every debt in one table, decide which to pay off first, and build a monthly plan you can actually stick to until it's all gone, plus your options if you need to consolidate.",
+      },
       category: 'สินเชื่อและการจัดการหนี้',
       priceBaht: 1000,
       durationMinutes: 60,
@@ -560,6 +869,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'เริ่มลงทุนด้วยเงินก้อนแรก',
       description:
         'แบ่งเงินสำรองฉุกเฉินออกก่อน แล้วเลือกสัดส่วนกองทุน หุ้น และเงินฝากที่รับความเสี่ยงได้ พร้อมแผนลงทุนรายเดือนที่ทำต่อเองได้',
+      en: {
+        name: 'Start Investing With Your First Lump Sum',
+        description:
+          'Set aside your emergency fund first, then choose a mix of funds, stocks, and deposits that matches the risk you can take, with a monthly investing plan you can keep up on your own.',
+      },
       category: 'การเงินและภาษี',
       priceBaht: 1200,
       durationMinutes: 60,
@@ -568,6 +882,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'เลือกกองทุนลดหย่อนภาษีให้เหมาะกับตัวเอง',
       description:
         'เทียบ SSF RMF และประกันบำนาญจากรายได้จริงของคุณ คำนวณว่าซื้อเท่าไรถึงคุ้ม และเลือกนโยบายลงทุนที่ไม่ต้องเฝ้าทุกวัน',
+      en: {
+        name: 'Choose the Right Tax-Saving Funds for You',
+        description:
+          "Compare SSF, RMF, and pension insurance against your actual income, work out how much is worth buying, and choose an investment policy you don't have to watch every day.",
+      },
       category: 'การเงินและภาษี',
       priceBaht: 900,
       durationMinutes: 60,
@@ -578,6 +897,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'รีไฟแนนซ์บ้านให้ดอกเบี้ยลด',
       description:
         'เทียบข้อเสนอรีไฟแนนซ์จากหลายธนาคาร คิดค่าธรรมเนียมและค่าประเมินให้ครบ แล้วบอกว่าคุ้มไหมและควรยื่นเมื่อไร',
+      en: {
+        name: 'Refinance Your Home for a Lower Rate',
+        description:
+          "Compare refinancing offers from several banks with every fee and appraisal cost included, then find out whether it's worth it and when to apply.",
+      },
       category: 'สินเชื่อและการจัดการหนี้',
       priceBaht: 1300,
       durationMinutes: 60,
@@ -586,6 +910,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'เตรียมเอกสารขอสินเชื่อบ้าน',
       description:
         'ไล่เช็กเอกสารรายได้ สเตทเมนต์ และภาระหนี้ก่อนยื่นจริง ชี้จุดที่ธนาคารมักตีกลับ เพื่อให้ยื่นครั้งเดียวผ่าน',
+      en: {
+        name: 'Home Loan Document Prep',
+        description:
+          'Check your income documents, bank statements, and existing debts before you apply, and catch what banks often send back, so your application goes through the first time.',
+      },
       category: 'สินเชื่อและการจัดการหนี้',
       priceBaht: 900,
       durationMinutes: 30,
@@ -596,6 +925,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'ตรวจสัญญาเช่าคอนโดก่อนเซ็น',
       description:
         'อ่านสัญญาเช่าทั้งฉบับกับคุณ ชี้ข้อที่เอาเปรียบเรื่องเงินประกัน การต่อสัญญา และค่าเสียหาย พร้อมถ้อยคำที่ควรขอแก้ก่อนเซ็น',
+      en: {
+        name: 'Condo Lease Review Before You Sign',
+        description:
+          'We read the whole lease with you, point out unfair terms on the deposit, renewal, and damages, and give you the wording to ask for before you sign.',
+      },
       category: 'อสังหาริมทรัพย์และบ้าน',
       priceBaht: 1200,
       durationMinutes: 60,
@@ -604,6 +938,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'ร่างสัญญาจ้างงานฟรีแลนซ์',
       description:
         'วางขอบเขตงาน รอบแก้ งวดจ่ายเงิน และสิทธิ์ในผลงานให้ชัดในสัญญาเดียว ใช้ได้ทั้งฝั่งผู้จ้างและฟรีแลนซ์',
+      en: {
+        name: 'Draft a Freelance Contract',
+        description:
+          'Spell out the scope, revision rounds, payment milestones, and rights to the work in a single contract. Works for both clients and freelancers.',
+      },
       category: 'ฟรีแลนซ์และงานอิสระ',
       priceBaht: 1400,
       durationMinutes: 60,
@@ -612,6 +951,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'รีวิวสัญญาจ้างก่อนเซ็น',
       description:
         'อ่านสัญญาจ้างงานประจำกับคุณทีละข้อ ทั้งช่วงทดลองงาน ข้อห้ามทำงานกับคู่แข่ง และเงื่อนไขลาออก ให้รู้ก่อนเซ็นว่ากำลังตกลงอะไร',
+      en: {
+        name: 'Employment Contract Review Before You Sign',
+        description:
+          "We read your full-time employment contract with you clause by clause, including the probation period, non-compete terms, and resignation conditions, so you know what you're agreeing to before you sign.",
+      },
       category: 'กฎหมายและสัญญา',
       priceBaht: 1000,
       durationMinutes: 60,
@@ -620,6 +964,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'เลือกจดบริษัทหรือห้างหุ้นส่วน',
       description:
         'เทียบความรับผิด ภาษี และภาระเอกสารของบริษัทจำกัด ห้างหุ้นส่วน และการทำในนามบุคคล เพื่อเลือกรูปแบบที่เหมาะกับธุรกิจตอนนี้',
+      en: {
+        name: 'Choose Between a Company and a Partnership',
+        description:
+          'Compare the liability, tax, and paperwork of a limited company, a partnership, and operating as an individual, so you can pick the structure that suits your business right now.',
+      },
       category: 'กฎหมายและสัญญา',
       priceBaht: 1200,
       durationMinutes: 60,
@@ -630,6 +979,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'ออกแบบโครงสร้างเงินเดือนพนักงาน',
       description:
         'จัดกลุ่มตำแหน่ง วางกระบอกเงินเดือนและเกณฑ์ขึ้นเงินเดือนที่อธิบายกับทีมได้ เหมาะกับธุรกิจ 10–50 คนที่เริ่มมีคำถามเรื่องความยุติธรรม',
+      en: {
+        name: 'Design an Employee Salary Structure',
+        description:
+          'Group your roles, and set salary bands and raise criteria you can explain to your team. Ideal for businesses of 10–50 people starting to get questions about fairness.',
+      },
       category: 'ทรัพยากรบุคคลและการจ้างงาน',
       priceBaht: 2200,
       durationMinutes: 90,
@@ -638,6 +992,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'เขียน JD และวางขั้นตอนสัมภาษณ์',
       description:
         'เขียนคำบรรยายงานที่ดึงคนที่ใช่ และออกแบบคำถามสัมภาษณ์กับเกณฑ์ให้คะแนน เพื่อให้ทุกคนในทีมคัดคนด้วยมาตรฐานเดียวกัน',
+      en: {
+        name: 'Write a Job Description and Plan Your Interviews',
+        description:
+          'Write a job description that attracts the right people, and design interview questions and a scoring rubric so everyone on the team hires to the same standard.',
+      },
       category: 'ทรัพยากรบุคคลและการจ้างงาน',
       priceBaht: 1500,
       durationMinutes: 60,
@@ -648,6 +1007,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'เตรียมเอกสารก่อนปิดงบปี',
       description:
         'ไล่รายการเอกสารที่ผู้สอบบัญชีจะขอ ตั้งแต่สต็อก ลูกหนี้ ไปจนถึงสัญญาเงินกู้ แล้วจัดลำดับให้ส่งครบก่อนเส้นตาย',
+      en: {
+        name: 'Year-End Closing Document Prep',
+        description:
+          'Go through every document the auditor will ask for, from inventory and receivables to loan agreements, then put them in order so everything is in before the deadline.',
+      },
       category: 'บัญชีและการตรวจสอบ',
       priceBaht: 1800,
       durationMinutes: 60,
@@ -656,6 +1020,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'วางระบบบัญชีร้านเล็กด้วย Excel',
       description:
         'ตั้งไฟล์บันทึกรายรับรายจ่าย ใบกำกับ และสต็อกที่เจ้าของร้านทำเองได้ทุกวัน และสรุปเป็นตัวเลขที่ใช้ยื่นภาษีได้ทันที',
+      en: {
+        name: 'Set Up Small-Shop Bookkeeping in Excel',
+        description:
+          'Set up a file for income, expenses, invoices, and stock that you can keep up yourself every day, and that adds up to figures ready for your tax return.',
+      },
       category: 'บัญชีและการตรวจสอบ',
       priceBaht: 1400,
       durationMinutes: 60,
@@ -666,6 +1035,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'ตั้งราคางานฟรีแลนซ์ให้คุ้ม',
       description:
         'คิดต้นทุนเวลา ค่าเครื่องมือ และภาษีที่ต้องจ่าย ออกมาเป็นเรตรายชั่วโมงและแพ็กเกจที่เสนอลูกค้าได้อย่างมั่นใจ',
+      en: {
+        name: 'Price Your Freelance Work Right',
+        description:
+          "Factor in your time, tool costs, and the tax you'll owe, and turn them into an hourly rate and packages you can quote to clients with confidence.",
+      },
       category: 'ฟรีแลนซ์และงานอิสระ',
       priceBaht: 800,
       durationMinutes: 30,
@@ -676,6 +1050,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'เปิดร้านออนไลน์ให้ถูกภาษี',
       description:
         'เลือกระหว่างบุคคลธรรมดากับนิติบุคคล ดูว่าต้องจด VAT เมื่อไร และเก็บหลักฐานยอดขายจากแพลตฟอร์มอย่างไรให้ยื่นภาษีได้ง่าย',
+      en: {
+        name: 'Open a Tax-Compliant Online Store',
+        description:
+          'Choose between selling as an individual or as a company, find out when you need to register for VAT, and learn how to keep platform sales records so filing taxes is easy.',
+      },
       category: 'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
       priceBaht: 1100,
       durationMinutes: 60,
@@ -686,6 +1065,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'ยิงแอดร้านออนไลน์ให้คุ้มงบ',
       description:
         'ดูแคมเปญที่ใช้อยู่ ตั้งเป้าต้นทุนต่อออเดอร์ และวางแผนแบ่งงบทดสอบกับงบขยายผล เพื่อให้ทุกบาทที่จ่ายค่าโฆษณากลับมาเป็นยอดขาย',
+      en: {
+        name: 'Run Online Store Ads That Pay Off',
+        description:
+          'Review your current campaigns, set a target cost per order, and split your budget between testing and scaling, so every baht you spend on ads comes back as sales.',
+      },
       category: 'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
       priceBaht: 1500,
       durationMinutes: 60,
@@ -694,6 +1078,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'ตั้งราคาสินค้าและคำนวณกำไรต่อชิ้น',
       description:
         'แยกต้นทุนสินค้า ค่าส่ง ค่าธรรมเนียมแพลตฟอร์ม และส่วนลด ออกมาเป็นกำไรจริงต่อชิ้น แล้วตั้งราคาที่ยังแข่งขันได้',
+      en: {
+        name: 'Product Pricing and Per-Unit Profit',
+        description:
+          'Break down product cost, shipping, platform fees, and discounts into your real profit per unit, then set a price that still competes.',
+      },
       category: 'ร้านค้าออนไลน์และอีคอมเมิร์ซ',
       priceBaht: 1200,
       durationMinutes: 60,
@@ -702,6 +1091,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'จดทะเบียนบริษัทครั้งแรก',
       description:
         'จดทะเบียนบริษัทต้องเตรียมอะไรบ้าง ตั้งแต่จองชื่อ ทุนจดทะเบียน ผู้ถือหุ้น ไปจนถึงเปิดบัญชีและจด VAT ไล่ให้ครบในนัดเดียว',
+      en: {
+        name: 'Register Your First Company',
+        description:
+          'Everything you need to register a company, from reserving the name, registered capital, and shareholders to opening a bank account and registering for VAT, all covered in one session.',
+      },
       category: 'ธุรกิจและการตลาด',
       priceBaht: 1500,
       durationMinutes: 60,
@@ -712,6 +1106,11 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'ทำพอร์ตให้ได้งานสายเทค',
       description:
         'เลือกโปรเจกต์ที่ควรใส่ เขียนเล่าที่มาและผลลัพธ์ให้คนสัมภาษณ์เห็นภาพ และจัดหน้าพอร์ตให้อ่านจบใน 2 นาที',
+      en: {
+        name: 'Build a Portfolio That Lands a Tech Job',
+        description:
+          'Choose which projects to include, write up the background and results so interviewers can picture them, and lay out your portfolio so it reads in 2 minutes.',
+      },
       category: 'การศึกษาและอาชีพ',
       priceBaht: 1000,
       durationMinutes: 60,
@@ -720,10 +1119,195 @@ const MORE_SERVICES: Readonly<Record<string, AdvisorSeed['services']>> = {
       name: 'รีวิวเรซูเม่ภาษาอังกฤษ',
       description:
         'อ่านเรซูเม่ทีละบรรทัด ปรับคำให้เป็นผลงานที่วัดได้ และจัดรูปแบบให้ผ่านระบบคัดกรองอัตโนมัติของบริษัทต่างชาติ',
+      en: {
+        name: 'English Resume Review',
+        description:
+          'We read your resume line by line, reword it into measurable achievements, and format it to get through the automated screening systems international companies use.',
+      },
       category: 'การศึกษาและอาชีพ',
       priceBaht: 700,
       durationMinutes: 30,
     },
+  ],
+};
+
+/** The web app's R2 bucket, where the service gallery photographs live. */
+const GALLERY_R2 =
+  'https://pub-07e53481352743c1826a900d773cb1f7.r2.dev/services/gallery';
+
+/**
+ * Each service's gallery — the photographs after its cover — written at carousel
+ * indexes 1 and 2 (0 is the cover's; see the header). Keyed on the service's
+ * name, which the seed keeps stable, rather than its id, which a database reset
+ * changes: the `<id8>` in a file name only records the dev-database service the
+ * photo was made for, and the hash after it is the file's content, so a
+ * re-encoded photo is a new object. Sarawut's two services are left out; his
+ * identity was turned down, so discovery does not list them.
+ */
+const GALLERY: Readonly<Record<string, readonly [string, string]>> = {
+  วางแผนภาษีสำหรับฟรีแลนซ์: [
+    `${GALLERY_R2}/10b93a6b-2.684b0694.jpg`,
+    `${GALLERY_R2}/10b93a6b-3.0fad756f.jpg`,
+  ],
+  ตรวจแผนภาษีก่อนยื่น: [
+    `${GALLERY_R2}/89195083-2.c73392bc.jpg`,
+    `${GALLERY_R2}/89195083-3.449ceb41.jpg`,
+  ],
+  ปิดงบบริษัทเล็กครั้งแรก: [
+    `${GALLERY_R2}/b7214dc4-2.03738473.jpg`,
+    `${GALLERY_R2}/b7214dc4-3.47bf2dfd.jpg`,
+  ],
+  ตรวจสัญญาก่อนเซ็น: [
+    `${GALLERY_R2}/9e90bd63-2.8374be5b.jpg`,
+    `${GALLERY_R2}/9e90bd63-3.8f83c050.jpg`,
+  ],
+  ปัญหาลูกจ้างและกฎหมายแรงงาน: [
+    `${GALLERY_R2}/10c63a55-2.81aebea6.jpg`,
+    `${GALLERY_R2}/10c63a55-3.3fd5def1.jpg`,
+  ],
+  ตรวจสุขภาพการตลาดของร้าน: [
+    `${GALLERY_R2}/18d4a660-2.75d3e05b.jpg`,
+    `${GALLERY_R2}/18d4a660-3.01559e47.jpg`,
+  ],
+  วางแผนเปิดธุรกิจใหม่: [
+    `${GALLERY_R2}/a2929247-2.5e5364e2.jpg`,
+    `${GALLERY_R2}/a2929247-3.b32a80e4.jpg`,
+  ],
+  คุยเรื่องความเครียดจากงาน: [
+    `${GALLERY_R2}/4d206828-2.8172f890.jpg`,
+    `${GALLERY_R2}/4d206828-3.5f35fcda.jpg`,
+  ],
+  ทบทวนเส้นทางอาชีพ: [
+    `${GALLERY_R2}/17108884-2.cdca89b9.jpg`,
+    `${GALLERY_R2}/17108884-3.b334d1ba.jpg`,
+  ],
+  วางแผนเปิดร้านแรก: [
+    `${GALLERY_R2}/98d5e655-2.3c91c173.jpg`,
+    `${GALLERY_R2}/98d5e655-3.c5cc1f71.jpg`,
+  ],
+  ยื่นภาษีบุคคลธรรมดาให้ครบสิทธิ์: [
+    `${GALLERY_R2}/1bca0404-2.719a50ce.jpg`,
+    `${GALLERY_R2}/1bca0404-3.06b11437.jpg`,
+  ],
+  ภาษีสำหรับร้านขายของออนไลน์: [
+    `${GALLERY_R2}/3022804d-2.3c3d64b8.jpg`,
+    `${GALLERY_R2}/3022804d-3.36de62fc.jpg`,
+  ],
+  วางแผนการเงินส่วนบุคคล: [
+    `${GALLERY_R2}/4c494cb5-2.d9477a38.jpg`,
+    `${GALLERY_R2}/4c494cb5-3.02b0324d.jpg`,
+  ],
+  วางแผนย้ายเข้าสายงานเทค: [
+    `${GALLERY_R2}/27f3ebf0-2.fa4e1e12.jpg`,
+    `${GALLERY_R2}/27f3ebf0-3.2feccace.jpg`,
+  ],
+  ภาษีฟรีแลนซ์ฉบับเข้าใจง่าย: [
+    `${GALLERY_R2}/a8bde51a-2.dec36355.jpg`,
+    `${GALLERY_R2}/a8bde51a-3.cfc1664d.jpg`,
+  ],
+  สิทธิลูกจ้างเมื่อถูกเลิกจ้าง: [
+    `${GALLERY_R2}/8514fe9c-2.34fd4f7f.jpg`,
+    `${GALLERY_R2}/8514fe9c-3.817c4d34.jpg`,
+  ],
+  เตรียมยื่นกู้สินเชื่อธุรกิจ: [
+    `${GALLERY_R2}/7291d7c0-2.143c285d.jpg`,
+    `${GALLERY_R2}/7291d7c0-3.9dc1bd73.jpg`,
+  ],
+  วางระบบจ้างพนักงานคนแรก: [
+    `${GALLERY_R2}/5986b539-2.bcc76f0f.jpg`,
+    `${GALLERY_R2}/5986b539-3.1dd2643c.jpg`,
+  ],
+  ตรวจงบก่อนส่งผู้สอบบัญชี: [
+    `${GALLERY_R2}/cb7d37ec-2.310cb113.jpg`,
+    `${GALLERY_R2}/cb7d37ec-3.d9538e57.jpg`,
+  ],
+  เริ่มต้นเป็นฟรีแลนซ์ให้รอด: [
+    `${GALLERY_R2}/bca4330e-2.293db510.jpg`,
+    `${GALLERY_R2}/bca4330e-3.58880302.jpg`,
+  ],
+  วางแผนซื้อบ้านหลังแรก: [
+    `${GALLERY_R2}/c712e475-2.087367d5.jpg`,
+    `${GALLERY_R2}/c712e475-3.7e0d210a.jpg`,
+  ],
+  ปลดหนี้บัตรเครดิตอย่างมีแผน: [
+    `${GALLERY_R2}/77fa2b58-2.42dcdac5.jpg`,
+    `${GALLERY_R2}/77fa2b58-3.6e4a38b0.jpg`,
+  ],
+  เริ่มลงทุนด้วยเงินก้อนแรก: [
+    `${GALLERY_R2}/78856419-2.73e4a96b.jpg`,
+    `${GALLERY_R2}/78856419-3.c718d908.jpg`,
+  ],
+  เลือกกองทุนลดหย่อนภาษีให้เหมาะกับตัวเอง: [
+    `${GALLERY_R2}/76a383b1-2.9bc6664e.jpg`,
+    `${GALLERY_R2}/76a383b1-3.3f9d32d7.jpg`,
+  ],
+  รีไฟแนนซ์บ้านให้ดอกเบี้ยลด: [
+    `${GALLERY_R2}/c92085e0-2.07ba72f8.jpg`,
+    `${GALLERY_R2}/c92085e0-3.5b71b42f.jpg`,
+  ],
+  เตรียมเอกสารขอสินเชื่อบ้าน: [
+    `${GALLERY_R2}/42b08197-2.31dbfb07.jpg`,
+    `${GALLERY_R2}/42b08197-3.a9b4a39e.jpg`,
+  ],
+  ตรวจสัญญาเช่าคอนโดก่อนเซ็น: [
+    `${GALLERY_R2}/803ab872-2.807f3504.jpg`,
+    `${GALLERY_R2}/803ab872-3.d5c7a010.jpg`,
+  ],
+  ร่างสัญญาจ้างงานฟรีแลนซ์: [
+    `${GALLERY_R2}/640f2c7b-2.6e262fe7.jpg`,
+    `${GALLERY_R2}/640f2c7b-3.ce615e52.jpg`,
+  ],
+  รีวิวสัญญาจ้างก่อนเซ็น: [
+    `${GALLERY_R2}/6a1a8cfe-2.e331eace.jpg`,
+    `${GALLERY_R2}/6a1a8cfe-3.1b276f04.jpg`,
+  ],
+  เลือกจดบริษัทหรือห้างหุ้นส่วน: [
+    `${GALLERY_R2}/03142946-2.17c0782c.jpg`,
+    `${GALLERY_R2}/03142946-3.ba2d68e9.jpg`,
+  ],
+  ออกแบบโครงสร้างเงินเดือนพนักงาน: [
+    `${GALLERY_R2}/39235645-2.163c9aa8.jpg`,
+    `${GALLERY_R2}/39235645-3.a6afe478.jpg`,
+  ],
+  'เขียน JD และวางขั้นตอนสัมภาษณ์': [
+    `${GALLERY_R2}/1256e6ba-2.f93839c8.jpg`,
+    `${GALLERY_R2}/1256e6ba-3.13336190.jpg`,
+  ],
+  เตรียมเอกสารก่อนปิดงบปี: [
+    `${GALLERY_R2}/80a54c30-2.051b458d.jpg`,
+    `${GALLERY_R2}/80a54c30-3.4a8f75f9.jpg`,
+  ],
+  'วางระบบบัญชีร้านเล็กด้วย Excel': [
+    `${GALLERY_R2}/bf22402c-2.74af6814.jpg`,
+    `${GALLERY_R2}/bf22402c-3.8f62a0b6.jpg`,
+  ],
+  ตั้งราคางานฟรีแลนซ์ให้คุ้ม: [
+    `${GALLERY_R2}/faacad7e-2.99378de0.jpg`,
+    `${GALLERY_R2}/faacad7e-3.74d1d1cb.jpg`,
+  ],
+  เปิดร้านออนไลน์ให้ถูกภาษี: [
+    `${GALLERY_R2}/e0a6d978-2.9cb3f204.jpg`,
+    `${GALLERY_R2}/e0a6d978-3.bf223ce8.jpg`,
+  ],
+  ยิงแอดร้านออนไลน์ให้คุ้มงบ: [
+    `${GALLERY_R2}/82538a90-2.85cb1649.jpg`,
+    `${GALLERY_R2}/82538a90-3.496b206d.jpg`,
+  ],
+  ตั้งราคาสินค้าและคำนวณกำไรต่อชิ้น: [
+    `${GALLERY_R2}/9a270df9-2.3815017f.jpg`,
+    `${GALLERY_R2}/9a270df9-3.78bd1820.jpg`,
+  ],
+  จดทะเบียนบริษัทครั้งแรก: [
+    `${GALLERY_R2}/a23aef0e-2.3edfbe40.jpg`,
+    `${GALLERY_R2}/a23aef0e-3.c1550daf.jpg`,
+  ],
+  ทำพอร์ตให้ได้งานสายเทค: [
+    `${GALLERY_R2}/50271ba7-2.71e918d9.jpg`,
+    `${GALLERY_R2}/50271ba7-3.5cbe872a.jpg`,
+  ],
+  รีวิวเรซูเม่ภาษาอังกฤษ: [
+    `${GALLERY_R2}/996cf568-2.c7029fb9.jpg`,
+    `${GALLERY_R2}/996cf568-3.0ea00312.jpg`,
   ],
 };
 
@@ -1357,6 +1941,69 @@ async function ensureNamed(
   return row.id;
 }
 
+/**
+ * A seeded service's `GALLERY` photographs, at carousel indexes 1 and 2; index 0
+ * stays free for the cover. A row already at an index keeps it: one still holding
+ * an earlier gallery URL moves to the current one, and anything else — a real
+ * upload's storage key — is left alone.
+ */
+async function ensureGallery(
+  db: DrizzleDB,
+  serviceId: string,
+  serviceName: string,
+): Promise<void> {
+  const photos = GALLERY[serviceName];
+  if (!photos) return;
+  for (const [offset, url] of photos.entries()) {
+    const carouselIndex = offset + 1;
+    const at = and(
+      eq(serviceImages.serviceId, serviceId),
+      eq(serviceImages.carouselIndex, carouselIndex),
+    );
+    const what = `photo ${carouselIndex} of ${serviceName}`;
+    const [found] = await db
+      .select({ key: serviceImages.objectKey })
+      .from(serviceImages)
+      .where(at)
+      .limit(1);
+    if (!found) {
+      await db
+        .insert(serviceImages)
+        .values({ serviceId, carouselIndex, objectKey: url });
+      note(what, true);
+    } else if (found.key !== url && found.key.startsWith(`${GALLERY_R2}/`)) {
+      await db.update(serviceImages).set({ objectKey: url }).where(at);
+      note(what, true);
+    } else note(what, false);
+  }
+}
+
+/**
+ * A seeded service's `th` and `en` translations. Like every translation the
+ * seed writes, each is inserted only while its locale has no row, so `written`
+ * holds just the locales this run added (see the header).
+ */
+async function ensureServiceTranslations(
+  db: DrizzleDB,
+  serviceId: string,
+  service: AdvisorSeed['services'][number],
+): Promise<void> {
+  const written = await db
+    .insert(serviceTranslations)
+    .values([
+      {
+        serviceId,
+        locale: 'th',
+        name: service.name,
+        description: service.description,
+      },
+      { serviceId, locale: 'en', ...service.en },
+    ])
+    .onConflictDoNothing()
+    .returning({ locale: serviceTranslations.locale });
+  note(`translations of ${service.name}`, written.length > 0);
+}
+
 /** A Bangkok wall-clock time `day` days from today. */
 function bangkok(day: number, hour: number, minute = 0): Date {
   const today = new Date(Date.now() + 7 * 3_600_000);
@@ -1529,25 +2176,37 @@ async function seedActivity(
 
     const amountSatang = service.priceSatang;
     const feeSatang = Math.round(amountSatang * FEE_RATE);
+    // An invoice reaches its appointment through the junction table.
     let [invoice] = await db
-      .select({ id: serviceInvoices.id })
-      .from(serviceInvoices)
-      .where(eq(serviceInvoices.appointmentId, appointment.id))
+      .select({ id: serviceAppointmentsOnInvoice.serviceInvoiceId })
+      .from(serviceAppointmentsOnInvoice)
+      .where(
+        eq(serviceAppointmentsOnInvoice.serviceAppointmentId, appointment.id),
+      )
       .limit(1);
     if (!invoice) {
+      const createdAt = new Date(start.getTime() - 3 * DAY + MINUTE);
+      // `invoice_number` is left to its database default. Every demo invoice was charged a
+      // minute after it was raised, on the provider's test card.
       [invoice] = await db
         .insert(serviceInvoices)
         .values({
-          appointmentId: appointment.id,
           amountSatang,
           platformFeeSatang: feeSatang,
           providerChargeId: `chrg_demo_${b.key}`,
           status: b.invoice,
           payoutEligibleAt:
             b.state === 'COMPLETED' ? new Date(end.getTime() + 7 * DAY) : null,
-          createdAt: new Date(start.getTime() - 3 * DAY + MINUTE),
+          createdAt,
+          paidAt: new Date(createdAt.getTime() + MINUTE),
+          cardBrand: 'Visa',
+          cardLastDigits: '4242',
         })
         .returning({ id: serviceInvoices.id });
+      await db.insert(serviceAppointmentsOnInvoice).values({
+        serviceAppointmentId: appointment.id,
+        serviceInvoiceId: invoice.id,
+      });
     }
 
     if (b.review) {
@@ -1991,19 +2650,40 @@ async function main(): Promise<void> {
       note(`portrait ${email}`, true);
     };
 
+    // Each catalogue row's translations go in right after it, written only for
+    // a locale that has no row yet (see the header); `returning` holds the
+    // locales this run added.
     console.log('Categories');
     const categoryIds = new Map<string, string>();
-    for (const [name, description] of CATEGORIES) {
-      categoryIds.set(
-        name,
-        await ensureNamed(db, serviceCategories, name, description),
-      );
+    for (const category of CATEGORIES) {
+      const { name, description } = category;
+      const id = await ensureNamed(db, serviceCategories, name, description); // NOSONAR: the seed writes rows in order on purpose
+      categoryIds.set(name, id);
+      const written = await db // NOSONAR: the seed writes rows in order on purpose
+        .insert(serviceCategoryTranslations)
+        .values([
+          { categoryId: id, locale: 'th', name, description },
+          { categoryId: id, locale: 'en', ...category.en },
+        ])
+        .onConflictDoNothing()
+        .returning({ locale: serviceCategoryTranslations.locale });
+      note(`translations of ${name}`, written.length > 0);
     }
 
     console.log('\nSkills');
     const skillIds = new Map<string, string>();
-    for (const name of SKILLS) {
-      skillIds.set(name, await ensureNamed(db, skills, name, null));
+    for (const [name, english] of SKILLS) {
+      const skillId = await ensureNamed(db, skills, name, null); // NOSONAR: the seed writes rows in order on purpose
+      skillIds.set(name, skillId);
+      const written = await db // NOSONAR: the seed writes rows in order on purpose
+        .insert(skillTranslations)
+        .values([
+          { skillId, locale: 'th', name, description: null },
+          { skillId, locale: 'en', name: english, description: null },
+        ])
+        .onConflictDoNothing()
+        .returning({ locale: skillTranslations.locale });
+      note(`translations of ${name}`, written.length > 0);
     }
 
     console.log('\nAdvisees');
@@ -2065,6 +2745,20 @@ async function main(): Promise<void> {
         });
         note('profile', true);
       }
+      const profileWritten = await db // NOSONAR: the seed writes rows in order on purpose
+        .insert(advisorProfileTranslations)
+        .values([
+          {
+            advisorId,
+            locale: 'th',
+            headline: advisor.headline,
+            bio: advisor.bio,
+          },
+          { advisorId, locale: 'en', ...advisor.en },
+        ])
+        .onConflictDoNothing()
+        .returning({ locale: advisorProfileTranslations.locale });
+      note('profile translations', profileWritten.length > 0);
 
       for (const skillName of advisor.skills) {
         const skillId = skillIds.get(skillName)!;
@@ -2149,6 +2843,8 @@ async function main(): Promise<void> {
             id: found.id,
             ...shape,
           });
+          await ensureGallery(db, found.id, service.name);
+          await ensureServiceTranslations(db, found.id, service); // NOSONAR: the seed writes rows in order on purpose
           continue;
         }
         const [inserted] = await db
@@ -2173,6 +2869,8 @@ async function main(): Promise<void> {
           id: inserted.id,
           ...shape,
         });
+        await ensureGallery(db, inserted.id, service.name);
+        await ensureServiceTranslations(db, inserted.id, service); // NOSONAR: the seed writes rows in order on purpose
       }
     }
 

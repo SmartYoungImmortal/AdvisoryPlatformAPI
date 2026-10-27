@@ -9,3 +9,4 @@ export * from './payment';
 export * from './chat';
 export * from './safety';
 export * from './notification';
+export * from './translation';

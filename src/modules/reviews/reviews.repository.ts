@@ -4,10 +4,12 @@ import {
   count,
   desc,
   eq,
+  inArray,
   type InferSelectModel,
   type SQL,
   sql,
 } from 'drizzle-orm';
+import { serviceName } from '@/common/i18n/localized-columns';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   advisorProfiles,
@@ -172,6 +174,52 @@ export class ReviewsRepository {
     return new Map(rows.map((row) => [row.stars, row.value]));
   }
 
+  /** `countByStarsForAdvisor` for many advisors in one query, keyed by advisor id. */
+  async countByStarsForAdvisors(
+    advisorIds: readonly string[],
+  ): Promise<ReadonlyMap<string, ReadonlyMap<number, number>>> {
+    const byAdvisor = new Map<string, Map<number, number>>();
+    if (advisorIds.length === 0) return byAdvisor;
+    const rows = await this.db
+      .select({
+        advisorId: serviceAppointments.advisorId,
+        stars: serviceReviews.stars,
+        value: count(),
+      })
+      .from(serviceReviews)
+      .innerJoin(
+        serviceAppointments,
+        eq(serviceAppointments.id, serviceReviews.appointmentId),
+      )
+      .where(inArray(serviceAppointments.advisorId, [...advisorIds]))
+      .groupBy(serviceAppointments.advisorId, serviceReviews.stars);
+    for (const row of rows) {
+      const counts = byAdvisor.get(row.advisorId) ?? new Map<number, number>();
+      counts.set(row.stars, row.value);
+      byAdvisor.set(row.advisorId, counts);
+    }
+    return byAdvisor;
+  }
+
+  /** `publicAdvisorExists` for many advisors in one query: the ones that pass. */
+  async publicAdvisorIds(
+    advisorIds: readonly string[],
+  ): Promise<ReadonlySet<string>> {
+    if (advisorIds.length === 0) return new Set();
+    const rows = await this.db
+      .select({ id: advisorProfiles.userId })
+      .from(advisorProfiles)
+      .innerJoin(user, eq(user.id, advisorProfiles.userId))
+      .where(
+        and(
+          inArray(advisorProfiles.userId, [...advisorIds]),
+          eq(user.status, 'ACTIVE'),
+          eq(user.banned, false),
+        ),
+      );
+    return new Set(rows.map((row) => row.id));
+  }
+
   /** Whether this advisor is one the public routes may acknowledge at all. */
   async publicAdvisorExists(advisorId: string): Promise<boolean> {
     const [row] = await this.db
@@ -204,7 +252,7 @@ export class ReviewsRepository {
         createdAt: serviceReviews.createdAt,
         modifiedAt: serviceReviews.modifiedAt,
         appointmentStartTime: serviceAppointments.startTime,
-        serviceName: services.name,
+        serviceName: serviceName(),
         serviceDurationMinutes: services.durationMinutes,
         reviewerDisplayName: user.displayName,
         reviewerAvatarKey: user.avatarKey,

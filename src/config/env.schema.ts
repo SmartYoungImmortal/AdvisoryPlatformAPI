@@ -13,6 +13,8 @@ const baseEnvSchema = z.object({
   NODE_ENV: z.enum(Environment).default(Environment.Development),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.url(),
+  FRONTEND_URL: z.url(),
+  BACKEND_PUBLIC_URL: z.url(),
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.url(),
   SMTP_HOST: z.string().trim().min(1).optional(),
@@ -68,6 +70,11 @@ const baseEnvSchema = z.object({
   FACEBOOK_CLIENT_SECRET: optionalSecret,
   APPLE_CLIENT_ID: optionalSecret,
   APPLE_CLIENT_SECRET: optionalSecret,
+  // Web Push (VAPID). All three switch push on together; with none set the API still boots and
+  // simply sends no device notifications. Generate a pair with `npx web-push generate-vapid-keys`.
+  VAPID_PUBLIC_KEY: optionalSecret,
+  VAPID_PRIVATE_KEY: optionalSecret,
+  VAPID_SUBJECT: optionalSecret,
   // Omise
   OMISE_PUBLIC_KEY: z.string(),
   OMISE_SECRET_KEY: z.string(),
@@ -99,6 +106,20 @@ export const envSchema = baseEnvSchema.superRefine((env, context) => {
         message: 'SMTP_USER and SMTP_PASSWORD are required in production',
       });
     }
+  }
+
+  const vapid = [
+    env.VAPID_PUBLIC_KEY,
+    env.VAPID_PRIVATE_KEY,
+    env.VAPID_SUBJECT,
+  ].filter(Boolean);
+  if (vapid.length > 0 && vapid.length < 3) {
+    context.addIssue({
+      code: 'custom',
+      path: ['VAPID_PUBLIC_KEY'],
+      message:
+        'VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT must be configured together',
+    });
   }
 
   if (Boolean(env.SMTP_USER) !== Boolean(env.SMTP_PASSWORD)) {

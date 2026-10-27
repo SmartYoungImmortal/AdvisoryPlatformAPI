@@ -159,7 +159,9 @@ type AvailabilityRepositoryMock = jest.Mocked<
   Pick<
     AvailabilityRepository,
     | 'schedulingContext'
+    | 'schedulingContexts'
     | 'findBlockingAppointments'
+    | 'findBlockingAppointmentsForAdvisors'
     | 'hasAcceptedScreening'
     | 'findGlobal'
     | 'upsertGlobal'
@@ -177,7 +179,9 @@ function makeService(): {
 } {
   const repository: AvailabilityRepositoryMock = {
     schedulingContext: jest.fn(),
+    schedulingContexts: jest.fn().mockResolvedValue(new Map()),
     findBlockingAppointments: jest.fn().mockResolvedValue([]),
+    findBlockingAppointmentsForAdvisors: jest.fn().mockResolvedValue([]),
     hasAcceptedScreening: jest.fn().mockResolvedValue(true),
     findGlobal: jest.fn(),
     upsertGlobal: jest.fn(),
@@ -589,6 +593,103 @@ describe('AvailabilityService slot derivation', () => {
         adviseeId,
       ),
     ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('AvailabilityService.openOn', () => {
+  const otherAdvisorId = '88888888-8888-8888-8888-888888888888';
+  const monday = '2026-09-07';
+  let service: AvailabilityService;
+  let repository: AvailabilityRepositoryMock;
+
+  /** A context for another service, of this advisor or another. */
+  function contextFor(id: string, advisor = advisorId): SchedulingContext {
+    const base = context();
+    return {
+      ...base,
+      service: { ...base.service, id, advisorId: advisor },
+      global: { ...base.global, advisorId: advisor },
+    };
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00.000Z'));
+    ({ service, repository } = makeService());
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('answers as hasOpenSlotOn does, service by service', async () => {
+    const open = contextFor(serviceId, advisorId);
+    const full = contextFor(otherServiceId, otherAdvisorId);
+    // The other advisor is booked through the whole 09:00–12:00 window (Bangkok).
+    const booked = {
+      ...appointment('2026-09-07T02:00:00.000Z', '2026-09-07T05:00:00.000Z'),
+      advisorId: otherAdvisorId,
+      serviceId: otherServiceId,
+    };
+    repository.schedulingContexts.mockResolvedValue(
+      new Map([
+        [serviceId, open],
+        [otherServiceId, full],
+      ]),
+    );
+    repository.findBlockingAppointmentsForAdvisors.mockResolvedValue([booked]);
+
+    const batch = await service.openOn([serviceId, otherServiceId], monday);
+
+    repository.schedulingContext.mockImplementation((id) =>
+      Promise.resolve(id === serviceId ? open : full),
+    );
+    repository.findBlockingAppointments.mockImplementation((advisor) =>
+      Promise.resolve(advisor === otherAdvisorId ? [booked] : []),
+    );
+    const one = await service.hasOpenSlotOn(serviceId, monday);
+    const other = await service.hasOpenSlotOn(otherServiceId, monday);
+
+    expect([...batch]).toEqual([serviceId]);
+    expect(one).toBe(true);
+    expect(other).toBe(false);
+    // One read of schedules and one of appointments, whatever the count.
+    expect(repository.schedulingContexts).toHaveBeenCalledTimes(1);
+    expect(
+      repository.findBlockingAppointmentsForAdvisors,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not let one advisor's bookings close another's service", async () => {
+    repository.schedulingContexts.mockResolvedValue(
+      new Map([[serviceId, contextFor(serviceId, advisorId)]]),
+    );
+    repository.findBlockingAppointmentsForAdvisors.mockResolvedValue([
+      {
+        ...appointment('2026-09-07T02:00:00.000Z', '2026-09-07T05:00:00.000Z'),
+        advisorId: otherAdvisorId,
+      },
+    ]);
+
+    await expect(service.openOn([serviceId], monday)).resolves.toEqual(
+      new Set([serviceId]),
+    );
+  });
+
+  it('leaves out a service with no schedule, and answers nothing for a bad date', async () => {
+    repository.schedulingContexts.mockResolvedValue(new Map());
+
+    await expect(service.openOn([serviceId], monday)).resolves.toEqual(
+      new Set(),
+    );
+    await expect(service.openOn([serviceId], '2026-13-40')).resolves.toEqual(
+      new Set(),
+    );
+  });
+
+  it('is closed rather than failing when the schedules cannot be read', async () => {
+    repository.schedulingContexts.mockRejectedValue(new Error('db down'));
+
+    await expect(service.openOn([serviceId], monday)).resolves.toEqual(
+      new Set(),
+    );
   });
 });
 

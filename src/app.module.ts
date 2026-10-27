@@ -54,6 +54,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     // Last, so the literal `advisors/me/...` controllers register before this module's
     // `advisors/:advisorId/reviews` and a request for `me` is never captured by the parameter.
     ReviewsModule,
+    PayoutsModule,
   ],
 })
 export class AppModule {}
