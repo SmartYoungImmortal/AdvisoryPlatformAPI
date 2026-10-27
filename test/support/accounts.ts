@@ -1,5 +1,5 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import request from 'supertest';
 import type { DrizzleDB } from '@/database/database.module';
 import {
@@ -113,8 +113,11 @@ export async function deleteUsers(
   db: DrizzleDB,
   userIds: string[],
 ): Promise<void> {
-  for (const id of userIds.splice(0)) {
-    await db.delete(notifications).where(eq(notifications.ownerId, id));
+  const ids = userIds.splice(0);
+  if (ids.length > 0) {
+    await db.delete(notifications).where(inArray(notifications.ownerId, ids));
+  }
+  for (const id of ids) {
     await db.delete(adminProfiles).where(eq(adminProfiles.userId, id));
     await db
       .delete(advisorGlobalAvailability)

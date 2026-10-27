@@ -1,7 +1,7 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { io, type Socket } from 'socket.io-client';
 import request from 'supertest';
 import { configureApp } from '@/app.factory';
@@ -81,9 +81,12 @@ describe('chat sockets (e2e)', () => {
       await db.delete(chatMembers).where(eq(chatMembers.chatRoomId, roomId));
       await db.delete(chatRooms).where(eq(chatRooms.id, roomId));
     }
-    for (const userId of userIds.splice(0)) {
-      // Sign-up wrote the account's welcome.
-      await db.delete(notifications).where(eq(notifications.ownerId, userId));
+    const ids = userIds.splice(0);
+    if (ids.length > 0) {
+      // Sign-up wrote each account's welcome.
+      await db.delete(notifications).where(inArray(notifications.ownerId, ids));
+    }
+    for (const userId of ids) {
       await db.delete(session).where(eq(session.userId, userId));
       await db.delete(account).where(eq(account.userId, userId));
       await db.delete(user).where(eq(user.id, userId));

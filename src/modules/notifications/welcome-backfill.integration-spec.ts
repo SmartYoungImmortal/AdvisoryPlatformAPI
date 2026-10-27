@@ -17,17 +17,16 @@ import { NotificationsRepository } from './notifications.repository';
  * The welcome backfill migration, run again by hand against real Postgres: by the
  * time this suite runs, `db:migrate` has already applied it to an empty database.
  * Found by name rather than by its folder's timestamp, which a rebase may change.
+ * Sent as one query: drizzle-kit's statement breakpoints are SQL comments.
  */
 const migrationsDir = join(__dirname, '..', '..', 'database', 'migrations');
 const backfillFolder = readdirSync(migrationsDir).find((name) =>
   name.endsWith('_welcome-notification-backfill'),
 );
-const backfillStatements = readFileSync(
+const backfillSql = readFileSync(
   join(migrationsDir, backfillFolder ?? 'missing', 'migration.sql'),
   'utf8',
-)
-  .split('--> statement-breakpoint')
-  .filter((statement) => statement.trim());
+);
 
 const ADVISEE = {
   th: 'เริ่มจากหาผู้เชี่ยวชาญที่ใช่สำหรับคำถามของคุณ',
@@ -54,7 +53,7 @@ describe('welcome-notification-backfill migration (integration)', () => {
   const adviseeCreatedAt = new Date('2026-01-02T03:04:05.000Z');
 
   const runBackfill = async () => {
-    for (const statement of backfillStatements) await pool.query(statement);
+    await pool.query(backfillSql);
   };
 
   const welcomesOf = (ownerId: string) =>
@@ -134,7 +133,7 @@ describe('welcome-notification-backfill migration (integration)', () => {
 
   it('is found', () => {
     expect(backfillFolder).toBeDefined();
-    expect(backfillStatements.length).toBeGreaterThan(0);
+    expect(backfillSql).toContain('INSERT INTO "notifications"');
   });
 
   it("gives an Advisee the welcome sign-up writes, dated at the account's creation", async () => {
@@ -209,7 +208,10 @@ describe('welcome-notification-backfill migration (integration)', () => {
     await runBackfill();
 
     expect(await count()).toBe(before);
-    for (const id of userIds) expect(await welcomesOf(id)).toHaveLength(1);
+    const perAccount = await Promise.all(
+      userIds.map(async (id) => (await welcomesOf(id)).length),
+    );
+    expect(perAccount).toEqual([1, 1, 1, 1]);
   });
 
   it('refuses a second welcome for the same account at the database', async () => {
