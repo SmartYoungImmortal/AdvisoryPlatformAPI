@@ -163,6 +163,39 @@ describe('authentication and authorization (e2e)', () => {
       .expect(400);
   });
 
+  it('gives a new account one welcome, in the language the reader asks for', async () => {
+    const { agent, userId } = await signUp();
+
+    const inThai = await agent.get('/api/v1/notifications').expect(200);
+    expect(object(object(inThai.body).data).items).toEqual([
+      expect.objectContaining({
+        type: 'WELCOME',
+        title: 'ยินดีต้อนรับสู่ Advisory',
+        content: 'เริ่มจากหาผู้เชี่ยวชาญที่ใช่สำหรับคำถามของคุณ',
+        resourceId: null,
+        isRead: false,
+      }),
+    ]);
+
+    const inEnglish = await agent
+      .get('/api/v1/notifications')
+      .set('Accept-Language', 'en')
+      .expect(200);
+    expect(object(object(inEnglish.body).data).items).toEqual([
+      expect.objectContaining({
+        type: 'WELCOME',
+        title: 'Welcome to Advisory',
+        content: 'Start by finding the right expert for your question',
+      }),
+    ]);
+
+    const rows = await db
+      .select({ type: notifications.type })
+      .from(notifications)
+      .where(eq(notifications.ownerId, userId));
+    expect(rows).toEqual([{ type: 'WELCOME' }]);
+  });
+
   it('uploads, reads, replaces, and removes the authenticated avatar', async () => {
     const { agent, userId } = await signUp();
 

@@ -118,6 +118,27 @@ export class NotificationsRepository extends EntityRepository<
   }
 
   /**
+   * Adds an account's welcome in Thai and English, unless it already has one: the
+   * partial unique index on the owner's WELCOME makes a second one a no-op, and
+   * `undefined` is returned instead.
+   */
+  createWelcome(input: NotifyInput): Promise<Notification | undefined> {
+    return this.db.transaction(async (tx) => {
+      const inserted = await tx
+        .insert(notifications)
+        .values(sourceRow(input))
+        .onConflictDoNothing({
+          target: notifications.ownerId,
+          where: sql`${notifications.type} = 'WELCOME'`,
+        })
+        .returning({ id: notifications.id });
+      const created = inserted.at(0);
+      if (!created) return undefined;
+      return this.saveTranslationsAndRead(tx, created.id, input);
+    });
+  }
+
+  /**
    * For a new chat message: if the chat room already has an unread notification, update it and move
    * it to the top instead of adding a new one. The partial unique index keeps this correct when two
    * messages arrive at the same time. Both translations are rewritten with the row, in the same

@@ -11,7 +11,10 @@ import {
 } from '@/common/pagination/cursor-pagination.dto';
 import { NotificationCountResponseDto } from './dtos/notification-count-response.dto';
 import { NotificationResponseDto } from './dtos/notification-response.dto';
-import { NOTIFICATION_MESSAGES } from './notifications.constants';
+import {
+  NOTIFICATION_MESSAGES,
+  WELCOME_NOTIFICATION,
+} from './notifications.constants';
 import { NotificationsRepository } from './notifications.repository';
 import type { NotifyInput } from './notifications.types';
 import { pushUrlFor } from './push/push.constants';
@@ -96,5 +99,19 @@ export class NotificationsService {
       tag: row.resourceId ? `${row.type}:${row.resourceId}` : undefined,
     });
     return new NotificationResponseDto(row);
+  }
+
+  /**
+   * Gives a new account its welcome, in Thai and English (`WELCOME_NOTIFICATION`).
+   * Not pushed: an account this new has no device subscribed yet. `undefined` when
+   * the account already has its welcome; there is only ever one.
+   */
+  async welcome(ownerId: string): Promise<NotificationResponseDto | undefined> {
+    const row = await this.repository.createWelcome({
+      ownerId,
+      type: 'WELCOME',
+      ...WELCOME_NOTIFICATION,
+    });
+    return row && new NotificationResponseDto(row);
   }
 }

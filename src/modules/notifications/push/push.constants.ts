@@ -24,6 +24,8 @@ const PUSH_URLS: Record<NotificationType, string> = {
   SCREENING_DECIDED: '/bookings',
   VERIFICATION_DECIDED: '/advisor/profile',
   POLICY_WARNING: '/notifications',
+  // Never pushed (`NotificationsService.welcome()`); the Advisee welcome's page, for completeness.
+  WELCOME: '/search',
 };
 
 export function pushUrlFor(type: NotificationType): string {

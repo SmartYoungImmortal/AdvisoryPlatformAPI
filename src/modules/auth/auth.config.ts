@@ -7,6 +7,7 @@ import * as schema from '@/database/schema';
 import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
 import { createAuthEmailSender, createSmtpTransport } from './auth-email';
+import { afterUserCreated, type AuthHooks } from './auth-hooks';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import {
@@ -246,7 +247,11 @@ function socialProviders(config: ConfigService<Env, true>) {
   };
 }
 
-export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
+export function createAuth(
+  db: DrizzleDB,
+  config: ConfigService<Env, true>,
+  hooks: AuthHooks = {},
+) {
   const logger = new Logger('AuthEmail');
   const sendEmail = createAuthEmailSender({
     from:
@@ -313,6 +318,13 @@ export function createAuth(db: DrizzleDB, config: ConfigService<Env, true>) {
       database: {
         // Repo-wide non-negotiable: uuid PKs everywhere, including better-auth's tables.
         generateId: () => crypto.randomUUID(),
+      },
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          after: afterUserCreated(hooks, new Logger('AuthHooks')),
+        },
       },
     },
     user: {
