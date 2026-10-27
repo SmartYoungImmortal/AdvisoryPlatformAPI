@@ -7,6 +7,7 @@ import {
   refundCaseEvidence,
   refundCases,
   serviceAppointments,
+  serviceAppointmentsOnInvoice,
   serviceInvoices,
   user,
 } from '@/database/schema';
@@ -43,9 +44,17 @@ export class RefundsRepository extends EntityRepository<typeof refundCases> {
         amountSatang: serviceInvoices.amountSatang,
       })
       .from(serviceInvoices)
+      // Through the invoice's appointments: one of them must be this Advisee's.
+      .innerJoin(
+        serviceAppointmentsOnInvoice,
+        eq(serviceAppointmentsOnInvoice.serviceInvoiceId, serviceInvoices.id),
+      )
       .innerJoin(
         serviceAppointments,
-        eq(serviceAppointments.id, serviceInvoices.appointmentId),
+        eq(
+          serviceAppointments.id,
+          serviceAppointmentsOnInvoice.serviceAppointmentId,
+        ),
       )
       .where(
         and(

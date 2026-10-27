@@ -1,1 +1,0 @@
-ALTER TABLE "service_invoices" ALTER COLUMN "appointment_id" SET NOT NULL;

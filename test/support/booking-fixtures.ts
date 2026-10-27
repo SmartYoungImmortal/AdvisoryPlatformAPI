@@ -9,7 +9,9 @@ import {
   chatRooms,
   notifications,
   serviceAppointments,
+  serviceAppointmentsOnInvoice,
   serviceCategories,
+  serviceInvoices,
   services,
 } from '@/database/schema';
 import {
@@ -138,9 +140,16 @@ export async function deleteBookingFixtures(
 ): Promise<void> {
   for (const id of ids.serviceIds.splice(0)) {
     const rooms = await db
-      .select({ chatRoomId: serviceAppointments.chatRoomId })
+      .select({
+        appointmentId: serviceAppointments.id,
+        chatRoomId: serviceAppointments.chatRoomId,
+      })
       .from(serviceAppointments)
       .where(eq(serviceAppointments.serviceId, id));
+    await deleteInvoices(
+      db,
+      rooms.map((room) => room.appointmentId),
+    );
     await db
       .delete(serviceAppointments)
       .where(eq(serviceAppointments.serviceId, id));
@@ -182,4 +191,26 @@ async function deleteChatRooms(
   await db.delete(chatFiles).where(inArray(chatFiles.chatRoomId, unique));
   await db.delete(chatMembers).where(inArray(chatMembers.chatRoomId, unique));
   await db.delete(chatRooms).where(inArray(chatRooms.id, unique));
+}
+
+/** The invoices a booking was paid through, and the links that tie them to it. */
+async function deleteInvoices(
+  db: DrizzleDB,
+  appointmentIds: string[],
+): Promise<void> {
+  if (appointmentIds.length === 0) return;
+  const links = await db
+    .delete(serviceAppointmentsOnInvoice)
+    .where(
+      inArray(
+        serviceAppointmentsOnInvoice.serviceAppointmentId,
+        appointmentIds,
+      ),
+    )
+    .returning({ invoiceId: serviceAppointmentsOnInvoice.serviceInvoiceId });
+  const invoiceIds = [...new Set(links.map((link) => link.invoiceId))];
+  if (invoiceIds.length === 0) return;
+  await db
+    .delete(serviceInvoices)
+    .where(inArray(serviceInvoices.id, invoiceIds));
 }
