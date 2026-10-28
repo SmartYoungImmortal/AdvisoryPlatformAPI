@@ -15,6 +15,8 @@ const checks = [];
 const uploadedIds = [];
 const roomId = randomUUID();
 const databaseUrl = process.env.STORAGE_PROOF_DATABASE_URL;
+const demoPassword = process.env.STORAGE_PROOF_PASSWORD;
+assert.ok(demoPassword, 'Set STORAGE_PROOF_PASSWORD to the local seeded password');
 assert.equal(process.env.STORAGE_LIVE_PROOF, '1', 'Set STORAGE_LIVE_PROOF=1');
 assert.ok(
   databaseUrl,
@@ -47,7 +49,7 @@ async function login(email) {
   const response = await api('/api/auth/sign-in/email', undefined, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'AdvisoryDemo!2026' }),
+    body: JSON.stringify({ email, password: demoPassword }),
   });
   assert.equal(response.status, 200, `Login ${email}`);
   return response.headers
@@ -169,7 +171,7 @@ async function main() {
     bytes: 52428801,
   });
 }
-(async () => {
+void (async () => {
   let failure;
   const cleanupErrors = [];
   async function cleanupStep(action) {

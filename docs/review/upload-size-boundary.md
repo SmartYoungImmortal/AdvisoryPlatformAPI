@@ -16,9 +16,12 @@ Use only the named local proof database, seeded demo accounts, a running API and
 
 ```bash
 STORAGE_LIVE_PROOF=1 \
+STORAGE_PROOF_PASSWORD="$DEMO_PASSWORD" \
 STORAGE_PROOF_DATABASE_URL=postgresql://advisory:local-proof-only@127.0.0.1:55432/advisory_proof \
 node test/storage-live-proof.cjs
 ```
+
+Set `DEMO_PASSWORD` to the password used by your local seed before running this command.
 
 `STORAGE_PROOF_API_URL` optionally selects local port 3201 for a separately rebuilt API. The default is port 3200. The test verifies real 1 KiB and exact-50 MiB uploads, byte-perfect signed downloads, direct-read denial, membership and authentication checks, unsupported MIME rejection, and oversize rejection without a metadata row. Cleanup failures preserve the original result and write diagnostic evidence.
 
