@@ -219,6 +219,19 @@ export class PaymentService {
     );
   }
 
+  async findMyBookingInvoice(
+    user: SessionUser,
+    bookingId: string,
+  ): Promise<AdviseeInvoiceResponseDto> {
+    const row = await this.serviceInvoiceRepository.findForBooking(
+      bookingId,
+      user.id,
+    );
+    if (!row)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+    return new AdviseeInvoiceResponseDto(row);
+  }
+
   /** One receipt. Another user's invoice is the same 404 as one that does not exist. */
   async findMyInvoice(
     user: SessionUser,

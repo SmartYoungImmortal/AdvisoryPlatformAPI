@@ -79,6 +79,16 @@ export class PaymentController {
     return this.paymentService.findMyInvoices(user, query);
   }
 
+  /** The receipt linked to this user's booking, regardless of history pagination. */
+  @Get('invoices/for-booking/:bookingId')
+  @ApiGetOne(AdviseeInvoiceResponseDto, { name: 'Invoice' })
+  getMyBookingInvoice(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+  ): Promise<AdviseeInvoiceResponseDto> {
+    return this.paymentService.findMyBookingInvoice(user, bookingId);
+  }
+
   /** One receipt from that history. Checkout keeps its own `invoice/:id` above. */
   @Get('invoices/:id')
   @ApiGetOne(AdviseeInvoiceResponseDto, { name: 'Invoice' })

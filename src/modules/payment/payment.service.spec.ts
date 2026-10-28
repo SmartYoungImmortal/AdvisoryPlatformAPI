@@ -40,6 +40,7 @@ const mockInvoicesRepository = {
   updateById: jest.fn(),
   findManyForAdvisee: jest.fn(),
   findOneForAdvisee: jest.fn(),
+  findForBooking: jest.fn(),
   countForAdvisee: jest.fn(),
 };
 
@@ -142,6 +143,24 @@ describe('PaymentService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('findMyBookingInvoice', () => {
+    it('returns the linked receipt for an owned booking', async () => {
+      mockInvoicesRepository.findForBooking.mockResolvedValue(receiptRow());
+      await expect(
+        service.findMyBookingInvoice(mockUser, 'booking-id'),
+      ).resolves.toMatchObject({
+        id: 'uuid-invoice-1',
+        status: 'paid',
+      });
+    });
+    it('returns 404 when the booking has no owned invoice', async () => {
+      mockInvoicesRepository.findForBooking.mockResolvedValue(undefined);
+      await expect(
+        service.findMyBookingInvoice(mockUser, 'booking-id'),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('createInvoice', () => {
