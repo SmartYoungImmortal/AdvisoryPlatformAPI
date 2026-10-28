@@ -247,14 +247,10 @@ export class AdvisorServicesService {
     const webp =
       file.buffer.toString('ascii', 0, 4) === 'RIFF' &&
       file.buffer.toString('ascii', 8, 12) === 'WEBP';
-    const extension =
-      file.mimetype === 'image/png' && png
-        ? 'png'
-        : file.mimetype === 'image/jpeg' && jpeg
-          ? 'jpg'
-          : file.mimetype === 'image/webp' && webp
-            ? 'webp'
-            : null;
+    let extension: string | null = null;
+    if (file.mimetype === 'image/png' && png) extension = 'png';
+    if (file.mimetype === 'image/jpeg' && jpeg) extension = 'jpg';
+    if (file.mimetype === 'image/webp' && webp) extension = 'webp';
     if (!extension)
       throw new BadRequestException('Choose a JPEG, PNG or WebP image');
     const key = `services/${serviceId}/${crypto.randomUUID()}.${extension}`;
@@ -371,14 +367,18 @@ export class AdvisorServicesService {
       throw new NotFoundException(ADVISOR_SERVICE_MESSAGES.notFound);
     }
 
-    for (const { objectKey } of images) {
-      if (isAbsoluteUrl(objectKey)) continue;
-      try {
-        await this.storage.removeObject(objectKey);
-      } catch {
-        this.logger.warn(`Could not remove deleted service image ${objectKey}`);
-      }
-    }
+    await Promise.all(
+      images.map(async ({ objectKey }) => {
+        if (isAbsoluteUrl(objectKey)) return;
+        try {
+          await this.storage.removeObject(objectKey);
+        } catch {
+          this.logger.warn(
+            `Could not remove deleted service image ${objectKey}`,
+          );
+        }
+      }),
+    );
     return new AdvisorServiceResponseDto(service);
   }
 

@@ -260,13 +260,15 @@ describe('PaymentServiceInvoicesRepository advisee invoices (integration)', () =
   });
 
   it('resolves both sessions to the same invoice without leaking another payer’s booking', async () => {
-    for (const bookingId of [earlierSessionId, laterSessionId]) {
-      await expect(
-        repository.findForBooking(bookingId, adviseeId),
-      ).resolves.toMatchObject({
-        invoice: { id: twoSessionInvoiceId },
-      });
-    }
+    await Promise.all(
+      [earlierSessionId, laterSessionId].map(async (bookingId) => {
+        await expect(
+          repository.findForBooking(bookingId, adviseeId),
+        ).resolves.toMatchObject({
+          invoice: { id: twoSessionInvoiceId },
+        });
+      }),
+    );
     await expect(
       repository.findForBooking(otherSessionId, adviseeId),
     ).resolves.toBeUndefined();
