@@ -56,7 +56,13 @@ export class BookingsService {
     const startTime = this.parseStartTime(dto.startTime);
     const appointment = await this.claimSlot(() =>
       this.repository.createWithSchedulingLock(service.advisorId, () =>
-        this.scheduledValues(service.id, service.advisorId, user.id, startTime),
+        this.scheduledValues(
+          service.id,
+          service.advisorId,
+          user.id,
+          startTime,
+          dto.packageId,
+        ),
       ),
     );
     return new BookingResponseDto(appointment);
@@ -168,11 +174,13 @@ export class BookingsService {
         ALLOWED_SOURCE_STATES.CANCELLED,
         cancellation,
         async (current) => ({
+          // The same package, so the new time is the same length.
           ...(await this.scheduledValues(
             current.serviceId,
             current.advisorId,
             user.id,
             startTime,
+            current.packageId,
           )),
           state: current.state,
           chatRoomId: current.chatRoomId,
@@ -323,16 +331,19 @@ export class BookingsService {
     advisorId: string,
     adviseeId: string,
     startTime: Date,
+    packageId?: string | null,
   ): Promise<NewAppointment> {
     const slot = await this.availability.findSlotAt(
       serviceId,
       startTime,
       adviseeId,
+      packageId,
     );
     if (!slot) throw new BadRequestException(BOOKING_MESSAGES.unavailable);
     const global = await this.availability.getGlobal(advisorId);
     return {
       serviceId,
+      packageId: packageId ?? null,
       advisorId,
       adviseeId,
       startTime: slot.startTime,

@@ -31,6 +31,7 @@ function makeAppointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
     id: bookingId,
     serviceId,
+    packageId: null,
     advisorId: advisor.id,
     adviseeId: advisee.id,
     type: 'CONSULTATION',

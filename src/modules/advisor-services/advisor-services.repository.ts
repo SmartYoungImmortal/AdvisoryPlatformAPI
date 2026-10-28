@@ -10,6 +10,7 @@ import {
   inArray,
   isNull,
   lte,
+  notInArray,
   or,
   type InferInsertModel,
   type InferSelectModel,
@@ -32,10 +33,15 @@ import {
   availabilityProfiles,
   serviceCategories,
   serviceImages,
+  servicePackages,
   services,
   user,
 } from '@/database/schema';
 import type { PublicServiceDocument } from './advisor-services.types';
+import type {
+  ServicePackage,
+  ServicePackageInputDto,
+} from './dtos/service-package.dto';
 import type { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
@@ -280,6 +286,67 @@ export class AdvisorServicesRepository extends EntityRepository<
       .from(serviceImages)
       .where(inArray(serviceImages.serviceId, [...serviceIds]))
       .orderBy(asc(serviceImages.serviceId), asc(serviceImages.carouselIndex));
+  }
+
+  /** A service's packages, in the order they are offered. */
+  findPackagesFor(serviceId: string): Promise<ServicePackage[]> {
+    return this.db
+      .select()
+      .from(servicePackages)
+      .where(eq(servicePackages.serviceId, serviceId))
+      .orderBy(asc(servicePackages.sortOrder), asc(servicePackages.createdAt));
+  }
+
+  /**
+   * Makes a service's packages `packages`, in that order, in one transaction:
+   * one with an `id` of this service's is changed in place (so bookings made
+   * on it keep pointing at it), one without is added, and one not sent is
+   * removed (bookings made on it keep their times, their link set to null).
+   */
+  replacePackages(
+    serviceId: string,
+    packages: readonly ServicePackageInputDto[],
+  ): Promise<ServicePackage[]> {
+    return this.db.transaction(async (tx) => {
+      const kept = packages.flatMap((item) => (item.id ? [item.id] : []));
+      await tx
+        .delete(servicePackages)
+        .where(
+          kept.length > 0
+            ? and(
+                eq(servicePackages.serviceId, serviceId),
+                notInArray(servicePackages.id, kept),
+              )
+            : eq(servicePackages.serviceId, serviceId),
+        );
+      for (const [sortOrder, item] of packages.entries()) {
+        const values = {
+          name: item.name,
+          description: item.description ?? null,
+          durationMinutes: item.durationMinutes,
+          priceSatang: item.priceSatang,
+          sortOrder,
+        };
+        if (item.id) {
+          await tx
+            .update(servicePackages)
+            .set(values)
+            .where(
+              and(
+                eq(servicePackages.id, item.id),
+                eq(servicePackages.serviceId, serviceId),
+              ),
+            );
+        } else {
+          await tx.insert(servicePackages).values({ ...values, serviceId });
+        }
+      }
+      return tx
+        .select()
+        .from(servicePackages)
+        .where(eq(servicePackages.serviceId, serviceId))
+        .orderBy(asc(servicePackages.sortOrder));
+    });
   }
 
   private ownedWhere(advisorId: string, serviceId: string): SQL {

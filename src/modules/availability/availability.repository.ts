@@ -18,6 +18,7 @@ import {
   availabilityWeeklyWindows,
   screeningRequests,
   serviceAppointments,
+  servicePackages,
   services,
   user,
 } from '@/database/schema';
@@ -185,6 +186,21 @@ export class AvailabilityRepository {
       .where(eq(services.availabilityProfileId, profileId))
       .limit(1);
     return service !== undefined;
+  }
+
+  /** One of a service's packages, or undefined when it is not one of them. */
+  async findPackage(serviceId: string, packageId: string) {
+    const [row] = await this.db
+      .select()
+      .from(servicePackages)
+      .where(
+        and(
+          eq(servicePackages.id, packageId),
+          eq(servicePackages.serviceId, serviceId),
+        ),
+      )
+      .limit(1);
+    return row;
   }
 
   async schedulingContext(serviceId: string) {

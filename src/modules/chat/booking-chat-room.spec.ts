@@ -17,6 +17,7 @@ function appointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
     id: bookingId,
     serviceId: '33333333-3333-4333-8333-333333333333',
+    packageId: null,
     advisorId,
     adviseeId,
     type: 'CONSULTATION',

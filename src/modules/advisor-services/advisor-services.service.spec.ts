@@ -72,6 +72,8 @@ describe('AdvisorServicesService', () => {
       | 'countPublished'
       | 'findPublishedById'
       | 'findImageKeysFor'
+      | 'findPackagesFor'
+      | 'replacePackages'
     >
   >;
   let availability: jest.Mocked<Pick<AvailabilityService, 'openOn'>>;
@@ -93,6 +95,8 @@ describe('AdvisorServicesService', () => {
       countPublished: jest.fn(),
       findPublishedById: jest.fn(),
       findImageKeysFor: jest.fn().mockResolvedValue([]),
+      findPackagesFor: jest.fn().mockResolvedValue([]),
+      replacePackages: jest.fn(),
     };
     availability = { openOn: jest.fn() };
     storage = { createDownloadUrl: jest.fn() };
@@ -302,6 +306,79 @@ describe('AdvisorServicesService', () => {
     await expect(service.findPublishedById(serviceId)).resolves.toEqual(
       expect.objectContaining({ id: serviceId }),
     );
+  });
+
+  describe('packages', () => {
+    const packageRow = {
+      id: '77777777-7777-4777-8777-777777777777',
+      serviceId,
+      name: 'Quick question',
+      description: null,
+      durationMinutes: 30,
+      priceSatang: 90000,
+      sortOrder: 0,
+      createdAt: new Date('2026-10-28T00:00:00.000Z'),
+      modifiedAt: new Date('2026-10-28T00:00:00.000Z'),
+    };
+
+    it('lists them on the public detail route, in their order', async () => {
+      repository.findPublishedById.mockResolvedValue(publicService);
+      repository.findPackagesFor.mockResolvedValue([packageRow]);
+
+      const detail = await service.findPublishedById(serviceId);
+
+      expect(repository.findPackagesFor).toHaveBeenCalledWith(serviceId);
+      expect(detail.packages).toEqual([
+        {
+          id: packageRow.id,
+          name: 'Quick question',
+          description: null,
+          durationMinutes: 30,
+          priceSatang: 90000,
+        },
+      ]);
+    });
+
+    it('refuses an id that is not one of the service’s packages', async () => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.findPackagesFor.mockResolvedValue([packageRow]);
+
+      await expect(
+        service.replacePackages(advisor, serviceId, {
+          packages: [
+            {
+              id: '88888888-8888-4888-8888-888888888888',
+              name: 'Elsewhere',
+              durationMinutes: 30,
+              priceSatang: 0,
+            },
+          ],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.replacePackages).not.toHaveBeenCalled();
+    });
+
+    it('keeps a known id, adds the new ones, in the order sent', async () => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.findPackagesFor.mockResolvedValue([packageRow]);
+      repository.replacePackages.mockResolvedValue([packageRow]);
+      const packages = [
+        { name: 'In depth', durationMinutes: 90, priceSatang: 250000 },
+        {
+          id: packageRow.id,
+          name: 'Quick question',
+          durationMinutes: 30,
+          priceSatang: 90000,
+        },
+      ];
+
+      await service.replacePackages(advisor, serviceId, { packages });
+
+      expect(repository.replacePackages).toHaveBeenCalledWith(
+        serviceId,
+        packages,
+      );
+    });
   });
 
   it('hides an unpublished Service from the public detail route', async () => {
