@@ -609,7 +609,9 @@ exists.
 ### HTTP history and read model
 
 - `GET /api/v1/chat/rooms?page=1&limit=20` lists only the current user's rooms, newest room first.
-  Each item is `{ id, isAnonymous, lastReadAt, unreadCount, createdAt, counterpart, lastMessage }`.
+  Each item is
+  `{ id, isAnonymous, lastReadAt, isMuted, unreadCount, createdAt, counterpart, lastMessage }`.
+  `isMuted` is whether the current member has muted the room (see the mute route below).
   `unreadCount` counts only messages from other members strictly after this member's read marker.
   `counterpart` is the other member as `{ id, displayName, image }` (`image` is the public portrait
   URL or `null`, never a storage key), or `null` for an anonymous room or a room with no other member.
@@ -624,6 +626,13 @@ exists.
   `{ chatRoomId, memberUserId, messageId, lastReadAt }`. The message must belong to that room.
   Markers only move forward: a delayed request for an older message cannot make later messages
   unread again.
+- `PATCH /api/v1/chat/rooms/:chatRoomId/mute` accepts `{ "muted": boolean }` (required) and returns
+  the room in the room-list item shape above. Muting is per member: while a member has a room
+  muted, a new message in it creates no `NEW_MESSAGE` notification and sends no device push to
+  them. The message is still stored, still broadcast on the socket, and still counted in their
+  `unreadCount`. Unmuting restores notifications for messages sent from then on; nothing missed
+  while muted is backfilled. Repeating either call changes nothing (a repeated mute keeps the
+  original `chat_members.muted_at`).
 
 ### Files
 

@@ -1,14 +1,18 @@
 import { eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { runWithLocale } from '@/common/i18n/request-locale';
 import type { DrizzleDB } from '@/database/database.module';
 import {
   advisorProfiles,
+  notificationTranslations,
   notifications,
   screeningAnswers,
+  screeningQuestionTranslations,
   screeningRequests,
   serviceCategories,
   serviceScreeningQuestions,
+  serviceTranslations,
   services,
   user,
 } from '@/database/schema';
@@ -38,6 +42,7 @@ describe('ScreeningRepository (integration)', () => {
     type: 'SCREENING_REQUESTED' as const,
     title: 'มีคำขอคัดกรองใหม่',
     content: null,
+    en: { title: 'New screening request', content: null },
   });
 
   beforeAll(async () => {
@@ -142,6 +147,17 @@ describe('ScreeningRepository (integration)', () => {
       { question: 'อยากได้อะไรจากการปรึกษาครั้งนี้', isRequired: false },
     ]);
     expect([first.displayOrder, second.displayOrder]).toEqual([0, 1]);
+    // Outside a request the language is Thai, so each question is also its Thai translation.
+    const questionTranslations = await db
+      .select({ locale: screeningQuestionTranslations.locale })
+      .from(screeningQuestionTranslations)
+      .where(
+        inArray(screeningQuestionTranslations.questionId, [
+          first.id,
+          second.id,
+        ]),
+      );
+    expect(questionTranslations).toEqual([{ locale: 'th' }, { locale: 'th' }]);
 
     const request = await repository.createWithAnswers(
       { serviceId, adviseeId },
@@ -217,6 +233,24 @@ describe('ScreeningRepository (integration)', () => {
       'SCREENING_DECIDED',
       'SCREENING_REQUESTED',
     ]);
+
+    // Each notification is written in both languages, in the transaction that created it.
+    const translated = await db
+      .select({
+        locale: notificationTranslations.locale,
+        title: notificationTranslations.title,
+      })
+      .from(notificationTranslations)
+      .innerJoin(
+        notifications,
+        eq(notifications.id, notificationTranslations.notificationId),
+      )
+      .where(inArray(notifications.ownerId, [advisorId, adviseeId]));
+    expect(translated).toHaveLength(4);
+    expect(translated.filter((row) => row.locale === 'en')).toEqual([
+      { locale: 'en', title: 'New screening request' },
+      { locale: 'en', title: 'New screening request' },
+    ]);
   });
 
   it('soft-deletes replaced questions and expires acceptances given against them', async () => {
@@ -248,5 +282,65 @@ describe('ScreeningRepository (integration)', () => {
     await expect(repository.findDisplayName(adviseeId)).resolves.toBe(
       'ณัฐพงศ์ ด.',
     );
+  });
+
+  it('reads questions and service names in the request’s language, falling back to the row', async () => {
+    await db
+      .insert(serviceTranslations)
+      .values({ serviceId, locale: 'en', name: 'Tax planning' });
+    const [question] = await repository.findActiveQuestions(serviceId);
+    await db.insert(screeningQuestionTranslations).values({
+      questionId: question.id,
+      locale: 'en',
+      question: 'New question',
+    });
+
+    await expect(
+      runWithLocale('en', () => repository.findActiveQuestions(serviceId)),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: question.id, question: 'New question' }),
+    ]);
+    await expect(repository.findActiveQuestions(serviceId)).resolves.toEqual([
+      expect.objectContaining({ id: question.id, question: 'คำถามใหม่' }),
+    ]);
+    await expect(
+      runWithLocale('en', () => repository.findPublishedService(serviceId)),
+    ).resolves.toEqual(expect.objectContaining({ name: 'Tax planning' }));
+    const [row] = await runWithLocale('en', () =>
+      repository.findManyForAdvisor(advisorId, undefined, {
+        limit: 1,
+        offset: 0,
+      }),
+    );
+    expect(row.serviceName).toBe('Tax planning');
+
+    // Both names whatever the request's language; a Service with no English row is Thai in both.
+    await expect(
+      runWithLocale('en', () => repository.findServiceNames(serviceId)),
+    ).resolves.toEqual({ th: 'วางแผนภาษี', en: 'Tax planning' });
+    await expect(repository.findServiceNames(draftServiceId)).resolves.toEqual({
+      th: 'Draft',
+      en: 'Draft',
+    });
+  });
+
+  it('writes questions replaced in English as English translations', async () => {
+    const [question] = await runWithLocale('en', () =>
+      repository.replaceQuestions(serviceId, [
+        { question: 'What would you like to discuss?', isRequired: true },
+      ]),
+    );
+
+    await expect(
+      db
+        .select({
+          locale: screeningQuestionTranslations.locale,
+          question: screeningQuestionTranslations.question,
+        })
+        .from(screeningQuestionTranslations)
+        .where(eq(screeningQuestionTranslations.questionId, question.id)),
+    ).resolves.toEqual([
+      { locale: 'en', question: 'What would you like to discuss?' },
+    ]);
   });
 });

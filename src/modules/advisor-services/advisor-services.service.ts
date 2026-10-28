@@ -76,7 +76,7 @@ export class AdvisorServicesService {
   ): Promise<PaginatedResult<AdvisorServiceResponseDto>> {
     return paginateQuery(
       query,
-      (options) => this.repository.findMany(undefined, options),
+      (options) => this.repository.findManyLocalized(options),
       () => this.repository.count(),
       (service) => new AdvisorServiceResponseDto(service),
     );
@@ -217,7 +217,7 @@ export class AdvisorServicesService {
       dto.trialDurationMinutes,
     );
 
-    const service = await this.repository.create({
+    const service = await this.repository.createLocalized({
       advisorId: user.id,
       categoryId: dto.categoryId,
       availabilityProfileId: dto.availabilityProfileId,

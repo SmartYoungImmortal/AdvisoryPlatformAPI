@@ -11,7 +11,10 @@ import {
 } from '@/common/pagination/cursor-pagination.dto';
 import { NotificationCountResponseDto } from './dtos/notification-count-response.dto';
 import { NotificationResponseDto } from './dtos/notification-response.dto';
-import { NOTIFICATION_MESSAGES } from './notifications.constants';
+import {
+  NOTIFICATION_MESSAGES,
+  WELCOME_NOTIFICATION,
+} from './notifications.constants';
 import { NotificationsRepository } from './notifications.repository';
 import type { NotifyInput } from './notifications.types';
 import { pushUrlFor } from './push/push.constants';
@@ -77,22 +80,38 @@ export class NotificationsService {
   }
 
   /**
-   * Creates a notification; other modules call this. For a new chat message with a room id, the
-   * room's unread notification is updated instead of adding a new one.
+   * Creates a notification in Thai and English; other modules call this. For a new chat message
+   * with a room id, the room's unread notification is updated instead of adding a new one. The
+   * result is in the language of the request that caused it, not necessarily the owner's.
    */
   async notify(input: NotifyInput): Promise<NotificationResponseDto> {
     const row =
       input.type === 'NEW_MESSAGE' && input.resourceId
         ? await this.repository.upsertUnreadMessage(input)
-        : await this.repository.create(input);
+        : await this.repository.createWithTranslations(input);
     // Not awaited: the request that caused the notification must not wait on push services.
-    // `sendToUser` never rejects.
+    // `sendToUser` never rejects. Sent in Thai, the source language: the owner's own language is
+    // not stored anywhere, and `row` is in the language of the request that caused it.
     void this.push.sendToUser(row.ownerId, {
-      title: row.title,
-      body: row.content ?? '',
+      title: input.title,
+      body: input.content ?? '',
       url: pushUrlFor(row.type),
       tag: row.resourceId ? `${row.type}:${row.resourceId}` : undefined,
     });
     return new NotificationResponseDto(row);
+  }
+
+  /**
+   * Gives a new account its welcome, in Thai and English (`WELCOME_NOTIFICATION`).
+   * Not pushed: an account this new has no device subscribed yet. `undefined` when
+   * the account already has its welcome; there is only ever one.
+   */
+  async welcome(ownerId: string): Promise<NotificationResponseDto | undefined> {
+    const row = await this.repository.createWelcome({
+      ownerId,
+      type: 'WELCOME',
+      ...WELCOME_NOTIFICATION,
+    });
+    return row && new NotificationResponseDto(row);
   }
 }

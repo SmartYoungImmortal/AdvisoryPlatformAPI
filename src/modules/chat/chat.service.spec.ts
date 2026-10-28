@@ -28,6 +28,7 @@ function membership(): ChatMember {
     chatRoomId: roomId,
     memberUserId: memberId,
     lastReadAt: null,
+    mutedAt: null,
     createdAt: new Date('2026-08-15T00:00:00Z'),
   };
 }
@@ -43,6 +44,8 @@ describe('ChatService', () => {
       | 'findMessages'
       | 'createMessageForMember'
       | 'markReadThroughMessage'
+      | 'setMutedForMember'
+      | 'findRoomForMember'
     >
   >;
 
@@ -54,6 +57,8 @@ describe('ChatService', () => {
       findMessages: jest.fn(),
       createMessageForMember: jest.fn(),
       markReadThroughMessage: jest.fn(),
+      setMutedForMember: jest.fn(),
+      findRoomForMember: jest.fn(),
     };
     service = new ChatService(repository as unknown as ChatRepository);
   });
@@ -65,6 +70,7 @@ describe('ChatService', () => {
         id: roomId,
         isAnonymous: false,
         lastReadAt: null,
+        isMuted: true,
         unreadCount: 2,
         createdAt: new Date('2026-08-15T00:00:00Z'),
       },
@@ -72,7 +78,9 @@ describe('ChatService', () => {
     repository.countRoomsForMember.mockResolvedValue(1);
 
     await expect(service.findRooms(memberId, query)).resolves.toEqual({
-      items: [expect.objectContaining({ id: roomId, unreadCount: 2 })],
+      items: [
+        expect.objectContaining({ id: roomId, unreadCount: 2, isMuted: true }),
+      ],
       total: 1,
       page: 1,
       limit: 20,
@@ -90,6 +98,7 @@ describe('ChatService', () => {
       id: roomId,
       isAnonymous: false,
       lastReadAt: null,
+      isMuted: false,
       unreadCount: 0,
       createdAt: new Date('2026-08-15T00:00:00Z'),
       counterpart,
@@ -193,5 +202,78 @@ describe('ChatService', () => {
     await expect(service.markRead(memberId, roomId, messageId)).rejects.toThrow(
       NotFoundException,
     );
+  });
+
+  describe('setMuted', () => {
+    const mutedRoom = {
+      id: roomId,
+      isAnonymous: false,
+      lastReadAt: null,
+      isMuted: true,
+      unreadCount: 3,
+      createdAt: new Date('2026-08-15T00:00:00Z'),
+      counterpart: null,
+      lastMessage: null,
+    };
+
+    it('mutes the room for the member and answers it as the room list shows it', async () => {
+      repository.setMutedForMember.mockResolvedValue(true);
+      repository.findRoomForMember.mockResolvedValue(mutedRoom);
+
+      await expect(service.setMuted(memberId, roomId, true)).resolves.toEqual({
+        id: roomId,
+        isAnonymous: false,
+        lastReadAt: null,
+        isMuted: true,
+        unreadCount: 3,
+        createdAt: mutedRoom.createdAt,
+        counterpart: null,
+        lastMessage: null,
+      });
+      expect(repository.setMutedForMember).toHaveBeenCalledWith(
+        roomId,
+        memberId,
+        true,
+      );
+      expect(repository.findRoomForMember).toHaveBeenCalledWith(
+        memberId,
+        roomId,
+      );
+    });
+
+    it('passes an unmute through and reads the room back', async () => {
+      repository.setMutedForMember.mockResolvedValue(true);
+      repository.findRoomForMember.mockResolvedValue({
+        ...mutedRoom,
+        isMuted: false,
+      });
+
+      const room = await service.setMuted(memberId, roomId, false);
+
+      expect(room.isMuted).toBe(false);
+      expect(repository.setMutedForMember).toHaveBeenCalledWith(
+        roomId,
+        memberId,
+        false,
+      );
+    });
+
+    it('hides the room from a non-member behind not found, without reading it', async () => {
+      repository.setMutedForMember.mockResolvedValue(false);
+
+      await expect(service.setMuted(memberId, roomId, true)).rejects.toThrow(
+        new NotFoundException('Chat room not found'),
+      );
+      expect(repository.findRoomForMember).not.toHaveBeenCalled();
+    });
+
+    it('answers not found if the room is gone by the time it is read back', async () => {
+      repository.setMutedForMember.mockResolvedValue(true);
+      repository.findRoomForMember.mockResolvedValue(undefined);
+
+      await expect(service.setMuted(memberId, roomId, true)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 });

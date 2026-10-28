@@ -9,6 +9,7 @@ import {
   type SQL,
   sql,
 } from 'drizzle-orm';
+import { serviceName } from '@/common/i18n/localized-columns';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   advisorProfiles,
@@ -251,7 +252,7 @@ export class ReviewsRepository {
         createdAt: serviceReviews.createdAt,
         modifiedAt: serviceReviews.modifiedAt,
         appointmentStartTime: serviceAppointments.startTime,
-        serviceName: services.name,
+        serviceName: serviceName(),
         serviceDurationMinutes: services.durationMinutes,
         reviewerDisplayName: user.displayName,
         reviewerAvatarKey: user.avatarKey,

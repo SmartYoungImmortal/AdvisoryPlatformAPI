@@ -4,6 +4,8 @@ import type { Env } from '@/config/env.schema';
 import type { DrizzleDB } from '@/database/database.module';
 import { DRIZZLE } from '@/database/database.module';
 import { createAuth } from '@/modules/auth/auth.config';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthModule as ThallespAuthModule } from '@thallesp/nestjs-better-auth';
@@ -11,9 +13,17 @@ import { AuthModule as ThallespAuthModule } from '@thallesp/nestjs-better-auth';
 @Module({
   imports: [
     ThallespAuthModule.forRootAsync({
-      inject: [DRIZZLE, ConfigService],
-      useFactory: (db: DrizzleDB, config: ConfigService<Env, true>) => {
-        const auth = createAuth(db, config);
+      imports: [NotificationsModule],
+      inject: [DRIZZLE, ConfigService, NotificationsService],
+      useFactory: (
+        db: DrizzleDB,
+        config: ConfigService<Env, true>,
+        notifications: NotificationsService,
+      ) => {
+        const auth = createAuth(db, config, {
+          // Every account starts with a welcome in its notification feed.
+          onUserCreated: (user) => notifications.welcome(user.id),
+        });
         return {
           auth,
           bodyParser: {

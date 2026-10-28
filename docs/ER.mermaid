@@ -231,15 +231,24 @@ erDiagram
 
     SERVICE_INVOICES {
         uuid invoiceId pk
-        uuid appointmentId fk
+        %% INV-<year>-<sequence>, assigned by the database default
+        varchar invoiceNumber uk
         int amountSatang
         int platformFeeSatang
         varchar providerChargeId
         %% enum: PENDING, HELD_IN_ESCROW, RELEASED, REFUNDED, FAILED
         enum status
+        datetimetz paidAt
+        varchar cardBrand
+        varchar cardLastDigits
         datetimetz payoutEligibleAt
         datetimetz createdAt
         datetimetz modifiedAt
+    }
+
+    SERVICE_APPOINTMENTS_ON_SERVICE_INVOICES {
+        uuid appointmentId fk,pk
+        uuid invoiceId pk,fk
     }
 
     PAYOUTS {
@@ -290,6 +299,8 @@ erDiagram
         uuid chatRoomId fk,pk
         uuid memberUserId fk,pk
         datetimetz lastReadAt
+        %% null while the room notifies this member
+        datetimetz mutedAt
         datetimetz createdAt
     }
 
@@ -405,7 +416,9 @@ erDiagram
     CHAT_ROOMS ||--o| SERVICE_APPOINTMENTS : "hosts"
     SERVICE_APPOINTMENTS ||--o| SERVICE_REVIEWS : "reviewed by"
 
-    SERVICE_APPOINTMENTS ||--o| SERVICE_INVOICES : "paid by"
+    SERVICE_APPOINTMENTS_ON_SERVICE_INVOICES }|--|| SERVICE_INVOICES : "paid by"
+    SERVICE_APPOINTMENTS_ON_SERVICE_INVOICES ||--|{ SERVICE_APPOINTMENTS : "including"
+
     SERVICE_INVOICES ||--o{ PAYOUT_INVOICES : "settled by"
     PAYOUTS ||--o{ PAYOUT_INVOICES : "settles"
     ADVISOR_PROFILES ||--o{ PAYOUTS : "receives"

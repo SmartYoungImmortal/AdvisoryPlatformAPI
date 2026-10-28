@@ -24,6 +24,9 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'BOOKING_RECEIVED',
   'PAYOUT_SENT',
   'REVIEW_RECEIVED',
+  // The first notification an account gets. `resourceId` is null for an Advisee's (it points them
+  // at the expert search) and the Advisor's own user id for an Advisor's (their profile to fill in).
+  'WELCOME',
 ]);
 
 /**
@@ -80,5 +83,9 @@ export const notifications = pgTable(
     uniqueIndex('notifications_unread_message_owner_resource_key')
       .on(table.ownerId, table.resourceId)
       .where(sql`${table.type} = 'NEW_MESSAGE' AND ${table.isRead} = false`),
+    // An account has one welcome, however many times sign-up or the backfill runs.
+    uniqueIndex('notifications_welcome_owner_key')
+      .on(table.ownerId)
+      .where(sql`${table.type} = 'WELCOME'`),
   ],
 );

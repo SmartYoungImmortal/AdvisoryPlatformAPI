@@ -15,6 +15,8 @@ export interface ChatRoomView {
   id: string;
   isAnonymous: boolean;
   lastReadAt: Date | null;
+  /** Whether the member reading the room has muted it. */
+  isMuted: boolean;
   unreadCount: number;
   createdAt: Date;
   /** Absent or null when the room has no other member to name. */
@@ -44,6 +46,11 @@ export class ChatRoomResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() isAnonymous: boolean;
   @ApiPropertyOptional({ nullable: true }) lastReadAt: Date | null;
+  /**
+   * Whether the signed-in member has muted the room. A muted room's messages still
+   * arrive and still count in `unreadCount`; they raise no notification and no push.
+   */
+  @ApiProperty() isMuted: boolean;
   @ApiProperty({ minimum: 0 }) unreadCount: number;
   @ApiProperty() createdAt: Date;
   /**
@@ -63,6 +70,7 @@ export class ChatRoomResponseDto {
     this.id = room.id;
     this.isAnonymous = room.isAnonymous;
     this.lastReadAt = room.lastReadAt;
+    this.isMuted = room.isMuted;
     this.unreadCount = room.unreadCount;
     this.createdAt = room.createdAt;
     this.counterpart =

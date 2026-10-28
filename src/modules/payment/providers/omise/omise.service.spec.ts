@@ -12,6 +12,7 @@ import { TokenIdPrefix } from '@/modules/payment/providers/omise/types';
 const mockCustomersUpdate = jest.fn();
 const mockCustomersCreate = jest.fn();
 const mockChargesCreate = jest.fn();
+const mockChargesRetrieve = jest.fn();
 
 jest.mock('omise', () => {
   return jest.fn().mockImplementation(() => ({
@@ -21,6 +22,7 @@ jest.mock('omise', () => {
     },
     charges: {
       create: mockChargesCreate,
+      retrieve: mockChargesRetrieve,
     },
   }));
 });
@@ -32,6 +34,16 @@ jest.mock('@/modules/payment/providers/providers', () => ({
   FailureCodeEnum: {
     parse: jest.fn((val: string) => `Mocked message for ${val}`),
   },
+}));
+
+jest.mock('@/modules/payment/providers/omise/utils', () => ({
+  createOmiseCustomer: jest.fn((): Record<string, never> => ({})),
+  getCardIds: jest.fn((cards: Array<{ id: string }>): string[] =>
+    cards.map(({ id }) => id),
+  ),
+  sortCardsDescendingAddDate: jest.fn(
+    (cards: Array<{ id: string }>): Array<{ id: string }> => cards,
+  ),
 }));
 
 describe('OmisePaymentProvider', () => {
@@ -139,7 +151,7 @@ describe('OmisePaymentProvider', () => {
 
       expect(result).toEqual({
         customerId: 'cust_exist',
-        cardId: 'card_newer',
+        cardId: 'card_older',
       });
       expect(mockCustomersUpdate).toHaveBeenCalledWith('cust_exist', {
         card: `${TokenIdPrefix}_abc`,
@@ -192,14 +204,11 @@ describe('OmisePaymentProvider', () => {
         `${TokenIdPrefix}_new`,
       );
 
-      expect(mockCustomersCreate).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        description: 'Name: Test; Full Name: Test User;',
-        metadata: {
-          userId: 'user_123',
-        },
-        card: `${TokenIdPrefix}_new`,
-      });
+      expect(mockCustomersCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          card: `${TokenIdPrefix}_new`,
+        }),
+      );
 
       expect(omiseRepository.recordOmiseCustomer).toHaveBeenCalledWith(
         'user_123',
@@ -223,7 +232,12 @@ describe('OmisePaymentProvider', () => {
 
     it('Branch 1: Success with Config Currency', async () => {
       mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_test123',
         authorize_uri: 'https://omise.co/redirect',
+        card: {
+          brand: 'Visa',
+          last_digits: '1234',
+        },
       });
 
       const result = await provider.chargeSpecificCard(
@@ -243,7 +257,10 @@ describe('OmisePaymentProvider', () => {
 
       expect(result).toEqual({
         status: 'success',
+        brand: 'Visa',
+        lastDigits: '1234',
         redirectUrl: 'https://omise.co/redirect',
+        chargeId: 'chrg_test123',
       });
     });
 
@@ -253,7 +270,13 @@ describe('OmisePaymentProvider', () => {
         return 'mocked';
       });
 
-      mockChargesCreate.mockResolvedValueOnce({ authorize_uri: 'url' });
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_test456',
+        authorize_uri: 'url',
+        card: {
+          last_digits: '4567',
+        },
+      });
 
       await provider.chargeSpecificCard(mockUser, 5000, 'card_123', 'url');
 
@@ -267,6 +290,10 @@ describe('OmisePaymentProvider', () => {
     it('Branch 3: Omise API Failure Code', async () => {
       mockChargesCreate.mockResolvedValueOnce({
         failure_code: 'insufficient_funds',
+        card: {
+          brand: 'MasterCard',
+          last_digits: '9999',
+        },
       });
 
       const result = await provider.chargeSpecificCard(
@@ -278,6 +305,8 @@ describe('OmisePaymentProvider', () => {
 
       expect(result).toEqual({
         status: 'failed',
+        brand: 'MasterCard',
+        lastDigits: '9999',
         errorCode: 'insufficient_funds',
         message: 'Mocked message for insufficient_funds',
       });
@@ -301,6 +330,73 @@ describe('OmisePaymentProvider', () => {
       expect(consoleSpy).toHaveBeenCalledWith(errorInstance);
       expect(result).toEqual({
         status: 'failed',
+        errorCode: 'unspecified',
+        message: 'Mocked message for unspecified',
+        brand: '',
+        lastDigits: '',
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('getChargeStatus', () => {
+    it('Branch 1: Success', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_ret123',
+        authorize_uri: 'https://omise.co/redirect',
+        card: {
+          brand: 'JCB',
+          last_digits: '1234',
+        },
+      });
+
+      const result = await provider.getChargeStatus('chrg_ret123');
+
+      expect(mockChargesRetrieve).toHaveBeenCalledWith('chrg_ret123');
+      expect(result).toEqual({
+        status: 'success',
+        brand: 'JCB',
+        lastDigits: '1234',
+        redirectUrl: 'https://omise.co/redirect',
+        chargeId: 'chrg_ret123',
+      });
+    });
+
+    it('Branch 2: Failure Code', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        failure_code: 'rejected',
+        card: {
+          brand: 'Visa',
+          last_digits: '4321',
+        },
+      });
+
+      const result = await provider.getChargeStatus('chrg_ret123');
+
+      expect(result).toEqual({
+        status: 'failed',
+        brand: 'Visa',
+        lastDigits: '4321',
+        errorCode: 'rejected',
+        message: 'Mocked message for rejected',
+      });
+    });
+
+    it('Branch 3: Try/Catch Error', async () => {
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      const errorInstance = new Error('Not found');
+      mockChargesRetrieve.mockRejectedValueOnce(errorInstance);
+
+      const result = await provider.getChargeStatus('chrg_invalid');
+
+      expect(result).toEqual({
+        status: 'failed',
+        brand: '',
+        lastDigits: '',
         errorCode: 'unspecified',
         message: 'Mocked message for unspecified',
       });

@@ -7,6 +7,7 @@ import { json, urlencoded } from 'express';
 import { ENV_KEYS } from './config/env.constants';
 import type { Env } from './config/env.schema';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { requestLocaleMiddleware } from './common/i18n/request-locale';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ValidationException } from './common/utils/validation.exception';
 import { TrustedOriginsIoAdapter } from './common/websocket/trusted-origins-io.adapter';
@@ -16,6 +17,8 @@ export function configureApp(app: NestExpressApplication): void {
   app.setGlobalPrefix('api/v1', {
     exclude: [{ path: 'api/auth/(.*)', method: RequestMethod.ALL }],
   });
+  // First, so every request runs in the language it asks for.
+  app.use(requestLocaleMiddleware);
   const jsonParser = json();
   const urlencodedParser = urlencoded({ extended: true });
   app.use(

@@ -11,6 +11,7 @@ import {
 } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
+import { serviceName } from '@/common/i18n/localized-columns';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import { serviceAppointments, services, user } from '@/database/schema';
@@ -196,7 +197,7 @@ export class BookingsRepository extends EntityRepository<
       .select({
         appointment: serviceAppointments,
         adviseeName: user.displayName,
-        serviceName: services.name,
+        serviceName: serviceName(),
       })
       .from(serviceAppointments)
       .innerJoin(user, eq(user.id, serviceAppointments.adviseeId))
