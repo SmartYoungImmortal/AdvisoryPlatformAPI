@@ -72,10 +72,16 @@ describe('AdvisorServicesService', () => {
       | 'countPublished'
       | 'findPublishedById'
       | 'findImageKeysFor'
+      | 'appendImage'
     >
   >;
   let availability: jest.Mocked<Pick<AvailabilityService, 'openOn'>>;
-  let storage: jest.Mocked<Pick<SeaweedFsStorageService, 'createDownloadUrl'>>;
+  let storage: jest.Mocked<
+    Pick<
+      SeaweedFsStorageService,
+      'createDownloadUrl' | 'putObject' | 'removeObject'
+    >
+  >;
 
   beforeEach(() => {
     repository = {
@@ -93,14 +99,72 @@ describe('AdvisorServicesService', () => {
       countPublished: jest.fn(),
       findPublishedById: jest.fn(),
       findImageKeysFor: jest.fn().mockResolvedValue([]),
+      appendImage: jest.fn(),
     };
     availability = { openOn: jest.fn() };
-    storage = { createDownloadUrl: jest.fn() };
+    storage = {
+      createDownloadUrl: jest.fn(),
+      putObject: jest.fn(),
+      removeObject: jest.fn(),
+    };
     service = new AdvisorServicesService(
       repository as unknown as AdvisorServicesRepository,
       availability as unknown as AvailabilityService,
       storage as unknown as SeaweedFsStorageService,
     );
+  });
+
+  it('keeps the draft unchanged when image storage fails', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    storage.putObject.mockRejectedValue(new Error('storage offline'));
+    await expect(
+      service.uploadImage(advisor, serviceId, {
+        buffer: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+        size: 8,
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toThrow('Image storage is unavailable');
+    expect(repository.appendImage).not.toHaveBeenCalled();
+    expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+
+  it('removes the uploaded object if attaching it to the service fails', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    repository.appendImage.mockRejectedValue(
+      new BadRequestException('Image limit'),
+    );
+    await expect(
+      service.uploadImage(advisor, serviceId, {
+        buffer: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+        size: 8,
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toThrow('Image limit');
+    expect(storage.removeObject).toHaveBeenCalledWith(
+      expect.stringMatching(/^services\//),
+    );
+  });
+
+  it('allows an image-free draft but refuses publishing without a stored image', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    repository.categoryExists.mockResolvedValue(true);
+    repository.availabilityProfileOwned.mockResolvedValue(true);
+    repository.updateOwned.mockResolvedValue(makeService());
+    await expect(
+      service.update(advisor, serviceId, { isPublished: false }),
+    ).resolves.toMatchObject({ isPublished: false });
+    await expect(
+      service.update(advisor, serviceId, { isPublished: true }),
+    ).rejects.toThrow('Add a service image before publishing');
+    repository.findImageKeysFor.mockResolvedValue([
+      { serviceId, objectKey: 'services/real.png' },
+    ]);
+    repository.updateOwned.mockResolvedValue(
+      makeService({ isPublished: true }),
+    );
+    await expect(
+      service.update(advisor, serviceId, { isPublished: true }),
+    ).resolves.toMatchObject({ isPublished: true });
   });
 
   it('lists only the current advisor services', async () => {

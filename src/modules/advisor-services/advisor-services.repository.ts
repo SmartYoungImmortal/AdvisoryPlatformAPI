@@ -1,8 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import {
   and,
   asc,
   count,
+  desc,
   eq,
   getTableColumns,
   gte,
@@ -35,6 +36,7 @@ import {
   services,
   user,
 } from '@/database/schema';
+import { MAX_SERVICE_IMAGES } from './advisor-services.constants';
 import type { PublicServiceDocument } from './advisor-services.types';
 import type { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 
@@ -280,6 +282,33 @@ export class AdvisorServicesRepository extends EntityRepository<
       .from(serviceImages)
       .where(inArray(serviceImages.serviceId, [...serviceIds]))
       .orderBy(asc(serviceImages.serviceId), asc(serviceImages.carouselIndex));
+  }
+
+  async appendImage(
+    advisorId: string,
+    serviceId: string,
+    objectKey: string,
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const [owned] = await tx
+        .select({ id: services.id })
+        .from(services)
+        .where(this.ownedWhere(advisorId, serviceId))
+        .for('update');
+      if (!owned) throw new BadRequestException('Service no longer exists');
+      const rows = await tx
+        .select({ index: serviceImages.carouselIndex })
+        .from(serviceImages)
+        .where(eq(serviceImages.serviceId, serviceId))
+        .orderBy(desc(serviceImages.carouselIndex))
+        .limit(1);
+      const index = rows.length ? rows[0].index + 1 : 0;
+      if (index >= MAX_SERVICE_IMAGES)
+        throw new BadRequestException('A service can have at most six images');
+      await tx
+        .insert(serviceImages)
+        .values({ serviceId, objectKey, carouselIndex: index });
+    });
   }
 
   private ownedWhere(advisorId: string, serviceId: string): SQL {
