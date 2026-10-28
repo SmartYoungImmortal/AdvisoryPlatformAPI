@@ -33,4 +33,4 @@ With the local API running, open [Swagger](http://localhost:3200/api/v1/docs) us
 
 The local proof passed these request/response cases. The pull request distinguishes HTTP and browser evidence from a Swagger UI recording. There is no remote preview or deployment claim.
 
-Full API checks passed locally: build, lint, 572 unit tests, 49 integration tests and 67 e2e tests. Aggregate coverage was 94.24% statements, 80.55% branches, 89.49% functions and 94.30% lines. The full destructive suites used a separate disposable coverage database, not the seeded proof database or shared Supabase.
+Build, lint, unit, integration and e2e verification run in the PR's `verify` job, including the aggregate 80% coverage gate. Read the current PR result for exact counts and metrics. Destructive suites use a separate disposable test database, not the seeded proof database or shared Supabase.
