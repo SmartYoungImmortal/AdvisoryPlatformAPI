@@ -12,6 +12,22 @@ export const BOOKING_MESSAGES = {
   completed: 'Booking completed',
   noShowRecorded: 'Booking marked as a no-show',
   noShowTooEarly: 'A no-show cannot be recorded before the appointment starts',
+  meetingOpened: 'Meeting room ready',
+  meetingUnavailable: 'Only a paid booking has a meeting room',
+  meetingNotOpen: 'The meeting room opens 10 minutes before the appointment',
+  meetingEnded: 'The appointment has ended',
+} as const;
+
+/**
+ * The session's video call: a Jitsi room on the public Jitsi Meet server, opened in the browser's
+ * own tab. A room is reachable by anyone who knows its name, so the name is random and only the
+ * booking's two participants are ever given it.
+ */
+export const MEETING = {
+  baseUrl: 'https://meet.jit.si',
+  roomPrefix: 'advisory-',
+  /** How early a booked appointment's room opens; it closes at the appointment's end. */
+  opensMinutesBefore: 10,
 } as const;
 
 /**

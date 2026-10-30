@@ -11,4 +11,5 @@ export const AVAILABILITY_MESSAGES = {
   invalidTimezone: 'Advisor timezone is invalid',
   unavailable: 'Timeslot is not available',
   screeningRequired: 'Accepted screening is required before viewing slots',
+  packageNotFound: 'Package not found on this service',
 } as const;

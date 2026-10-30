@@ -594,11 +594,13 @@ operational staff can review ownership and publishing state without using an Adv
 ## 9. Module: Chat
 
 Chat rooms are created only by the appointment or granted-trial workflows. There is no public
-room-create or membership-management endpoint. `POST /api/v1/bookings` opens the booking's room in
-the same transaction as the appointment: one `chat_rooms` row stamped with the appointment's
-`createdAt`, the Advisee and the Advisor as its two members, and the room's id on
-`service_appointments.chat_room_id`. A reschedule's replacement keeps the original's room, so the
-conversation carries on. Both are idempotent per appointment. The granted-trial workflow is not
+room-create or membership-management endpoint. `POST /api/v1/bookings` links the booking to a room in
+the same transaction as the appointment, its id on `service_appointments.chat_room_id`. There is
+one conversation per Advisee, Advisor and Service: a further booking of a Service the pair has
+booked before (another time, another package) joins the room of their earliest booking of it, and
+only a new Service opens a room — one `chat_rooms` row stamped with the appointment's `createdAt`,
+the Advisee and the Advisor as its two members. A reschedule's replacement keeps the original's
+room, so the conversation carries on. Both are idempotent per appointment. The granted-trial workflow is not
 implemented yet; until it is, tests and operational fixtures may create their linked room records
 directly; clients may not.
 
@@ -721,6 +723,13 @@ The implemented scheduling contract uses these routes, all under the standard re
   paginated participant views.
 - `GET /api/v1/bookings/:bookingId` returns one appointment to either of its two participants and
   `404` to anybody else, so an Advisor and an Advisee share one detail route.
+- `POST /api/v1/bookings/:bookingId/meeting` gives either participant the session's video call as
+  `{ url }`: a Jitsi room on `https://meet.jit.si`, named `advisory-<random uuid>` the first time
+  it is opened and stored in `service_appointments.jitsi_room_name`, so both participants reach the
+  same room. Anyone who knows the name can join, so the name is never in a list or a notification.
+  `404` for a non-participant, `409` unless the appointment is `BOOKED` or `IN_PROGRESS`. A
+  `BOOKED` room opens 10 minutes before `startTime` and closes at `endTime` (`400` outside that);
+  an `IN_PROGRESS` one stays open, so a dropped call can be rejoined when the session runs over.
 
 ### Booking state machine
 

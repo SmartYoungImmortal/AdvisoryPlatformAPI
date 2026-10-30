@@ -25,6 +25,10 @@ import { AdvisorServiceResponseDto } from './dtos/advisor-service-response.dto';
 import { CreateAdvisorServiceDto } from './dtos/create-advisor-service.dto';
 import { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 import { PublicServiceResponseDto } from './dtos/public-service-response.dto';
+import {
+  ReplaceServicePackagesDto,
+  ServicePackageResponseDto,
+} from './dtos/service-package.dto';
 import { UpdateAdvisorServiceDto } from './dtos/update-advisor-service.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
@@ -142,11 +146,46 @@ export class AdvisorServicesService {
     if (!service) {
       throw new NotFoundException(ADVISOR_SERVICE_MESSAGES.notFound);
     }
-    const keys = await this.repository.findImageKeysFor([service.id]);
+    const [keys, packages] = await Promise.all([
+      this.repository.findImageKeysFor([service.id]),
+      this.repository.findPackagesFor(service.id),
+    ]);
     return new PublicServiceResponseDto(
       service,
       await this.resolveImageUrls(keys.map((row) => row.objectKey)),
+      packages,
     );
+  }
+
+  /** The advisor's own service's packages, in the order offered. */
+  async findPackages(
+    user: SessionUser,
+    serviceId: string,
+  ): Promise<ServicePackageResponseDto[]> {
+    await this.getOwned(user.id, serviceId);
+    const rows = await this.repository.findPackagesFor(serviceId);
+    return rows.map((row) => new ServicePackageResponseDto(row));
+  }
+
+  /**
+   * Sets the advisor's own service's packages to the list sent, in its order.
+   * An `id` that is not one of this service's packages is refused rather than
+   * read as a new one, so a stale editor cannot duplicate a package.
+   */
+  async replacePackages(
+    user: SessionUser,
+    serviceId: string,
+    dto: ReplaceServicePackagesDto,
+  ): Promise<ServicePackageResponseDto[]> {
+    await this.getOwned(user.id, serviceId);
+    const current = new Set(
+      (await this.repository.findPackagesFor(serviceId)).map((row) => row.id),
+    );
+    const ids = dto.packages.flatMap((item) => (item.id ? [item.id] : []));
+    if (ids.some((id) => !current.has(id)) || new Set(ids).size !== ids.length)
+      throw new BadRequestException(ADVISOR_SERVICE_MESSAGES.packageNotFound);
+    const rows = await this.repository.replacePackages(serviceId, dto.packages);
+    return rows.map((row) => new ServicePackageResponseDto(row));
   }
 
   /**

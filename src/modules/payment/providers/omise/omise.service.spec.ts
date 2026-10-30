@@ -344,6 +344,7 @@ describe('OmisePaymentProvider', () => {
     it('Branch 1: Success', async () => {
       mockChargesRetrieve.mockResolvedValueOnce({
         id: 'chrg_ret123',
+        status: 'successful',
         authorize_uri: 'https://omise.co/redirect',
         card: {
           brand: 'JCB',
@@ -380,6 +381,35 @@ describe('OmisePaymentProvider', () => {
         lastDigits: '4321',
         errorCode: 'rejected',
         message: 'Mocked message for rejected',
+      });
+    });
+
+    it('is pending while 3-D Secure has not finished', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_ret123',
+        status: 'pending',
+        authorize_uri: 'https://omise.co/redirect',
+        card: { brand: 'Visa', last_digits: '4242' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_ret123')).toEqual({
+        status: 'pending',
+      });
+    });
+
+    it('fails a charge that ended unpaid without a failure code', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_ret123',
+        status: 'expired',
+        card: { brand: 'Visa', last_digits: '4242' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_ret123')).toEqual({
+        status: 'failed',
+        brand: 'Visa',
+        lastDigits: '4242',
+        errorCode: 'unspecified',
+        message: 'Mocked message for unspecified',
       });
     });
 

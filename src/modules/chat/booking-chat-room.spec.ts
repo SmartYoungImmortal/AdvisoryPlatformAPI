@@ -17,6 +17,7 @@ function appointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
     id: bookingId,
     serviceId: '33333333-3333-4333-8333-333333333333',
+    packageId: null,
     advisorId,
     adviseeId,
     type: 'CONSULTATION',
@@ -43,9 +44,13 @@ type Write = {
 
 /**
  * Stands in for the booking's transaction: answers the locked re-read with
- * `lockedRow`, hands out `roomId` for a new room, and records every write in order.
+ * `lockedRow` and the look for the pair's earlier room of the Service with
+ * `serviceRoom`, hands out `roomId` for a new room, and records every write in order.
  */
-function fakeTransaction(lockedRow: { chatRoomId: string | null } | undefined) {
+function fakeTransaction(
+  lockedRow: { chatRoomId: string | null } | undefined,
+  serviceRoom?: string,
+) {
   const writes: Write[] = [];
   const locks: string[] = [];
   const tx = {
@@ -57,6 +62,10 @@ function fakeTransaction(lockedRow: { chatRoomId: string | null } | undefined) {
               locks.push(strength);
               return Promise.resolve(lockedRow ? [lockedRow] : []);
             },
+          }),
+          orderBy: () => ({
+            limit: () =>
+              Promise.resolve(serviceRoom ? [{ chatRoomId: serviceRoom }] : []),
           }),
         }),
       }),
@@ -105,6 +114,22 @@ describe('openBookingChatRoom', () => {
         op: 'update',
         table: serviceAppointments,
         values: { chatRoomId: roomId },
+      },
+    ]);
+  });
+
+  it('joins the room of the pair’s earlier booking of the same Service', async () => {
+    const earlier = '88888888-8888-4888-8888-888888888888';
+    const { tx, writes } = fakeTransaction({ chatRoomId: null }, earlier);
+
+    const linked = await openBookingChatRoom(tx, appointment());
+
+    expect(linked.chatRoomId).toBe(earlier);
+    expect(writes).toEqual([
+      {
+        op: 'update',
+        table: serviceAppointments,
+        values: { chatRoomId: earlier },
       },
     ]);
   });

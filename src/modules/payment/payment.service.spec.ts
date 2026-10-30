@@ -5,7 +5,27 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { PaymentService } from './payment.service';
+import { PaymentService, couponDiscount } from './payment.service';
+
+describe('couponDiscount', () => {
+  it('takes a share of the price, rounded to the satang', () => {
+    expect(
+      couponDiscount({ percentOff: 10, amountOffSatang: null }, 80_000),
+    ).toBe(8_000);
+    expect(
+      couponDiscount({ percentOff: 15, amountOffSatang: null }, 33_333),
+    ).toBe(5_000);
+  });
+
+  it('takes a fixed amount, never more than the price', () => {
+    expect(
+      couponDiscount({ percentOff: null, amountOffSatang: 20_000 }, 80_000),
+    ).toBe(20_000);
+    expect(
+      couponDiscount({ percentOff: null, amountOffSatang: 100_000 }, 80_000),
+    ).toBe(80_000);
+  });
+});
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { CreateInvoiceDto } from '@/modules/payment/dto/invoice.dto';
 import type {
@@ -19,6 +39,11 @@ import {
 } from '@/modules/payment/payment.repository';
 import { DRIZZLE } from '@/database/database.module';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
+import { BookingsService } from '@/modules/bookings/bookings.service';
+
+const mockBookingsService = {
+  confirmPayment: jest.fn(),
+};
 
 const mockConfigService = {
   get: jest.fn((key: string) => {
@@ -41,6 +66,7 @@ const mockInvoicesRepository = {
   findManyForAdvisee: jest.fn(),
   findOneForAdvisee: jest.fn(),
   countForAdvisee: jest.fn(),
+  findAppointmentIds: jest.fn().mockResolvedValue([]),
 };
 
 /** A receipt row as the repository returns it; each test overrides what it is about. */
@@ -97,6 +123,8 @@ const mockDrizzleDB = {
   transaction: jest.fn(
     async <T>(cb: (tx: typeof mockTx) => T | Promise<T>) => await cb(mockTx),
   ),
+  // Reads outside a transaction (a coupon's preview) run on the same chain.
+  select: jest.fn(() => mockTx),
 };
 
 const mockUser: SessionUser = {
@@ -133,6 +161,7 @@ describe('PaymentService', () => {
           useValue: mockInvoicesRepository,
         },
         { provide: DRIZZLE, useValue: mockDrizzleDB },
+        { provide: BookingsService, useValue: mockBookingsService },
         { provide: 'PaymentConfig', useValue: mockPaymentConfig },
       ],
     }).compile();
@@ -142,6 +171,213 @@ describe('PaymentService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('publicKey', () => {
+    it('gives the public key, or nothing when card payments are not set up', () => {
+      mockConfigService.get.mockReturnValueOnce('pkey_test_123');
+      expect(service.publicKey()).toEqual({ publicKey: 'pkey_test_123' });
+      expect(mockConfigService.get).toHaveBeenCalledWith('OMISE_PUBLIC_KEY');
+
+      mockConfigService.get.mockReturnValueOnce(undefined as unknown as string);
+      expect(service.publicKey()).toEqual({ publicKey: '' });
+    });
+  });
+
+  /**
+   * Each awaited read or write on the chain answers in turn: the booking, its
+   * package or service, the coupon and its use count, the invoice already
+   * waiting, then the writes.
+   */
+  const pending = {
+    id: 'uuid-booking-1',
+    state: 'PENDING_PAYMENT',
+    serviceId: 'uuid-service-10',
+    packageId: null as string | null,
+  };
+  const coupon = {
+    id: 'uuid-coupon-1',
+    code: 'ADVISORY10',
+    percentOff: 10 as number | null,
+    amountOffSatang: null as number | null,
+    active: true,
+    expiresAt: null as Date | null,
+    maxRedemptions: null as number | null,
+  };
+
+  describe('previewCoupon', () => {
+    beforeEach(() => {
+      mockTx.execute.mockReset();
+    });
+
+    it('takes the coupon off the price of the package booked', async () => {
+      mockTx.execute
+        .mockResolvedValueOnce([{ ...pending, packageId: 'uuid-package-1' }])
+        .mockResolvedValueOnce([{ priceSatang: 80_000 }])
+        .mockResolvedValueOnce([coupon]);
+
+      await expect(
+        service.previewCoupon(mockUser, {
+          bookingId: pending.id,
+          code: ' advisory10 ',
+        }),
+      ).resolves.toEqual({
+        code: 'ADVISORY10',
+        priceSatang: 80_000,
+        discountSatang: 8_000,
+        amountSatang: 72_000,
+      });
+    });
+
+    it('prices a service sold as itself, and counts a capped coupon’s uses', async () => {
+      mockTx.execute
+        .mockResolvedValueOnce([pending])
+        .mockResolvedValueOnce([{ priceSatang: 50_000 }])
+        .mockResolvedValueOnce([
+          {
+            ...coupon,
+            percentOff: null,
+            amountOffSatang: 20_000,
+            maxRedemptions: 5,
+          },
+        ])
+        .mockResolvedValueOnce([{ value: 4 }]);
+
+      await expect(
+        service.previewCoupon(mockUser, { bookingId: pending.id, code: 'X' }),
+      ).resolves.toMatchObject({
+        discountSatang: 20_000,
+        amountSatang: 30_000,
+      });
+    });
+
+    it('answers 404 for a booking that is not the Advisee’s', async () => {
+      mockTx.execute.mockResolvedValueOnce([]);
+
+      await expect(
+        service.previewCoupon(mockUser, { bookingId: pending.id, code: 'X' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('refuses a booking that is no longer waiting for payment', async () => {
+      mockTx.execute.mockResolvedValueOnce([{ ...pending, state: 'BOOKED' }]);
+
+      await expect(
+        service.previewCoupon(mockUser, { bookingId: pending.id, code: 'X' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('refuses a booking whose service is gone', async () => {
+      mockTx.execute.mockResolvedValueOnce([pending]).mockResolvedValueOnce([]);
+
+      await expect(
+        service.previewCoupon(mockUser, { bookingId: pending.id, code: 'X' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it.each([
+      ['an unknown code', []],
+      ['an inactive coupon', [{ ...coupon, active: false }]],
+      [
+        'an expired coupon',
+        [{ ...coupon, expiresAt: new Date('2020-01-01T00:00:00.000Z') }],
+      ],
+    ])('refuses %s the same way', async (_name, rows) => {
+      mockTx.execute
+        .mockResolvedValueOnce([pending])
+        .mockResolvedValueOnce([{ priceSatang: 50_000 }])
+        .mockResolvedValueOnce(rows);
+
+      await expect(
+        service.previewCoupon(mockUser, { bookingId: pending.id, code: 'X' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('refuses a coupon used as many times as it allows', async () => {
+      mockTx.execute
+        .mockResolvedValueOnce([pending])
+        .mockResolvedValueOnce([{ priceSatang: 50_000 }])
+        .mockResolvedValueOnce([{ ...coupon, maxRedemptions: 5 }])
+        .mockResolvedValueOnce([{ value: 5 }]);
+
+      await expect(
+        service.previewCoupon(mockUser, { bookingId: pending.id, code: 'X' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('createBookingInvoice', () => {
+    const waiting = {
+      id: 'uuid-invoice-9',
+      amountSatang: 50_000,
+      platformFeeSatang: 10_000,
+      createdAt: new Date('2026-10-30T03:00:00.000Z'),
+      status: 'PENDING',
+      couponId: null as string | null,
+    };
+
+    beforeEach(() => {
+      mockTx.execute.mockReset();
+    });
+
+    it('returns the invoice already waiting on the booking at the same price', async () => {
+      mockTx.execute
+        .mockResolvedValueOnce([pending])
+        .mockResolvedValueOnce([{ priceSatang: 50_000 }])
+        .mockResolvedValueOnce([{ invoice: waiting }]);
+
+      await expect(
+        service.createBookingInvoice(mockUser, pending.id),
+      ).resolves.toMatchObject({ id: waiting.id, amountSatang: 50_000 });
+      expect(mockTx.insert).not.toHaveBeenCalled();
+    });
+
+    it('retires a waiting invoice priced without the coupon and makes one with it', async () => {
+      mockTx.execute
+        .mockResolvedValueOnce([pending])
+        .mockResolvedValueOnce([{ priceSatang: 50_000 }])
+        .mockResolvedValueOnce([coupon])
+        .mockResolvedValueOnce([{ invoice: waiting }])
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce([
+          { ...waiting, id: 'uuid-invoice-10', amountSatang: 45_000 },
+        ])
+        .mockResolvedValueOnce(undefined);
+
+      const invoice = await service.createBookingInvoice(
+        mockUser,
+        pending.id,
+        'ADVISORY10',
+      );
+
+      expect(mockTx.set).toHaveBeenCalledWith({ status: 'FAILED' });
+      expect(mockTx.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amountSatang: 45_000,
+          couponId: coupon.id,
+          discountSatang: 5_000,
+          status: 'PENDING',
+        }),
+      );
+      expect(invoice).toMatchObject({ id: 'uuid-invoice-10' });
+    });
+
+    it('makes the first invoice of a booking at its full price', async () => {
+      mockTx.execute
+        .mockResolvedValueOnce([pending])
+        .mockResolvedValueOnce([{ priceSatang: 50_000 }])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([waiting])
+        .mockResolvedValueOnce(undefined);
+
+      await expect(
+        service.createBookingInvoice(mockUser, pending.id, '  '),
+      ).resolves.toMatchObject({ id: waiting.id });
+      expect(mockTx.set).not.toHaveBeenCalled();
+      expect(mockTx.values).toHaveBeenCalledWith(
+        expect.objectContaining({ couponId: null, discountSatang: 0 }),
+      );
+    });
   });
 
   describe('createInvoice', () => {
@@ -485,14 +721,18 @@ describe('PaymentService', () => {
       expect(result.url).toContain(`invoiceId=${invoiceId}`);
     });
 
-    it.each(['success', 'failed'] as const)(
-      'records a %s outcome: the card it names and when it was known',
-      async (status) => {
+    it.each([
+      ['success', 'HELD_IN_ESCROW'],
+      ['failed', 'FAILED'],
+    ] as const)(
+      'records a %s outcome: the card it names, when it was known, and the invoice as %s',
+      async (status, invoiceStatus) => {
         mockInvoicesRepository.findById.mockResolvedValue({
           id: invoiceId,
           providerChargeId: 'ch_123',
           paidAt: null,
         });
+        mockInvoicesRepository.findAppointmentIds.mockResolvedValue([]);
         mockPaymentProvider.getChargeStatus.mockResolvedValue({
           status,
           brand: 'Visa',
@@ -507,10 +747,60 @@ describe('PaymentService', () => {
             cardBrand: 'Visa',
             cardLastDigits: '4242',
             paidAt: expect.any(Date) as Date,
+            status: invoiceStatus,
           },
         );
       },
     );
+
+    it('confirms every booking a paid invoice pays for', async () => {
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'ch_123',
+        paidAt: null,
+      });
+      mockInvoicesRepository.findAppointmentIds.mockResolvedValue([
+        'uuid-booking-1',
+        'uuid-booking-2',
+      ]);
+      mockPaymentProvider.getChargeStatus.mockResolvedValue({
+        status: 'success',
+        brand: 'Visa',
+        lastDigits: '4242',
+      });
+
+      await service.paymentCallback(mockUser, invoiceId);
+
+      expect(mockBookingsService.confirmPayment).toHaveBeenNthCalledWith(
+        1,
+        'uuid-booking-1',
+      );
+      expect(mockBookingsService.confirmPayment).toHaveBeenNthCalledWith(
+        2,
+        'uuid-booking-2',
+      );
+    });
+
+    it('confirms no booking when the charge was declined or is still pending', async () => {
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'ch_123',
+        paidAt: null,
+      });
+      mockInvoicesRepository.findAppointmentIds.mockResolvedValue([
+        'uuid-booking-1',
+      ]);
+      for (const status of ['failed', 'pending'] as const) {
+        mockPaymentProvider.getChargeStatus.mockResolvedValue({
+          status,
+          brand: 'Visa',
+          lastDigits: '4242',
+        });
+        await service.paymentCallback(mockUser, invoiceId);
+      }
+
+      expect(mockBookingsService.confirmPayment).not.toHaveBeenCalled();
+    });
 
     it('keeps the first recorded moment when the return page is reloaded', async () => {
       mockInvoicesRepository.findById.mockResolvedValue({

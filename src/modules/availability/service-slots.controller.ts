@@ -1,16 +1,6 @@
-import {
-  Controller,
-  ForbiddenException,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Roles } from '@thallesp/nestjs-better-auth';
 import { ApiGetMany } from '@/common/decorators/api-docs.decorator';
-import { Role } from '@/common/authorization/role.enum';
-import { RoleResolver } from '@/common/authorization/role-resolver.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { AvailabilityService } from './availability.service';
@@ -22,25 +12,21 @@ import {
 @ApiTags('Availability')
 @Controller('services')
 export class ServiceSlotsController {
-  constructor(
-    private readonly availability: AvailabilityService,
-    private readonly roleResolver: RoleResolver,
-  ) {}
+  constructor(private readonly availability: AvailabilityService) {}
 
+  /**
+   * Any signed-in account may read a service's open times, the same accounts
+   * `POST /bookings` takes: every account is an Advisee, and an Advisor who
+   * also books sessions is one too. Booking one's own service is refused
+   * where the booking is made (`BOOKING_MESSAGES.selfBooking`), not here.
+   */
   @Get(':serviceId/slots')
-  @Roles(['advisee'])
   @ApiGetMany(AvailabilitySlotResponseDto, { name: 'Available slots' })
   findSlots(
     @CurrentUser() user: SessionUser,
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
     @Query() query: SlotQueryDto,
   ): Promise<AvailabilitySlotResponseDto[]> {
-    return this.roleResolver.resolve(user.id).then((roles) => {
-      if (roles.some((role) => role !== Role.Advisee)) {
-        throw new ForbiddenException();
-      }
-
-      return this.availability.findSlots(serviceId, query, user.id);
-    });
+    return this.availability.findSlots(serviceId, query, user.id);
   }
 }
