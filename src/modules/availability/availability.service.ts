@@ -351,8 +351,11 @@ export class AvailabilityService {
     context: SchedulingContext,
     adviseeId: string,
   ): Promise<void> {
+    // A Service that turned screening on but asks no question has nothing to be answered, so it is
+    // open as if unscreened rather than closed to everyone.
     if (
       context.service.screeningRequired &&
+      (await this.repository.hasScreeningQuestions(context.service.id)) &&
       !(await this.repository.hasAcceptedScreening(
         context.service.id,
         adviseeId,

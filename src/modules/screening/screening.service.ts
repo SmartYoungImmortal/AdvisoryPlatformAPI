@@ -126,7 +126,8 @@ export class ScreeningService {
     ]);
     return new ServiceScreeningResponseDto({
       serviceId,
-      screeningRequired: service.screeningRequired,
+      // Screening with no question to answer is not screening (see `assertCanViewSlots`).
+      screeningRequired: service.screeningRequired && questions.length > 0,
       questions: questions.map(
         (question) => new ScreeningQuestionResponseDto(question),
       ),

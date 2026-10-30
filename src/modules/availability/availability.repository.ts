@@ -19,6 +19,7 @@ import {
   screeningRequests,
   serviceAppointments,
   servicePackages,
+  serviceScreeningQuestions,
   services,
   user,
 } from '@/database/schema';
@@ -402,6 +403,21 @@ export class AvailabilityRepository {
           gt(serviceAppointments.unavailableUntil, from),
         ),
       );
+  }
+
+  /** Whether the Service asks any question: screening a Service that asks none cannot be done. */
+  async hasScreeningQuestions(serviceId: string): Promise<boolean> {
+    const [question] = await this.db
+      .select({ id: serviceScreeningQuestions.id })
+      .from(serviceScreeningQuestions)
+      .where(
+        and(
+          eq(serviceScreeningQuestions.serviceId, serviceId),
+          isNull(serviceScreeningQuestions.deletedAt),
+        ),
+      )
+      .limit(1);
+    return question !== undefined;
   }
 
   async hasAcceptedScreening(

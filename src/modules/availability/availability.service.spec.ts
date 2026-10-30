@@ -165,6 +165,7 @@ type AvailabilityRepositoryMock = jest.Mocked<
     | 'findBlockingAppointments'
     | 'findBlockingAppointmentsForAdvisors'
     | 'hasAcceptedScreening'
+    | 'hasScreeningQuestions'
     | 'findGlobal'
     | 'upsertGlobal'
     | 'findProfiles'
@@ -186,6 +187,7 @@ function makeService(): {
     findBlockingAppointments: jest.fn().mockResolvedValue([]),
     findBlockingAppointmentsForAdvisors: jest.fn().mockResolvedValue([]),
     hasAcceptedScreening: jest.fn().mockResolvedValue(true),
+    hasScreeningQuestions: jest.fn().mockResolvedValue(true),
     findGlobal: jest.fn(),
     upsertGlobal: jest.fn(),
     findProfiles: jest.fn(),
@@ -578,6 +580,23 @@ describe('AvailabilityService slot derivation', () => {
       ),
     ).rejects.toThrow(BadRequestException);
     expect(repository.findBlockingAppointments).not.toHaveBeenCalled();
+  });
+
+  it('opens a screened service that asks no question as if it were unscreened', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ screeningRequired: true }),
+    );
+    repository.hasScreeningQuestions.mockResolvedValue(false);
+    repository.hasAcceptedScreening.mockResolvedValue(false);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toBeDefined();
+    expect(repository.hasAcceptedScreening).not.toHaveBeenCalled();
   });
 
   it('rejects impossible dates and ranges longer than 90 inclusive days', async () => {
