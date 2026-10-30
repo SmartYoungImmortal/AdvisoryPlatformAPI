@@ -14,6 +14,7 @@ import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   advisorProfiles,
   serviceAppointments,
+  servicePackages,
   serviceReviews,
   services,
   user,
@@ -240,7 +241,8 @@ export class ReviewsRepository {
   /**
    * One shape for every review response. The card needs the consultation it came from and who
    * wrote it, so the appointment, its service and the reviewer are joined here rather than
-   * fetched per row by the service.
+   * fetched per row by the service. The package is a left join: a service sold whole has none,
+   * and a removed package leaves the appointment's `packageId` null.
    */
   private detailedSelect(where: SQL) {
     return this.db
@@ -252,8 +254,10 @@ export class ReviewsRepository {
         createdAt: serviceReviews.createdAt,
         modifiedAt: serviceReviews.modifiedAt,
         appointmentStartTime: serviceAppointments.startTime,
+        serviceId: services.id,
         serviceName: serviceName(),
         serviceDurationMinutes: services.durationMinutes,
+        packageName: servicePackages.name,
         reviewerDisplayName: user.displayName,
         reviewerAvatarKey: user.avatarKey,
       })
@@ -263,6 +267,10 @@ export class ReviewsRepository {
         eq(serviceAppointments.id, serviceReviews.appointmentId),
       )
       .innerJoin(services, eq(services.id, serviceAppointments.serviceId))
+      .leftJoin(
+        servicePackages,
+        eq(servicePackages.id, serviceAppointments.packageId),
+      )
       .innerJoin(user, eq(user.id, serviceAppointments.adviseeId))
       .where(where)
       .$dynamic();

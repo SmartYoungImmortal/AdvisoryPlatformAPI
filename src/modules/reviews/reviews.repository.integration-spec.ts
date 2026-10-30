@@ -142,8 +142,11 @@ describe('ReviewsRepository (integration)', () => {
       stars: 5,
       comment: 'Clear and useful',
       advisorReply: null,
+      serviceId,
       serviceName: 'Thesis review',
       serviceDurationMinutes: 45,
+      // Booked on the service whole, with no package.
+      packageName: null,
       reviewerDisplayName: 'อารยา ส.',
     });
   });

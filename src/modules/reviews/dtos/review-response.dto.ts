@@ -16,8 +16,11 @@ export interface ReviewRow {
   createdAt: Date;
   modifiedAt: Date;
   appointmentStartTime: Date;
+  serviceId: string;
   serviceName: string;
   serviceDurationMinutes: number;
+  /** The package the consultation was booked on; null for a service sold whole, or one since removed. */
+  packageName: string | null;
   reviewerDisplayName: string;
   reviewerAvatarKey: string | null;
 }
@@ -31,8 +34,10 @@ export class ReviewResponseDto {
   @ApiProperty({ format: 'date-time' }) createdAt: Date;
   @ApiProperty({ format: 'date-time' }) modifiedAt: Date;
   @ApiProperty({ format: 'date-time' }) appointmentStartTime: Date;
+  @ApiProperty({ format: 'uuid' }) serviceId: string;
   @ApiProperty() serviceName: string;
   @ApiProperty() serviceDurationMinutes: number;
+  @ApiProperty({ nullable: true, type: String }) packageName: string | null;
   @ApiProperty() reviewerDisplayName: string;
   @ApiProperty({ nullable: true, type: String })
   reviewerAvatarKey: string | null;
@@ -45,8 +50,10 @@ export class ReviewResponseDto {
     this.createdAt = row.createdAt;
     this.modifiedAt = row.modifiedAt;
     this.appointmentStartTime = row.appointmentStartTime;
+    this.serviceId = row.serviceId;
     this.serviceName = row.serviceName;
     this.serviceDurationMinutes = row.serviceDurationMinutes;
+    this.packageName = row.packageName;
     this.reviewerDisplayName = row.reviewerDisplayName;
     this.reviewerAvatarKey = row.reviewerAvatarKey;
   }
