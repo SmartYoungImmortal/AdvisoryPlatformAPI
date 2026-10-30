@@ -319,28 +319,39 @@ export class AdvisorServicesRepository extends EntityRepository<
               )
             : eq(servicePackages.serviceId, serviceId),
         );
-      for (const [sortOrder, item] of packages.entries()) {
-        const values = {
+      const rows = packages.map((item, sortOrder) => ({
+        id: item.id,
+        values: {
           name: item.name,
           description: item.description ?? null,
           durationMinutes: item.durationMinutes,
           priceSatang: item.priceSatang,
           sortOrder,
-        };
-        if (item.id) {
-          await tx
-            .update(servicePackages)
-            .set(values)
-            .where(
-              and(
-                eq(servicePackages.id, item.id),
-                eq(servicePackages.serviceId, serviceId),
-              ),
-            );
-        } else {
-          await tx.insert(servicePackages).values({ ...values, serviceId });
-        }
-      }
+        },
+      }));
+      // The kept packages updated in place, the new ones written in one insert; their
+      // `sortOrder` carries the list's order, so neither has to run one by one.
+      await Promise.all(
+        rows.flatMap(({ id, values }) =>
+          id
+            ? [
+                tx
+                  .update(servicePackages)
+                  .set(values)
+                  .where(
+                    and(
+                      eq(servicePackages.id, id),
+                      eq(servicePackages.serviceId, serviceId),
+                    ),
+                  ),
+              ]
+            : [],
+        ),
+      );
+      const fresh = rows.flatMap(({ id, values }) =>
+        id ? [] : [{ ...values, serviceId }],
+      );
+      if (fresh.length > 0) await tx.insert(servicePackages).values(fresh);
       return tx
         .select()
         .from(servicePackages)

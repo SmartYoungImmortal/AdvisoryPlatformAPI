@@ -155,7 +155,7 @@ export class PaymentService {
       .limit(1);
     const expired =
       coupon?.expiresAt && coupon.expiresAt.getTime() <= Date.now();
-    if (!coupon || !coupon.active || expired)
+    if (!coupon?.active || expired)
       throw new BadRequestException(PaymentConfig.messages.couponNotValid);
     if (coupon.maxRedemptions !== null) {
       const [used] = await db
@@ -233,8 +233,7 @@ export class PaymentService {
           ),
         )
         .limit(1);
-      if (open && open.invoice.couponId === (coupon?.id ?? null))
-        return open.invoice;
+      if (open?.invoice.couponId === (coupon?.id ?? null)) return open.invoice;
       if (open)
         await tx
           .update(serviceInvoices)
@@ -505,11 +504,15 @@ export class PaymentService {
       });
     // Paid, so the bookings it pays for are booked. `confirmPayment` is idempotent: a reloaded
     // return page moves and notifies nothing twice.
-    if (chargeResult.status === 'success')
-      for (const appointmentId of await this.serviceInvoiceRepository.findAppointmentIds(
-        invoice.id,
-      ))
-        await this.bookings.confirmPayment(appointmentId);
+    if (chargeResult.status === 'success') {
+      const appointmentIds =
+        await this.serviceInvoiceRepository.findAppointmentIds(invoice.id);
+      await Promise.all(
+        appointmentIds.map((appointmentId) =>
+          this.bookings.confirmPayment(appointmentId),
+        ),
+      );
+    }
 
     return {
       url: `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.checkoutCallback.redirectPaths[chargeResult.status]}?invoiceId=${invoice.id}`,
