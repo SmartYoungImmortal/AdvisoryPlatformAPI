@@ -13,6 +13,7 @@ const mockCustomersUpdate = jest.fn();
 const mockCustomersCreate = jest.fn();
 const mockChargesCreate = jest.fn();
 const mockChargesRetrieve = jest.fn();
+const mockTokensRetrieve = jest.fn();
 
 jest.mock('omise', () => {
   return jest.fn().mockImplementation(() => ({
@@ -23,6 +24,9 @@ jest.mock('omise', () => {
     charges: {
       create: mockChargesCreate,
       retrieve: mockChargesRetrieve,
+    },
+    tokens: {
+      retrieve: mockTokensRetrieve,
     },
   }));
 });
@@ -285,6 +289,64 @@ describe('OmisePaymentProvider', () => {
         expect.objectContaining({
           currency: 'thb',
         }),
+      );
+    });
+
+    it('charges a Google Pay token as itself, never saving it to the customer', async () => {
+      const tokenId = `${TokenIdPrefix}_googlepay`;
+      mockTokensRetrieve.mockResolvedValueOnce({
+        id: tokenId,
+        card: { tokenization_method: 'googlepay' },
+      });
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_wallet',
+        authorize_uri: 'https://omise.co/redirect',
+        card: { brand: 'Visa', last_digits: '1111' },
+      });
+
+      const result = await provider.chargeSpecificCard(
+        mockUser,
+        5000,
+        tokenId,
+        'url',
+      );
+
+      expect(mockTokensRetrieve).toHaveBeenCalledWith(tokenId);
+      expect(mockCustomersUpdate).not.toHaveBeenCalled();
+      expect(mockCustomersCreate).not.toHaveBeenCalled();
+      expect(mockChargesCreate).toHaveBeenCalledWith({
+        amount: 5000,
+        currency: 'usd',
+        card: tokenId,
+        return_uri: 'url',
+      });
+      expect(result).toMatchObject({ status: 'success', lastDigits: '1111' });
+    });
+
+    it('saves a typed card token to the customer, as before', async () => {
+      const tokenId = `${TokenIdPrefix}_typed`;
+      mockTokensRetrieve.mockResolvedValueOnce({
+        id: tokenId,
+        card: { tokenization_method: null },
+      });
+      mockCustomersUpdate.mockResolvedValueOnce({
+        id: 'cust_123',
+        cards: { data: [{ id: 'card_saved' }] },
+      });
+      jest.spyOn(omiseRepository, 'recordOmiseCards').mockResolvedValue([]);
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_typed',
+        authorize_uri: 'url',
+        card: { brand: 'Visa', last_digits: '4242' },
+      });
+
+      await provider.chargeSpecificCard(mockUser, 5000, tokenId, 'url');
+
+      expect(mockCustomersUpdate).toHaveBeenCalledWith('cust_123', {
+        card: tokenId,
+      });
+      expect(mockChargesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ customer: 'cust_123', card: 'card_saved' }),
       );
     });
 

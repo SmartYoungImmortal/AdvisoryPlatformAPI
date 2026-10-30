@@ -107,23 +107,53 @@ export class OmisePaymentProvider implements IPaymentProvider {
     };
   }
 
+  /**
+   * Whether a token holds a wallet's card (Google Pay, Apple Pay): Omise sets the card's
+   * `tokenization_method` on those, and refuses them on the Customers API.
+   */
+  async isWalletToken(tokenId: TokenId): Promise<boolean> {
+    const token = await this.omise.tokens.retrieve(tokenId);
+    // Not in the library's types; Omise answers it on every token, null for a typed card.
+    const card = token.card as typeof token.card & {
+      tokenization_method?: string | null;
+    };
+    return Boolean(card.tokenization_method);
+  }
+
+  /**
+   * What the charge is made on: a wallet's token as itself, since it cannot be saved to a
+   * customer; anything else as the card saved on the user's Omise customer.
+   */
+  private async chargeTarget(
+    user: SessionUser,
+    cardOrTokenId: CardId | TokenId,
+  ): Promise<{ customer?: CustomerId; card: CardId | TokenId }> {
+    if (
+      cardOrTokenId.startsWith(TokenIdPrefix) &&
+      (await this.isWalletToken(cardOrTokenId as TokenId))
+    ) {
+      return { card: cardOrTokenId };
+    }
+    const { customerId, cardId } = await this.getOmiseCustomerIdandSaveToken(
+      user,
+      cardOrTokenId,
+    );
+    return { customer: customerId, card: cardId };
+  }
+
   async chargeSpecificCard(
     user: SessionUser,
     amount: number,
     cardOrTokenId: CardId | TokenId,
     redirectUri: string,
   ): Promise<ChargeStatus> {
-    const { customerId, cardId } = await this.getOmiseCustomerIdandSaveToken(
-      user,
-      cardOrTokenId,
-    );
+    const target = await this.chargeTarget(user, cardOrTokenId);
 
     try {
       const chargeRes = await this.omise.charges.create({
         amount,
         currency: this.config.get(ENV_KEYS.CURRENCY_CODE) || 'thb',
-        customer: customerId,
-        card: cardId,
+        ...target,
         return_uri: redirectUri,
       });
       if (chargeRes.failure_code) {
