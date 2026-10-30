@@ -3,6 +3,8 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import type { InferSelectModel } from 'drizzle-orm';
 import {
@@ -16,6 +18,7 @@ import type { SessionUser } from '@/modules/auth/auth.config';
 import { AvailabilityService } from '@/modules/availability/availability.service';
 import {
   ADVISOR_SERVICE_MESSAGES,
+  MAX_SERVICE_IMAGE_BYTES,
   SERVICE_IMAGE_URL_EXPIRY_SECONDS,
 } from './advisor-services.constants';
 import { AdvisorServicesRepository } from './advisor-services.repository';
@@ -242,10 +245,84 @@ export class AdvisorServicesService {
     }
   }
 
+  async findOwnImages(
+    user: SessionUser,
+    serviceId: string,
+  ): Promise<{ images: string[] }> {
+    await this.getOwned(user.id, serviceId);
+    const keys = await this.repository.findImageKeysFor([serviceId]);
+    return {
+      images: await Promise.all(
+        keys.map(({ objectKey }) =>
+          isAbsoluteUrl(objectKey)
+            ? Promise.resolve(objectKey)
+            : this.storage.createDownloadUrl(
+                objectKey,
+                SERVICE_IMAGE_URL_EXPIRY_SECONDS,
+              ),
+        ),
+      ),
+    };
+  }
+
+  async uploadImage(
+    user: SessionUser,
+    serviceId: string,
+    file: Express.Multer.File | undefined,
+  ): Promise<{ images: string[] }> {
+    await this.getOwned(user.id, serviceId);
+    if (!file || file.size === 0)
+      throw new BadRequestException('Choose a service image');
+    if (file.size > MAX_SERVICE_IMAGE_BYTES)
+      throw new PayloadTooLargeException(
+        'Service images must be 5 MiB or smaller',
+      );
+    const png = file.buffer
+      .subarray(0, 8)
+      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    const jpeg = file.buffer
+      .subarray(0, 3)
+      .equals(Buffer.from([255, 216, 255]));
+    const webp =
+      file.buffer.toString('ascii', 0, 4) === 'RIFF' &&
+      file.buffer.toString('ascii', 8, 12) === 'WEBP';
+    let extension: string | null = null;
+    if (file.mimetype === 'image/png' && png) extension = 'png';
+    if (file.mimetype === 'image/jpeg' && jpeg) extension = 'jpg';
+    if (file.mimetype === 'image/webp' && webp) extension = 'webp';
+    if (!extension)
+      throw new BadRequestException('Choose a JPEG, PNG or WebP image');
+    const key = `services/${serviceId}/${crypto.randomUUID()}.${extension}`;
+    try {
+      await this.storage.putObject({
+        key,
+        body: file.buffer,
+        contentType: file.mimetype,
+      });
+    } catch {
+      throw new ServiceUnavailableException(
+        'Image storage is unavailable; your service is saved as a draft',
+      );
+    }
+    try {
+      await this.repository.appendImage(user.id, serviceId, key);
+    } catch (error: unknown) {
+      try {
+        await this.storage.removeObject(key);
+      } catch {
+        this.logger.warn(`Could not remove orphaned service image ${key}`);
+      }
+      throw error;
+    }
+    return this.findOwnImages(user, serviceId);
+  }
+
   async create(
     user: SessionUser,
     dto: CreateAdvisorServiceDto,
   ): Promise<AdvisorServiceResponseDto> {
+    if (dto.isPublished)
+      throw new BadRequestException('Add a service image before publishing');
     await this.assertReferences(
       user.id,
       dto.categoryId,
@@ -298,6 +375,13 @@ export class AdvisorServicesService {
       : null;
     this.assertTrialConfiguration(trialEnabled, trialDurationMinutes);
 
+    if (
+      dto.isPublished === true &&
+      (await this.repository.findImageKeysFor([serviceId])).length === 0
+    ) {
+      throw new BadRequestException('Add a service image before publishing');
+    }
+
     const updated = await this.repository.updateOwned(user.id, serviceId, {
       ...dto,
       trialEnabled,
@@ -315,12 +399,25 @@ export class AdvisorServicesService {
     user: SessionUser,
     serviceId: string,
   ): Promise<AdvisorServiceResponseDto> {
+    const images = await this.repository.findImageKeysFor([serviceId]);
     const service = await this.repository.deleteOwned(user.id, serviceId);
 
     if (!service) {
       throw new NotFoundException(ADVISOR_SERVICE_MESSAGES.notFound);
     }
 
+    await Promise.all(
+      images.map(async ({ objectKey }) => {
+        if (isAbsoluteUrl(objectKey)) return;
+        try {
+          await this.storage.removeObject(objectKey);
+        } catch {
+          this.logger.warn(
+            `Could not remove deleted service image ${objectKey}`,
+          );
+        }
+      }),
+    );
     return new AdvisorServiceResponseDto(service);
   }
 

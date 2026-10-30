@@ -15,19 +15,21 @@ import {
   signUpUser,
   type SignedUpUser,
 } from './support/accounts';
+import type { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
 import { createE2eApp } from './support/e2e-app';
 import { data, object, stringField } from './support/response';
 
 describe('advisor services (e2e)', () => {
   let app: NestExpressApplication;
   let db: DrizzleDB;
+  let storage: SeaweedFsStorageStub;
   const userIds: string[] = [];
   const categoryIds: string[] = [];
   const profileIds: string[] = [];
   const serviceIds: string[] = [];
 
   beforeAll(async () => {
-    ({ app, db } = await createE2eApp());
+    ({ app, db, storage } = await createE2eApp());
   });
 
   afterEach(async () => {
@@ -189,6 +191,82 @@ describe('advisor services (e2e)', () => {
       .delete(`/api/v1/advisors/me/services/${serviceId}`)
       .expect(404);
 
+    await advisor.agent
+      .patch(`/api/v1/advisors/me/services/${serviceId}`)
+      .send({ isPublished: true })
+      .expect(400);
+    await advisor.agent
+      .post('/api/v1/advisors/me/services')
+      .send({
+        categoryId,
+        availabilityProfileId: activeProfileId,
+        name: 'No image',
+        priceSatang: 10000,
+        durationMinutes: 30,
+        isPublished: true,
+      })
+      .expect(400);
+    const image = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1XkAAAAASUVORK5CYII=',
+      'base64',
+    );
+    await otherAdvisor.agent
+      .post(`/api/v1/advisors/me/services/${serviceId}/images`)
+      .attach('file', image, {
+        filename: 'service.png',
+        contentType: 'image/png',
+      })
+      .expect(404);
+    await advisor.agent
+      .post(`/api/v1/advisors/me/services/${serviceId}/images`)
+      .attach('file', Buffer.from('not an image'), {
+        filename: 'service.png',
+        contentType: 'image/png',
+      })
+      .expect(400);
+    await advisor.agent
+      .post(`/api/v1/advisors/me/services/${serviceId}/images`)
+      .attach('file', image, {
+        filename: 'service.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+
+    await advisor.agent
+      .get(`/api/v1/advisors/me/services/${serviceId}/images`)
+      .expect(200);
+    await otherAdvisor.agent
+      .get(`/api/v1/advisors/me/services/${serviceId}/images`)
+      .expect(404);
+    await advisor.agent
+      .post(`/api/v1/advisors/me/services/${serviceId}/images`)
+      .expect(400);
+    await advisor.agent
+      .post(`/api/v1/advisors/me/services/${serviceId}/images`)
+      .attach('file', Buffer.alloc(5 * 1024 * 1024 + 1), {
+        filename: 'large.png',
+        contentType: 'image/png',
+      })
+      .expect(413);
+    for (let i = 1; i < 6; i++) {
+      await advisor.agent
+        .post(`/api/v1/advisors/me/services/${serviceId}/images`)
+        .attach('file', image, {
+          filename: 'service.png',
+          contentType: 'image/png',
+        })
+        .expect(201);
+    }
+    expect(storage.objectCount()).toBe(6);
+    await advisor.agent
+      .post(`/api/v1/advisors/me/services/${serviceId}/images`)
+      .attach('file', image, {
+        filename: 'extra.png',
+        contentType: 'image/png',
+      })
+      .expect(400);
+    expect(storage.objectCount()).toBe(6);
+
     const published = await advisor.agent
       .patch(`/api/v1/advisors/me/services/${serviceId}`)
       .send({
@@ -229,6 +307,7 @@ describe('advisor services (e2e)', () => {
     const deleted = await advisor.agent
       .delete(`/api/v1/advisors/me/services/${serviceId}`)
       .expect(200);
+    expect(storage.objectCount()).toBe(0);
     expect(object(deleted.body)).toMatchObject({ statusCode: 200 });
     expect(data(deleted.body)).toMatchObject({
       id: serviceId,

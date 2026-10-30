@@ -57,7 +57,8 @@ export class AdvisorSkillProofsController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: MAX_SKILL_PROOF_BYTES, files: 1 },
+      // Busboy signals its limit at equality; the documented maximum is inclusive.
+      limits: { fileSize: MAX_SKILL_PROOF_BYTES + 1, files: 1 },
     }),
   )
   @ResponseMessage(SKILL_PROOF_MESSAGES.submitted)

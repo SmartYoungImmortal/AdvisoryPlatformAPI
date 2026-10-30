@@ -169,6 +169,31 @@ export class PaymentServiceInvoicesRepository extends EntityRepository<
     return row;
   }
 
+  /** Resolve the stored relation, including later sessions on a shared invoice. */
+  async findForBooking(
+    bookingId: string,
+    adviseeId: string,
+  ): Promise<AdviseeInvoiceRow | undefined> {
+    const [link] = await this.db
+      .select({ invoiceId: serviceAppointmentsOnInvoice.serviceInvoiceId })
+      .from(serviceAppointmentsOnInvoice)
+      .innerJoin(
+        serviceAppointments,
+        eq(
+          serviceAppointments.id,
+          serviceAppointmentsOnInvoice.serviceAppointmentId,
+        ),
+      )
+      .where(
+        and(
+          eq(serviceAppointments.id, bookingId),
+          eq(serviceAppointments.adviseeId, adviseeId),
+        ),
+      )
+      .limit(1);
+    return link ? this.findOneForAdvisee(link.invoiceId, adviseeId) : undefined;
+  }
+
   /** The appointments an invoice pays for: the bookings its payment confirms. */
   async findAppointmentIds(invoiceId: string): Promise<string[]> {
     const rows = await this.db
