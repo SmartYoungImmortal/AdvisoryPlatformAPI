@@ -12,7 +12,11 @@ import {
   ChargeStatus,
   FailureCodeEnum,
   FailureCodeKeys,
+  MOBILE_BANKS,
   PROMPTPAY_BRAND,
+  type MobileBank,
+  type MobileBankingCharge,
+  type MobilePlatform,
   type PromptPayCharge,
 } from '@/modules/payment/providers/providers';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -23,6 +27,15 @@ import {
   getCardIds,
   sortCardsDescendingAddDate,
 } from '@/modules/payment/providers/omise/utils';
+
+/** What a receipt calls a charge paid without a card, by its source: PromptPay, or the bank's app. */
+function sourceBrand(type: string | undefined): string {
+  if (type === 'promptpay') return PROMPTPAY_BRAND;
+  const bank = type?.replace(/^mobile_banking_/, '');
+  if (bank && bank !== type && bank in MOBILE_BANKS)
+    return MOBILE_BANKS[bank as MobileBank];
+  return '';
+}
 
 @Injectable()
 export class OmisePaymentProvider implements IPaymentProvider {
@@ -221,14 +234,55 @@ export class OmisePaymentProvider implements IPaymentProvider {
     }
   }
 
+  async chargeMobileBanking(
+    amount: number,
+    bank: MobileBank,
+    platform: MobilePlatform | undefined,
+    returnUri: string,
+  ): Promise<MobileBankingCharge> {
+    const currency = this.config.get<string>(ENV_KEYS.CURRENCY_CODE) || 'thb';
+    try {
+      const chargeRes = await this.omise.charges.create({
+        amount,
+        currency,
+        source: {
+          type: `mobile_banking_${bank}`,
+          amount,
+          currency,
+          // Not in the library's types; the provider takes it on a source.
+          ...(platform ? { platform_type: platform } : {}),
+        },
+        return_uri: returnUri,
+      });
+      if (chargeRes.failure_code || !chargeRes.authorize_uri) {
+        const code = chargeRes.failure_code ?? 'unspecified';
+        return {
+          status: 'failed',
+          errorCode: FailureCodeKeys.parse(code),
+          message: FailureCodeEnum.parse(code),
+        };
+      }
+      return {
+        status: 'pending',
+        chargeId: chargeRes.id,
+        authorizeUri: chargeRes.authorize_uri,
+      };
+    } catch (error: unknown) {
+      console.error(error);
+      return {
+        status: 'failed',
+        errorCode: 'unspecified',
+        message: FailureCodeEnum.parse('unspecified'),
+      };
+    }
+  }
+
   async getChargeStatus(chargeId: string): Promise<ChargeStatus> {
     try {
       const chargeRes = await this.omise.charges.retrieve(chargeId);
-      // A charge paid by PromptPay has no card; its receipt names the method instead.
+      // A charge paid by PromptPay or a bank's app has no card; its receipt names the method.
       const card = chargeRes.card as typeof chargeRes.card | null;
-      const brand =
-        card?.brand ??
-        (chargeRes.source?.type === 'promptpay' ? PROMPTPAY_BRAND : '');
+      const brand = card?.brand ?? sourceBrand(chargeRes.source?.type);
       const lastDigits = card?.last_digits ?? '';
       // Still waiting on 3-D Secure, or on a QR code to be scanned: no outcome yet, which is not
       // a success.

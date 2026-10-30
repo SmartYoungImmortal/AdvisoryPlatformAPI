@@ -11,9 +11,11 @@ import type {
   PromptPayResponse,
   PromptPayStatusResponse,
 } from '@/modules/payment/dto/promptpay.dto';
+import type { MobileBankingDto } from '@/modules/payment/dto/mobile-banking.dto';
 import { SessionUser } from '@/modules/auth/auth.config';
 import { IPaymentProvider } from '@/modules/payment/providers/interface';
 import {
+  MOBILE_BANKS,
   PROMPTPAY_BRAND,
   type ChargeStatus,
 } from '@/modules/payment/providers/providers';
@@ -604,6 +606,48 @@ export class PaymentService {
   }
 
   /**
+   * Pays an invoice in a Thai bank's app: the charge is made on the bank's source and the answer
+   * is the page that opens the app. The bank returns the payer to the same return as a card's
+   * 3-D Secure (`paymentCallback`), which records the outcome; until then the invoice keeps the
+   * charge, named by the app, with `paidAt` cleared.
+   */
+  async payByMobileBanking(
+    user: SessionUser,
+    dto: MobileBankingDto,
+  ): Promise<{ url: string }> {
+    const invoice = await this.serviceInvoiceRepository.findPublicById(
+      dto.invoiceId,
+      user.id,
+    );
+    if (!invoice)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+    if (invoice.status !== 'PENDING')
+      throw new BadRequestException(PaymentConfig.messages.invoiceNotPayable);
+
+    const charge = await this.paymentProvider.chargeMobileBanking(
+      invoice.amountSatang,
+      dto.bank,
+      dto.platform,
+      this.returnUrl(invoice.id),
+    );
+    if (charge.status === 'failed')
+      throw new InternalServerErrorException(charge);
+
+    await this.serviceInvoiceRepository.updateById(invoice.id, {
+      providerChargeId: charge.chargeId,
+      cardBrand: MOBILE_BANKS[dto.bank],
+      cardLastDigits: null,
+      paidAt: null,
+    });
+    return { url: charge.authorizeUri };
+  }
+
+  /** Where the provider sends the payer back once a card's bank or a bank's app is done. */
+  private returnUrl(invoiceId: string): string {
+    return `${this.config.get(ENV_KEYS.BACKEND_PUBLIC_URL)}${PaymentConfig.checkout.redirectPaths.callback}/${invoiceId}`;
+  }
+
+  /**
    * Whether an Advisee's PromptPay code has been paid, for the page showing it to ask until it
    * has. The first answer with an outcome records it and books the bookings, as the card's return
    * does; `url` is then where checkout goes.
@@ -641,7 +685,7 @@ export class PaymentService {
     if (!invoice)
       throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
     // create omise charge
-    const redirectUrl = `${this.config.get(ENV_KEYS.BACKEND_PUBLIC_URL)}${PaymentConfig.checkout.redirectPaths.callback}/${invoice.id}`;
+    const redirectUrl = this.returnUrl(invoice.id);
     const chargeResult = await this.paymentProvider.chargeSpecificCard(
       user,
       invoice.amountSatang,

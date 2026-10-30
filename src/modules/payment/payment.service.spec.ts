@@ -46,7 +46,7 @@ const mockBookingsService = {
 };
 
 const mockConfigService = {
-  get: jest.fn((key: string) => {
+  get: jest.fn((key: string): string | undefined => {
     if (key === 'frontendUrl') return 'https://frontend.app';
     if (key === 'backendUrl') return 'https://api.backend.app';
     return 'https://frontend.app';
@@ -57,6 +57,7 @@ const mockPaymentProvider = {
   getChargeStatus: jest.fn(),
   chargeSpecificCard: jest.fn(),
   chargePromptPay: jest.fn(),
+  chargeMobileBanking: jest.fn(),
 };
 
 const mockInvoicesRepository = {
@@ -199,7 +200,7 @@ describe('PaymentService', () => {
       expect(service.publicKey()).toEqual({ publicKey: 'pkey_test_123' });
       expect(mockConfigService.get).toHaveBeenCalledWith('OMISE_PUBLIC_KEY');
 
-      mockConfigService.get.mockReturnValueOnce(undefined as unknown as string);
+      mockConfigService.get.mockReturnValueOnce(undefined);
       expect(service.publicKey()).toEqual({ publicKey: '' });
     });
   });
@@ -792,6 +793,84 @@ describe('PaymentService', () => {
 
       await expect(
         service.payByPromptPay(mockUser, { invoiceId }),
+      ).rejects.toThrow(InternalServerErrorException);
+      expect(mockInvoicesRepository.updateById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('payByMobileBanking', () => {
+    const invoiceId = 'uuid-invoice-1';
+    const waiting = {
+      id: invoiceId,
+      amountSatang: 72_000,
+      status: 'PENDING',
+    };
+
+    it('charges the invoice in the bank’s app and returns the page that opens it', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue(waiting);
+      mockPaymentProvider.chargeMobileBanking.mockResolvedValue({
+        status: 'pending',
+        chargeId: 'chrg_mb1',
+        authorizeUri: 'https://pay.omise.co/payments/pay2_test/authorize',
+      });
+
+      await expect(
+        service.payByMobileBanking(mockUser, {
+          invoiceId,
+          bank: 'kbank',
+          platform: 'IOS',
+        }),
+      ).resolves.toEqual({
+        url: 'https://pay.omise.co/payments/pay2_test/authorize',
+      });
+      // Returned to the same place as a card's 3-D Secure.
+      expect(mockPaymentProvider.chargeMobileBanking).toHaveBeenCalledWith(
+        72_000,
+        'kbank',
+        'IOS',
+        expect.stringMatching(new RegExp(`/${invoiceId}$`)),
+      );
+      expect(mockInvoicesRepository.updateById).toHaveBeenCalledWith(
+        invoiceId,
+        {
+          providerChargeId: 'chrg_mb1',
+          cardBrand: 'K PLUS',
+          cardLastDigits: null,
+          paidAt: null,
+        },
+      );
+    });
+
+    it('answers 404 for an invoice that is not the user’s', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue(undefined);
+
+      await expect(
+        service.payByMobileBanking(mockUser, { invoiceId, bank: 'scb' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('refuses an invoice that is no longer waiting for payment', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue({
+        ...waiting,
+        status: 'HELD_IN_ESCROW',
+      });
+
+      await expect(
+        service.payByMobileBanking(mockUser, { invoiceId, bank: 'scb' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPaymentProvider.chargeMobileBanking).not.toHaveBeenCalled();
+    });
+
+    it('stores nothing when the provider refuses the charge', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue(waiting);
+      mockPaymentProvider.chargeMobileBanking.mockResolvedValue({
+        status: 'failed',
+        errorCode: 'unspecified',
+        message: 'Other unspecified error.',
+      });
+
+      await expect(
+        service.payByMobileBanking(mockUser, { invoiceId, bank: 'bbl' }),
       ).rejects.toThrow(InternalServerErrorException);
       expect(mockInvoicesRepository.updateById).not.toHaveBeenCalled();
     });

@@ -33,6 +33,7 @@ import {
   PromptPayResponse,
   PromptPayStatusResponse,
 } from '@/modules/payment/dto/promptpay.dto';
+import { MobileBankingDto } from '@/modules/payment/dto/mobile-banking.dto';
 import {
   ApiCreate,
   ApiGetOne,
@@ -69,6 +70,16 @@ export class PaymentController {
     @Body() dto: PromptPayDto,
   ): Promise<PromptPayResponse> {
     return this.paymentService.payByPromptPay(user, dto);
+  }
+
+  /** Pay an invoice in a Thai bank's app: the page that opens the app. */
+  @Post('mobile-banking')
+  @ApiCreate(CheckoutResponse)
+  postMobileBanking(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: MobileBankingDto,
+  ): Promise<CheckoutResponse> {
+    return this.paymentService.payByMobileBanking(user, dto);
   }
 
   /** Whether the invoice's PromptPay code has been paid; asked until it has. */

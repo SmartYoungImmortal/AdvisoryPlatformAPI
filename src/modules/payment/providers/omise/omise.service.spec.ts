@@ -39,6 +39,7 @@ jest.mock('@/modules/payment/providers/providers', () => ({
     parse: jest.fn((val: string) => `Mocked message for ${val}`),
   },
   PROMPTPAY_BRAND: 'PromptPay',
+  MOBILE_BANKS: { scb: 'SCB EASY', kbank: 'K PLUS' },
 }));
 
 jest.mock('@/modules/payment/providers/omise/utils', () => ({
@@ -469,7 +470,122 @@ describe('OmisePaymentProvider', () => {
     });
   });
 
+  describe('chargeMobileBanking', () => {
+    it('makes a charge on the bank’s source and gives the page that opens its app', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_mb1',
+        status: 'pending',
+        authorize_uri: 'https://pay.omise.co/payments/pay2_test/authorize',
+        source: { type: 'mobile_banking_kbank' },
+      });
+
+      const result = await provider.chargeMobileBanking(
+        80_000,
+        'kbank',
+        'ANDROID',
+        'https://api.backend.app/payment/callback/inv',
+      );
+
+      expect(mockChargesCreate).toHaveBeenCalledWith({
+        amount: 80_000,
+        currency: 'usd',
+        source: {
+          type: 'mobile_banking_kbank',
+          amount: 80_000,
+          currency: 'usd',
+          platform_type: 'ANDROID',
+        },
+        return_uri: 'https://api.backend.app/payment/callback/inv',
+      });
+      expect(result).toEqual({
+        status: 'pending',
+        chargeId: 'chrg_mb1',
+        authorizeUri: 'https://pay.omise.co/payments/pay2_test/authorize',
+      });
+    });
+
+    it('leaves the platform out when the browser could not tell', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_mb2',
+        authorize_uri: 'https://pay.omise.co/x',
+      });
+
+      await provider.chargeMobileBanking(80_000, 'scb', undefined, 'url');
+
+      expect(mockChargesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: {
+            type: 'mobile_banking_scb',
+            amount: 80_000,
+            currency: 'usd',
+          },
+        }),
+      );
+    });
+
+    it('fails a charge the provider refused or gave no page for', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_mb3',
+        failure_code: 'failed_processing',
+      });
+      expect(
+        await provider.chargeMobileBanking(80_000, 'bbl', undefined, 'url'),
+      ).toEqual({
+        status: 'failed',
+        errorCode: 'failed_processing',
+        message: 'Mocked message for failed_processing',
+      });
+
+      mockChargesCreate.mockResolvedValueOnce({ id: 'chrg_mb4' });
+      expect(
+        await provider.chargeMobileBanking(80_000, 'bbl', undefined, 'url'),
+      ).toMatchObject({ status: 'failed', errorCode: 'unspecified' });
+    });
+
+    it('fails when the provider cannot be reached', async () => {
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      mockChargesCreate.mockRejectedValueOnce(new Error('network'));
+
+      expect(
+        await provider.chargeMobileBanking(80_000, 'ktb', undefined, 'url'),
+      ).toMatchObject({ status: 'failed', errorCode: 'unspecified' });
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('getChargeStatus', () => {
+    it('names a charge paid in a bank’s app by the app', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_mb1',
+        status: 'successful',
+        authorize_uri: 'https://pay.omise.co/x',
+        card: null,
+        source: { type: 'mobile_banking_scb' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_mb1')).toMatchObject({
+        status: 'success',
+        brand: 'SCB EASY',
+        lastDigits: '',
+      });
+    });
+
+    it('names nothing for a source it does not know', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_x',
+        status: 'successful',
+        card: null,
+        source: { type: 'mobile_banking_unknown' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_x')).toMatchObject({
+        status: 'success',
+        brand: '',
+      });
+    });
+
     it('names a paid PromptPay charge, which has no card, by its method', async () => {
       mockChargesRetrieve.mockResolvedValueOnce({
         id: 'chrg_pp1',

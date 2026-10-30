@@ -61,6 +61,7 @@ export type ChargeStatusDto =
         | 'invalid_account_number'
         | 'invalid_account'
         | 'payment_cancelled'
+        | 'payment_expired'
         | 'payment_rejected'
         | 'expired_card'
         | 'stolen_or_lost_card'
