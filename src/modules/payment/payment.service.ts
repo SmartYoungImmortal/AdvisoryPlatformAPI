@@ -14,12 +14,28 @@ import {
 } from '@/modules/payment/dto/invoice.dto';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
+  coupons,
   serviceAppointments,
   serviceAppointmentsOnInvoice,
   serviceInvoices,
+  servicePackages,
   services,
 } from '@/database/schema';
-import { and, count, countDistinct, eq, gt, lt, sql } from 'drizzle-orm';
+import { BookingsService } from '@/modules/bookings/bookings.service';
+import type {
+  CouponPreviewDto,
+  CouponPreviewResponse,
+} from '@/modules/payment/dto/coupon.dto';
+import {
+  and,
+  count,
+  countDistinct,
+  eq,
+  gt,
+  inArray,
+  lt,
+  sql,
+} from 'drizzle-orm';
 import { PaymentConfig } from '@/modules/payment/payment.constants';
 import { ConfigService } from '@nestjs/config';
 import { ENV_KEYS } from '@/config/env.constants';
@@ -43,6 +59,19 @@ function chargedCard(result: { brand: string; lastDigits: string }) {
   };
 }
 
+/**
+ * What a coupon takes off a price, in satang: its share, rounded to the satang, or its fixed
+ * amount, and never more than the price.
+ */
+export function couponDiscount(
+  coupon: { percentOff: number | null; amountOffSatang: number | null },
+  priceSatang: number,
+): number {
+  if (coupon.percentOff !== null)
+    return Math.round((priceSatang * coupon.percentOff) / 100);
+  return Math.min(coupon.amountOffSatang ?? 0, priceSatang);
+}
+
 @Injectable()
 export class PaymentService {
   constructor(
@@ -50,7 +79,196 @@ export class PaymentService {
     private readonly paymentProvider: IPaymentProvider,
     private readonly serviceInvoiceRepository: PaymentServiceInvoicesRepository,
     @Inject(DRIZZLE) private readonly database: DrizzleDB,
+    private readonly bookings: BookingsService,
   ) {}
+
+  /** What the browser needs to turn a card into a token: the account's public key, never the secret. */
+  publicKey(): { publicKey: string } {
+    return {
+      publicKey: this.config.get<string>(ENV_KEYS.OMISE_PUBLIC_KEY) ?? '',
+    };
+  }
+
+  /**
+   * The Advisee's own booking still waiting for payment, and its price as booked: the package's,
+   * or the service's when it is sold as itself.
+   */
+  private async payableBooking(
+    db: Pick<DrizzleDB, 'select'>,
+    user: SessionUser,
+    bookingId: string,
+  ): Promise<{ id: string; priceSatang: number }> {
+    const [appointment] = await db
+      .select({
+        id: serviceAppointments.id,
+        state: serviceAppointments.state,
+        serviceId: serviceAppointments.serviceId,
+        packageId: serviceAppointments.packageId,
+      })
+      .from(serviceAppointments)
+      .where(
+        and(
+          eq(serviceAppointments.id, bookingId),
+          eq(serviceAppointments.adviseeId, user.id),
+        ),
+      )
+      .limit(1);
+    if (!appointment)
+      throw new NotFoundException(PaymentConfig.messages.bookingNotFound);
+    if (appointment.state !== 'PENDING_PAYMENT')
+      throw new BadRequestException(PaymentConfig.messages.bookingNotPayable);
+
+    const [booked] = appointment.packageId
+      ? await db
+          .select({ priceSatang: servicePackages.priceSatang })
+          .from(servicePackages)
+          .where(eq(servicePackages.id, appointment.packageId))
+          .limit(1)
+      : [];
+    const [service] = booked
+      ? [booked]
+      : await db
+          .select({ priceSatang: services.priceSatang })
+          .from(services)
+          .where(eq(services.id, appointment.serviceId))
+          .limit(1);
+    if (!service)
+      throw new BadRequestException(PaymentConfig.messages.serviceNotFound);
+    return { id: appointment.id, priceSatang: service.priceSatang };
+  }
+
+  /**
+   * A coupon that can be used now, and what it takes off `priceSatang`: a share of it, rounded, or
+   * a fixed amount, never more than the price. Unknown, inactive, expired and used-up codes are
+   * all the same refusal, so the answer tells nobody which codes exist.
+   */
+  private async applyCoupon(
+    db: Pick<DrizzleDB, 'select'>,
+    rawCode: string,
+    priceSatang: number,
+  ): Promise<{ id: string; code: string; discountSatang: number }> {
+    const code = rawCode.trim().toUpperCase();
+    const [coupon] = await db
+      .select()
+      .from(coupons)
+      .where(eq(coupons.code, code))
+      .limit(1);
+    const expired =
+      coupon?.expiresAt && coupon.expiresAt.getTime() <= Date.now();
+    if (!coupon || !coupon.active || expired)
+      throw new BadRequestException(PaymentConfig.messages.couponNotValid);
+    if (coupon.maxRedemptions !== null) {
+      const [used] = await db
+        .select({ value: count() })
+        .from(serviceInvoices)
+        .where(
+          and(
+            eq(serviceInvoices.couponId, coupon.id),
+            inArray(serviceInvoices.status, ['HELD_IN_ESCROW', 'RELEASED']),
+          ),
+        );
+      if ((used?.value ?? 0) >= coupon.maxRedemptions)
+        throw new BadRequestException(PaymentConfig.messages.couponNotValid);
+    }
+    return {
+      id: coupon.id,
+      code: coupon.code,
+      discountSatang: couponDiscount(coupon, priceSatang),
+    };
+  }
+
+  /** What a coupon would take off a booking, for checkout to show before anything is charged. */
+  async previewCoupon(
+    user: SessionUser,
+    dto: CouponPreviewDto,
+  ): Promise<CouponPreviewResponse> {
+    const booking = await this.payableBooking(
+      this.database,
+      user,
+      dto.bookingId,
+    );
+    const coupon = await this.applyCoupon(
+      this.database,
+      dto.code,
+      booking.priceSatang,
+    );
+    return {
+      code: coupon.code,
+      priceSatang: booking.priceSatang,
+      discountSatang: coupon.discountSatang,
+      amountSatang: booking.priceSatang - coupon.discountSatang,
+    };
+  }
+
+  /**
+   * The invoice that pays for a booking `POST /bookings` has already held. The booking's own
+   * appointment is the one on the invoice — `createInvoice` books its own appointments, which
+   * would collide with the held one — and it is priced as booked, less the coupon if one is given.
+   * An invoice already waiting on the booking with the same coupon is returned rather than a
+   * second one made, so a reloaded checkout pays the same invoice; one priced differently that
+   * was never charged is retired for the new one; a failed one is left behind.
+   */
+  async createBookingInvoice(
+    user: SessionUser,
+    bookingId: string,
+    couponCode?: string,
+  ): Promise<InvoiceDto> {
+    const invoice = await this.database.transaction(async (tx) => {
+      const booking = await this.payableBooking(tx, user, bookingId);
+      const coupon = couponCode?.trim()
+        ? await this.applyCoupon(tx, couponCode, booking.priceSatang)
+        : null;
+
+      const [open] = await tx
+        .select({ invoice: serviceInvoices })
+        .from(serviceInvoices)
+        .innerJoin(
+          serviceAppointmentsOnInvoice,
+          eq(serviceInvoices.id, serviceAppointmentsOnInvoice.serviceInvoiceId),
+        )
+        .where(
+          and(
+            eq(serviceAppointmentsOnInvoice.serviceAppointmentId, booking.id),
+            eq(serviceInvoices.status, 'PENDING'),
+          ),
+        )
+        .limit(1);
+      if (open && open.invoice.couponId === (coupon?.id ?? null))
+        return open.invoice;
+      if (open)
+        await tx
+          .update(serviceInvoices)
+          .set({ status: 'FAILED' })
+          .where(eq(serviceInvoices.id, open.invoice.id));
+
+      const amountSatang = booking.priceSatang - (coupon?.discountSatang ?? 0);
+      const [created] = await tx
+        .insert(serviceInvoices)
+        .values({
+          amountSatang,
+          platformFeeSatang: Math.round(
+            PaymentConfig.invoice.platformFeeFraction * amountSatang,
+          ),
+          couponId: coupon?.id ?? null,
+          discountSatang: coupon?.discountSatang ?? 0,
+          status: 'PENDING',
+        })
+        .returning();
+      await tx.insert(serviceAppointmentsOnInvoice).values({
+        serviceAppointmentId: booking.id,
+        serviceInvoiceId: created.id,
+      });
+      return created;
+    });
+
+    return {
+      id: invoice.id,
+      amountSatang: invoice.amountSatang,
+      createdAt: invoice.createdAt,
+      platformFeeSatang: invoice.platformFeeSatang,
+      status: invoice.status,
+    };
+  }
 
   async createInvoice(
     user: SessionUser,
@@ -277,12 +495,21 @@ export class PaymentService {
     );
     // The 3-D Secure return is where a charge's outcome is first known. Checkout clears `paidAt`
     // for every new charge, so recording only into an empty `paidAt` keeps the first moment when
-    // this page is reloaded.
+    // this page is reloaded. A paid charge is money the platform now holds until the session is
+    // done; a declined one ends this invoice, and the next attempt gets a new one.
     if (chargeResult.status !== 'pending' && !invoice.paidAt)
       await this.serviceInvoiceRepository.updateById(invoice.id, {
         ...chargedCard(chargeResult),
         paidAt: new Date(),
+        status: chargeResult.status === 'success' ? 'HELD_IN_ESCROW' : 'FAILED',
       });
+    // Paid, so the bookings it pays for are booked. `confirmPayment` is idempotent: a reloaded
+    // return page moves and notifies nothing twice.
+    if (chargeResult.status === 'success')
+      for (const appointmentId of await this.serviceInvoiceRepository.findAppointmentIds(
+        invoice.id,
+      ))
+        await this.bookings.confirmPayment(appointmentId);
 
     return {
       url: `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.checkoutCallback.redirectPaths[chargeResult.status]}?invoiceId=${invoice.id}`,

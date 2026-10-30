@@ -155,13 +155,18 @@ export class OmisePaymentProvider implements IPaymentProvider {
   async getChargeStatus(chargeId: string): Promise<ChargeStatus> {
     try {
       const chargeRes = await this.omise.charges.retrieve(chargeId);
-      if (chargeRes.failure_code) {
+      // Still waiting on 3-D Secure: no outcome yet, which is not a success.
+      if (chargeRes.status === 'pending' && !chargeRes.failure_code)
+        return { status: 'pending' };
+      // Declined, or ended without being paid (expired, reversed).
+      if (chargeRes.failure_code || chargeRes.status !== 'successful') {
+        const code = chargeRes.failure_code ?? 'unspecified';
         return {
           status: 'failed',
-          brand: chargeRes.card.brand,
-          lastDigits: chargeRes.card.last_digits,
-          errorCode: FailureCodeKeys.parse(chargeRes.failure_code),
-          message: FailureCodeEnum.parse(chargeRes.failure_code),
+          brand: chargeRes.card?.brand ?? '',
+          lastDigits: chargeRes.card?.last_digits ?? '',
+          errorCode: FailureCodeKeys.parse(code),
+          message: FailureCodeEnum.parse(code),
         };
       }
       return {

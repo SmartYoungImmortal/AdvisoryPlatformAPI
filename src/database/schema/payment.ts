@@ -42,6 +42,43 @@ export const refundCaseStatusEnum = pgEnum('refund_case_status', [
 /** Feeds `service_invoices.invoice_number`; one sequence for every user, so a number is never reused. */
 export const serviceInvoiceNumberSeq = pgSequence('service_invoice_number_seq');
 
+/**
+ * A code an Advisee types at checkout for money off: a share of the price or a fixed amount, never
+ * both. Codes are stored upper-case and matched that way. A coupon with `maxRedemptions` counts
+ * the invoices it has paid for (held or released); one past `expiresAt`, or not `active`, is
+ * refused.
+ */
+export const coupons = pgTable(
+  'coupons',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    code: varchar('code', { length: 32 }).notNull().unique(),
+    percentOff: integer('percent_off'),
+    amountOffSatang: integer('amount_off_satang'),
+    active: boolean('active').notNull().default(true),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    maxRedemptions: integer('max_redemptions'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      'coupons_one_kind_of_discount',
+      sql`(${table.percentOff} IS NULL) <> (${table.amountOffSatang} IS NULL)`,
+    ),
+    check(
+      'coupons_percent_off_range',
+      sql`${table.percentOff} IS NULL OR ${table.percentOff} BETWEEN 1 AND 100`,
+    ),
+    check(
+      'coupons_amount_off_positive',
+      sql`${table.amountOffSatang} IS NULL OR ${table.amountOffSatang} > 0`,
+    ),
+    check('coupons_code_upper', sql`${table.code} = upper(${table.code})`),
+  ],
+);
+
 export const serviceInvoices = pgTable(
   'service_invoices',
   {
@@ -59,6 +96,10 @@ export const serviceInvoices = pgTable(
       ),
     amountSatang: integer('amount_satang').notNull(),
     platformFeeSatang: integer('platform_fee_satang').notNull(),
+    // The coupon this invoice was priced with, and what it took off: `amountSatang` is already the
+    // price less this.
+    couponId: uuid('coupon_id').references(() => coupons.id),
+    discountSatang: integer('discount_satang').notNull().default(0),
     providerChargeId: varchar('provider_charge_id'),
     status: invoiceStatusEnum('status').notNull().default('PENDING'),
     // When the latest charge outcome was recorded: the success, or the failure. Null while no

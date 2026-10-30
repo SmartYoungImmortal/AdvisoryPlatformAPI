@@ -5,7 +5,27 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { PaymentService } from './payment.service';
+import { PaymentService, couponDiscount } from './payment.service';
+
+describe('couponDiscount', () => {
+  it('takes a share of the price, rounded to the satang', () => {
+    expect(
+      couponDiscount({ percentOff: 10, amountOffSatang: null }, 80_000),
+    ).toBe(8_000);
+    expect(
+      couponDiscount({ percentOff: 15, amountOffSatang: null }, 33_333),
+    ).toBe(5_000);
+  });
+
+  it('takes a fixed amount, never more than the price', () => {
+    expect(
+      couponDiscount({ percentOff: null, amountOffSatang: 20_000 }, 80_000),
+    ).toBe(20_000);
+    expect(
+      couponDiscount({ percentOff: null, amountOffSatang: 100_000 }, 80_000),
+    ).toBe(80_000);
+  });
+});
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { CreateInvoiceDto } from '@/modules/payment/dto/invoice.dto';
 import type {
@@ -19,6 +39,11 @@ import {
 } from '@/modules/payment/payment.repository';
 import { DRIZZLE } from '@/database/database.module';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
+import { BookingsService } from '@/modules/bookings/bookings.service';
+
+const mockBookingsService = {
+  confirmPayment: jest.fn(),
+};
 
 const mockConfigService = {
   get: jest.fn((key: string) => {
@@ -41,6 +66,7 @@ const mockInvoicesRepository = {
   findManyForAdvisee: jest.fn(),
   findOneForAdvisee: jest.fn(),
   countForAdvisee: jest.fn(),
+  findAppointmentIds: jest.fn().mockResolvedValue([]),
 };
 
 /** A receipt row as the repository returns it; each test overrides what it is about. */
@@ -133,6 +159,7 @@ describe('PaymentService', () => {
           useValue: mockInvoicesRepository,
         },
         { provide: DRIZZLE, useValue: mockDrizzleDB },
+        { provide: BookingsService, useValue: mockBookingsService },
         { provide: 'PaymentConfig', useValue: mockPaymentConfig },
       ],
     }).compile();
@@ -485,14 +512,18 @@ describe('PaymentService', () => {
       expect(result.url).toContain(`invoiceId=${invoiceId}`);
     });
 
-    it.each(['success', 'failed'] as const)(
-      'records a %s outcome: the card it names and when it was known',
-      async (status) => {
+    it.each([
+      ['success', 'HELD_IN_ESCROW'],
+      ['failed', 'FAILED'],
+    ] as const)(
+      'records a %s outcome: the card it names, when it was known, and the invoice as %s',
+      async (status, invoiceStatus) => {
         mockInvoicesRepository.findById.mockResolvedValue({
           id: invoiceId,
           providerChargeId: 'ch_123',
           paidAt: null,
         });
+        mockInvoicesRepository.findAppointmentIds.mockResolvedValue([]);
         mockPaymentProvider.getChargeStatus.mockResolvedValue({
           status,
           brand: 'Visa',
@@ -507,10 +538,60 @@ describe('PaymentService', () => {
             cardBrand: 'Visa',
             cardLastDigits: '4242',
             paidAt: expect.any(Date) as Date,
+            status: invoiceStatus,
           },
         );
       },
     );
+
+    it('confirms every booking a paid invoice pays for', async () => {
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'ch_123',
+        paidAt: null,
+      });
+      mockInvoicesRepository.findAppointmentIds.mockResolvedValue([
+        'uuid-booking-1',
+        'uuid-booking-2',
+      ]);
+      mockPaymentProvider.getChargeStatus.mockResolvedValue({
+        status: 'success',
+        brand: 'Visa',
+        lastDigits: '4242',
+      });
+
+      await service.paymentCallback(mockUser, invoiceId);
+
+      expect(mockBookingsService.confirmPayment).toHaveBeenNthCalledWith(
+        1,
+        'uuid-booking-1',
+      );
+      expect(mockBookingsService.confirmPayment).toHaveBeenNthCalledWith(
+        2,
+        'uuid-booking-2',
+      );
+    });
+
+    it('confirms no booking when the charge was declined or is still pending', async () => {
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'ch_123',
+        paidAt: null,
+      });
+      mockInvoicesRepository.findAppointmentIds.mockResolvedValue([
+        'uuid-booking-1',
+      ]);
+      for (const status of ['failed', 'pending'] as const) {
+        mockPaymentProvider.getChargeStatus.mockResolvedValue({
+          status,
+          brand: 'Visa',
+          lastDigits: '4242',
+        });
+        await service.paymentCallback(mockUser, invoiceId);
+      }
+
+      expect(mockBookingsService.confirmPayment).not.toHaveBeenCalled();
+    });
 
     it('keeps the first recorded moment when the return page is reloaded', async () => {
       mockInvoicesRepository.findById.mockResolvedValue({
