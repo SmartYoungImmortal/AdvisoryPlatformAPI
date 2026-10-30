@@ -7,6 +7,8 @@ import {
 import { Public } from '@/common/decorators/public.decorator';
 import type { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import { AdvisorsService } from './advisors.service';
+import { AdvisorBackgroundService } from './advisor-background.service';
+import { AdvisorBackgroundResponseDto } from './dtos/advisor-background.dto';
 import { PublicAdvisorQueryDto } from './dtos/public-advisor-query.dto';
 import { PublicAdvisorResponseDto } from './dtos/public-advisor-response.dto';
 
@@ -26,7 +28,10 @@ import { PublicAdvisorResponseDto } from './dtos/public-advisor-response.dto';
 @ApiTags('Advisors')
 @Controller('advisors')
 export class PublicAdvisorsController {
-  constructor(private readonly advisors: AdvisorsService) {}
+  constructor(
+    private readonly advisors: AdvisorsService,
+    private readonly background: AdvisorBackgroundService,
+  ) {}
 
   @Public()
   @Get()
@@ -50,5 +55,18 @@ export class PublicAdvisorsController {
     @Param('advisorId', ParseUUIDPipe) advisorId: string,
   ): Promise<PublicAdvisorResponseDto> {
     return this.advisors.findDiscoverableById(advisorId);
+  }
+
+  /** The background their profile's About tab shows. */
+  @Public()
+  @Get(':advisorId/background')
+  @ApiGetOne(AdvisorBackgroundResponseDto, {
+    name: 'Advisor background',
+    public: true,
+  })
+  findBackground(
+    @Param('advisorId', ParseUUIDPipe) advisorId: string,
+  ): Promise<AdvisorBackgroundResponseDto> {
+    return this.background.findPublic(advisorId);
   }
 }
