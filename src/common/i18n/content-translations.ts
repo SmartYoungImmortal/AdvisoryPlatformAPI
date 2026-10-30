@@ -5,6 +5,7 @@ import {
   notificationTranslations,
   screeningQuestionTranslations,
   serviceCategoryTranslations,
+  servicePackageTranslations,
   serviceTranslations,
   skillTranslations,
   type ContentLocale,
@@ -46,6 +47,24 @@ export async function saveServiceTranslation(
     .values({ serviceId, locale, ...text })
     .onConflictDoUpdate({
       target: [serviceTranslations.serviceId, serviceTranslations.locale],
+      set: text,
+    });
+}
+
+export async function savePackageTranslation(
+  db: Writer,
+  packageId: string,
+  text: { readonly name: string; readonly description: string | null },
+  locale: ContentLocale = currentLocale(),
+): Promise<void> {
+  await db
+    .insert(servicePackageTranslations)
+    .values({ packageId, locale, ...text })
+    .onConflictDoUpdate({
+      target: [
+        servicePackageTranslations.packageId,
+        servicePackageTranslations.locale,
+      ],
       set: text,
     });
 }

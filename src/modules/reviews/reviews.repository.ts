@@ -9,7 +9,7 @@ import {
   type SQL,
   sql,
 } from 'drizzle-orm';
-import { serviceName } from '@/common/i18n/localized-columns';
+import { packageName, serviceName } from '@/common/i18n/localized-columns';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   advisorProfiles,
@@ -257,7 +257,9 @@ export class ReviewsRepository {
         serviceId: services.id,
         serviceName: serviceName(),
         serviceDurationMinutes: services.durationMinutes,
-        packageName: servicePackages.name,
+        packageName: sql<
+          string | null
+        >`case when ${servicePackages.id} is null then null else ${packageName()} end`,
         reviewerDisplayName: user.displayName,
         reviewerAvatarKey: user.avatarKey,
       })

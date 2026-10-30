@@ -10,6 +10,7 @@ import {
   advisorProfiles,
   notifications,
   serviceCategories,
+  servicePackages,
   serviceScreeningQuestions,
   services,
   skills,
@@ -21,7 +22,7 @@ import {
  * the same fields in one language, keyed by (parent, locale).
  *
  * Only text a reader sees in their own language lives here: names and
- * descriptions of the taxonomy, a Service's name and description, an
+ * descriptions of the taxonomy, a Service's and its packages' names and descriptions, an
  * Advisor's headline and bio, a screening question, and a notification.
  * People's names, chat, reviews, answers and moderation reasons are written by
  * someone in one language and are shown as written, so they stay on the parent.
@@ -71,6 +72,20 @@ export const serviceTranslations = pgTable(
     description: text('description'),
   },
   (table) => [primaryKey({ columns: [table.serviceId, table.locale] })],
+);
+
+/** A package's name and line, as a service's are. */
+export const servicePackageTranslations = pgTable(
+  'service_package_translations',
+  {
+    packageId: uuid('package_id')
+      .notNull()
+      .references(() => servicePackages.id, { onDelete: 'cascade' }),
+    locale: contentLocaleEnum('locale').notNull(),
+    name: varchar('name').notNull(),
+    description: text('description'),
+  },
+  (table) => [primaryKey({ columns: [table.packageId, table.locale] })],
 );
 
 export const advisorProfileTranslations = pgTable(

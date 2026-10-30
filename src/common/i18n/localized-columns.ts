@@ -8,6 +8,8 @@ import {
   screeningQuestionTranslations,
   serviceCategories,
   serviceCategoryTranslations,
+  servicePackageTranslations,
+  servicePackages,
   serviceScreeningQuestions,
   serviceTranslations,
   services,
@@ -74,6 +76,26 @@ export const serviceDescription = (): SQL<string | null> =>
     serviceTranslations.description,
     services.id,
     services.description,
+  );
+
+/** A package's name, in the request's language. */
+export const packageName = (): SQL<string> =>
+  localized(
+    servicePackageTranslations,
+    servicePackageTranslations.packageId,
+    servicePackageTranslations.name,
+    servicePackages.id,
+    servicePackages.name,
+  );
+
+/** A package's description, in the request's language. */
+export const packageDescription = (): SQL<string | null> =>
+  localized(
+    servicePackageTranslations,
+    servicePackageTranslations.packageId,
+    servicePackageTranslations.description,
+    servicePackages.id,
+    servicePackages.description,
   );
 
 /** A category's name, in the request's language. */
