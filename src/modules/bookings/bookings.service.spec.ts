@@ -84,6 +84,7 @@ describe('BookingsService', () => {
       | 'countForAdvisee'
       | 'findManyForAdvisor'
       | 'countForAdvisor'
+      | 'nameMeetingRoom'
     >
   >;
   let availability: jest.Mocked<
@@ -104,6 +105,7 @@ describe('BookingsService', () => {
       countForAdvisee: jest.fn(),
       findManyForAdvisor: jest.fn(),
       countForAdvisor: jest.fn(),
+      nameMeetingRoom: jest.fn(),
     };
     availability = { findSlotAt: jest.fn(), getGlobal: jest.fn() };
     availability.getGlobal.mockResolvedValue(makeGlobal());
@@ -585,6 +587,98 @@ describe('BookingsService', () => {
           startTime: newStart.toISOString(),
         }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('openMeeting', () => {
+    // Five minutes before the appointment: inside the ten-minute window.
+    beforeEach(() => {
+      jest.useFakeTimers({ now: startTime.getTime() - 5 * 60000 });
+    });
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('names the room the first time it is opened and gives its address', async () => {
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+      repository.nameMeetingRoom.mockImplementation((_id, name) =>
+        Promise.resolve(name),
+      );
+
+      const meeting = await service.openMeeting(advisee, bookingId);
+
+      expect(repository.findForParticipant).toHaveBeenCalledWith(
+        bookingId,
+        advisee.id,
+      );
+      expect(meeting.url).toMatch(
+        /^https:\/\/meet\.jit\.si\/advisory-[0-9a-f-]{36}$/,
+      );
+    });
+
+    it('gives the room an appointment already has without naming another', async () => {
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED', jitsiRoomName: 'advisory-room' }),
+      );
+
+      const meeting = await service.openMeeting(advisor, bookingId);
+
+      expect(meeting.url).toBe('https://meet.jit.si/advisory-room');
+      expect(repository.nameMeetingRoom).not.toHaveBeenCalled();
+    });
+
+    it('rejects anybody who is not a participant', async () => {
+      repository.findForParticipant.mockResolvedValue(undefined);
+
+      await expect(service.openMeeting(advisee, bookingId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('has no room for an appointment that is not paid', async () => {
+      repository.findForParticipant.mockResolvedValue(makeAppointment());
+
+      await expect(service.openMeeting(advisee, bookingId)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('keeps a booked room shut until ten minutes before the start', async () => {
+      jest.setSystemTime(startTime.getTime() - 11 * 60000);
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+
+      await expect(service.openMeeting(advisee, bookingId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('shuts a booked room once the appointment has ended', async () => {
+      jest.setSystemTime(endTime.getTime() + 60000);
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+
+      await expect(service.openMeeting(advisee, bookingId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('keeps a started session’s room open past its end', async () => {
+      jest.setSystemTime(endTime.getTime() + 15 * 60000);
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({
+          state: 'IN_PROGRESS',
+          jitsiRoomName: 'advisory-room',
+        }),
+      );
+
+      await expect(service.openMeeting(advisee, bookingId)).resolves.toEqual({
+        url: 'https://meet.jit.si/advisory-room',
+      });
     });
   });
 
