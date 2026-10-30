@@ -6,8 +6,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CheckoutDto } from '@/modules/payment/dto/checkout.dto';
+import type {
+  PromptPayDto,
+  PromptPayResponse,
+  PromptPayStatusResponse,
+} from '@/modules/payment/dto/promptpay.dto';
 import { SessionUser } from '@/modules/auth/auth.config';
 import { IPaymentProvider } from '@/modules/payment/providers/interface';
+import {
+  PROMPTPAY_BRAND,
+  type ChargeStatus,
+} from '@/modules/payment/providers/providers';
 import {
   CreateInvoiceDto,
   PaymentStatusDto,
@@ -496,27 +505,28 @@ export class PaymentService {
     };
   }
 
-  async paymentCallback(user: SessionUser, id: string) {
-    const invoice = await this.serviceInvoiceRepository.findById(id);
-
-    if (!invoice || !invoice.providerChargeId)
-      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
-
+  /**
+   * Reads where an invoice's charge stands and, the first time its outcome is known, records it.
+   * Checkout clears `paidAt` for every new charge, so recording only into an empty `paidAt` keeps
+   * the first moment when the outcome is read again. A paid charge is money the platform now holds
+   * until the session is done, and the bookings it pays for are booked (`confirmPayment` is
+   * idempotent, so a second read moves and notifies nothing twice); a declined or expired one ends
+   * this invoice, and the next attempt gets a new one.
+   */
+  private async settleCharge(invoice: {
+    id: string;
+    providerChargeId: string;
+    paidAt: Date | null;
+  }): Promise<ChargeStatus['status']> {
     const chargeResult = await this.paymentProvider.getChargeStatus(
       invoice.providerChargeId,
     );
-    // The 3-D Secure return is where a charge's outcome is first known. Checkout clears `paidAt`
-    // for every new charge, so recording only into an empty `paidAt` keeps the first moment when
-    // this page is reloaded. A paid charge is money the platform now holds until the session is
-    // done; a declined one ends this invoice, and the next attempt gets a new one.
     if (chargeResult.status !== 'pending' && !invoice.paidAt)
       await this.serviceInvoiceRepository.updateById(invoice.id, {
         ...chargedCard(chargeResult),
         paidAt: new Date(),
         status: chargeResult.status === 'success' ? 'HELD_IN_ESCROW' : 'FAILED',
       });
-    // Paid, so the bookings it pays for are booked. `confirmPayment` is idempotent: a reloaded
-    // return page moves and notifies nothing twice.
     if (chargeResult.status === 'success') {
       const appointmentIds =
         await this.serviceInvoiceRepository.findAppointmentIds(invoice.id);
@@ -526,9 +536,99 @@ export class PaymentService {
         ),
       );
     }
+    return chargeResult.status;
+  }
 
+  /** Where checkout goes once a charge's outcome is known: the frontend's page for it. */
+  private outcomeUrl(
+    status: ChargeStatus['status'],
+    invoiceId: string,
+  ): string {
+    return `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.checkoutCallback.redirectPaths[status]}?invoiceId=${invoiceId}`;
+  }
+
+  /** The 3-D Secure return, which is where a card charge's outcome is first known. */
+  async paymentCallback(user: SessionUser, id: string) {
+    const invoice = await this.serviceInvoiceRepository.findById(id);
+
+    if (!invoice?.providerChargeId)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+
+    const status = await this.settleCharge({
+      ...invoice,
+      providerChargeId: invoice.providerChargeId,
+    });
+    return { url: this.outcomeUrl(status, invoice.id) };
+  }
+
+  /**
+   * Pays an invoice by PromptPay: a QR code the Advisee scans with their banking app, which
+   * expires after `PaymentConfig.promptPay.expiresMinutes`. Each call is a new charge with a new
+   * code, so an expired one is replaced by asking again; the invoice keeps only the latest, and
+   * its `paidAt` is cleared for the outcome to fill.
+   */
+  async payByPromptPay(
+    user: SessionUser,
+    dto: PromptPayDto,
+  ): Promise<PromptPayResponse> {
+    const invoice = await this.serviceInvoiceRepository.findPublicById(
+      dto.invoiceId,
+      user.id,
+    );
+    if (!invoice)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+    if (invoice.status !== 'PENDING')
+      throw new BadRequestException(PaymentConfig.messages.invoiceNotPayable);
+
+    const expiresAt = new Date(
+      Date.now() + PaymentConfig.promptPay.expiresMinutes * 60_000,
+    );
+    const charge = await this.paymentProvider.chargePromptPay(
+      invoice.amountSatang,
+      expiresAt,
+    );
+    if (charge.status === 'failed')
+      throw new InternalServerErrorException(charge);
+
+    await this.serviceInvoiceRepository.updateById(invoice.id, {
+      providerChargeId: charge.chargeId,
+      cardBrand: PROMPTPAY_BRAND,
+      cardLastDigits: null,
+      paidAt: null,
+    });
     return {
-      url: `${this.config.get(ENV_KEYS.FRONTEND_URL)}${PaymentConfig.checkoutCallback.redirectPaths[chargeResult.status]}?invoiceId=${invoice.id}`,
+      qrImageUrl: charge.qrImageUrl,
+      amountSatang: invoice.amountSatang,
+      expiresAt: charge.expiresAt,
+    };
+  }
+
+  /**
+   * Whether an Advisee's PromptPay code has been paid, for the page showing it to ask until it
+   * has. The first answer with an outcome records it and books the bookings, as the card's return
+   * does; `url` is then where checkout goes.
+   */
+  async promptPayStatus(
+    user: SessionUser,
+    invoiceId: string,
+  ): Promise<PromptPayStatusResponse> {
+    const owned = await this.serviceInvoiceRepository.findPublicById(
+      invoiceId,
+      user.id,
+    );
+    const invoice = owned
+      ? await this.serviceInvoiceRepository.findById(invoiceId)
+      : undefined;
+    if (!invoice?.providerChargeId)
+      throw new NotFoundException(PaymentConfig.messages.crudInvoice.notFound);
+
+    const status = await this.settleCharge({
+      ...invoice,
+      providerChargeId: invoice.providerChargeId,
+    });
+    return {
+      status,
+      url: status === 'pending' ? null : this.outcomeUrl(status, invoice.id),
     };
   }
 

@@ -29,6 +29,11 @@ import {
   CouponPreviewResponse,
 } from '@/modules/payment/dto/coupon.dto';
 import {
+  PromptPayDto,
+  PromptPayResponse,
+  PromptPayStatusResponse,
+} from '@/modules/payment/dto/promptpay.dto';
+import {
   ApiCreate,
   ApiGetOne,
   ApiGetPaginated,
@@ -54,6 +59,26 @@ export class PaymentController {
 
     return result;
     // return res.redirect(HttpStatus.SEE_OTHER, result.url);
+  }
+
+  /** Pay an invoice by PromptPay: the QR code to scan, its amount, and when it expires. */
+  @Post('promptpay')
+  @ApiCreate(PromptPayResponse)
+  postPromptPay(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: PromptPayDto,
+  ): Promise<PromptPayResponse> {
+    return this.paymentService.payByPromptPay(user, dto);
+  }
+
+  /** Whether the invoice's PromptPay code has been paid; asked until it has. */
+  @Get('invoice/:id/promptpay-status')
+  @ApiGetOne(PromptPayStatusResponse)
+  getPromptPayStatus(
+    @CurrentUser() user: SessionUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PromptPayStatusResponse> {
+    return this.paymentService.promptPayStatus(user, id);
   }
 
   /** The Omise public key the browser tokenises a card with. Public: it is the key meant to be. */

@@ -34,6 +34,7 @@ jest.mock('@/modules/payment/providers/providers', () => ({
   FailureCodeEnum: {
     parse: jest.fn((val: string) => `Mocked message for ${val}`),
   },
+  PROMPTPAY_BRAND: 'PromptPay',
 }));
 
 jest.mock('@/modules/payment/providers/omise/utils', () => ({
@@ -340,7 +341,106 @@ describe('OmisePaymentProvider', () => {
     });
   });
 
+  describe('chargePromptPay', () => {
+    const expiresAt = new Date('2026-10-30T10:15:00.000Z');
+
+    it('makes a PromptPay charge that expires when asked and gives its QR code', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_pp1',
+        status: 'pending',
+        source: {
+          type: 'promptpay',
+          scannable_code: {
+            image: { download_uri: 'https://api.omise.co/qr.svg' },
+          },
+        },
+      });
+
+      const result = await provider.chargePromptPay(80_000, expiresAt);
+
+      expect(mockChargesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 80_000,
+          source: expect.objectContaining({ type: 'promptpay' }) as unknown,
+          expires_at: '2026-10-30T10:15:00.000Z',
+        }),
+      );
+      expect(result).toEqual({
+        status: 'pending',
+        chargeId: 'chrg_pp1',
+        qrImageUrl: 'https://api.omise.co/qr.svg',
+        expiresAt: '2026-10-30T10:15:00.000Z',
+      });
+    });
+
+    it('fails a charge the provider refused or gave no QR code', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_pp2',
+        failure_code: 'failed_processing',
+        source: { type: 'promptpay' },
+      });
+
+      expect(await provider.chargePromptPay(80_000, expiresAt)).toEqual({
+        status: 'failed',
+        errorCode: 'failed_processing',
+        message: 'Mocked message for failed_processing',
+      });
+
+      mockChargesCreate.mockResolvedValueOnce({ id: 'chrg_pp3' });
+      expect(await provider.chargePromptPay(80_000, expiresAt)).toMatchObject({
+        status: 'failed',
+        errorCode: 'unspecified',
+      });
+    });
+
+    it('fails when the provider cannot be reached', async () => {
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      mockChargesCreate.mockRejectedValueOnce(new Error('network'));
+
+      expect(await provider.chargePromptPay(80_000, expiresAt)).toMatchObject({
+        status: 'failed',
+        errorCode: 'unspecified',
+      });
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('getChargeStatus', () => {
+    it('names a paid PromptPay charge, which has no card, by its method', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_pp1',
+        status: 'successful',
+        authorize_uri: null,
+        card: null,
+        source: { type: 'promptpay' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_pp1')).toEqual({
+        status: 'success',
+        brand: 'PromptPay',
+        lastDigits: '',
+        redirectUrl: '',
+        chargeId: 'chrg_pp1',
+      });
+    });
+
+    it('fails a PromptPay code that expired unpaid', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_pp1',
+        status: 'expired',
+        card: null,
+        source: { type: 'promptpay' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_pp1')).toMatchObject({
+        status: 'failed',
+        brand: 'PromptPay',
+        lastDigits: '',
+      });
+    });
+
     it('Branch 1: Success', async () => {
       mockChargesRetrieve.mockResolvedValueOnce({
         id: 'chrg_ret123',

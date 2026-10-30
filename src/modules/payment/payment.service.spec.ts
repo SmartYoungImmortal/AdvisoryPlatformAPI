@@ -56,6 +56,7 @@ const mockConfigService = {
 const mockPaymentProvider = {
   getChargeStatus: jest.fn(),
   chargeSpecificCard: jest.fn(),
+  chargePromptPay: jest.fn(),
 };
 
 const mockInvoicesRepository = {
@@ -718,6 +719,156 @@ describe('PaymentService', () => {
 
       await expect(
         service.getPaymentStatus(mockUser, invoiceId),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('payByPromptPay', () => {
+    const invoiceId = 'uuid-invoice-1';
+    const waiting = {
+      id: invoiceId,
+      amountSatang: 72_000,
+      status: 'PENDING',
+    };
+
+    it('charges the invoice by a QR code and keeps the charge on it', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue(waiting);
+      mockPaymentProvider.chargePromptPay.mockResolvedValue({
+        status: 'pending',
+        chargeId: 'chrg_pp1',
+        qrImageUrl: 'https://api.omise.co/qr.svg',
+        expiresAt: '2026-10-30T10:15:00.000Z',
+      });
+
+      await expect(
+        service.payByPromptPay(mockUser, { invoiceId }),
+      ).resolves.toEqual({
+        qrImageUrl: 'https://api.omise.co/qr.svg',
+        amountSatang: 72_000,
+        expiresAt: '2026-10-30T10:15:00.000Z',
+      });
+      expect(mockPaymentProvider.chargePromptPay).toHaveBeenCalledWith(
+        72_000,
+        expect.any(Date),
+      );
+      expect(mockInvoicesRepository.updateById).toHaveBeenCalledWith(
+        invoiceId,
+        {
+          providerChargeId: 'chrg_pp1',
+          cardBrand: 'PromptPay',
+          cardLastDigits: null,
+          paidAt: null,
+        },
+      );
+    });
+
+    it('answers 404 for an invoice that is not the user’s', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue(undefined);
+
+      await expect(
+        service.payByPromptPay(mockUser, { invoiceId }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('refuses an invoice that is no longer waiting for payment', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue({
+        ...waiting,
+        status: 'HELD_IN_ESCROW',
+      });
+
+      await expect(
+        service.payByPromptPay(mockUser, { invoiceId }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPaymentProvider.chargePromptPay).not.toHaveBeenCalled();
+    });
+
+    it('stores nothing when the provider refuses the charge', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue(waiting);
+      mockPaymentProvider.chargePromptPay.mockResolvedValue({
+        status: 'failed',
+        errorCode: 'unspecified',
+        message: 'Other unspecified error.',
+      });
+
+      await expect(
+        service.payByPromptPay(mockUser, { invoiceId }),
+      ).rejects.toThrow(InternalServerErrorException);
+      expect(mockInvoicesRepository.updateById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('promptPayStatus', () => {
+    const invoiceId = 'uuid-invoice-1';
+
+    it('is pending, with nowhere to go yet, until the code is paid', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue({
+        id: invoiceId,
+      });
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'chrg_pp1',
+        paidAt: null,
+      });
+      mockPaymentProvider.getChargeStatus.mockResolvedValue({
+        status: 'pending',
+      });
+
+      await expect(
+        service.promptPayStatus(mockUser, invoiceId),
+      ).resolves.toEqual({ status: 'pending', url: null });
+      expect(mockInvoicesRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('records a paid code, books its bookings and leads to the success page', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue({
+        id: invoiceId,
+      });
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: 'chrg_pp1',
+        paidAt: null,
+      });
+      mockInvoicesRepository.findAppointmentIds.mockResolvedValue([
+        'uuid-booking-1',
+      ]);
+      mockPaymentProvider.getChargeStatus.mockResolvedValue({
+        status: 'success',
+        brand: 'PromptPay',
+        lastDigits: '',
+      });
+
+      const result = await service.promptPayStatus(mockUser, invoiceId);
+
+      expect(result.status).toBe('success');
+      expect(result.url).toContain(`invoiceId=${invoiceId}`);
+      expect(mockInvoicesRepository.updateById).toHaveBeenCalledWith(
+        invoiceId,
+        expect.objectContaining({
+          cardBrand: 'PromptPay',
+          status: 'HELD_IN_ESCROW',
+        }),
+      );
+      expect(mockBookingsService.confirmPayment).toHaveBeenCalledWith(
+        'uuid-booking-1',
+      );
+    });
+
+    it('answers 404 for an invoice that is not the user’s or was never charged', async () => {
+      mockInvoicesRepository.findPublicById.mockResolvedValue(undefined);
+      await expect(
+        service.promptPayStatus(mockUser, invoiceId),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockInvoicesRepository.findById).not.toHaveBeenCalled();
+
+      mockInvoicesRepository.findPublicById.mockResolvedValue({
+        id: invoiceId,
+      });
+      mockInvoicesRepository.findById.mockResolvedValue({
+        id: invoiceId,
+        providerChargeId: null,
+      });
+      await expect(
+        service.promptPayStatus(mockUser, invoiceId),
       ).rejects.toThrow(NotFoundException);
     });
   });

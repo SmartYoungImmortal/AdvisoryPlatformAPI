@@ -12,6 +12,8 @@ import {
   ChargeStatus,
   FailureCodeEnum,
   FailureCodeKeys,
+  PROMPTPAY_BRAND,
+  type PromptPayCharge,
 } from '@/modules/payment/providers/providers';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -152,10 +154,54 @@ export class OmisePaymentProvider implements IPaymentProvider {
     }
   }
 
+  async chargePromptPay(
+    amount: number,
+    expiresAt: Date,
+  ): Promise<PromptPayCharge> {
+    const currency = this.config.get<string>(ENV_KEYS.CURRENCY_CODE) || 'thb';
+    try {
+      const chargeRes = await this.omise.charges.create({
+        amount,
+        currency,
+        source: { type: 'promptpay', amount, currency },
+        expires_at: expiresAt.toISOString(),
+      });
+      const qrImageUrl = chargeRes.source?.scannable_code?.image?.download_uri;
+      if (chargeRes.failure_code || !qrImageUrl) {
+        const code = chargeRes.failure_code ?? 'unspecified';
+        return {
+          status: 'failed',
+          errorCode: FailureCodeKeys.parse(code),
+          message: FailureCodeEnum.parse(code),
+        };
+      }
+      return {
+        status: 'pending',
+        chargeId: chargeRes.id,
+        qrImageUrl,
+        expiresAt: expiresAt.toISOString(),
+      };
+    } catch (error: unknown) {
+      console.error(error);
+      return {
+        status: 'failed',
+        errorCode: 'unspecified',
+        message: FailureCodeEnum.parse('unspecified'),
+      };
+    }
+  }
+
   async getChargeStatus(chargeId: string): Promise<ChargeStatus> {
     try {
       const chargeRes = await this.omise.charges.retrieve(chargeId);
-      // Still waiting on 3-D Secure: no outcome yet, which is not a success.
+      // A charge paid by PromptPay has no card; its receipt names the method instead.
+      const card = chargeRes.card as typeof chargeRes.card | null;
+      const brand =
+        card?.brand ??
+        (chargeRes.source?.type === 'promptpay' ? PROMPTPAY_BRAND : '');
+      const lastDigits = card?.last_digits ?? '';
+      // Still waiting on 3-D Secure, or on a QR code to be scanned: no outcome yet, which is not
+      // a success.
       if (chargeRes.status === 'pending' && !chargeRes.failure_code)
         return { status: 'pending' };
       // Declined, or ended without being paid (expired, reversed).
@@ -163,17 +209,17 @@ export class OmisePaymentProvider implements IPaymentProvider {
         const code = chargeRes.failure_code ?? 'unspecified';
         return {
           status: 'failed',
-          brand: chargeRes.card?.brand ?? '',
-          lastDigits: chargeRes.card?.last_digits ?? '',
+          brand,
+          lastDigits,
           errorCode: FailureCodeKeys.parse(code),
           message: FailureCodeEnum.parse(code),
         };
       }
       return {
         status: 'success',
-        brand: chargeRes.card.brand,
-        lastDigits: chargeRes.card.last_digits,
-        redirectUrl: chargeRes.authorize_uri,
+        brand,
+        lastDigits,
+        redirectUrl: chargeRes.authorize_uri ?? '',
         chargeId: chargeRes.id,
       };
     } catch (error: unknown) {

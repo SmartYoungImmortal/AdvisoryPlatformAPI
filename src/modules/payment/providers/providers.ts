@@ -54,3 +54,23 @@ export const chargeStatus = z.discriminatedUnion('status', [
   }),
 ]);
 export type ChargeStatus = z.infer<typeof chargeStatus>;
+
+/**
+ * A PromptPay charge as it is made: waiting for the payer to scan its QR code, which is an image
+ * anyone can load (the provider serves it without a key) until the charge expires; or refused.
+ */
+export type PromptPayCharge =
+  | {
+      status: 'pending';
+      chargeId: string;
+      qrImageUrl: string;
+      expiresAt: string;
+    }
+  | {
+      status: 'failed';
+      errorCode: z.infer<typeof FailureCodeKeys>;
+      message: string;
+    };
+
+/** What a receipt calls a payment that was not made with a card. */
+export const PROMPTPAY_BRAND = 'PromptPay';
