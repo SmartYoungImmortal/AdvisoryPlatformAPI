@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -129,6 +130,12 @@ export class SlotQueryDto {
   @ApiProperty({ example: '2026-09-07' })
   @IsDateString()
   to!: string;
+
+  /** The package whose length the slots are cut to; the service's own length without one. */
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  packageId?: string;
 }
 
 export class AvailabilitySlotResponseDto {

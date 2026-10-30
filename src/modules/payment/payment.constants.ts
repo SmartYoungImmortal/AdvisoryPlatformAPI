@@ -8,6 +8,9 @@ export const PaymentConfig = {
       'Your active invoices reached a limit. You cannot create more invoices.',
     serviceNotFound: 'Service not found.',
     overlappingAppointments: 'Overlapping Appointments.',
+    bookingNotFound: 'Booking not found.',
+    bookingNotPayable: 'This booking is not waiting for payment.',
+    couponNotValid: 'This coupon is not valid.',
   },
   invoice: {
     pendingLimit: 1,

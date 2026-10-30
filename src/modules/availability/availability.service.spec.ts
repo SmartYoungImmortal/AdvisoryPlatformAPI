@@ -111,6 +111,7 @@ function appointment(
   return {
     id: appointmentId,
     serviceId: bookedServiceId,
+    packageId: null,
     advisorId,
     adviseeId,
     type: 'CONSULTATION',
@@ -160,6 +161,7 @@ type AvailabilityRepositoryMock = jest.Mocked<
     AvailabilityRepository,
     | 'schedulingContext'
     | 'schedulingContexts'
+    | 'findPackage'
     | 'findBlockingAppointments'
     | 'findBlockingAppointmentsForAdvisors'
     | 'hasAcceptedScreening'
@@ -180,6 +182,7 @@ function makeService(): {
   const repository: AvailabilityRepositoryMock = {
     schedulingContext: jest.fn(),
     schedulingContexts: jest.fn().mockResolvedValue(new Map()),
+    findPackage: jest.fn(),
     findBlockingAppointments: jest.fn().mockResolvedValue([]),
     findBlockingAppointmentsForAdvisors: jest.fn().mockResolvedValue([]),
     hasAcceptedScreening: jest.fn().mockResolvedValue(true),
@@ -226,6 +229,56 @@ describe('AvailabilityService slot derivation', () => {
       '2026-09-07T03:30:00.000Z',
       '2026-09-07T04:00:00.000Z',
     ]);
+  });
+
+  it('cuts the slots to a package’s length when one is asked for', async () => {
+    repository.schedulingContext.mockResolvedValue(context());
+    repository.findPackage.mockResolvedValue({
+      id: '99999999-9999-4999-8999-999999999999',
+      serviceId,
+      name: 'In depth',
+      description: null,
+      durationMinutes: 60,
+      priceSatang: 250000,
+      sortOrder: 1,
+      createdAt: new Date('2026-08-29T00:00:00.000Z'),
+      modifiedAt: new Date('2026-08-29T00:00:00.000Z'),
+    });
+
+    const slots = await service.findSlots(
+      serviceId,
+      {
+        from: '2026-09-07',
+        to: '2026-09-07',
+        packageId: '99999999-9999-4999-8999-999999999999',
+      },
+      adviseeId,
+    );
+
+    expect(repository.findPackage).toHaveBeenCalledWith(
+      serviceId,
+      '99999999-9999-4999-8999-999999999999',
+    );
+    expect(slots[0]?.endTime.getTime()).toBe(
+      (slots[0]?.startTime.getTime() ?? 0) + 60 * 60_000,
+    );
+  });
+
+  it('refuses a package that is not the service’s', async () => {
+    repository.schedulingContext.mockResolvedValue(context());
+    repository.findPackage.mockResolvedValue(undefined);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        {
+          from: '2026-09-07',
+          to: '2026-09-07',
+          packageId: '99999999-9999-4999-8999-999999999999',
+        },
+        adviseeId,
+      ),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('returns an empty slot list when the profile has no available windows', async () => {

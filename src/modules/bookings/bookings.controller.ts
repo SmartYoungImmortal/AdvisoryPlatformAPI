@@ -25,6 +25,7 @@ import { BOOKING_MESSAGES } from './bookings.constants';
 import { BookingsService } from './bookings.service';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
+import { MeetingResponseDto } from './dtos/meeting-response.dto';
 import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
 
 @ApiTags('Bookings')
@@ -55,6 +56,16 @@ export class BookingsController {
     @Param('bookingId', ParseUUIDPipe) bookingId: string,
   ): Promise<BookingResponseDto> {
     return this.bookings.findOne(user, bookingId);
+  }
+  @Post(':bookingId/meeting')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage(BOOKING_MESSAGES.meetingOpened)
+  @ApiUpdate(MeetingResponseDto, { name: 'Meeting' })
+  openMeeting(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+  ): Promise<MeetingResponseDto> {
+    return this.bookings.openMeeting(user, bookingId);
   }
   @Post(':bookingId/cancel')
   @HttpCode(HttpStatus.OK)

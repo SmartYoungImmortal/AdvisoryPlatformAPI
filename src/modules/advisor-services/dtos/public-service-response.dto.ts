@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { PublicServiceDocument } from '@/modules/advisor-services/advisor-services.types';
+import {
+  ServicePackageResponseDto,
+  type ServicePackage,
+} from './service-package.dto';
 
 /** Public allowlist. Owner-only scheduling configuration is intentionally excluded. */
 export class PublicServiceResponseDto {
@@ -28,7 +32,19 @@ export class PublicServiceResponseDto {
   })
   images: string[];
 
-  constructor(service: PublicServiceDocument, images: readonly string[]) {
+  /**
+   * The packages the service is sold in, in the order offered, on the detail
+   * route only. Empty means it is sold as itself, at `priceSatang` for
+   * `durationMinutes`.
+   */
+  @ApiProperty({ type: [ServicePackageResponseDto] })
+  packages: ServicePackageResponseDto[];
+
+  constructor(
+    service: PublicServiceDocument,
+    images: readonly string[],
+    packages: readonly ServicePackage[] = [],
+  ) {
     this.id = service.id;
     this.advisorId = service.advisorId;
     this.categoryId = service.categoryId;
@@ -41,5 +57,6 @@ export class PublicServiceResponseDto {
     this.trialDurationMinutes = service.trialDurationMinutes;
     this.createdAt = service.createdAt;
     this.images = [...images];
+    this.packages = packages.map((row) => new ServicePackageResponseDto(row));
   }
 }

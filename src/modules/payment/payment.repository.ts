@@ -194,6 +194,15 @@ export class PaymentServiceInvoicesRepository extends EntityRepository<
     return link ? this.findOneForAdvisee(link.invoiceId, adviseeId) : undefined;
   }
 
+  /** The appointments an invoice pays for: the bookings its payment confirms. */
+  async findAppointmentIds(invoiceId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ id: serviceAppointmentsOnInvoice.serviceAppointmentId })
+      .from(serviceAppointmentsOnInvoice)
+      .where(eq(serviceAppointmentsOnInvoice.serviceInvoiceId, invoiceId));
+    return rows.map((row) => row.id);
+  }
+
   /**
    * Counted over the same joins `selectForAdvisee` uses, not through the inherited `count()`.
    * Ownership lives in the joined appointments, so `service_invoices` alone would count every

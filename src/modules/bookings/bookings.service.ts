@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import {
   paginateQuery,
@@ -24,11 +25,13 @@ import {
   BOOKING_MESSAGES,
   BOOKING_NOTIFICATION_TITLES,
   invalidTransitionMessage,
+  MEETING,
 } from './bookings.constants';
 import { BookingsRepository } from './bookings.repository';
 import { AdvisorBookingResponseDto } from './dtos/advisor-booking-response.dto';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
+import { MeetingResponseDto } from './dtos/meeting-response.dto';
 import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
@@ -56,7 +59,13 @@ export class BookingsService {
     const startTime = this.parseStartTime(dto.startTime);
     const appointment = await this.claimSlot(() =>
       this.repository.createWithSchedulingLock(service.advisorId, () =>
-        this.scheduledValues(service.id, service.advisorId, user.id, startTime),
+        this.scheduledValues(
+          service.id,
+          service.advisorId,
+          user.id,
+          startTime,
+          dto.packageId,
+        ),
       ),
     );
     return new BookingResponseDto(appointment);
@@ -72,6 +81,43 @@ export class BookingsService {
     );
     if (!appointment) throw new NotFoundException(BOOKING_MESSAGES.notFound);
     return new BookingResponseDto(appointment);
+  }
+
+  /**
+   * The session's video room, for either participant. A booked appointment's room opens
+   * `MEETING.opensMinutesBefore` its start and closes at its end; one the Advisor has started
+   * stays open, so a dropped call can be rejoined when the session runs over. The room is named
+   * the first time it is opened, which also gives appointments booked before rooms existed one.
+   */
+  async openMeeting(
+    user: SessionUser,
+    bookingId: string,
+  ): Promise<MeetingResponseDto> {
+    const appointment = await this.repository.findForParticipant(
+      bookingId,
+      user.id,
+    );
+    if (!appointment) throw new NotFoundException(BOOKING_MESSAGES.notFound);
+    if (appointment.state !== 'BOOKED' && appointment.state !== 'IN_PROGRESS')
+      throw new ConflictException(BOOKING_MESSAGES.meetingUnavailable);
+    if (appointment.state === 'BOOKED') {
+      const now = Date.now();
+      const opensAt =
+        appointment.startTime.getTime() - MEETING.opensMinutesBefore * 60000;
+      if (now < opensAt)
+        throw new BadRequestException(BOOKING_MESSAGES.meetingNotOpen);
+      if (now > appointment.endTime.getTime())
+        throw new BadRequestException(BOOKING_MESSAGES.meetingEnded);
+    }
+    const roomName =
+      appointment.jitsiRoomName ??
+      (await this.repository.nameMeetingRoom(
+        appointment.id,
+        `${MEETING.roomPrefix}${randomUUID()}`,
+      ));
+    return new MeetingResponseDto(
+      `${MEETING.baseUrl}/${encodeURIComponent(roomName)}`,
+    );
   }
 
   findMine(
@@ -168,11 +214,13 @@ export class BookingsService {
         ALLOWED_SOURCE_STATES.CANCELLED,
         cancellation,
         async (current) => ({
+          // The same package, so the new time is the same length.
           ...(await this.scheduledValues(
             current.serviceId,
             current.advisorId,
             user.id,
             startTime,
+            current.packageId,
           )),
           state: current.state,
           chatRoomId: current.chatRoomId,
@@ -323,16 +371,19 @@ export class BookingsService {
     advisorId: string,
     adviseeId: string,
     startTime: Date,
+    packageId?: string | null,
   ): Promise<NewAppointment> {
     const slot = await this.availability.findSlotAt(
       serviceId,
       startTime,
       adviseeId,
+      packageId,
     );
     if (!slot) throw new BadRequestException(BOOKING_MESSAGES.unavailable);
     const global = await this.availability.getGlobal(advisorId);
     return {
       serviceId,
+      packageId: packageId ?? null,
       advisorId,
       adviseeId,
       startTime: slot.startTime,

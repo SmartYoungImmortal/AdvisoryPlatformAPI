@@ -94,7 +94,9 @@ describe('concurrent booking of one Advisor time (e2e)', () => {
     );
   });
 
-  it('allows only Advisees to read derived service slots', async () => {
+  // Every signed-in account reads a service's open times: an Advisor checking
+  // their own listing and an admin reviewing one see what an Advisee sees.
+  it('lets every signed-in account read derived service slots', async () => {
     const { advisor, serviceId, bookingDate } = await seedBookableService();
     const advisee = await signUp();
     const admin = await signUp();
@@ -112,11 +114,11 @@ describe('concurrent booking of one Advisor time (e2e)', () => {
     await advisor.agent
       .get(`/api/v1/services/${serviceId}/slots`)
       .query({ from: bookingDate, to: bookingDate })
-      .expect(403);
+      .expect(200);
     await admin.agent
       .get(`/api/v1/services/${serviceId}/slots`)
       .query({ from: bookingDate, to: bookingDate })
-      .expect(403);
+      .expect(200);
   });
 
   it('refuses a second booking of a claimed slot by a different Advisee', async () => {

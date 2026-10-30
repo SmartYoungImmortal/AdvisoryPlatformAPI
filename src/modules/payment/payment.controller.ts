@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import {
   CheckoutDto,
   CheckoutResponse,
@@ -22,6 +23,11 @@ import {
   PaymentStatusDto,
 } from '@/modules/payment/dto/invoice.dto';
 import { InvoiceDto } from '@/modules/payment/dto/invoice.dto';
+import {
+  BookingInvoiceDto,
+  CouponPreviewDto,
+  CouponPreviewResponse,
+} from '@/modules/payment/dto/coupon.dto';
 import {
   ApiCreate,
   ApiGetOne,
@@ -48,6 +54,38 @@ export class PaymentController {
 
     return result;
     // return res.redirect(HttpStatus.SEE_OTHER, result.url);
+  }
+
+  /** The Omise public key the browser tokenises a card with. Public: it is the key meant to be. */
+  @Public()
+  @Get('public-key')
+  getPublicKey(): { publicKey: string } {
+    return this.paymentService.publicKey();
+  }
+
+  /** The invoice for a booking `POST /bookings` holds, less its coupon: the one checkout charges. */
+  @Post('invoice/for-booking/:bookingId')
+  @ApiCreate(InvoiceDto)
+  postBookingInvoice(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+    @Body() dto: BookingInvoiceDto,
+  ): Promise<InvoiceDto> {
+    return this.paymentService.createBookingInvoice(
+      user,
+      bookingId,
+      dto.couponCode,
+    );
+  }
+
+  /** What a coupon would take off a booking. 400 for any code that cannot be used. */
+  @Post('coupons/preview')
+  @ApiCreate(CouponPreviewResponse)
+  previewCoupon(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: CouponPreviewDto,
+  ): Promise<CouponPreviewResponse> {
+    return this.paymentService.previewCoupon(user, dto);
   }
 
   @Post('invoice')

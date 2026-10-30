@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  index,
   integer,
   pgTable,
   primaryKey,
@@ -78,6 +79,50 @@ export const services = pgTable(
     check(
       'services_trial_duration_consistent',
       sql`(${table.trialEnabled} AND ${table.trialDurationMinutes} > 0) OR (NOT ${table.trialEnabled} AND ${table.trialDurationMinutes} IS NULL)`,
+    ),
+  ],
+);
+
+/**
+ * The packages a service is sold in: its lengths and prices, each with its own
+ * name and line ("Quick question", 30 minutes; "In depth", 90). A service with
+ * none is sold as it always was, at its own `durationMinutes` and
+ * `priceSatang`; a booking made on a package snapshots its length into the
+ * appointment's end time, so a package changed later leaves it as booked.
+ */
+export const servicePackages = pgTable(
+  'service_packages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    serviceId: uuid('service_id')
+      .notNull()
+      .references(() => services.id, { onDelete: 'cascade' }),
+    name: varchar('name').notNull(),
+    description: text('description'),
+    durationMinutes: integer('duration_minutes').notNull(),
+    priceSatang: integer('price_satang').notNull(),
+    // The order the packages are offered in, lowest first.
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    modifiedAt: timestamp('modified_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('service_packages_service_order_idx').on(
+      table.serviceId,
+      table.sortOrder,
+    ),
+    check(
+      'service_packages_price_satang_nonnegative',
+      sql`${table.priceSatang} >= 0`,
+    ),
+    check(
+      'service_packages_duration_minutes_positive',
+      sql`${table.durationMinutes} > 0`,
     ),
   ],
 );

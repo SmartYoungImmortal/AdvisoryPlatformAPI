@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseInterceptors,
@@ -20,6 +21,7 @@ import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 import {
   ApiCreate,
   ApiDelete,
+  ApiGetMany,
   ApiGetOne,
   ApiGetPaginated,
   ApiUpdate,
@@ -37,6 +39,10 @@ import { AdvisorServiceQueryDto } from './dtos/advisor-service-query.dto';
 import { AdvisorServiceResponseDto } from './dtos/advisor-service-response.dto';
 import { CreateAdvisorServiceDto } from './dtos/create-advisor-service.dto';
 import { ServiceImagesResponseDto } from './dtos/service-images-response.dto';
+import {
+  ReplaceServicePackagesDto,
+  ServicePackageResponseDto,
+} from './dtos/service-package.dto';
 import { UpdateAdvisorServiceDto } from './dtos/update-advisor-service.dto';
 
 @ApiTags('Advisor Services')
@@ -132,5 +138,27 @@ export class AdvisorServicesController {
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
   ): Promise<AdvisorServiceResponseDto> {
     return this.services.delete(user, serviceId);
+  }
+
+  @UserHasPermission({ permission: { advisorService: ['read'] } })
+  @Get(':serviceId/packages')
+  @ApiGetMany(ServicePackageResponseDto, { name: 'Service package' })
+  findPackages(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+  ): Promise<ServicePackageResponseDto[]> {
+    return this.services.findPackages(user, serviceId);
+  }
+
+  @UserHasPermission({ permission: { advisorService: ['update'] } })
+  @Put(':serviceId/packages')
+  @ResponseMessage(ADVISOR_SERVICE_MESSAGES.updated)
+  @ApiGetMany(ServicePackageResponseDto, { name: 'Service package' })
+  replacePackages(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Body() dto: ReplaceServicePackagesDto,
+  ): Promise<ServicePackageResponseDto[]> {
+    return this.services.replacePackages(user, serviceId, dto);
   }
 }

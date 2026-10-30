@@ -5,6 +5,7 @@ import {
   inArray,
   type InferInsertModel,
   type InferSelectModel,
+  isNull,
   or,
   sql,
   type SQL,
@@ -127,6 +128,24 @@ export class BookingsRepository extends EntityRepository<
       values,
     );
     return appointment;
+  }
+
+  /**
+   * Names the booking's video room unless it already has one, and returns the name the row
+   * holds: when both participants open the room at once, the first name written wins and the
+   * second caller is given it too, so the two land in the same call.
+   */
+  async nameMeetingRoom(bookingId: string, roomName: string): Promise<string> {
+    const [named] = await this.updateWhere(
+      and(
+        eq(serviceAppointments.id, bookingId),
+        isNull(serviceAppointments.jitsiRoomName),
+      ) as SQL,
+      { jitsiRoomName: roomName },
+    );
+    if (named?.jitsiRoomName) return named.jitsiRoomName;
+    const current = await this.findById(bookingId);
+    return current?.jitsiRoomName ?? roomName;
   }
 
   findForParticipant(

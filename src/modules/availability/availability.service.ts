@@ -204,7 +204,10 @@ export class AvailabilityService {
       throw new BadRequestException(AVAILABILITY_MESSAGES.invalidRange);
     if (daysBetween(query.from, query.to) > 89)
       throw new BadRequestException(AVAILABILITY_MESSAGES.invalidRange);
-    const context = await this.getSchedulingContext(serviceId);
+    const context = await this.withPackage(
+      await this.getSchedulingContext(serviceId),
+      query.packageId,
+    );
     await this.assertCanViewSlots(context, adviseeId);
     return this.deriveSlots(context, query.from, query.to);
   }
@@ -213,8 +216,12 @@ export class AvailabilityService {
     serviceId: string,
     startTime: Date,
     adviseeId: string,
+    packageId?: string | null,
   ): Promise<AvailabilitySlotResponseDto | undefined> {
-    const context = await this.getSchedulingContext(serviceId);
+    const context = await this.withPackage(
+      await this.getSchedulingContext(serviceId),
+      packageId,
+    );
     await this.assertCanViewSlots(context, adviseeId);
     const date = dateInTimeZone(startTime, context.timezone);
     const slots = await this.deriveSlots(context, date, date);
@@ -312,6 +319,32 @@ export class AvailabilityService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * The context with the package's length in place of the service's, so the
+   * slots, the daily limit and the booking's end time all follow the package.
+   * A package that is not this service's is refused, not quietly ignored.
+   */
+  private async withPackage(
+    context: SchedulingContext,
+    packageId: string | null | undefined,
+  ): Promise<SchedulingContext> {
+    if (!packageId) return context;
+    const servicePackage = await this.repository.findPackage(
+      context.service.id,
+      packageId,
+    );
+    if (!servicePackage)
+      throw new BadRequestException(AVAILABILITY_MESSAGES.packageNotFound);
+    return {
+      ...context,
+      service: {
+        ...context.service,
+        durationMinutes: servicePackage.durationMinutes,
+        priceSatang: servicePackage.priceSatang,
+      },
+    };
   }
 
   private async assertCanViewSlots(
