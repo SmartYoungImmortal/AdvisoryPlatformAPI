@@ -6,13 +6,13 @@ import {
 } from '@nestjs/common';
 import {
   paginateQuery,
-  type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { AdminRefundCaseDetailResponseDto } from './dtos/admin-refund-case-detail-response.dto';
 import { AdminRefundCaseQueryDto } from './dtos/admin-refund-case-query.dto';
 import { AdminRefundCaseResponseDto } from './dtos/admin-refund-case-response.dto';
+import { MyRefundCaseQueryDto } from './dtos/my-refund-case-query.dto';
 import { CreateRefundCaseDto } from './dtos/create-refund-case.dto';
 import { RefundCaseResponseDto } from './dtos/refund-case-response.dto';
 import { RejectRefundCaseDto } from './dtos/reject-refund-case.dto';
@@ -50,22 +50,24 @@ export class RefundsService {
       throw new ConflictException(REFUND_MESSAGES.alreadyOpen);
     }
 
-    const refundCase = await this.repository.create({
+    const refundCase = await this.repository.createOpenCase({
       invoiceId: invoice.id,
       requestedByUserId: user.id,
       reason: dto.reason,
     });
+    if (!refundCase) throw new ConflictException(REFUND_MESSAGES.alreadyOpen);
     return new RefundCaseResponseDto(refundCase);
   }
 
   findMine(
     user: SessionUser,
-    page: OffsetPaginationDto,
+    page: MyRefundCaseQueryDto,
   ): Promise<PaginatedResult<RefundCaseResponseDto>> {
     return paginateQuery(
       page,
-      (options) => this.repository.findManyForRequester(user.id, options),
-      () => this.repository.countForRequester(user.id),
+      (options) =>
+        this.repository.findManyForRequester(user.id, options, page.invoiceId),
+      () => this.repository.countForRequester(user.id, page.invoiceId),
       (refundCase) => new RefundCaseResponseDto(refundCase),
     );
   }
