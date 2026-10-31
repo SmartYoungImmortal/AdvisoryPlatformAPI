@@ -1,4 +1,5 @@
 import type { TestingModule } from '@nestjs/testing';
+import { createHash } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { eq } from 'drizzle-orm';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -22,6 +23,10 @@ import {
   skills,
   user,
   verification,
+  serviceInvoices,
+  serviceAppointmentsOnInvoice,
+  payouts,
+  payoutInvoices,
 } from '@/database/schema';
 import { SeaweedFsStorageStub } from './stubs/seaweedfs-storage.stub';
 import {
@@ -104,6 +109,89 @@ describe('authentication and authorization (e2e)', () => {
       fullName: 'E2E Test User',
       status: 'SUSPENDED',
     });
+
+  it('locks an email after five failures for 15 minutes, across clients, and unlocks after expiry', async () => {
+    const signedUp = await signUp();
+    const identifier = `login-lock:${createHash('sha256').update(signedUp.email).digest('hex')}`;
+    const attempt = (password: string, email = signedUp.email) =>
+      request(app.getHttpServer())
+        .post('/api/auth/sign-in/email')
+        .send({ email, password });
+    try {
+      for (let i = 0; i < 4; i++)
+        await attempt('wrong-password', signedUp.email.toUpperCase()).expect(
+          401,
+        );
+      const fifth = await attempt('wrong-password').expect(429);
+      expect(object(fifth.body)).toMatchObject({
+        code: 'LOGIN_LOCKED',
+        retryAfterSeconds: 900,
+      });
+      await attempt(signedUp.password).expect(429);
+      const [record] = await db
+        .select()
+        .from(verification)
+        .where(eq(verification.identifier, identifier));
+      expect(record.expiresAt.getTime() - Date.now()).toBeGreaterThan(
+        14 * 60 * 1000,
+      );
+      await db
+        .update(verification)
+        .set({ expiresAt: new Date(Date.now() - 1) })
+        .where(eq(verification.identifier, identifier));
+      await attempt(signedUp.password).expect(200);
+      await attempt('wrong-password').expect(401);
+      // Four old failures outside the rolling window do not count toward a new lock.
+      await db
+        .update(verification)
+        .set({
+          value: JSON.stringify({
+            failures: Array.from(
+              { length: 4 },
+              () => Date.now() - 16 * 60 * 1000,
+            ),
+            lockedUntil: null,
+          }),
+        })
+        .where(eq(verification.identifier, identifier));
+      await attempt('wrong-password').expect(401);
+      await attempt(signedUp.password).expect(200);
+    } finally {
+      await db
+        .delete(verification)
+        .where(eq(verification.identifier, identifier));
+    }
+  });
+
+  it('counts parallel failures for an unknown email without revealing registration state', async () => {
+    const email = `unknown-${crypto.randomUUID()}@example.test`;
+    const identifier = `login-lock:${createHash('sha256').update(email).digest('hex')}`;
+    try {
+      const responses = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          request(app.getHttpServer())
+            .post('/api/auth/sign-in/email')
+            .send({ email, password: 'wrong-password' }),
+        ),
+      );
+      expect(responses.map((response) => response.status).sort()).toEqual([
+        401, 401, 401, 401, 429,
+      ]);
+      await request(app.getHttpServer())
+        .post('/api/auth/sign-in/email')
+        .send({ email, password: 'wrong-password' })
+        .expect(429);
+      const records = await db
+        .select()
+        .from(verification)
+        .where(eq(verification.identifier, identifier));
+      expect(records).toHaveLength(1);
+    } finally {
+      await db
+        .delete(verification)
+        .where(eq(verification.identifier, identifier));
+    }
+  });
 
   it('rejects a protected route without a session', async () => {
     await request(app.getHttpServer())
@@ -478,6 +566,7 @@ describe('authentication and authorization (e2e)', () => {
       .get('/api/v1/users/me/deletion-blockers')
       .expect(200);
     expect(object(object(blockers.body).data)).toEqual({
+      hasUnsettledEarnings: false,
       upcomingAppointments: [
         {
           appointmentId: appointment.id,
@@ -506,8 +595,78 @@ describe('authentication and authorization (e2e)', () => {
       .get('/api/v1/users/me/deletion-blockers')
       .expect(200)
       .expect(({ body }) => {
-        expect(object(object(body).data)).toEqual({ upcomingAppointments: [] });
+        expect(object(object(body).data)).toEqual({
+          upcomingAppointments: [],
+          hasUnsettledEarnings: false,
+        });
       });
+
+    const [invoice] = await db
+      .insert(serviceInvoices)
+      .values({
+        amountSatang: 10000,
+        platformFeeSatang: 1000,
+        status: 'HELD_IN_ESCROW',
+      })
+      .returning();
+    let payoutId: string | undefined;
+    try {
+      await db.insert(serviceAppointmentsOnInvoice).values({
+        serviceAppointmentId: appointment.id,
+        serviceInvoiceId: invoice.id,
+      });
+      await advisor.agent.delete('/api/v1/users/me').expect(409);
+      const earningsBlockers = await advisor.agent
+        .get('/api/v1/users/me/deletion-blockers')
+        .expect(200);
+      expect(object(object(earningsBlockers.body).data)).toEqual({
+        upcomingAppointments: [],
+        hasUnsettledEarnings: true,
+      });
+      const [payout] = await db
+        .insert(payouts)
+        .values({
+          advisorId: advisor.userId,
+          amountSatang: 9000,
+          status: 'FAILED',
+        })
+        .returning();
+      payoutId = payout.id;
+      await db
+        .insert(payoutInvoices)
+        .values({ payoutId, invoiceId: invoice.id });
+      await advisor.agent.delete('/api/v1/users/me').expect(409);
+      await db
+        .update(payouts)
+        .set({ status: 'PENDING' })
+        .where(eq(payouts.id, payoutId));
+      await advisor.agent.delete('/api/v1/users/me').expect(409);
+      await db
+        .update(payouts)
+        .set({ status: 'PAID', paidAt: new Date() })
+        .where(eq(payouts.id, payoutId));
+      const settled = await advisor.agent
+        .get('/api/v1/users/me/deletion-blockers')
+        .expect(200);
+      expect(object(object(settled.body).data)).toEqual({
+        upcomingAppointments: [],
+        hasUnsettledEarnings: false,
+      });
+      await advisor.agent.delete('/api/v1/users/me').expect(200);
+    } finally {
+      if (payoutId) {
+        await db
+          .delete(payoutInvoices)
+          .where(eq(payoutInvoices.payoutId, payoutId));
+        await db.delete(payouts).where(eq(payouts.id, payoutId));
+      }
+      await db
+        .delete(serviceAppointmentsOnInvoice)
+        .where(eq(serviceAppointmentsOnInvoice.serviceInvoiceId, invoice.id));
+      await db
+        .delete(serviceInvoices)
+        .where(eq(serviceInvoices.id, invoice.id));
+    }
   });
 
   it('opens an application once, which does not grant the Advisor role on its own', async () => {

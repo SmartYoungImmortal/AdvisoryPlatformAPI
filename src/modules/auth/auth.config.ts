@@ -8,6 +8,7 @@ import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
 import { createAuthEmailSender, createSmtpTransport } from './auth-email';
 import { afterUserCreated, type AuthHooks } from './auth-hooks';
+import { loginLockHooks } from './login-lock';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import {
@@ -262,6 +263,7 @@ export function createAuth(
   const providers = socialProviders(config);
 
   return betterAuth({
+    hooks: loginLockHooks(db),
     database: drizzleAdapter(db, { provider: 'pg', schema }),
     secret: config.get(ENV_KEYS.BETTER_AUTH_SECRET, { infer: true }),
     baseURL: config.get(ENV_KEYS.BETTER_AUTH_URL, { infer: true }),
