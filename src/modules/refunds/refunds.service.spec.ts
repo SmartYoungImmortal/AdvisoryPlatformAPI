@@ -62,7 +62,7 @@ describe('RefundsService', () => {
       RefundsRepository,
       | 'findDisputableInvoice'
       | 'openCaseExists'
-      | 'create'
+      | 'createOpenCase'
       | 'findManyForRequester'
       | 'countForRequester'
       | 'findManyForAdmin'
@@ -79,7 +79,7 @@ describe('RefundsService', () => {
     repository = {
       findDisputableInvoice: jest.fn(),
       openCaseExists: jest.fn(),
-      create: jest.fn(),
+      createOpenCase: jest.fn(),
       findManyForRequester: jest.fn(),
       countForRequester: jest.fn(),
       findManyForAdmin: jest.fn(),
@@ -102,7 +102,7 @@ describe('RefundsService', () => {
       amountSatang: 150000,
     });
     repository.openCaseExists.mockResolvedValue(false);
-    repository.create.mockResolvedValue(makeRefundCase());
+    repository.createOpenCase.mockResolvedValue(makeRefundCase());
 
     await expect(
       service.open(advisee, {
@@ -115,7 +115,7 @@ describe('RefundsService', () => {
       invoiceId,
       advisee.id,
     );
-    expect(repository.create).toHaveBeenCalledWith({
+    expect(repository.createOpenCase).toHaveBeenCalledWith({
       invoiceId,
       requestedByUserId: advisee.id,
       reason: 'The consultation never happened',
@@ -129,7 +129,7 @@ describe('RefundsService', () => {
       service.open(advisee, { invoiceId, reason: 'Not mine' }),
     ).rejects.toThrow(NotFoundException);
     expect(repository.openCaseExists).not.toHaveBeenCalled();
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createOpenCase).not.toHaveBeenCalled();
   });
 
   it('checks ownership before looking for an existing case, so a stranger learns nothing', async () => {
@@ -152,7 +152,7 @@ describe('RefundsService', () => {
     await expect(
       service.open(advisee, { invoiceId, reason: 'Again' }),
     ).rejects.toThrow(ConflictException);
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createOpenCase).not.toHaveBeenCalled();
   });
 
   it('keeps the reviewing Admin out of the requester own-case view', async () => {
@@ -172,10 +172,14 @@ describe('RefundsService', () => {
     const result = await service.findMine(advisee, page);
 
     expect(result.items[0]).not.toHaveProperty('reviewedByAdminId');
-    expect(repository.findManyForRequester).toHaveBeenCalledWith(advisee.id, {
-      limit: 20,
-      offset: 0,
-    });
+    expect(repository.findManyForRequester).toHaveBeenCalledWith(
+      advisee.id,
+      {
+        limit: 20,
+        offset: 0,
+      },
+      undefined,
+    );
   });
 
   it('pages the Admin queue and counts it under the same status filter', async () => {
