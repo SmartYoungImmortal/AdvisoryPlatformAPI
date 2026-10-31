@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   and,
+  desc,
   eq,
   inArray,
   type InferInsertModel,
@@ -15,7 +16,12 @@ import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predi
 import { serviceName } from '@/common/i18n/localized-columns';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { serviceAppointments, services, user } from '@/database/schema';
+import {
+  serviceAppointments,
+  services,
+  user,
+  screeningRequests,
+} from '@/database/schema';
 import { openBookingChatRoom } from '@/modules/chat/booking-chat-room';
 import type { AppointmentState } from './booking-states';
 
@@ -24,6 +30,9 @@ type Appointment = InferSelectModel<typeof serviceAppointments>;
 export type AdvisorAppointment = Appointment & {
   adviseeName: string;
   serviceName: string;
+};
+export type AdvisorAppointmentDetail = AdvisorAppointment & {
+  latestScreeningRequestId: string | null;
 };
 type NewAppointment = InferInsertModel<typeof serviceAppointments>;
 type AppointmentUpdate = PgUpdateSetSource<typeof serviceAppointments>;
@@ -230,6 +239,48 @@ export class BookingsRepository extends EntityRepository<
       adviseeName: row.adviseeName,
       serviceName: row.serviceName,
     }));
+  }
+
+  async findDetailForAdvisor(
+    bookingId: string,
+    advisorId: string,
+  ): Promise<AdvisorAppointmentDetail | undefined> {
+    const latestRequest = this.db
+      .select({ id: screeningRequests.id })
+      .from(screeningRequests)
+      .where(
+        and(
+          eq(screeningRequests.serviceId, serviceAppointments.serviceId),
+          eq(screeningRequests.adviseeId, serviceAppointments.adviseeId),
+        ),
+      )
+      .orderBy(desc(screeningRequests.createdAt), desc(screeningRequests.id))
+      .limit(1);
+    const [row] = await this.db
+      .select({
+        appointment: serviceAppointments,
+        adviseeName: user.displayName,
+        serviceName: serviceName(),
+        latestScreeningRequestId: sql<string | null>`(${latestRequest})`,
+      })
+      .from(serviceAppointments)
+      .innerJoin(user, eq(user.id, serviceAppointments.adviseeId))
+      .innerJoin(services, eq(services.id, serviceAppointments.serviceId))
+      .where(
+        and(
+          eq(serviceAppointments.id, bookingId),
+          eq(serviceAppointments.advisorId, advisorId),
+        ),
+      )
+      .limit(1);
+    return row
+      ? {
+          ...row.appointment,
+          adviseeName: row.adviseeName,
+          serviceName: row.serviceName,
+          latestScreeningRequestId: row.latestScreeningRequestId,
+        }
+      : undefined;
   }
 
   async countForAdvisor(advisorId: string): Promise<number> {

@@ -730,7 +730,16 @@ The implemented scheduling contract uses these routes, all under the standard re
   real Postgres by `test/booking-concurrency.e2e-spec.ts` and
   `bookings.repository.integration-spec.ts`.
 - `GET /api/v1/bookings/me` and `GET /api/v1/advisors/me/bookings` return the respective
-  paginated participant views.
+  paginated participant views. Advisor pagination validates and transforms `page`/`limit`
+  as numbers (defaults 1/20); invalid values return `400`.
+- `GET /api/v1/advisors/me/bookings/:bookingId` returns an advisor-only detail projection:
+  the participant-facing names and appointment fields plus `chatRoomId` and
+  `latestScreeningRequestId`, both nullable. Only the owning advisor can read it;
+  other advisors receive `404`, advisees receive `403`, unauthenticated callers receive
+  `401`, and malformed UUIDs receive `400`. The screening identifier is the latest submitted
+  request for this service and advisee, ordered by creation time then ID. It is **not** a
+  historical snapshot tied to the appointment. Fetch its answers through the existing
+  advisor-owned screening detail route. No participant email or legal name is added.
 - `GET /api/v1/bookings/:bookingId` returns one appointment to either of its two participants and
   `404` to anybody else, so an Advisor and an Advisee share one detail route.
 - `POST /api/v1/bookings/:bookingId/meeting` gives either participant the session's video call as

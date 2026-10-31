@@ -12,18 +12,20 @@ import { ApiTags } from '@nestjs/swagger';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 import {
   ApiGetPaginated,
+  ApiGetOne,
   ApiUpdate,
 } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
-import type {
+import {
   OffsetPaginationDto,
-  PaginatedResult,
+  type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { BOOKING_MESSAGES } from './bookings.constants';
 import { BookingsService } from './bookings.service';
 import { AdvisorBookingResponseDto } from './dtos/advisor-booking-response.dto';
+import { AdvisorBookingDetailResponseDto } from './dtos/advisor-booking-detail-response.dto';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 
 @ApiTags('Bookings')
@@ -39,6 +41,16 @@ export class AdvisorBookingsController {
     @Query() query: OffsetPaginationDto,
   ): Promise<PaginatedResult<AdvisorBookingResponseDto>> {
     return this.bookings.findAdvisorMine(user, query);
+  }
+
+  @UserHasPermission({ permission: { advisor: ['read'] } })
+  @Get(':bookingId')
+  @ApiGetOne(AdvisorBookingDetailResponseDto, { name: 'AdvisorBookingDetail' })
+  findOne(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+  ): Promise<AdvisorBookingDetailResponseDto> {
+    return this.bookings.findAdvisorOne(user, bookingId);
   }
 
   @UserHasPermission({ permission: { advisor: ['updateSelf'] } })

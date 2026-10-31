@@ -83,6 +83,7 @@ describe('BookingsService', () => {
       | 'findManyForAdvisee'
       | 'countForAdvisee'
       | 'findManyForAdvisor'
+      | 'findDetailForAdvisor'
       | 'countForAdvisor'
       | 'nameMeetingRoom'
     >
@@ -104,6 +105,7 @@ describe('BookingsService', () => {
       findManyForAdvisee: jest.fn(),
       countForAdvisee: jest.fn(),
       findManyForAdvisor: jest.fn(),
+      findDetailForAdvisor: jest.fn(),
       countForAdvisor: jest.fn(),
       nameMeetingRoom: jest.fn(),
     };
@@ -251,6 +253,33 @@ describe('BookingsService', () => {
   });
 
   describe('participant lists', () => {
+    it('returns the owned advisor detail with the current screening-request link', async () => {
+      const appointment = {
+        ...makeAppointment(),
+        adviseeName: 'Advisee display',
+        serviceName: 'Service',
+        latestScreeningRequestId: null,
+      };
+      repository.findDetailForAdvisor.mockResolvedValue(appointment);
+      await expect(
+        service.findAdvisorOne(advisor, appointment.id),
+      ).resolves.toMatchObject({
+        id: appointment.id,
+        adviseeName: 'Advisee display',
+        latestScreeningRequestId: null,
+      });
+      expect(repository.findDetailForAdvisor).toHaveBeenCalledWith(
+        appointment.id,
+        advisor.id,
+      );
+    });
+
+    it('does not reveal a missing or foreign advisor booking', async () => {
+      repository.findDetailForAdvisor.mockResolvedValue(undefined);
+      await expect(service.findAdvisorOne(advisor, 'missing')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
     it('scopes the Advisee list to the session user', async () => {
       repository.findManyForAdvisee.mockResolvedValue([makeAppointment()]);
       repository.countForAdvisee.mockResolvedValue(1);
