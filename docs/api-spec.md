@@ -65,6 +65,13 @@ Authentication is served directly by Better Auth under `/api/auth/*`. These endp
 return Better Auth's response bodies, cookies, and error shapes rather than the Nest response
 envelope used by `/api/v1/*`.
 
+Email sign-in pauses for 15 minutes after five failed credentials checks within a rolling
+15-minute window. The fifth failure and attempts during the pause return `429` with
+`code: "LOGIN_LOCKED"` and `retryAfterSeconds`. This is keyed by normalized email across clients,
+including unknown addresses, and persisted in expiring private auth records. Successful attempts
+do not remove earlier failures from the rolling window. Password-reset requests remain available.
+The auth provider's separate per-IP request throttle remains enabled in production.
+
 All browser requests must use credentials so the HttpOnly session cookie is stored and returned.
 `status` and `avatarKey` are server-owned fields and are rejected as signup input.
 
@@ -317,7 +324,10 @@ database reference.
 
 Returns the account owner's upcoming appointments that must be cancelled or completed before
 account deletion. It includes future `PENDING_PAYMENT` and `BOOKED` appointments where the user is
-either the Advisor or Advisee. The response includes only appointment id, start time, and state.
+either the Advisor or Advisee. Each appointment includes only its id, start time, and state.
+`hasUnsettledEarnings` also reports whether the owner has a pending payout or a positive-net invoice
+in `HELD_IN_ESCROW` or `RELEASED` that is not linked to a `PAID` payout for that Advisor. Failed payouts
+do not settle invoices. Refunded invoices and zero-net invoices do not count as earnings.
 
 ### `DELETE /api/v1/users/me` — `Advisee`
 
@@ -331,9 +341,9 @@ identity/proof data instead of deleting the user row and cascading through evide
 
 The API rechecks upcoming appointments inside the deletion transaction and returns `409` without
 changing the account while any remain. The user interface can load the current appointment details
-from `GET /api/v1/users/me/deletion-blockers`. Advisor withdrawable balance is not a deletion
-blocker yet: although invoice and payout tables are modelled, the API has no implemented payout or
-withdrawable-balance contract from which to calculate an authoritative amount.
+from `GET /api/v1/users/me/deletion-blockers`. Unsettled earnings are also checked inside that
+transaction and block deletion. This uses historical invoice and payout records, never current
+service prices. The response deliberately does not quote a withdrawable balance.
 
 - all sessions and authentication accounts are deleted immediately;
 - the user row is marked `DELETED` and direct identity fields are replaced with non-identifying
