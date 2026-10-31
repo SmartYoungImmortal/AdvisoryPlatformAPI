@@ -1,6 +1,11 @@
 import { eq } from 'drizzle-orm';
 import type request from 'supertest';
-import { serviceAppointments, services, user } from '@/database/schema';
+import {
+  serviceAppointments,
+  services,
+  user,
+  screeningRequests,
+} from '@/database/schema';
 import { BookingsService } from '@/modules/bookings/bookings.service';
 import { approveAsAdvisor, signUpUser } from './support/accounts';
 import {
@@ -54,6 +59,91 @@ describe('booking lifecycle (e2e)', () => {
       .where(eq(serviceAppointments.id, bookingId));
     return row;
   }
+
+  it('reads advisor-owned session details without exposing another participant or advisor booking', async () => {
+    const { advisor, serviceId, first } = await seedService();
+    const advisee = await signUp();
+    const bookingId = stringField(
+      await book(advisee.agent, serviceId, first),
+      'id',
+    );
+    const detail = await advisor.agent
+      .get(`/api/v1/advisors/me/bookings/${bookingId}`)
+      .expect(200);
+    expect(data(detail.body)).toMatchObject({
+      id: bookingId,
+      adviseeId: advisee.userId,
+      latestScreeningRequestId: null,
+    });
+    expect(data(detail.body)).toHaveProperty('adviseeName');
+    expect(data(detail.body)).not.toHaveProperty('email');
+    await advisee.agent
+      .get(`/api/v1/advisors/me/bookings/${bookingId}`)
+      .expect(403);
+    const stranger = await signUp();
+    await approveAsAdvisor(e2e().db, stranger, { headline: 'Other advisor' });
+    await stranger.agent
+      .get(`/api/v1/advisors/me/bookings/${bookingId}`)
+      .expect(404);
+    await advisor.agent
+      .get('/api/v1/advisors/me/bookings/not-a-uuid')
+      .expect(400);
+    const [latest] = await e2e()
+      .db.insert(screeningRequests)
+      .values({ serviceId, adviseeId: advisee.userId, status: 'DECLINED' })
+      .returning();
+    try {
+      const current = await advisor.agent
+        .get(`/api/v1/advisors/me/bookings/${bookingId}`)
+        .expect(200);
+      expect(data(current.body).latestScreeningRequestId).toBe(latest.id);
+    } finally {
+      await e2e()
+        .db.delete(screeningRequests)
+        .where(eq(screeningRequests.id, latest.id));
+    }
+  });
+
+  it('paginates advisor bookings with numeric defaults and rejects invalid page parameters', async () => {
+    const { advisor, serviceId, first, second } = await seedService();
+    const advisee = await signUp();
+    await book(advisee.agent, serviceId, first);
+    await book(advisee.agent, serviceId, second);
+    const one = await advisor.agent
+      .get('/api/v1/advisors/me/bookings?limit=1&page=1')
+      .expect(200);
+    const two = await advisor.agent
+      .get('/api/v1/advisors/me/bookings?limit=1&page=2')
+      .expect(200);
+    expect(data(one.body)).toMatchObject({
+      page: 1,
+      limit: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(data(two.body)).toMatchObject({
+      page: 2,
+      limit: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(data(one.body).items).not.toEqual(data(two.body).items);
+    const defaults = await advisor.agent
+      .get('/api/v1/advisors/me/bookings')
+      .expect(200);
+    expect(data(defaults.body)).toMatchObject({ page: 1, limit: 20, total: 2 });
+    for (const query of [
+      'limit=101',
+      'limit=0',
+      'limit=nope',
+      'page=0',
+      'page=-1',
+    ]) {
+      await advisor.agent
+        .get(`/api/v1/advisors/me/bookings?${query}`)
+        .expect(400);
+    }
+  });
 
   describe('reschedule', () => {
     it('cancels the original and claims the new time in one transaction', async () => {

@@ -29,6 +29,7 @@ import {
 } from './bookings.constants';
 import { BookingsRepository } from './bookings.repository';
 import { AdvisorBookingResponseDto } from './dtos/advisor-booking-response.dto';
+import { AdvisorBookingDetailResponseDto } from './dtos/advisor-booking-detail-response.dto';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
 import { MeetingResponseDto } from './dtos/meeting-response.dto';
@@ -142,6 +143,18 @@ export class BookingsService {
       () => this.repository.countForAdvisor(user.id),
       (item) => new AdvisorBookingResponseDto(item),
     );
+  }
+
+  async findAdvisorOne(
+    user: SessionUser,
+    bookingId: string,
+  ): Promise<AdvisorBookingDetailResponseDto> {
+    const appointment = await this.repository.findDetailForAdvisor(
+      bookingId,
+      user.id,
+    );
+    if (!appointment) throw new NotFoundException(BOOKING_MESSAGES.notFound);
+    return new AdvisorBookingDetailResponseDto(appointment);
   }
 
   cancelAsAdvisee(
