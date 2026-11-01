@@ -19,10 +19,17 @@ export class AccountDeletionAppointmentBlockerDto {
 }
 
 export class AccountDeletionBlockersResponseDto {
+  @ApiProperty()
+  hasUnsettledEarnings: boolean;
+
   @ApiProperty({ type: [AccountDeletionAppointmentBlockerDto] })
   upcomingAppointments: AccountDeletionAppointmentBlockerDto[];
 
-  constructor(blockers: AccountDeletionAppointmentBlockerDto[]) {
+  constructor(
+    blockers: AccountDeletionAppointmentBlockerDto[],
+    hasUnsettledEarnings: boolean,
+  ) {
+    this.hasUnsettledEarnings = hasUnsettledEarnings;
     this.upcomingAppointments = blockers.map(
       (blocker) => new AccountDeletionAppointmentBlockerDto(blocker),
     );

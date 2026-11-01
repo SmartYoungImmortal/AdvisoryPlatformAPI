@@ -7,11 +7,9 @@ import {
 } from '@/common/decorators/api-docs.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
-import {
-  OffsetPaginationDto,
-  type PaginatedResult,
-} from '@/common/pagination/offset-pagination.dto';
+import { type PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { MyRefundCaseQueryDto } from './dtos/my-refund-case-query.dto';
 import { CreateRefundCaseDto } from './dtos/create-refund-case.dto';
 import { RefundCaseResponseDto } from './dtos/refund-case-response.dto';
 import { REFUND_MESSAGES } from './refunds.constants';
@@ -39,7 +37,7 @@ export class RefundsController {
   @ApiGetPaginated(RefundCaseResponseDto, { name: 'Refund case' })
   findMine(
     @CurrentUser() user: SessionUser,
-    @Query() query: OffsetPaginationDto,
+    @Query() query: MyRefundCaseQueryDto,
   ): Promise<PaginatedResult<RefundCaseResponseDto>> {
     return this.refunds.findMine(user, query);
   }

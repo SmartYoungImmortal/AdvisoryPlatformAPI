@@ -3,6 +3,8 @@
 jest.mock('better-auth/minimal', () => ({
   betterAuth: (options: unknown) => ({ options }),
 }));
+// The real lock hooks run in the ESM HTTP suite in test/app.e2e-spec.ts.
+jest.mock('./login-lock', () => ({ loginLockHooks: () => ({}) }));
 jest.mock('@better-auth/drizzle-adapter/relations-v2', () => ({
   drizzleAdapter: () => ({}),
 }));
