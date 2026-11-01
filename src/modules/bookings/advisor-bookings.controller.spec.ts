@@ -29,6 +29,7 @@ describe('AdvisorBookingsController', () => {
   beforeEach(() => {
     bookings = {
       findAdvisorMine: jest.fn(),
+      findAdvisorOne: jest.fn(),
       cancelAsAdvisor: jest.fn(),
       start: jest.fn(),
       complete: jest.fn(),
