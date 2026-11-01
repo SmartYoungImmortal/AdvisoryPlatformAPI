@@ -89,7 +89,13 @@ describe('BookingsService', () => {
     >
   >;
   let availability: jest.Mocked<
-    Pick<AvailabilityService, 'findSlotAt' | 'getGlobal'>
+    Pick<
+      AvailabilityService,
+      | 'findSlotAt'
+      | 'findRescheduleSlots'
+      | 'findReplacementSlotAt'
+      | 'getGlobal'
+    >
   >;
 
   beforeEach(() => {
@@ -109,7 +115,12 @@ describe('BookingsService', () => {
       countForAdvisor: jest.fn(),
       nameMeetingRoom: jest.fn(),
     };
-    availability = { findSlotAt: jest.fn(), getGlobal: jest.fn() };
+    availability = {
+      findSlotAt: jest.fn(),
+      findRescheduleSlots: jest.fn(),
+      findReplacementSlotAt: jest.fn(),
+      getGlobal: jest.fn(),
+    };
     availability.getGlobal.mockResolvedValue(makeGlobal());
     notifications = { notify: jest.fn().mockResolvedValue(undefined) };
     service = new BookingsService(
@@ -500,7 +511,7 @@ describe('BookingsService', () => {
     const newEnd = new Date('2026-09-21T04:00:00.000Z');
 
     beforeEach(() => {
-      availability.findSlotAt.mockResolvedValue({
+      availability.findReplacementSlotAt.mockResolvedValue({
         startTime: newStart,
         endTime: newEnd,
       });

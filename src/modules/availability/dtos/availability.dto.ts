@@ -122,7 +122,7 @@ export class UpsertAvailabilityProfileDto {
   blockedPeriods?: BlockedPeriodDto[];
 }
 
-export class SlotQueryDto {
+export class SlotRangeQueryDto {
   @ApiProperty({ example: '2026-09-01' })
   @IsDateString()
   from!: string;
@@ -130,7 +130,9 @@ export class SlotQueryDto {
   @ApiProperty({ example: '2026-09-07' })
   @IsDateString()
   to!: string;
+}
 
+export class SlotQueryDto extends SlotRangeQueryDto {
   /** The package whose length the slots are cut to; the service's own length without one. */
   @ApiPropertyOptional({ format: 'uuid' })
   @IsOptional()

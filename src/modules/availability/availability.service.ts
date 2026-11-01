@@ -17,10 +17,14 @@ import {
 } from './availability-time';
 import type {
   SlotQueryDto,
+  SlotRangeQueryDto,
   UpsertAvailabilityProfileDto,
 } from './dtos/availability.dto';
 import { AvailabilitySlotResponseDto } from './dtos/availability.dto';
-import type { AvailabilityProfileDetails } from './availability.types';
+import type {
+  AvailabilityProfileDetails,
+  ReschedulingBooking,
+} from './availability.types';
 
 type GlobalAvailability = InferSelectModel<typeof advisorGlobalAvailability>;
 type SchedulingContext = Exclude<
@@ -200,16 +204,71 @@ export class AvailabilityService {
     query: SlotQueryDto,
     adviseeId: string,
   ): Promise<AvailabilitySlotResponseDto[]> {
-    if (!isIsoDate(query.from) || !isIsoDate(query.to) || query.from > query.to)
-      throw new BadRequestException(AVAILABILITY_MESSAGES.invalidRange);
-    if (daysBetween(query.from, query.to) > 89)
-      throw new BadRequestException(AVAILABILITY_MESSAGES.invalidRange);
+    this.assertDateRange(query);
     const context = await this.withPackage(
       await this.getSchedulingContext(serviceId),
       query.packageId,
     );
     await this.assertCanViewSlots(context, adviseeId);
     return this.deriveSlots(context, query.from, query.to);
+  }
+
+  async findRescheduleSlots(
+    booking: ReschedulingBooking,
+    query: SlotRangeQueryDto,
+    releaseOriginal: boolean,
+  ): Promise<AvailabilitySlotResponseDto[]> {
+    this.assertDateRange(query);
+    const context = await this.reschedulingContext(booking);
+    return this.deriveSlots(
+      context,
+      query.from,
+      query.to,
+      releaseOriginal ? booking.id : undefined,
+    );
+  }
+
+  async findReplacementSlotAt(
+    booking: ReschedulingBooking,
+    startTime: Date,
+    releaseOriginal: boolean,
+  ): Promise<AvailabilitySlotResponseDto | undefined> {
+    const context = await this.reschedulingContext(booking);
+    const date = dateInTimeZone(startTime, context.timezone);
+    const slots = await this.deriveSlots(
+      context,
+      date,
+      date,
+      releaseOriginal ? booking.id : undefined,
+    );
+    return slots.find(
+      (slot) => slot.startTime.getTime() === startTime.getTime(),
+    );
+  }
+
+  private assertDateRange(query: SlotRangeQueryDto): void {
+    if (
+      !isIsoDate(query.from) ||
+      !isIsoDate(query.to) ||
+      query.from > query.to ||
+      daysBetween(query.from, query.to) > 89
+    )
+      throw new BadRequestException(AVAILABILITY_MESSAGES.invalidRange);
+  }
+
+  private async reschedulingContext(
+    booking: ReschedulingBooking,
+  ): Promise<SchedulingContext> {
+    const context = await this.getSchedulingContext(booking.serviceId);
+    await this.assertCanViewSlots(context, booking.adviseeId);
+    return {
+      ...context,
+      service: {
+        ...context.service,
+        durationMinutes:
+          (booking.endTime.getTime() - booking.startTime.getTime()) / 60000,
+      },
+    };
   }
 
   async findSlotAt(
@@ -384,9 +443,15 @@ export class AvailabilityService {
     context: SchedulingContext,
     from: string,
     to: string,
+    excludingBookingId?: string,
   ): Promise<AvailabilitySlotResponseDto[]> {
     try {
-      return await this.deriveSlotsUnsafe(context, from, to);
+      return await this.deriveSlotsUnsafe(
+        context,
+        from,
+        to,
+        excludingBookingId,
+      );
     } catch (error: unknown) {
       if (error instanceof RangeError)
         throw new BadRequestException(AVAILABILITY_MESSAGES.invalidRange);
@@ -398,6 +463,7 @@ export class AvailabilityService {
     context: SchedulingContext,
     from: string,
     to: string,
+    excludingBookingId?: string,
   ): Promise<AvailabilitySlotResponseDto[]> {
     const { rangeStart, rangeEnd } = slotRange(context, from, to);
     const appointments = await this.repository.findBlockingAppointments(
@@ -405,7 +471,14 @@ export class AvailabilityService {
       rangeStart,
       rangeEnd,
     );
-    return this.slotsFrom(context, from, to, appointments);
+    return this.slotsFrom(
+      context,
+      from,
+      to,
+      appointments.filter(
+        (appointment) => appointment.id !== excludingBookingId,
+      ),
+    );
   }
 
   /**

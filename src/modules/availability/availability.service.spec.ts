@@ -580,6 +580,68 @@ describe('AvailabilityService slot derivation', () => {
     expect(slots.length).toBeGreaterThan(0);
   });
 
+  it('offers the stored booking length when replacing a booking at both daily limits', async () => {
+    const current = context({ globalLimit: 60, serviceLimit: 60 });
+    current.service.durationMinutes = 30;
+    const original = appointment(
+      '2026-09-07T02:00:00Z',
+      '2026-09-07T03:00:00Z',
+      '2026-09-07T03:30:00Z',
+    );
+    repository.schedulingContext.mockResolvedValue(current);
+    repository.findBlockingAppointments.mockResolvedValue([original]);
+
+    const range = { from: '2026-09-07', to: '2026-09-07' };
+    await expect(
+      service.findSlots(serviceId, range, adviseeId),
+    ).resolves.toEqual([]);
+    const slots = await service.findRescheduleSlots(original, range, true);
+    await expect(
+      service.findRescheduleSlots(original, range, false),
+    ).resolves.toEqual([]);
+    expect(slots).toHaveLength(5);
+    expect(
+      slots.every(
+        (slot) =>
+          slot.endTime.getTime() - slot.startTime.getTime() === 60 * 60000,
+      ),
+    ).toBe(true);
+    expect(
+      await service.findReplacementSlotAt(original, slots[1].startTime, true),
+    ).toEqual(slots[1]);
+  });
+
+  it('continues to block another appointment when offering replacement slots', async () => {
+    const original = appointment(
+      '2026-09-07T02:00:00Z',
+      '2026-09-07T03:00:00Z',
+      '2026-09-07T03:30:00Z',
+    );
+    const other = {
+      ...appointment(
+        '2026-09-07T03:30:00Z',
+        '2026-09-07T04:30:00Z',
+        '2026-09-07T05:00:00Z',
+      ),
+      id: otherServiceId,
+    };
+    repository.schedulingContext.mockResolvedValue(context());
+    repository.findBlockingAppointments.mockResolvedValue([original, other]);
+    const slots = await service.findRescheduleSlots(
+      original,
+      { from: '2026-09-07', to: '2026-09-07' },
+      true,
+    );
+    expect(slots.length).toBeGreaterThan(0);
+    expect(
+      slots.every(
+        (slot) =>
+          slot.endTime.getTime() + 30 * 60000 <= other.startTime.getTime() ||
+          slot.startTime >= other.unavailableUntil,
+      ),
+    ).toBe(true);
+  });
+
   it('requires accepted screening before exposing slots for a screened service', async () => {
     repository.schedulingContext.mockResolvedValue(
       context({ screeningRequired: true }),

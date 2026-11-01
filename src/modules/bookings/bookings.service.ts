@@ -18,6 +18,7 @@ import type { SessionUser } from '@/modules/auth/auth.config';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
   ALLOWED_SOURCE_STATES,
+  canTransition,
   reopensAvailability,
   type TransitionTarget,
 } from './booking-states';
@@ -33,11 +34,31 @@ import { AdvisorBookingDetailResponseDto } from './dtos/advisor-booking-detail-r
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
 import { MeetingResponseDto } from './dtos/meeting-response.dto';
+import type {
+  AvailabilitySlotResponseDto,
+  SlotRangeQueryDto,
+} from '@/modules/availability/dtos/availability.dto';
 import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
 type NewAppointment = InferInsertModel<typeof serviceAppointments>;
 type AppointmentUpdate = Parameters<BookingsRepository['transition']>[2];
+
+type SchedulingRequest =
+  | {
+      readonly kind: 'new';
+      readonly serviceId: string;
+      readonly advisorId: string;
+      readonly adviseeId: string;
+      readonly startTime: Date;
+      readonly packageId?: string | null;
+    }
+  | {
+      readonly kind: 'replacement';
+      readonly original: Appointment;
+      readonly startTime: Date;
+      readonly releaseOriginal: boolean;
+    };
 
 @Injectable()
 export class BookingsService {
@@ -60,13 +81,14 @@ export class BookingsService {
     const startTime = this.parseStartTime(dto.startTime);
     const appointment = await this.claimSlot(() =>
       this.repository.createWithSchedulingLock(service.advisorId, () =>
-        this.scheduledValues(
-          service.id,
-          service.advisorId,
-          user.id,
+        this.scheduledValues({
+          kind: 'new',
+          serviceId: service.id,
+          advisorId: service.advisorId,
+          adviseeId: user.id,
           startTime,
-          dto.packageId,
-        ),
+          packageId: dto.packageId,
+        }),
       ),
     );
     return new BookingResponseDto(appointment);
@@ -205,6 +227,23 @@ export class BookingsService {
     return this.applyTransition(bookingId, 'NO_SHOW', { state: 'NO_SHOW' });
   }
 
+  async findRescheduleSlots(
+    user: SessionUser,
+    bookingId: string,
+    query: SlotRangeQueryDto,
+  ): Promise<AvailabilitySlotResponseDto[]> {
+    const original = await this.repository.findForAdvisee(bookingId, user.id);
+    if (!original) throw new NotFoundException(BOOKING_MESSAGES.notFound);
+    if (!canTransition(original.state, 'CANCELLED'))
+      throw this.invalidTransition('CANCELLED');
+    const cancellation = await this.cancellationValues(original, user.id);
+    return this.availability.findRescheduleSlots(
+      original,
+      query,
+      cancellation.blocksAvailability === false,
+    );
+  }
+
   /**
    * A reschedule is a cancellation plus a replacement booking rather than an update in
    * place, so the original row survives as history and the replacement carries the
@@ -227,14 +266,13 @@ export class BookingsService {
         ALLOWED_SOURCE_STATES.CANCELLED,
         cancellation,
         async (current) => ({
-          // The same package, so the new time is the same length.
-          ...(await this.scheduledValues(
-            current.serviceId,
-            current.advisorId,
-            user.id,
+          // Keep the booked duration even if the package has since changed.
+          ...(await this.scheduledValues({
+            kind: 'replacement',
+            original: current,
             startTime,
-            current.packageId,
-          )),
+            releaseOriginal: cancellation.blocksAvailability === false,
+          })),
           state: current.state,
           chatRoomId: current.chatRoomId,
         }),
@@ -380,18 +418,23 @@ export class BookingsService {
   }
 
   private async scheduledValues(
-    serviceId: string,
-    advisorId: string,
-    adviseeId: string,
-    startTime: Date,
-    packageId?: string | null,
+    request: SchedulingRequest,
   ): Promise<NewAppointment> {
-    const slot = await this.availability.findSlotAt(
-      serviceId,
-      startTime,
-      adviseeId,
-      packageId,
-    );
+    const { serviceId, advisorId, adviseeId, packageId } =
+      request.kind === 'replacement' ? request.original : request;
+    const slot =
+      request.kind === 'replacement'
+        ? await this.availability.findReplacementSlotAt(
+            request.original,
+            request.startTime,
+            request.releaseOriginal,
+          )
+        : await this.availability.findSlotAt(
+            serviceId,
+            request.startTime,
+            adviseeId,
+            packageId,
+          );
     if (!slot) throw new BadRequestException(BOOKING_MESSAGES.unavailable);
     const global = await this.availability.getGlobal(advisorId);
     return {
