@@ -566,6 +566,20 @@ describe('AvailabilityService slot derivation', () => {
     ).resolves.toEqual([]);
   });
 
+  it('lets the owner inspect a screened service without screening themselves', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ screeningRequired: true }),
+    );
+    repository.hasAcceptedScreening.mockResolvedValue(false);
+
+    const slots = await service.findSlots(
+      serviceId,
+      { from: '2026-09-07', to: '2026-09-07' },
+      advisorId,
+    );
+    expect(slots.length).toBeGreaterThan(0);
+  });
+
   it('requires accepted screening before exposing slots for a screened service', async () => {
     repository.schedulingContext.mockResolvedValue(
       context({ screeningRequired: true }),
