@@ -352,6 +352,7 @@ export class AvailabilityService {
     adviseeId: string,
   ): Promise<void> {
     if (
+      context.service.advisorId !== adviseeId &&
       context.service.screeningRequired &&
       !(await this.repository.hasAcceptedScreening(
         context.service.id,

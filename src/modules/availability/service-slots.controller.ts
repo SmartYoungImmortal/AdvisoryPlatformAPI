@@ -17,7 +17,8 @@ export class ServiceSlotsController {
   /**
    * Any signed-in account may read a service's open times, the same accounts
    * `POST /bookings` takes: every account is an Advisee, and an Advisor who
-   * also books sessions is one too. Booking one's own service is refused
+   * also books sessions is one too. The owner can inspect their own screened
+   * service without an accepted screening request. Booking one's own service is refused
    * where the booking is made (`BOOKING_MESSAGES.selfBooking`), not here.
    */
   @Get(':serviceId/slots')
