@@ -3,6 +3,8 @@ import { AdvisorsController } from './advisors.controller';
 import { PublicAdvisorsController } from './public-advisors.controller';
 import { AdvisorsService } from './advisors.service';
 import { AdvisorsRepository } from './advisors.repository';
+import { AdvisorBackgroundRepository } from './advisor-background.repository';
+import { AdvisorBackgroundService } from './advisor-background.service';
 import { AuthModule } from '@/modules/auth/auth.module';
 
 @Module({
@@ -12,6 +14,11 @@ import { AuthModule } from '@/modules/auth/auth.module';
   // first or `GET /advisors/me` resolves as an advisor whose id is "me" and fails
   // the UUID pipe. `app.module.ts` applies the same rule to `ReviewsModule`.
   controllers: [AdvisorsController, PublicAdvisorsController],
-  providers: [AdvisorsService, AdvisorsRepository],
+  providers: [
+    AdvisorsService,
+    AdvisorsRepository,
+    AdvisorBackgroundService,
+    AdvisorBackgroundRepository,
+  ],
 })
 export class AdvisorsModule {}

@@ -11,6 +11,7 @@ export const PaymentConfig = {
     bookingNotFound: 'Booking not found.',
     bookingNotPayable: 'This booking is not waiting for payment.',
     couponNotValid: 'This coupon is not valid.',
+    invoiceNotPayable: 'This invoice is not waiting for payment.',
   },
   invoice: {
     pendingLimit: 1,
@@ -29,5 +30,9 @@ export const PaymentConfig = {
       failed: '/checkout/failed',
       pending: '/checkout/unconfirmed',
     },
+  },
+  /** How long a PromptPay QR code can be paid before it expires and a new one is needed. */
+  promptPay: {
+    expiresMinutes: 15,
   },
 } as const;

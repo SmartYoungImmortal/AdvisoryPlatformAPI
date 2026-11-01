@@ -2,6 +2,7 @@ import {
   Global,
   Inject,
   Injectable,
+  Logger,
   Module,
   OnApplicationShutdown,
 } from '@nestjs/common';
@@ -16,6 +17,8 @@ export const DRIZZLE = Symbol('DRIZZLE');
 export const PG_POOL = Symbol('PG_POOL');
 
 export type DrizzleDB = NodePgDatabase<typeof allRelations>;
+
+const poolLogger = new Logger('DatabasePool');
 
 @Injectable()
 class DatabaseLifecycle implements OnApplicationShutdown {
@@ -39,13 +42,25 @@ class DatabaseLifecycle implements OnApplicationShutdown {
        * connection — so a ten-second idle window made the first request after
        * any pause pay that again. `keepAlive` stops a NAT or load balancer from
        * silently dropping the socket in between.
+       *
+       * A connection that dies while it sits idle (the pooler restarting, the
+       * network dropping, the machine waking from sleep) is reported as the
+       * pool's `error` event, and Node ends the whole process on an `error`
+       * nobody listens for: the API went down overnight that way. The pool
+       * has already discarded the dead client and opens a fresh one on the
+       * next query, so the event is only logged.
        */
-      useFactory: (config: ConfigService<Env, true>): Pool =>
-        new Pool({
+      useFactory: (config: ConfigService<Env, true>): Pool => {
+        const pool = new Pool({
           connectionString: config.get(ENV_KEYS.DATABASE_URL, { infer: true }),
           idleTimeoutMillis: 5 * 60_000,
           keepAlive: true,
-        }),
+        });
+        pool.on('error', (error) =>
+          poolLogger.warn(`Idle database connection lost: ${error.message}`),
+        );
+        return pool;
+      },
     },
     {
       provide: DRIZZLE,

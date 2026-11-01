@@ -20,10 +20,13 @@ import {
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import {
+  savePackageTranslation,
   saveServiceTranslation,
   writesSourceText,
 } from '@/common/i18n/content-translations';
 import {
+  packageDescription,
+  packageName,
   serviceDescription,
   serviceName,
 } from '@/common/i18n/localized-columns';
@@ -317,10 +320,17 @@ export class AdvisorServicesRepository extends EntityRepository<
     });
   }
 
-  /** A service's packages, in the order they are offered. */
-  findPackagesFor(serviceId: string): Promise<ServicePackage[]> {
-    return this.db
-      .select()
+  /** A service's packages, in the order they are offered, their names and lines in the request's language. */
+  findPackagesFor(
+    serviceId: string,
+    db: Pick<DrizzleDB, 'select'> = this.db,
+  ): Promise<ServicePackage[]> {
+    return db
+      .select({
+        ...getTableColumns(servicePackages),
+        name: packageName(),
+        description: packageDescription(),
+      })
       .from(servicePackages)
       .where(eq(servicePackages.serviceId, serviceId))
       .orderBy(asc(servicePackages.sortOrder), asc(servicePackages.createdAt));
@@ -331,6 +341,11 @@ export class AdvisorServicesRepository extends EntityRepository<
    * one with an `id` of this service's is changed in place (so bookings made
    * on it keep pointing at it), one without is added, and one not sent is
    * removed (bookings made on it keep their times, their link set to null).
+   *
+   * The names and lines follow a service's rule (`content-translations.ts`): a
+   * new package's go to its own columns and to its row in the language they
+   * were written in; a kept package's go to that language's row, and to its
+   * own columns only in Thai, so an edit made in English leaves the Thai.
    */
   replacePackages(
     serviceId: string,
@@ -350,9 +365,8 @@ export class AdvisorServicesRepository extends EntityRepository<
         );
       const rows = packages.map((item, sortOrder) => ({
         id: item.id,
+        text: { name: item.name, description: item.description ?? null },
         values: {
-          name: item.name,
-          description: item.description ?? null,
           durationMinutes: item.durationMinutes,
           priceSatang: item.priceSatang,
           sortOrder,
@@ -361,31 +375,41 @@ export class AdvisorServicesRepository extends EntityRepository<
       // The kept packages updated in place, the new ones written in one insert; their
       // `sortOrder` carries the list's order, so neither has to run one by one.
       await Promise.all(
-        rows.flatMap(({ id, values }) =>
+        rows.flatMap(({ id, text, values }) =>
           id
             ? [
                 tx
                   .update(servicePackages)
-                  .set(values)
+                  .set(writesSourceText() ? { ...values, ...text } : values)
                   .where(
                     and(
                       eq(servicePackages.id, id),
                       eq(servicePackages.serviceId, serviceId),
                     ),
                   ),
+                savePackageTranslation(tx, id, text),
               ]
             : [],
         ),
       );
-      const fresh = rows.flatMap(({ id, values }) =>
-        id ? [] : [{ ...values, serviceId }],
+      const fresh = rows.flatMap(({ id, text, values }) =>
+        id ? [] : [{ ...values, ...text, serviceId }],
       );
-      if (fresh.length > 0) await tx.insert(servicePackages).values(fresh);
-      return tx
-        .select()
-        .from(servicePackages)
-        .where(eq(servicePackages.serviceId, serviceId))
-        .orderBy(asc(servicePackages.sortOrder));
+      if (fresh.length > 0) {
+        const added = await tx
+          .insert(servicePackages)
+          .values(fresh)
+          .returning({ id: servicePackages.id });
+        await Promise.all(
+          added.map(({ id }, index) =>
+            savePackageTranslation(tx, id, {
+              name: fresh[index].name,
+              description: fresh[index].description,
+            }),
+          ),
+        );
+      }
+      return this.findPackagesFor(serviceId, tx);
     });
   }
 

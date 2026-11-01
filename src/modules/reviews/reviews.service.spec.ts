@@ -47,8 +47,10 @@ function makeRow(overrides: Partial<ReviewRow> = {}): ReviewRow {
     createdAt: new Date('2026-09-12T00:00:00.000Z'),
     modifiedAt: new Date('2026-09-12T00:00:00.000Z'),
     appointmentStartTime: new Date('2026-09-10T03:00:00.000Z'),
+    serviceId: '33333333-3333-3333-3333-333333333333',
     serviceName: 'Thesis review',
     serviceDurationMinutes: 45,
+    packageName: 'In depth',
     reviewerDisplayName: 'อารยา ส.',
     reviewerAvatarKey: null,
     ...overrides,
@@ -97,6 +99,7 @@ describe('ReviewsService', () => {
       });
       expect(result.reviewerDisplayName).toBe('อารยา ส.');
       expect(result.serviceDurationMinutes).toBe(45);
+      expect(result.packageName).toBe('In depth');
     });
 
     it('stores a missing comment as null rather than undefined', async () => {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Put } from '@nestjs/common';
 import { ApiConflictResponse, ApiTags } from '@nestjs/swagger';
 import {
   ApiCreate,
@@ -13,6 +13,11 @@ import { AdvisorOwnProfileResponseDto } from './dtos/advisor-own-profile-respons
 import { CreateAdvisorProfileDto } from './dtos/create-advisor-profile.dto';
 import { UpdateAdvisorProfileDto } from './dtos/update-advisor-profile.dto';
 import { AdvisorsService } from './advisors.service';
+import { AdvisorBackgroundService } from './advisor-background.service';
+import {
+  AdvisorBackgroundResponseDto,
+  ReplaceAdvisorBackgroundDto,
+} from './dtos/advisor-background.dto';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 
 /**
@@ -23,7 +28,10 @@ import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 @ApiTags('Advisors')
 @Controller('advisors')
 export class AdvisorsController {
-  constructor(private readonly advisorsService: AdvisorsService) {}
+  constructor(
+    private readonly advisorsService: AdvisorsService,
+    private readonly background: AdvisorBackgroundService,
+  ) {}
 
   @UserHasPermission({
     permission: {
@@ -67,5 +75,35 @@ export class AdvisorsController {
     @Body() dto: UpdateAdvisorProfileDto,
   ): Promise<AdvisorOwnProfileResponseDto> {
     return this.advisorsService.updateMe(user, dto);
+  }
+
+  /** The caller's background: work, education, languages, licences and awards. */
+  @UserHasPermission({
+    permission: {
+      advisorApplication: ['readSelf'],
+    },
+  })
+  @Get('me/background')
+  @ApiGetOne(AdvisorBackgroundResponseDto, { name: 'Advisor background' })
+  getMyBackground(
+    @CurrentUser() user: SessionUser,
+  ): Promise<AdvisorBackgroundResponseDto> {
+    return this.background.findMine(user);
+  }
+
+  /** Replaces every list of the caller's background at once. */
+  @UserHasPermission({
+    permission: {
+      advisorApplication: ['updateSelf'],
+    },
+  })
+  @Put('me/background')
+  @ResponseMessage(ADVISOR_MESSAGES.backgroundUpdated)
+  @ApiUpdate(AdvisorBackgroundResponseDto, { name: 'Advisor background' })
+  replaceMyBackground(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: ReplaceAdvisorBackgroundDto,
+  ): Promise<AdvisorBackgroundResponseDto> {
+    return this.background.replaceMine(user, dto);
   }
 }
