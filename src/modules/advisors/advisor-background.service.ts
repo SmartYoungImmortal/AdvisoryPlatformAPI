@@ -62,7 +62,7 @@ export class AdvisorBackgroundService {
 
 /** An optional line left blank is no line at all. */
 function blankToNull(value: string | null | undefined): string | null {
-  return value ? value : null;
+  return value || null;
 }
 
 /**
