@@ -1,0 +1,2 @@
+ALTER TABLE "services" ADD COLUMN "related_service_ids" uuid[] DEFAULT '{}'::uuid[] NOT NULL;--> statement-breakpoint
+ALTER TABLE "services" ADD CONSTRAINT "services_related_service_limit" CHECK (coalesce(array_length("related_service_ids", 1), 0) <= 3);

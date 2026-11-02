@@ -116,6 +116,24 @@ export class AdvisorServicesRepository extends EntityRepository<
       .offset(options.offset);
   }
 
+  /** Which of `serviceIds` are the advisor's own. */
+  async findOwnedIds(
+    advisorId: string,
+    serviceIds: readonly string[],
+  ): Promise<string[]> {
+    if (serviceIds.length === 0) return [];
+    const rows = await this.db
+      .select({ id: services.id })
+      .from(services)
+      .where(
+        and(
+          eq(services.advisorId, advisorId),
+          inArray(services.id, [...serviceIds]),
+        ),
+      );
+    return rows.map((row) => row.id);
+  }
+
   async findOwnedById(
     advisorId: string,
     serviceId: string,
@@ -494,6 +512,7 @@ export class AdvisorServicesRepository extends EntityRepository<
         screeningRequired: services.screeningRequired,
         trialEnabled: services.trialEnabled,
         trialDurationMinutes: services.trialDurationMinutes,
+        relatedServiceIds: services.relatedServiceIds,
         createdAt: services.createdAt,
       })
       .from(services)

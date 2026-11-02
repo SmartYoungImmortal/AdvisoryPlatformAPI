@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsInt,
   IsNotEmpty,
@@ -11,6 +13,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { Trim } from '@/common/decorators/trim.decorator';
+import { MAX_RELATED_SERVICES } from '../advisor-services.constants';
 
 export class CreateAdvisorServiceDto {
   @ApiProperty({ format: 'uuid' })
@@ -71,4 +74,17 @@ export class CreateAdvisorServiceDto {
   @IsInt()
   @Min(1)
   trialDurationMinutes?: number;
+
+  @ApiPropertyOptional({
+    type: [String],
+    format: 'uuid',
+    maxItems: MAX_RELATED_SERVICES,
+    description:
+      'Up to three of the advisor’s other services for this page to show, in order. Empty lets the page choose.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_RELATED_SERVICES)
+  @IsUUID('all', { each: true })
+  relatedServiceIds?: string[];
 }

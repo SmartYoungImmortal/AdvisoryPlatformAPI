@@ -19,6 +19,8 @@ export class AdvisorServiceResponseDto {
   @ApiProperty() screeningRequired: boolean;
   @ApiProperty() trialEnabled: boolean;
   @ApiPropertyOptional() trialDurationMinutes: number | null;
+  /** The advisor's other services this one's page shows, in order; empty lets the page choose. */
+  @ApiProperty({ type: [String], format: 'uuid' }) relatedServiceIds: string[];
   @ApiProperty() createdAt: Date;
   @ApiProperty() modifiedAt: Date;
 
@@ -36,6 +38,7 @@ export class AdvisorServiceResponseDto {
     this.screeningRequired = service.screeningRequired;
     this.trialEnabled = service.trialEnabled;
     this.trialDurationMinutes = service.trialDurationMinutes;
+    this.relatedServiceIds = service.relatedServiceIds;
     this.createdAt = service.createdAt;
     this.modifiedAt = service.modifiedAt;
   }

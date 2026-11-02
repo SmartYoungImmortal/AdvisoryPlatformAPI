@@ -29,6 +29,7 @@ const publicService: PublicServiceDocument = {
   screeningRequired: false,
   trialEnabled: false,
   trialDurationMinutes: null,
+  relatedServiceIds: [],
   createdAt: new Date('2026-08-29T00:00:00Z'),
 };
 
@@ -47,6 +48,7 @@ function makeService(overrides: Partial<AdvisorService> = {}): AdvisorService {
     screeningRequired: false,
     trialEnabled: false,
     trialDurationMinutes: null,
+    relatedServiceIds: [],
     createdAt: new Date('2026-08-29T00:00:00Z'),
     modifiedAt: new Date('2026-08-29T00:00:00Z'),
     ...overrides,
@@ -63,6 +65,7 @@ describe('AdvisorServicesService', () => {
       | 'findManyByAdvisorId'
       | 'countByAdvisorId'
       | 'findOwnedById'
+      | 'findOwnedIds'
       | 'categoryExists'
       | 'availabilityProfileOwned'
       | 'createLocalized'
@@ -93,6 +96,7 @@ describe('AdvisorServicesService', () => {
       findManyByAdvisorId: jest.fn(),
       countByAdvisorId: jest.fn(),
       findOwnedById: jest.fn(),
+      findOwnedIds: jest.fn().mockResolvedValue([]),
       categoryExists: jest.fn(),
       availabilityProfileOwned: jest.fn(),
       createLocalized: jest.fn(),
@@ -299,6 +303,51 @@ describe('AdvisorServicesService', () => {
         trialDurationMinutes: null,
       }),
     );
+  });
+
+  describe('the services a page shows beside it', () => {
+    const otherA = '44444444-4444-4444-4444-444444444444';
+    const otherB = '55555555-5555-5555-5555-555555555555';
+
+    beforeEach(() => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.categoryExists.mockResolvedValue(true);
+      repository.availabilityProfileOwned.mockResolvedValue(true);
+      repository.updateOwned.mockResolvedValue(makeService());
+    });
+
+    it('stores the advisor’s own, each once and never the service itself', async () => {
+      repository.findOwnedIds.mockResolvedValue([otherA, otherB]);
+      await service.update(advisor, serviceId, {
+        relatedServiceIds: [otherA, serviceId, otherA, otherB],
+      });
+      expect(repository.findOwnedIds).toHaveBeenCalledWith(advisor.id, [
+        otherA,
+        otherB,
+      ]);
+      expect(repository.updateOwned).toHaveBeenCalledWith(
+        advisor.id,
+        serviceId,
+        expect.objectContaining({ relatedServiceIds: [otherA, otherB] }),
+      );
+    });
+
+    it('refuses a service that belongs to someone else', async () => {
+      repository.findOwnedIds.mockResolvedValue([otherA]);
+      await expect(
+        service.update(advisor, serviceId, {
+          relatedServiceIds: [otherA, otherB],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.updateOwned).not.toHaveBeenCalled();
+    });
+
+    it('leaves them alone when the request does not name them', async () => {
+      await service.update(advisor, serviceId, { name: 'Renamed' });
+      expect(repository.findOwnedIds).not.toHaveBeenCalled();
+      const [, , changes] = repository.updateOwned.mock.calls[0];
+      expect(changes).not.toHaveProperty('relatedServiceIds');
+    });
   });
 
   it('searches published Services directly in Postgres', async () => {

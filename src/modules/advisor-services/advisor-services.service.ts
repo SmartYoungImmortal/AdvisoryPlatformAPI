@@ -331,6 +331,11 @@ export class AdvisorServicesService {
       dto.trialEnabled ?? false,
       dto.trialDurationMinutes,
     );
+    const relatedServiceIds = await this.ownRelated(
+      user.id,
+      null,
+      dto.relatedServiceIds,
+    );
 
     const service = await this.repository.createLocalized({
       advisorId: user.id,
@@ -345,9 +350,32 @@ export class AdvisorServicesService {
       screeningRequired: dto.screeningRequired ?? false,
       trialEnabled: dto.trialEnabled ?? false,
       trialDurationMinutes: dto.trialEnabled ? dto.trialDurationMinutes : null,
+      relatedServiceIds: relatedServiceIds ?? [],
     });
 
     return new AdvisorServiceResponseDto(service);
+  }
+
+  /**
+   * The services a page is set to show beside it, as stored: each named once,
+   * never the service itself, and every one the advisor's own. Undefined when
+   * the request did not touch them.
+   */
+  private async ownRelated(
+    advisorId: string,
+    serviceId: string | null,
+    ids: readonly string[] | undefined,
+  ): Promise<string[] | undefined> {
+    if (ids === undefined) return undefined;
+    const chosen = [...new Set(ids)].filter((id) => id !== serviceId);
+    const owned = new Set(
+      await this.repository.findOwnedIds(advisorId, chosen),
+    );
+    if (chosen.some((id) => !owned.has(id)))
+      throw new BadRequestException(
+        ADVISOR_SERVICE_MESSAGES.relatedServiceNotOwned,
+      );
+    return chosen;
   }
 
   async update(
@@ -381,10 +409,17 @@ export class AdvisorServicesService {
       throw new BadRequestException('Add a service image before publishing');
     }
 
+    const relatedServiceIds = await this.ownRelated(
+      user.id,
+      serviceId,
+      dto.relatedServiceIds,
+    );
+
     const updated = await this.repository.updateOwned(user.id, serviceId, {
       ...dto,
       trialEnabled,
       trialDurationMinutes,
+      ...(relatedServiceIds ? { relatedServiceIds } : {}),
     });
 
     if (!updated) {

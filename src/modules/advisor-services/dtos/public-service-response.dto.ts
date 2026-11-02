@@ -17,6 +17,12 @@ export class PublicServiceResponseDto {
   @ApiProperty() screeningRequired: boolean;
   @ApiProperty() trialEnabled: boolean;
   @ApiPropertyOptional({ nullable: true }) trialDurationMinutes: number | null;
+  /**
+   * The advisor's other services this page shows, in the advisor's order; empty
+   * when they left the choice to the page. An id may name a service no longer
+   * published, which the page leaves out.
+   */
+  @ApiProperty({ type: [String], format: 'uuid' }) relatedServiceIds: string[];
   /** When the service was listed, so discovery can sort newest first. */
   @ApiProperty({ format: 'date-time' }) createdAt: Date;
   /**
@@ -55,6 +61,7 @@ export class PublicServiceResponseDto {
     this.screeningRequired = service.screeningRequired;
     this.trialEnabled = service.trialEnabled;
     this.trialDurationMinutes = service.trialDurationMinutes;
+    this.relatedServiceIds = [...service.relatedServiceIds];
     this.createdAt = service.createdAt;
     this.images = [...images];
     this.packages = packages.map((row) => new ServicePackageResponseDto(row));

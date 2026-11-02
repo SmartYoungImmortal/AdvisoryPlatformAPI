@@ -58,6 +58,12 @@ export const services = pgTable(
     trialEnabled: boolean('trial_enabled').notNull().default(false),
     // Null unless trialEnabled.
     trialDurationMinutes: integer('trial_duration_minutes'),
+    // The advisor's other services this one's page shows, in order; empty lets the page choose.
+    // Ids rather than a join table: three at most, read with the service, never queried by.
+    relatedServiceIds: uuid('related_service_ids')
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -67,6 +73,10 @@ export const services = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
+    check(
+      'services_related_service_limit',
+      sql`coalesce(array_length(${table.relatedServiceIds}, 1), 0) <= 3`,
+    ),
     check('services_price_satang_nonnegative', sql`${table.priceSatang} >= 0`),
     check(
       'services_duration_minutes_positive',
