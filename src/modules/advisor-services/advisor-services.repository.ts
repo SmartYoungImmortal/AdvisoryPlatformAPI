@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   and,
   asc,
@@ -317,6 +322,62 @@ export class AdvisorServicesRepository extends EntityRepository<
       await tx
         .insert(serviceImages)
         .values({ serviceId, objectKey, carouselIndex: index });
+    });
+  }
+
+  /**
+   * Takes the photograph at `index` out of a service's carousel and closes the
+   * gap, so the indexes stay 0…n-1. A published service keeps at least one
+   * photograph, the rule publishing it set. Answers the removed object's key,
+   * for the caller to delete from storage.
+   */
+  async removeImage(
+    advisorId: string,
+    serviceId: string,
+    index: number,
+  ): Promise<string> {
+    return this.db.transaction(async (tx) => {
+      const [owned] = await tx
+        .select({ id: services.id, isPublished: services.isPublished })
+        .from(services)
+        .where(this.ownedWhere(advisorId, serviceId))
+        .for('update');
+      if (!owned) throw new BadRequestException('Service no longer exists');
+      const rows = await tx
+        .select({
+          index: serviceImages.carouselIndex,
+          objectKey: serviceImages.objectKey,
+        })
+        .from(serviceImages)
+        .where(eq(serviceImages.serviceId, serviceId))
+        .orderBy(asc(serviceImages.carouselIndex));
+      const target = rows.find((row) => row.index === index);
+      if (!target) throw new NotFoundException('Service image not found');
+      if (owned.isPublished && rows.length === 1)
+        throw new BadRequestException(
+          'A published service keeps at least one image',
+        );
+      await tx
+        .delete(serviceImages)
+        .where(
+          and(
+            eq(serviceImages.serviceId, serviceId),
+            eq(serviceImages.carouselIndex, index),
+          ),
+        );
+      // One step down each, lowest first, so no two rows ever share an index.
+      for (const row of rows.filter((entry) => entry.index > index)) {
+        await tx
+          .update(serviceImages)
+          .set({ carouselIndex: row.index - 1 })
+          .where(
+            and(
+              eq(serviceImages.serviceId, serviceId),
+              eq(serviceImages.carouselIndex, row.index),
+            ),
+          );
+      }
+      return target.objectKey;
     });
   }
 

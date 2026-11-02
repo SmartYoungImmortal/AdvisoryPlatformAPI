@@ -73,6 +73,7 @@ describe('AdvisorServicesService', () => {
       | 'findPublishedById'
       | 'findImageKeysFor'
       | 'appendImage'
+      | 'removeImage'
       | 'findPackagesFor'
       | 'replacePackages'
     >
@@ -102,6 +103,7 @@ describe('AdvisorServicesService', () => {
       findPublishedById: jest.fn(),
       findImageKeysFor: jest.fn().mockResolvedValue([]),
       appendImage: jest.fn(),
+      removeImage: jest.fn(),
       findPackagesFor: jest.fn().mockResolvedValue([]),
       replacePackages: jest.fn(),
     };
@@ -147,6 +149,27 @@ describe('AdvisorServicesService', () => {
     expect(storage.removeObject).toHaveBeenCalledWith(
       expect.stringMatching(/^services\//),
     );
+  });
+
+  it('removes a stored photograph and deletes its object, but leaves a hotlinked one alone', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    repository.removeImage.mockResolvedValueOnce(`services/${serviceId}/a.png`);
+    await service.removeImage(advisor, serviceId, 1);
+    expect(repository.removeImage).toHaveBeenCalledWith(
+      advisor.id,
+      serviceId,
+      1,
+    );
+    expect(storage.removeObject).toHaveBeenCalledWith(
+      `services/${serviceId}/a.png`,
+    );
+
+    storage.removeObject.mockClear();
+    repository.removeImage.mockResolvedValueOnce(
+      'https://images.example/seed.jpg',
+    );
+    await service.removeImage(advisor, serviceId, 0);
+    expect(storage.removeObject).not.toHaveBeenCalled();
   });
 
   it('allows an image-free draft but refuses publishing without a stored image', async () => {

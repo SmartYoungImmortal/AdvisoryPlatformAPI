@@ -317,6 +317,24 @@ export class AdvisorServicesService {
     return this.findOwnImages(user, serviceId);
   }
 
+  /** Removes the photograph at `index`; its stored object goes too, where it is one of ours. */
+  async removeImage(
+    user: SessionUser,
+    serviceId: string,
+    index: number,
+  ): Promise<{ images: string[] }> {
+    await this.getOwned(user.id, serviceId);
+    const key = await this.repository.removeImage(user.id, serviceId, index);
+    if (!isAbsoluteUrl(key)) {
+      try {
+        await this.storage.removeObject(key);
+      } catch {
+        this.logger.warn(`Could not remove service image ${key}`);
+      }
+    }
+    return this.findOwnImages(user, serviceId);
+  }
+
   async create(
     user: SessionUser,
     dto: CreateAdvisorServiceDto,
