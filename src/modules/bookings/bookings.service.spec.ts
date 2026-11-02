@@ -9,6 +9,7 @@ import type {
   serviceAppointments,
   services,
 } from '@/database/schema';
+import type { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { AvailabilityService } from '@/modules/availability/availability.service';
 import type { NotificationsService } from '@/modules/notifications/notifications.service';
@@ -69,6 +70,7 @@ function makeGlobal(
 describe('BookingsService', () => {
   let service: BookingsService;
   let notifications: jest.Mocked<Pick<NotificationsService, 'notify'>>;
+  let storage: jest.Mocked<Pick<SeaweedFsStorageService, 'createDownloadUrl'>>;
   let repository: jest.Mocked<
     Pick<
       BookingsRepository,
@@ -123,10 +125,18 @@ describe('BookingsService', () => {
     };
     availability.getGlobal.mockResolvedValue(makeGlobal());
     notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+    storage = {
+      createDownloadUrl: jest
+        .fn()
+        .mockImplementation((key: string) =>
+          Promise.resolve(`https://signed.test/${key}`),
+        ),
+    };
     service = new BookingsService(
       repository as unknown as BookingsRepository,
       availability as unknown as AvailabilityService,
       notifications as unknown as NotificationsService,
+      storage as unknown as SeaweedFsStorageService,
     );
   });
 
@@ -268,7 +278,9 @@ describe('BookingsService', () => {
       const appointment = {
         ...makeAppointment(),
         adviseeName: 'Advisee display',
+        adviseeAvatarKey: null,
         serviceName: 'Service',
+        serviceImageKey: null,
         latestScreeningRequestId: null,
       };
       repository.findDetailForAdvisor.mockResolvedValue(appointment);
@@ -309,7 +321,9 @@ describe('BookingsService', () => {
         {
           ...makeAppointment(),
           adviseeName: 'ธนกฤต ว.',
+          adviseeAvatarKey: null,
           serviceName: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+          serviceImageKey: null,
         },
       ]);
       repository.countForAdvisor.mockResolvedValue(1);
@@ -328,6 +342,54 @@ describe('BookingsService', () => {
         advisor.id,
         expect.anything(),
       );
+    });
+
+    it('draws the Advisor list with each picture as a URL: kept when it is one, presigned when stored', async () => {
+      repository.findManyForAdvisor.mockResolvedValue([
+        {
+          ...makeAppointment(),
+          adviseeName: 'ธนกฤต ว.',
+          adviseeAvatarKey: 'https://example.com/face.jpg',
+          serviceName: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+          serviceImageKey: 'services/abc/1.jpg',
+        },
+      ]);
+      repository.countForAdvisor.mockResolvedValue(1);
+
+      const page = await service.findAdvisorMine(
+        advisor,
+        new OffsetPaginationDto(),
+      );
+
+      expect(page.items[0]).toMatchObject({
+        adviseeAvatarUrl: 'https://example.com/face.jpg',
+        serviceImageUrl: 'https://signed.test/services/abc/1.jpg',
+      });
+      expect(storage.createDownloadUrl).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves a picture out when it cannot be signed', async () => {
+      storage.createDownloadUrl.mockRejectedValue(new Error('storage down'));
+      repository.findManyForAdvisor.mockResolvedValue([
+        {
+          ...makeAppointment(),
+          adviseeName: 'ธนกฤต ว.',
+          adviseeAvatarKey: 'avatars/me.jpg',
+          serviceName: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+          serviceImageKey: null,
+        },
+      ]);
+      repository.countForAdvisor.mockResolvedValue(1);
+
+      const page = await service.findAdvisorMine(
+        advisor,
+        new OffsetPaginationDto(),
+      );
+
+      expect(page.items[0]).toMatchObject({
+        adviseeAvatarUrl: null,
+        serviceImageUrl: null,
+      });
     });
   });
 
