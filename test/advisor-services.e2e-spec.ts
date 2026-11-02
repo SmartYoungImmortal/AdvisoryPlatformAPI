@@ -1,12 +1,15 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@/database/database.module';
 import {
   availabilityBlockedPeriods,
   availabilityProfiles,
   availabilitySpecificWindows,
   availabilityWeeklyWindows,
+  serviceAppointments,
   serviceCategories,
+  serviceImages,
+  serviceScreeningQuestions,
   services,
 } from '@/database/schema';
 import {
@@ -34,6 +37,12 @@ describe('advisor services (e2e)', () => {
 
   afterEach(async () => {
     if (serviceIds.length > 0) {
+      await db
+        .delete(serviceImages)
+        .where(inArray(serviceImages.serviceId, serviceIds));
+      await db
+        .delete(serviceScreeningQuestions)
+        .where(inArray(serviceScreeningQuestions.serviceId, serviceIds));
       await db.delete(services).where(inArray(services.id, serviceIds));
       serviceIds.splice(0);
     }
@@ -293,6 +302,49 @@ describe('advisor services (e2e)', () => {
       'dailyConsultationLimitMinutes',
     );
     expect(data(publicDetail.body)).not.toHaveProperty('availabilityProfileId');
+
+    await advisor.agent
+      .put(`/api/v1/advisors/me/services/${serviceId}/screening-questions`)
+      .send({
+        questions: [
+          { question: 'What should the advisor prepare?', isRequired: true },
+        ],
+      })
+      .expect(200);
+    const [appointment] = await db
+      .insert(serviceAppointments)
+      .values({
+        serviceId,
+        advisorId: advisor.userId,
+        adviseeId: advisee.userId,
+        startTime: new Date('2031-01-02T09:00:00Z'),
+        endTime: new Date('2031-01-02T10:00:00Z'),
+        unavailableUntil: new Date('2031-01-02T10:00:00Z'),
+        state: 'COMPLETED',
+        blocksAvailability: false,
+      })
+      .returning({ id: serviceAppointments.id });
+    try {
+      const blocked = await advisor.agent
+        .delete(`/api/v1/advisors/me/services/${serviceId}`)
+        .expect(409);
+      expect(object(blocked.body)).toMatchObject({
+        message:
+          'This service has consultation or screening history. Unpublish it instead.',
+      });
+      await advisor.agent
+        .get(`/api/v1/advisors/me/services/${serviceId}`)
+        .expect(200);
+      const questions = await advisor.agent
+        .get(`/api/v1/advisors/me/services/${serviceId}/screening-questions`)
+        .expect(200);
+      expect(object(questions.body).data).toHaveLength(1);
+      expect(storage.objectCount()).toBe(6);
+    } finally {
+      await db
+        .delete(serviceAppointments)
+        .where(eq(serviceAppointments.id, appointment.id));
+    }
 
     const unpublished = await advisor.agent
       .patch(`/api/v1/advisors/me/services/${serviceId}`)
