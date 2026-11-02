@@ -41,6 +41,12 @@ export const services = pgTable(
     categoryId: uuid('category_id')
       .notNull()
       .references(() => serviceCategories.id),
+    // The other categories the service is also found under, beside its own (`categoryId`, the
+    // one it is shown as). Ids rather than a join table: two at most, filtered on, never joined.
+    extraCategoryIds: uuid('extra_category_ids')
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
     // Required by the service-creation contract. Kept nullable while the S4 CRUD migration
     // backfills existing draft services that predate Availability Profiles.
     availabilityProfileId: uuid('availability_profile_id').references(
@@ -76,6 +82,14 @@ export const services = pgTable(
     check(
       'services_related_service_limit',
       sql`coalesce(array_length(${table.relatedServiceIds}, 1), 0) <= 3`,
+    ),
+    check(
+      'services_extra_category_limit',
+      sql`coalesce(array_length(${table.extraCategoryIds}, 1), 0) <= 2`,
+    ),
+    index('services_extra_category_ids_idx').using(
+      'gin',
+      table.extraCategoryIds,
     ),
     check('services_price_satang_nonnegative', sql`${table.priceSatang} >= 0`),
     check(

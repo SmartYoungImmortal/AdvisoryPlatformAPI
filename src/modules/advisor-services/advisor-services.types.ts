@@ -2,6 +2,7 @@ export interface PublicServiceDocument {
   id: string;
   advisorId: string;
   categoryId: string;
+  extraCategoryIds: string[];
   name: string;
   description: string | null;
   priceSatang: number;

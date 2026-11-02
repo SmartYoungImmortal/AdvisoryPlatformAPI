@@ -7,6 +7,8 @@ export class PublicServiceResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() advisorId: string;
   @ApiProperty() categoryId: string;
+  /** The categories it is also found under, beside `categoryId`. */
+  @ApiProperty({ type: [String], format: 'uuid' }) extraCategoryIds: string[];
   @ApiProperty() name: string;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiProperty({ description: 'Integer satang' }) priceSatang: number;
@@ -52,6 +54,7 @@ export class PublicServiceResponseDto {
     this.id = service.id;
     this.advisorId = service.advisorId;
     this.categoryId = service.categoryId;
+    this.extraCategoryIds = [...service.extraCategoryIds];
     this.name = service.name;
     this.description = service.description;
     this.priceSatang = service.priceSatang;

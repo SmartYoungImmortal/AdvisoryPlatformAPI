@@ -30,6 +30,7 @@ const publicService: PublicServiceDocument = {
   trialEnabled: false,
   trialDurationMinutes: null,
   relatedServiceIds: [],
+  extraCategoryIds: [],
   createdAt: new Date('2026-08-29T00:00:00Z'),
 };
 
@@ -49,6 +50,7 @@ function makeService(overrides: Partial<AdvisorService> = {}): AdvisorService {
     trialEnabled: false,
     trialDurationMinutes: null,
     relatedServiceIds: [],
+    extraCategoryIds: [],
     createdAt: new Date('2026-08-29T00:00:00Z'),
     modifiedAt: new Date('2026-08-29T00:00:00Z'),
     ...overrides,
@@ -66,6 +68,7 @@ describe('AdvisorServicesService', () => {
       | 'countByAdvisorId'
       | 'findOwnedById'
       | 'findOwnedIds'
+      | 'categoriesExist'
       | 'categoryExists'
       | 'availabilityProfileOwned'
       | 'createLocalized'
@@ -98,6 +101,7 @@ describe('AdvisorServicesService', () => {
       countByAdvisorId: jest.fn(),
       findOwnedById: jest.fn(),
       findOwnedIds: jest.fn().mockResolvedValue([]),
+      categoriesExist: jest.fn().mockResolvedValue(true),
       categoryExists: jest.fn(),
       availabilityProfileOwned: jest.fn(),
       createLocalized: jest.fn(),
@@ -305,6 +309,37 @@ describe('AdvisorServicesService', () => {
         trialDurationMinutes: null,
       }),
     );
+  });
+
+  describe('the other categories a service is found under', () => {
+    const other = '66666666-6666-4666-8666-666666666666';
+
+    beforeEach(() => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.categoryExists.mockResolvedValue(true);
+      repository.availabilityProfileOwned.mockResolvedValue(true);
+      repository.updateOwned.mockResolvedValue(makeService());
+    });
+
+    it('stores each once, never the main one', async () => {
+      repository.categoriesExist.mockResolvedValue(true);
+      await service.update(advisor, serviceId, {
+        extraCategoryIds: [other, categoryId, other],
+      });
+      expect(repository.updateOwned).toHaveBeenCalledWith(
+        advisor.id,
+        serviceId,
+        expect.objectContaining({ extraCategoryIds: [other] }),
+      );
+    });
+
+    it('refuses a category that does not exist', async () => {
+      repository.categoriesExist.mockResolvedValue(false);
+      await expect(
+        service.update(advisor, serviceId, { extraCategoryIds: [other] }),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.updateOwned).not.toHaveBeenCalled();
+    });
   });
 
   describe('the services a page shows beside it', () => {

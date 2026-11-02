@@ -8,6 +8,8 @@ export class AdvisorServiceResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() advisorId: string;
   @ApiProperty() categoryId: string;
+  /** The categories it is also found under, beside `categoryId`. */
+  @ApiProperty({ type: [String], format: 'uuid' }) extraCategoryIds: string[];
   @ApiPropertyOptional({ nullable: true }) availabilityProfileId: string | null;
   @ApiProperty() name: string;
   @ApiPropertyOptional() description: string | null;
@@ -32,6 +34,7 @@ export class AdvisorServiceResponseDto {
     this.id = service.id;
     this.advisorId = service.advisorId;
     this.categoryId = service.categoryId;
+    this.extraCategoryIds = service.extraCategoryIds;
     this.availabilityProfileId = service.availabilityProfileId;
     this.name = service.name;
     this.description = service.description;

@@ -13,12 +13,28 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { Trim } from '@/common/decorators/trim.decorator';
-import { MAX_RELATED_SERVICES } from '../advisor-services.constants';
+import {
+  MAX_EXTRA_CATEGORIES,
+  MAX_RELATED_SERVICES,
+} from '../advisor-services.constants';
 
 export class CreateAdvisorServiceDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   categoryId!: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    format: 'uuid',
+    maxItems: MAX_EXTRA_CATEGORIES,
+    description:
+      'Up to two more categories the service is also found under, beside `categoryId`.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_EXTRA_CATEGORIES)
+  @IsUUID('all', { each: true })
+  extraCategoryIds?: string[];
 
   @ApiProperty({ format: 'uuid' })
   @IsUUID()

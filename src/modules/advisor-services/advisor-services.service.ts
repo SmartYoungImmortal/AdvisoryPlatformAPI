@@ -461,6 +461,10 @@ export class AdvisorServicesService {
       null,
       dto.relatedServiceIds,
     );
+    const extraCategoryIds = await this.extraCategories(
+      dto.categoryId,
+      dto.extraCategoryIds,
+    );
 
     const service = await this.repository.createLocalized({
       advisorId: user.id,
@@ -476,9 +480,25 @@ export class AdvisorServicesService {
       trialEnabled: dto.trialEnabled ?? false,
       trialDurationMinutes: dto.trialEnabled ? dto.trialDurationMinutes : null,
       relatedServiceIds: relatedServiceIds ?? [],
+      extraCategoryIds: extraCategoryIds ?? [],
     });
 
     return new AdvisorServiceResponseDto(service);
+  }
+
+  /**
+   * The other categories as stored: each once, never the main one, and every one a category
+   * that exists. Undefined when there is nothing to write.
+   */
+  private async extraCategories(
+    categoryId: string,
+    ids: readonly string[] | undefined,
+  ): Promise<string[] | undefined> {
+    if (ids === undefined) return undefined;
+    const extras = [...new Set(ids)].filter((id) => id !== categoryId);
+    if (!(await this.repository.categoriesExist(extras)))
+      throw new BadRequestException(ADVISOR_SERVICE_MESSAGES.categoryNotFound);
+    return extras;
   }
 
   /**
@@ -539,12 +559,19 @@ export class AdvisorServicesService {
       serviceId,
       dto.relatedServiceIds,
     );
+    // A new main category drops out of the extras it may have been among.
+    const extraCategoryIds = await this.extraCategories(
+      categoryId,
+      dto.extraCategoryIds ??
+        (dto.categoryId ? current.extraCategoryIds : undefined),
+    );
 
     const updated = await this.repository.updateOwned(user.id, serviceId, {
       ...dto,
       trialEnabled,
       trialDurationMinutes,
       ...(relatedServiceIds ? { relatedServiceIds } : {}),
+      ...(extraCategoryIds ? { extraCategoryIds } : {}),
     });
 
     if (!updated) {

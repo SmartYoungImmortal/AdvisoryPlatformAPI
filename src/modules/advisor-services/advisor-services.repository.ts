@@ -18,6 +18,7 @@ import {
   lte,
   notInArray,
   or,
+  sql,
   type InferInsertModel,
   type InferSelectModel,
   type SQL,
@@ -163,6 +164,16 @@ export class AdvisorServicesRepository extends EntityRepository<
       });
       return service;
     });
+  }
+
+  /** Whether every one of the categories exists. */
+  async categoriesExist(categoryIds: readonly string[]): Promise<boolean> {
+    if (categoryIds.length === 0) return true;
+    const rows = await this.db
+      .select({ id: serviceCategories.id })
+      .from(serviceCategories)
+      .where(inArray(serviceCategories.id, [...categoryIds]));
+    return rows.length === new Set(categoryIds).size;
   }
 
   async categoryExists(categoryId: string): Promise<boolean> {
@@ -535,6 +546,7 @@ export class AdvisorServicesRepository extends EntityRepository<
         id: services.id,
         advisorId: services.advisorId,
         categoryId: services.categoryId,
+        extraCategoryIds: services.extraCategoryIds,
         name: serviceName(),
         description: serviceDescription(),
         priceSatang: services.priceSatang,
@@ -565,7 +577,13 @@ export class AdvisorServicesRepository extends EntityRepository<
       eq(user.status, 'ACTIVE'),
       eq(user.banned, false),
       isVerifiedAdvisor(services.advisorId),
-      query?.categoryId ? eq(services.categoryId, query.categoryId) : undefined,
+      // Its own category, or one it is also found under.
+      query?.categoryId
+        ? or(
+            eq(services.categoryId, query.categoryId),
+            sql`${query.categoryId}::uuid = ANY(${services.extraCategoryIds})`,
+          )
+        : undefined,
       query?.advisorId ? eq(services.advisorId, query.advisorId) : undefined,
       query?.minPriceSatang !== undefined
         ? gte(services.priceSatang, query.minPriceSatang)
