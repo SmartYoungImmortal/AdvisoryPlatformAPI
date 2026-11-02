@@ -106,6 +106,45 @@ export class AdvisorServicesController {
     return this.services.uploadImage(user, serviceId, file);
   }
 
+  /** Puts a picture on one package, in place of the one it had; answers the service's packages. */
+  @UserHasPermission({ permission: { advisorService: ['update'] } })
+  @Post(':serviceId/packages/:packageId/image')
+  @ApiCreate(ServicePackageResponseDto, { name: 'Service packages' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_SERVICE_IMAGE_BYTES + 1, files: 1 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  uploadPackageImage(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<ServicePackageResponseDto[]> {
+    return this.services.uploadPackageImage(user, serviceId, packageId, file);
+  }
+
+  /** Takes one package's picture off; answers the service's packages. */
+  @UserHasPermission({ permission: { advisorService: ['update'] } })
+  @Delete(':serviceId/packages/:packageId/image')
+  @ApiDelete(ServicePackageResponseDto, { name: 'Service packages' })
+  removePackageImage(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string,
+  ): Promise<ServicePackageResponseDto[]> {
+    return this.services.removePackageImage(user, serviceId, packageId);
+  }
+
   /** Takes one photograph out of the carousel, by its place in it; the rest close up. */
   @UserHasPermission({ permission: { advisorService: ['update'] } })
   @Delete(':serviceId/images/:index')

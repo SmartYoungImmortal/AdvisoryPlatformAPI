@@ -399,6 +399,36 @@ export class AdvisorServicesRepository extends EntityRepository<
     });
   }
 
+  /**
+   * Sets one of a service's packages' picture (null takes it off) and answers the key it had,
+   * so the object it pointed at can go. The row is locked while it is read and written.
+   */
+  setPackageImage(
+    serviceId: string,
+    packageId: string,
+    key: string | null,
+  ): Promise<string | null> {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ imageKey: servicePackages.imageKey })
+        .from(servicePackages)
+        .where(
+          and(
+            eq(servicePackages.id, packageId),
+            eq(servicePackages.serviceId, serviceId),
+          ),
+        )
+        .for('update');
+      if (!row)
+        throw new NotFoundException('Package not found on this service');
+      await tx
+        .update(servicePackages)
+        .set({ imageKey: key })
+        .where(eq(servicePackages.id, packageId));
+      return row.imageKey;
+    });
+  }
+
   /** A service's packages, in the order they are offered, their names and lines in the request's language. */
   findPackagesFor(
     serviceId: string,

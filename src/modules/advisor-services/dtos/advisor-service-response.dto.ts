@@ -21,10 +21,14 @@ export class AdvisorServiceResponseDto {
   @ApiPropertyOptional() trialDurationMinutes: number | null;
   /** The advisor's other services this one's page shows, in order; empty lets the page choose. */
   @ApiProperty({ type: [String], format: 'uuid' }) relatedServiceIds: string[];
+  /** The first photograph as a URL a browser can fetch, on the owner's routes; null without one. */
+  @ApiPropertyOptional({ nullable: true, type: String, format: 'uri' })
+  coverImage: string | null;
   @ApiProperty() createdAt: Date;
   @ApiProperty() modifiedAt: Date;
 
-  constructor(service: AdvisorService) {
+  constructor(service: AdvisorService, coverImage: string | null = null) {
+    this.coverImage = coverImage;
     this.id = service.id;
     this.advisorId = service.advisorId;
     this.categoryId = service.categoryId;

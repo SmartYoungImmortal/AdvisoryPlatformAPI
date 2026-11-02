@@ -79,6 +79,7 @@ describe('AdvisorServicesService', () => {
       | 'removeImage'
       | 'findPackagesFor'
       | 'replacePackages'
+      | 'setPackageImage'
     >
   >;
   let availability: jest.Mocked<Pick<AvailabilityService, 'openOn'>>;
@@ -110,6 +111,7 @@ describe('AdvisorServicesService', () => {
       removeImage: jest.fn(),
       findPackagesFor: jest.fn().mockResolvedValue([]),
       replacePackages: jest.fn(),
+      setPackageImage: jest.fn(),
     };
     availability = { openOn: jest.fn() };
     storage = {
@@ -452,6 +454,7 @@ describe('AdvisorServicesService', () => {
       description: null,
       durationMinutes: 30,
       priceSatang: 90000,
+      imageKey: null as string | null,
       sortOrder: 0,
       createdAt: new Date('2026-10-28T00:00:00.000Z'),
       modifiedAt: new Date('2026-10-28T00:00:00.000Z'),
@@ -465,14 +468,69 @@ describe('AdvisorServicesService', () => {
 
       expect(repository.findPackagesFor).toHaveBeenCalledWith(serviceId);
       expect(detail.packages).toEqual([
-        {
+        expect.objectContaining({
           id: packageRow.id,
           name: 'Quick question',
           description: null,
           durationMinutes: 30,
           priceSatang: 90000,
-        },
+          image: null,
+        }),
       ]);
+    });
+
+    it('shows a package’s own picture, presigned, and never its key', async () => {
+      repository.findPublishedById.mockResolvedValue(publicService);
+      repository.findPackagesFor.mockResolvedValue([
+        { ...packageRow, imageKey: 'services/s/packages/p/a.jpg' },
+      ]);
+      storage.createDownloadUrl.mockResolvedValue('https://files.test/a.jpg');
+
+      const detail = await service.findPublishedById(serviceId);
+
+      expect(detail.packages[0].image).toBe('https://files.test/a.jpg');
+      expect(detail.packages[0]).not.toHaveProperty('imageKey');
+    });
+
+    it('swaps a package’s picture and removes the one it replaced', async () => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.setPackageImage.mockResolvedValue(
+        'services/s/packages/p/old.jpg',
+      );
+      storage.putObject.mockResolvedValue(undefined);
+      storage.removeObject.mockResolvedValue(undefined);
+      const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
+
+      await service.uploadPackageImage(advisor, serviceId, packageRow.id, {
+        buffer: png,
+        mimetype: 'image/png',
+        size: png.length,
+      } as Express.Multer.File);
+
+      const [{ key }] = storage.putObject.mock.calls[0];
+      expect(repository.setPackageImage).toHaveBeenCalledWith(
+        serviceId,
+        packageRow.id,
+        key,
+      );
+      expect(storage.removeObject).toHaveBeenCalledWith(
+        'services/s/packages/p/old.jpg',
+      );
+    });
+
+    it('takes the pictures of packages left out of a replace with them', async () => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.findPackagesFor.mockResolvedValue([
+        { ...packageRow, imageKey: 'services/s/packages/p/gone.jpg' },
+      ]);
+      repository.replacePackages.mockResolvedValue([]);
+      storage.removeObject.mockResolvedValue(undefined);
+
+      await service.replacePackages(advisor, serviceId, { packages: [] });
+
+      expect(storage.removeObject).toHaveBeenCalledWith(
+        'services/s/packages/p/gone.jpg',
+      );
     });
 
     it('refuses an id that is not one of the service’s packages', async () => {

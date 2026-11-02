@@ -1,9 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { PublicServiceDocument } from '@/modules/advisor-services/advisor-services.types';
-import {
-  ServicePackageResponseDto,
-  type ServicePackage,
-} from './service-package.dto';
+import { ServicePackageResponseDto } from './service-package.dto';
 
 /** Public allowlist. Owner-only scheduling configuration is intentionally excluded. */
 export class PublicServiceResponseDto {
@@ -49,7 +46,8 @@ export class PublicServiceResponseDto {
   constructor(
     service: PublicServiceDocument,
     images: readonly string[],
-    packages: readonly ServicePackage[] = [],
+    // Already built, since each picture is presigned on the way out.
+    packages: readonly ServicePackageResponseDto[] = [],
   ) {
     this.id = service.id;
     this.advisorId = service.advisorId;
@@ -64,6 +62,6 @@ export class PublicServiceResponseDto {
     this.relatedServiceIds = [...service.relatedServiceIds];
     this.createdAt = service.createdAt;
     this.images = [...images];
-    this.packages = packages.map((row) => new ServicePackageResponseDto(row));
+    this.packages = [...packages];
   }
 }

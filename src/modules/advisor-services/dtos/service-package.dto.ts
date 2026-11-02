@@ -21,20 +21,25 @@ export const MAX_SERVICE_PACKAGES = 5;
 
 export type ServicePackage = InferSelectModel<typeof servicePackages>;
 
-/** One package as everyone sees it: its name and line, its length and price. */
+/** One package as everyone sees it: its name and line, its length and price, and its picture. */
 export class ServicePackageResponseDto {
   @ApiProperty({ format: 'uuid' }) id: string;
   @ApiProperty() name: string;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiProperty() durationMinutes: number;
   @ApiProperty({ description: 'Integer satang' }) priceSatang: number;
+  /** The package's own picture as a URL a browser can fetch (presigned for an hour), or null. */
+  @ApiProperty({ nullable: true, type: String, format: 'uri' })
+  image: string | null;
 
-  constructor(row: ServicePackage) {
+  /** `image` is the row's key already made fetchable; the row's own key never leaves the API. */
+  constructor(row: ServicePackage, image: string | null = null) {
     this.id = row.id;
     this.name = row.name;
     this.description = row.description;
     this.durationMinutes = row.durationMinutes;
     this.priceSatang = row.priceSatang;
+    this.image = image;
   }
 }
 

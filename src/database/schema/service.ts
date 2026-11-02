@@ -111,6 +111,9 @@ export const servicePackages = pgTable(
     description: text('description'),
     durationMinutes: integer('duration_minutes').notNull(),
     priceSatang: integer('price_satang').notNull(),
+    // The package's own picture, apart from the service's photographs: a storage key, or an
+    // absolute URL for a demo picture. Null shows none.
+    imageKey: text('image_key'),
     // The order the packages are offered in, lowest first.
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
