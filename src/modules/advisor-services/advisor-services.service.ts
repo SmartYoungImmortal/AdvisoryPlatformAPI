@@ -13,6 +13,7 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
+import { imageExtension, isAbsoluteUrl } from '@/common/storage/stored-image';
 import { services } from '@/database/schema';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { AvailabilityService } from '@/modules/availability/availability.service';
@@ -38,14 +39,6 @@ type AdvisorService = InferSelectModel<typeof services>;
 
 /** How many matching services an `availableOn` search checks before paging. */
 const AVAILABLE_ON_SCAN_LIMIT = 500;
-
-/**
- * A photograph key that is already a fetchable URL rather than a storage key —
- * the demo catalogue's photographs are public R2 URLs. Returned unchanged.
- */
-function isAbsoluteUrl(key: string): boolean {
-  return /^https?:\/\//i.test(key);
-}
 
 @Injectable()
 export class AdvisorServicesService {
@@ -277,19 +270,7 @@ export class AdvisorServicesService {
       throw new PayloadTooLargeException(
         'Service images must be 5 MiB or smaller',
       );
-    const png = file.buffer
-      .subarray(0, 8)
-      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-    const jpeg = file.buffer
-      .subarray(0, 3)
-      .equals(Buffer.from([255, 216, 255]));
-    const webp =
-      file.buffer.toString('ascii', 0, 4) === 'RIFF' &&
-      file.buffer.toString('ascii', 8, 12) === 'WEBP';
-    let extension: string | null = null;
-    if (file.mimetype === 'image/png' && png) extension = 'png';
-    if (file.mimetype === 'image/jpeg' && jpeg) extension = 'jpg';
-    if (file.mimetype === 'image/webp' && webp) extension = 'webp';
+    const extension = imageExtension(file);
     if (!extension)
       throw new BadRequestException('Choose a JPEG, PNG or WebP image');
     const key = `services/${serviceId}/${crypto.randomUUID()}.${extension}`;
