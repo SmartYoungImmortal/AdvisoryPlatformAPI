@@ -129,7 +129,7 @@ describe('authentication email delivery (e2e)', () => {
 
   it('delivers and resends verification mail and rejects an expired signed link', async () => {
     const signedUp = await signUpUser(app, 'Auth email', createdUserIds);
-    const verificationSubject = 'Verify your Advisory Platform email';
+    const verificationSubject = 'ยืนยันอีเมลของคุณ | Advisory Platform';
     const firstBatch = await waitForMessages(
       signedUp.email,
       verificationSubject,
@@ -179,7 +179,7 @@ describe('authentication email delivery (e2e)', () => {
   it('delivers a working password reset link and rejects it after expiry', async () => {
     const signedUp = await signUpUser(app, 'Password reset', createdUserIds);
     const resetEndpoint = '/api/auth/request-password-reset';
-    const resetSubject = 'Reset your Advisory Platform password';
+    const resetSubject = 'ตั้งรหัสผ่านใหม่ | Advisory Platform';
 
     await request(app.getHttpServer())
       .post(resetEndpoint)
