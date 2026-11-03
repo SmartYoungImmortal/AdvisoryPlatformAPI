@@ -18,6 +18,8 @@ export const ADVISOR_SERVICE_MESSAGES = {
   packageNotFound: 'Package not found on this service',
   relatedServiceNotOwned:
     'A service shown beside this one must be another of your own',
+  historyPreventsDeletion:
+    'This service has consultation or screening history. Unpublish it instead.',
 } as const;
 
 /** How many of the advisor's other services a service's page may be set to show. */

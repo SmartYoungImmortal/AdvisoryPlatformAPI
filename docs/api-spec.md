@@ -547,7 +547,9 @@ availability profile is a scheduling configuration, not a client-managed list of
 `POST /api/v1/advisors/me/services` creates a Service. `GET /api/v1/advisors/me/services` returns
 the standard offset-paginated own-Service list. `GET`, `PATCH`, and `DELETE`
 `/api/v1/advisors/me/services/:serviceId` read, update, and delete only an owned Service. A lookup
-outside the Advisor's ownership returns `404`.
+outside the Advisor's ownership returns `404`. Deleting an unused Service removes its images and
+screening questions in the same transaction. A Service referenced by consultation or screening
+history returns `409` and remains intact; unpublish it to remove it from discovery.
 
 Create and update fields are `categoryId`, `availabilityProfileId`, `name`, `description`,
 `priceSatang`, `durationMinutes`, `dailyConsultationLimitMinutes`, `isPublished`,

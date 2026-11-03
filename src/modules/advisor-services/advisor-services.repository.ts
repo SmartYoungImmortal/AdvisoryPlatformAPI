@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -44,10 +45,14 @@ import {
   serviceCategories,
   serviceImages,
   servicePackages,
+  serviceScreeningQuestions,
   services,
   user,
 } from '@/database/schema';
-import { MAX_SERVICE_IMAGES } from './advisor-services.constants';
+import {
+  ADVISOR_SERVICE_MESSAGES,
+  MAX_SERVICE_IMAGES,
+} from './advisor-services.constants';
 import type { PublicServiceDocument } from './advisor-services.types';
 import type {
   ServicePackage,
@@ -236,34 +241,42 @@ export class AdvisorServicesRepository extends EntityRepository<
     });
   }
 
-  /**
-   * The service and its photographs, in one transaction.
-   *
-   * `service_images` references the service with no cascade, so deleting the
-   * row alone fails as soon as it has photographs, which every seeded service
-   * now does. The photographs go only once the same `ownedWhere` has found the
-   * service, so another advisor's id deletes nothing, and a service that still
-   * cannot go (it has bookings) keeps its photographs when the delete rolls back.
-   * Its translations cascade, so what is returned is the localized read made
-   * before the delete.
-   */
+  /** Deletes owned configuration atomically; historical references roll back every deletion. */
   async deleteOwned(
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    return this.db.transaction(async (tx) => {
-      const owned = await this.findOwnedById(advisorId, serviceId, tx);
-      if (!owned) return undefined;
+    try {
+      return await this.db.transaction(async (tx) => {
+        const owned = await this.findOwnedById(advisorId, serviceId, tx);
+        if (!owned) return undefined;
 
-      await tx
-        .delete(serviceImages)
-        .where(eq(serviceImages.serviceId, serviceId));
-      const deleted = await tx
-        .delete(services)
-        .where(this.ownedWhere(advisorId, serviceId))
-        .returning({ id: services.id });
-      return deleted.length > 0 ? owned : undefined;
-    });
+        await tx
+          .delete(serviceImages)
+          .where(eq(serviceImages.serviceId, serviceId));
+        await tx
+          .delete(serviceScreeningQuestions)
+          .where(eq(serviceScreeningQuestions.serviceId, serviceId));
+        const deleted = await tx
+          .delete(services)
+          .where(this.ownedWhere(advisorId, serviceId))
+          .returning({ id: services.id });
+        return deleted.length > 0 ? owned : undefined;
+      });
+    } catch (error) {
+      const cause = error instanceof Error && error.cause ? error.cause : error;
+      if (
+        typeof cause === 'object' &&
+        cause !== null &&
+        'code' in cause &&
+        cause.code === '23503'
+      ) {
+        throw new ConflictException(
+          ADVISOR_SERVICE_MESSAGES.historyPreventsDeletion,
+        );
+      }
+      throw error;
+    }
   }
 
   async findPublished(
