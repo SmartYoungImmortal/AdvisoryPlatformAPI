@@ -67,7 +67,8 @@ paste it into a file that could be committed. For the `qa` environment:
 
 ```sh
 for name in database-url better-auth-secret omise-public-key omise-secret-key \
-            seaweedfs-access-key seaweedfs-secret-key smtp-user smtp-password; do
+            seaweedfs-access-key seaweedfs-secret-key smtp-user smtp-password \
+            google-client-id google-client-secret; do
   printf 'qa-%s: ' "$name"; read -rs value; echo
   printf '%s' "$value" | gcloud secrets create "qa-$name" --data-file=- --project "$PROJECT_ID"
 done
@@ -75,6 +76,10 @@ done
 
 `database-url` is Supabase's **session** pooler string (port 5432), for the same reasons
 `.env.example` gives. Add a new version later with `gcloud secrets versions add`.
+
+`google-client-id` and `google-client-secret` come from a **Web application** OAuth client
+(Google Auth Platform → Clients) whose redirect URI is `<BETTER_AUTH_URL>/api/auth/callback/google`
+— for qa, `https://advisory-platform-qa.nsza.workers.dev/api/auth/callback/google`.
 Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` and `SMTP_FROM` as variables in each GitHub
 Environment. Production also requires the `smtp-user` and `smtp-password` secrets.
 
