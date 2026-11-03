@@ -7,7 +7,12 @@ import * as schema from '@/database/schema';
 import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
 import { createAuthEmailSender, createSmtpTransport } from './auth-email';
-import { afterUserCreated, type AuthHooks } from './auth-hooks';
+import {
+  afterUserCreated,
+  beforeProviderAccountCreated,
+  drizzleUnverifiedPasswordStore,
+  type AuthHooks,
+} from './auth-hooks';
 import { loginLockHooks } from './login-lock';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
@@ -322,10 +327,25 @@ export function createAuth(
         generateId: () => crypto.randomUUID(),
       },
     },
+    // A provider that has verified the address may join an account whose address
+    // was never verified — someone who registered with a password and never got,
+    // or never opened, the email. The password is what makes that unsafe, and
+    // `beforeProviderAccountCreated` removes it as the accounts are joined.
+    account: {
+      accountLinking: { requireLocalEmailVerified: false },
+    },
     databaseHooks: {
       user: {
         create: {
           after: afterUserCreated(hooks, new Logger('AuthHooks')),
+        },
+      },
+      account: {
+        create: {
+          before: beforeProviderAccountCreated(
+            drizzleUnverifiedPasswordStore(db),
+            new Logger('AuthHooks'),
+          ),
         },
       },
     },

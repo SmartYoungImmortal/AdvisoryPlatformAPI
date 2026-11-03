@@ -22,7 +22,11 @@ import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@/config/env.schema';
 import type { DrizzleDB } from '@/database/database.module';
 import { createAuth } from './auth.config';
-import { afterUserCreated } from './auth-hooks';
+import {
+  afterUserCreated,
+  beforeProviderAccountCreated,
+  type UnverifiedPasswordStore,
+} from './auth-hooks';
 
 const newUser = { id: '11111111-1111-4111-8111-111111111111' };
 
@@ -108,5 +112,79 @@ describe('createAuth user hooks', () => {
     expect(onUserCreated).toHaveBeenCalledWith(
       expect.objectContaining(newUser),
     );
+  });
+
+  it('lets a provider join an account whose address was never verified', () => {
+    const auth = createAuth({} as DrizzleDB, stubConfig());
+
+    expect(
+      auth.options.account?.accountLinking?.requireLocalEmailVerified,
+    ).toBe(false);
+    expect(auth.options.databaseHooks?.account?.create?.before).toEqual(
+      expect.any(Function),
+    );
+  });
+});
+
+describe('beforeProviderAccountCreated', () => {
+  const userId = newUser.id;
+
+  function store(unverifiedPassword: boolean) {
+    return {
+      hasUnverifiedPassword: jest.fn().mockResolvedValue(unverifiedPassword),
+      dropPassword: jest.fn().mockResolvedValue(undefined),
+    } satisfies UnverifiedPasswordStore;
+  }
+
+  it('removes the unverified password, and its sessions, before Google joins the account', async () => {
+    const passwords = store(true);
+    const logger = { log: jest.fn() };
+
+    await beforeProviderAccountCreated(
+      passwords,
+      logger,
+    )({
+      userId,
+      providerId: 'google',
+    });
+
+    expect(passwords.hasUnverifiedPassword).toHaveBeenCalledWith(userId);
+    expect(passwords.dropPassword).toHaveBeenCalledWith(userId);
+    expect(logger.log).toHaveBeenCalledWith(expect.stringContaining(userId));
+  });
+
+  it('keeps the password of an account whose address is verified', async () => {
+    const passwords = store(false);
+
+    await beforeProviderAccountCreated(passwords, { log: jest.fn() })({
+      userId,
+      providerId: 'google',
+    });
+
+    expect(passwords.dropPassword).not.toHaveBeenCalled();
+  });
+
+  it('never touches a password account being created', async () => {
+    const passwords = store(true);
+
+    await beforeProviderAccountCreated(passwords, { log: jest.fn() })({
+      userId,
+      providerId: 'credential',
+    });
+
+    expect(passwords.hasUnverifiedPassword).not.toHaveBeenCalled();
+    expect(passwords.dropPassword).not.toHaveBeenCalled();
+  });
+
+  it('stops the link when the password cannot be removed', async () => {
+    const passwords = store(true);
+    passwords.dropPassword.mockRejectedValue(new Error('database is down'));
+
+    await expect(
+      beforeProviderAccountCreated(passwords, { log: jest.fn() })({
+        userId,
+        providerId: 'google',
+      }),
+    ).rejects.toThrow('database is down');
   });
 });
