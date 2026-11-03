@@ -1,15 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { PublicServiceDocument } from '@/modules/advisor-services/advisor-services.types';
-import {
-  ServicePackageResponseDto,
-  type ServicePackage,
-} from './service-package.dto';
+import { ServicePackageResponseDto } from './service-package.dto';
 
 /** Public allowlist. Owner-only scheduling configuration is intentionally excluded. */
 export class PublicServiceResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() advisorId: string;
   @ApiProperty() categoryId: string;
+  /** The categories it is also found under, beside `categoryId`. */
+  @ApiProperty({ type: [String], format: 'uuid' }) extraCategoryIds: string[];
   @ApiProperty() name: string;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiProperty({ description: 'Integer satang' }) priceSatang: number;
@@ -17,6 +16,12 @@ export class PublicServiceResponseDto {
   @ApiProperty() screeningRequired: boolean;
   @ApiProperty() trialEnabled: boolean;
   @ApiPropertyOptional({ nullable: true }) trialDurationMinutes: number | null;
+  /**
+   * The advisor's other services this page shows, in the advisor's order; empty
+   * when they left the choice to the page. An id may name a service no longer
+   * published, which the page leaves out.
+   */
+  @ApiProperty({ type: [String], format: 'uuid' }) relatedServiceIds: string[];
   /** When the service was listed, so discovery can sort newest first. */
   @ApiProperty({ format: 'date-time' }) createdAt: Date;
   /**
@@ -43,11 +48,13 @@ export class PublicServiceResponseDto {
   constructor(
     service: PublicServiceDocument,
     images: readonly string[],
-    packages: readonly ServicePackage[] = [],
+    // Already built, since each picture is presigned on the way out.
+    packages: readonly ServicePackageResponseDto[] = [],
   ) {
     this.id = service.id;
     this.advisorId = service.advisorId;
     this.categoryId = service.categoryId;
+    this.extraCategoryIds = [...service.extraCategoryIds];
     this.name = service.name;
     this.description = service.description;
     this.priceSatang = service.priceSatang;
@@ -55,8 +62,9 @@ export class PublicServiceResponseDto {
     this.screeningRequired = service.screeningRequired;
     this.trialEnabled = service.trialEnabled;
     this.trialDurationMinutes = service.trialDurationMinutes;
+    this.relatedServiceIds = [...service.relatedServiceIds];
     this.createdAt = service.createdAt;
     this.images = [...images];
-    this.packages = packages.map((row) => new ServicePackageResponseDto(row));
+    this.packages = [...packages];
   }
 }

@@ -13,6 +13,7 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
+import { imageExtension, isAbsoluteUrl } from '@/common/storage/stored-image';
 import { services } from '@/database/schema';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { AvailabilityService } from '@/modules/availability/availability.service';
@@ -31,6 +32,7 @@ import { PublicServiceResponseDto } from './dtos/public-service-response.dto';
 import {
   ReplaceServicePackagesDto,
   ServicePackageResponseDto,
+  type ServicePackage,
 } from './dtos/service-package.dto';
 import { UpdateAdvisorServiceDto } from './dtos/update-advisor-service.dto';
 
@@ -38,14 +40,6 @@ type AdvisorService = InferSelectModel<typeof services>;
 
 /** How many matching services an `availableOn` search checks before paging. */
 const AVAILABLE_ON_SCAN_LIMIT = 500;
-
-/**
- * A photograph key that is already a fetchable URL rather than a storage key —
- * the demo catalogue's photographs are public R2 URLs. Returned unchanged.
- */
-function isAbsoluteUrl(key: string): boolean {
-  return /^https?:\/\//i.test(key);
-}
 
 @Injectable()
 export class AdvisorServicesService {
@@ -61,11 +55,20 @@ export class AdvisorServicesService {
     user: SessionUser,
     query: AdvisorServiceQueryDto,
   ): Promise<PaginatedResult<AdvisorServiceResponseDto>> {
-    return paginateQuery(
+    const [rows, total] = await Promise.all([
+      this.repository.findManyByAdvisorId(user.id, {
+        limit: query.limit,
+        offset: query.offset,
+      }),
+      this.repository.countByAdvisorId(user.id),
+    ]);
+    const covers = await this.coversOf(rows.map((row) => row.id));
+    return paginate(
+      rows.map(
+        (row) => new AdvisorServiceResponseDto(row, covers.get(row.id) ?? null),
+      ),
+      total,
       query,
-      (options) => this.repository.findManyByAdvisorId(user.id, options),
-      () => this.repository.countByAdvisorId(user.id),
-      (service) => new AdvisorServiceResponseDto(service),
     );
   }
 
@@ -73,9 +76,31 @@ export class AdvisorServicesService {
     user: SessionUser,
     serviceId: string,
   ): Promise<AdvisorServiceResponseDto> {
+    const service = await this.getOwned(user.id, serviceId);
+    const covers = await this.coversOf([service.id]);
     return new AdvisorServiceResponseDto(
-      await this.getOwned(user.id, serviceId),
+      service,
+      covers.get(service.id) ?? null,
     );
+  }
+
+  /** Each service's first photograph as a fetchable URL: the owner's lists show it. */
+  private async coversOf(
+    serviceIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    const keys = await this.repository.findImageKeysFor(serviceIds);
+    const first = new Map<string, string>();
+    for (const { serviceId, objectKey } of keys) {
+      if (!first.has(serviceId)) first.set(serviceId, objectKey);
+    }
+    const covers = new Map<string, string>();
+    await Promise.all(
+      [...first].map(async ([serviceId, key]) => {
+        const url = await this.resolveImageUrl(key);
+        if (url) covers.set(serviceId, url);
+      }),
+    );
+    return covers;
   }
 
   async findManyForAdmin(
@@ -153,11 +178,11 @@ export class AdvisorServicesService {
       this.repository.findImageKeysFor([service.id]),
       this.repository.findPackagesFor(service.id),
     ]);
-    return new PublicServiceResponseDto(
-      service,
-      await this.resolveImageUrls(keys.map((row) => row.objectKey)),
-      packages,
-    );
+    const [images, packageDtos] = await Promise.all([
+      this.resolveImageUrls(keys.map((row) => row.objectKey)),
+      this.packageResponses(packages),
+    ]);
+    return new PublicServiceResponseDto(service, images, packageDtos);
   }
 
   /** The advisor's own service's packages, in the order offered. */
@@ -166,8 +191,95 @@ export class AdvisorServicesService {
     serviceId: string,
   ): Promise<ServicePackageResponseDto[]> {
     await this.getOwned(user.id, serviceId);
-    const rows = await this.repository.findPackagesFor(serviceId);
-    return rows.map((row) => new ServicePackageResponseDto(row));
+    return this.packageResponses(
+      await this.repository.findPackagesFor(serviceId),
+    );
+  }
+
+  /** Packages as the DTO, each picture made fetchable; one that cannot be signed shows none. */
+  private packageResponses(
+    rows: readonly ServicePackage[],
+  ): Promise<ServicePackageResponseDto[]> {
+    return Promise.all(
+      rows.map(
+        async (row) =>
+          new ServicePackageResponseDto(
+            row,
+            row.imageKey ? await this.resolveImageUrl(row.imageKey) : null,
+          ),
+      ),
+    );
+  }
+
+  /**
+   * Puts a picture on one of the service's packages, in place of the one it had (which is
+   * removed from storage). Answers the service's packages.
+   */
+  async uploadPackageImage(
+    user: SessionUser,
+    serviceId: string,
+    packageId: string,
+    file: Express.Multer.File | undefined,
+  ): Promise<ServicePackageResponseDto[]> {
+    await this.getOwned(user.id, serviceId);
+    if (!file || file.size === 0)
+      throw new BadRequestException('Choose a package image');
+    if (file.size > MAX_SERVICE_IMAGE_BYTES)
+      throw new PayloadTooLargeException(
+        'Package images must be 5 MiB or smaller',
+      );
+    const extension = imageExtension(file);
+    if (!extension)
+      throw new BadRequestException('Choose a JPEG, PNG or WebP image');
+    const key = `services/${serviceId}/packages/${packageId}/${crypto.randomUUID()}.${extension}`;
+    try {
+      await this.storage.putObject({
+        key,
+        body: file.buffer,
+        contentType: file.mimetype,
+      });
+    } catch {
+      throw new ServiceUnavailableException('Image storage is unavailable');
+    }
+    let previous: string | null;
+    try {
+      previous = await this.repository.setPackageImage(
+        serviceId,
+        packageId,
+        key,
+      );
+    } catch (error: unknown) {
+      await this.removeStoredImage(key);
+      throw error;
+    }
+    if (previous) await this.removeStoredImage(previous);
+    return this.findPackages(user, serviceId);
+  }
+
+  /** Takes a package's picture off, and out of storage. Answers the service's packages. */
+  async removePackageImage(
+    user: SessionUser,
+    serviceId: string,
+    packageId: string,
+  ): Promise<ServicePackageResponseDto[]> {
+    await this.getOwned(user.id, serviceId);
+    const previous = await this.repository.setPackageImage(
+      serviceId,
+      packageId,
+      null,
+    );
+    if (previous) await this.removeStoredImage(previous);
+    return this.findPackages(user, serviceId);
+  }
+
+  /** Removes a stored picture where it is one of ours; a failure only leaves an orphan. */
+  private async removeStoredImage(key: string): Promise<void> {
+    if (isAbsoluteUrl(key)) return;
+    try {
+      await this.storage.removeObject(key);
+    } catch {
+      this.logger.warn(`Could not remove service image ${key}`);
+    }
   }
 
   /**
@@ -181,14 +293,20 @@ export class AdvisorServicesService {
     dto: ReplaceServicePackagesDto,
   ): Promise<ServicePackageResponseDto[]> {
     await this.getOwned(user.id, serviceId);
-    const current = new Set(
-      (await this.repository.findPackagesFor(serviceId)).map((row) => row.id),
-    );
+    const before = await this.repository.findPackagesFor(serviceId);
+    const current = new Set(before.map((row) => row.id));
     const ids = dto.packages.flatMap((item) => (item.id ? [item.id] : []));
     if (ids.some((id) => !current.has(id)) || new Set(ids).size !== ids.length)
       throw new BadRequestException(ADVISOR_SERVICE_MESSAGES.packageNotFound);
     const rows = await this.repository.replacePackages(serviceId, dto.packages);
-    return rows.map((row) => new ServicePackageResponseDto(row));
+    // A package left out goes with its picture.
+    const kept = new Set(ids);
+    await Promise.all(
+      before
+        .filter((row) => !kept.has(row.id) && row.imageKey)
+        .map((row) => this.removeStoredImage(row.imageKey as string)),
+    );
+    return this.packageResponses(rows);
   }
 
   /**
@@ -277,19 +395,7 @@ export class AdvisorServicesService {
       throw new PayloadTooLargeException(
         'Service images must be 5 MiB or smaller',
       );
-    const png = file.buffer
-      .subarray(0, 8)
-      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-    const jpeg = file.buffer
-      .subarray(0, 3)
-      .equals(Buffer.from([255, 216, 255]));
-    const webp =
-      file.buffer.toString('ascii', 0, 4) === 'RIFF' &&
-      file.buffer.toString('ascii', 8, 12) === 'WEBP';
-    let extension: string | null = null;
-    if (file.mimetype === 'image/png' && png) extension = 'png';
-    if (file.mimetype === 'image/jpeg' && jpeg) extension = 'jpg';
-    if (file.mimetype === 'image/webp' && webp) extension = 'webp';
+    const extension = imageExtension(file);
     if (!extension)
       throw new BadRequestException('Choose a JPEG, PNG or WebP image');
     const key = `services/${serviceId}/${crypto.randomUUID()}.${extension}`;
@@ -317,6 +423,24 @@ export class AdvisorServicesService {
     return this.findOwnImages(user, serviceId);
   }
 
+  /** Removes the photograph at `index`; its stored object goes too, where it is one of ours. */
+  async removeImage(
+    user: SessionUser,
+    serviceId: string,
+    index: number,
+  ): Promise<{ images: string[] }> {
+    await this.getOwned(user.id, serviceId);
+    const key = await this.repository.removeImage(user.id, serviceId, index);
+    if (!isAbsoluteUrl(key)) {
+      try {
+        await this.storage.removeObject(key);
+      } catch {
+        this.logger.warn(`Could not remove service image ${key}`);
+      }
+    }
+    return this.findOwnImages(user, serviceId);
+  }
+
   async create(
     user: SessionUser,
     dto: CreateAdvisorServiceDto,
@@ -332,6 +456,15 @@ export class AdvisorServicesService {
       dto.trialEnabled ?? false,
       dto.trialDurationMinutes,
     );
+    const relatedServiceIds = await this.ownRelated(
+      user.id,
+      null,
+      dto.relatedServiceIds,
+    );
+    const extraCategoryIds = await this.extraCategories(
+      dto.categoryId,
+      dto.extraCategoryIds,
+    );
 
     const service = await this.repository.createLocalized({
       advisorId: user.id,
@@ -346,9 +479,48 @@ export class AdvisorServicesService {
       screeningRequired: dto.screeningRequired ?? false,
       trialEnabled: dto.trialEnabled ?? false,
       trialDurationMinutes: dto.trialEnabled ? dto.trialDurationMinutes : null,
+      relatedServiceIds: relatedServiceIds ?? [],
+      extraCategoryIds: extraCategoryIds ?? [],
     });
 
     return new AdvisorServiceResponseDto(service);
+  }
+
+  /**
+   * The other categories as stored: each once, never the main one, and every one a category
+   * that exists. Undefined when there is nothing to write.
+   */
+  private async extraCategories(
+    categoryId: string,
+    ids: readonly string[] | undefined,
+  ): Promise<string[] | undefined> {
+    if (ids === undefined) return undefined;
+    const extras = [...new Set(ids)].filter((id) => id !== categoryId);
+    if (!(await this.repository.categoriesExist(extras)))
+      throw new BadRequestException(ADVISOR_SERVICE_MESSAGES.categoryNotFound);
+    return extras;
+  }
+
+  /**
+   * The services a page is set to show beside it, as stored: each named once,
+   * never the service itself, and every one the advisor's own. Undefined when
+   * the request did not touch them.
+   */
+  private async ownRelated(
+    advisorId: string,
+    serviceId: string | null,
+    ids: readonly string[] | undefined,
+  ): Promise<string[] | undefined> {
+    if (ids === undefined) return undefined;
+    const chosen = [...new Set(ids)].filter((id) => id !== serviceId);
+    const owned = new Set(
+      await this.repository.findOwnedIds(advisorId, chosen),
+    );
+    if (chosen.some((id) => !owned.has(id)))
+      throw new BadRequestException(
+        ADVISOR_SERVICE_MESSAGES.relatedServiceNotOwned,
+      );
+    return chosen;
   }
 
   async update(
@@ -382,10 +554,24 @@ export class AdvisorServicesService {
       throw new BadRequestException('Add a service image before publishing');
     }
 
+    const relatedServiceIds = await this.ownRelated(
+      user.id,
+      serviceId,
+      dto.relatedServiceIds,
+    );
+    // A new main category drops out of the extras it may have been among.
+    const extraCategoryIds = await this.extraCategories(
+      categoryId,
+      dto.extraCategoryIds ??
+        (dto.categoryId ? current.extraCategoryIds : undefined),
+    );
+
     const updated = await this.repository.updateOwned(user.id, serviceId, {
       ...dto,
       trialEnabled,
       trialDurationMinutes,
+      ...(relatedServiceIds ? { relatedServiceIds } : {}),
+      ...(extraCategoryIds ? { extraCategoryIds } : {}),
     });
 
     if (!updated) {

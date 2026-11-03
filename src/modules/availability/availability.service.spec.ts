@@ -658,6 +658,33 @@ describe('AvailabilityService slot derivation', () => {
     expect(repository.findBlockingAppointments).not.toHaveBeenCalled();
   });
 
+  it('shows an unscreened service’s slots to a visitor with no session', async () => {
+    repository.schedulingContext.mockResolvedValue(context());
+
+    const slots = await service.findSlots(
+      serviceId,
+      { from: '2026-09-07', to: '2026-09-07' },
+      null,
+    );
+    expect(slots.length).toBeGreaterThan(0);
+  });
+
+  it('closes a screened service to a visitor with no session', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ screeningRequired: true }),
+    );
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        null,
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.hasAcceptedScreening).not.toHaveBeenCalled();
+    expect(repository.findBlockingAppointments).not.toHaveBeenCalled();
+  });
+
   it('opens a screened service that asks no question as if it were unscreened', async () => {
     repository.schedulingContext.mockResolvedValue(
       context({ screeningRequired: true }),

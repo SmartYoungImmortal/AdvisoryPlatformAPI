@@ -12,6 +12,8 @@ import {
   type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
+import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
+import { isAbsoluteUrl } from '@/common/storage/stored-image';
 import type { serviceAppointments } from '@/database/schema';
 import { AvailabilityService } from '@/modules/availability/availability.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
@@ -28,8 +30,14 @@ import {
   invalidTransitionMessage,
   MEETING,
 } from './bookings.constants';
-import { BookingsRepository } from './bookings.repository';
-import { AdvisorBookingResponseDto } from './dtos/advisor-booking-response.dto';
+import {
+  type AdvisorAppointment,
+  BookingsRepository,
+} from './bookings.repository';
+import {
+  type AdvisorBookingPictures,
+  AdvisorBookingResponseDto,
+} from './dtos/advisor-booking-response.dto';
 import { AdvisorBookingDetailResponseDto } from './dtos/advisor-booking-detail-response.dto';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
@@ -42,6 +50,9 @@ import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
 type NewAppointment = InferInsertModel<typeof serviceAppointments>;
+
+/** How long a presigned avatar or service photograph on the Advisor's desk stays readable. */
+const BOOKING_PICTURE_URL_EXPIRY_SECONDS = 60 * 60;
 type AppointmentUpdate = Parameters<BookingsRepository['transition']>[2];
 
 type SchedulingRequest =
@@ -68,6 +79,7 @@ export class BookingsService {
     private readonly repository: BookingsRepository,
     private readonly availability: AvailabilityService,
     private readonly notifications: NotificationsService,
+    private readonly storage: SeaweedFsStorageService,
   ) {}
 
   async create(
@@ -155,16 +167,23 @@ export class BookingsService {
     );
   }
 
-  findAdvisorMine(
+  async findAdvisorMine(
     user: SessionUser,
     page: OffsetPaginationDto,
   ): Promise<PaginatedResult<AdvisorBookingResponseDto>> {
-    return paginateQuery(
+    const result = await paginateQuery(
       page,
       (options) => this.repository.findManyForAdvisor(user.id, options),
       () => this.repository.countForAdvisor(user.id),
-      (item) => new AdvisorBookingResponseDto(item),
+      (item) => item,
     );
+    const items = await Promise.all(
+      result.items.map(
+        async (item) =>
+          new AdvisorBookingResponseDto(item, await this.picturesOf(item)),
+      ),
+    );
+    return { ...result, items };
   }
 
   async findAdvisorOne(
@@ -176,7 +195,39 @@ export class BookingsService {
       user.id,
     );
     if (!appointment) throw new NotFoundException(BOOKING_MESSAGES.notFound);
-    return new AdvisorBookingDetailResponseDto(appointment);
+    return new AdvisorBookingDetailResponseDto(
+      appointment,
+      await this.picturesOf(appointment),
+    );
+  }
+
+  /** A booking's two pictures as URLs: each key kept when it is one already, presigned when stored. */
+  private async picturesOf(
+    appointment: AdvisorAppointment,
+  ): Promise<AdvisorBookingPictures> {
+    const [adviseeAvatarUrl, serviceImageUrl] = await Promise.all([
+      this.pictureUrl(appointment.adviseeAvatarKey),
+      this.pictureUrl(appointment.serviceImageKey),
+    ]);
+    return { adviseeAvatarUrl, serviceImageUrl };
+  }
+
+  /** A picture that cannot be signed is left out (null) rather than failing the list it sits in. */
+  private async pictureUrl(key: string | null): Promise<string | null> {
+    if (!key) return null;
+    if (isAbsoluteUrl(key)) return key;
+    try {
+      return await this.storage.createDownloadUrl(
+        key,
+        BOOKING_PICTURE_URL_EXPIRY_SECONDS,
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not presign booking picture ${key}; it is left out of the response.`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      return null;
+    }
   }
 
   cancelAsAdvisee(

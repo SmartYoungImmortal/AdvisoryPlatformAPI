@@ -24,6 +24,8 @@ const thaiRow: AdvisorService = {
   screeningRequired: false,
   trialEnabled: false,
   trialDurationMinutes: null,
+  relatedServiceIds: [],
+  extraCategoryIds: [],
   createdAt: new Date('2026-08-29T00:00:00Z'),
   modifiedAt: new Date('2026-08-29T00:00:00Z'),
 };

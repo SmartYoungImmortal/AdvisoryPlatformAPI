@@ -2,6 +2,7 @@ export interface PublicServiceDocument {
   id: string;
   advisorId: string;
   categoryId: string;
+  extraCategoryIds: string[];
   name: string;
   description: string | null;
   priceSatang: number;
@@ -9,5 +10,6 @@ export interface PublicServiceDocument {
   screeningRequired: boolean;
   trialEnabled: boolean;
   trialDurationMinutes: number | null;
+  relatedServiceIds: string[];
   createdAt: Date;
 }

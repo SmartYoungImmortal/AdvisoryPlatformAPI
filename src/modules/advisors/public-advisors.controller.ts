@@ -1,6 +1,7 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
+  ApiGetMany,
   ApiGetOne,
   ApiGetPaginated,
 } from '@/common/decorators/api-docs.decorator';
@@ -8,7 +9,9 @@ import { Public } from '@/common/decorators/public.decorator';
 import type { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import { AdvisorsService } from './advisors.service';
 import { AdvisorBackgroundService } from './advisor-background.service';
+import { AdvisorPortfolioService } from './advisor-portfolio.service';
 import { AdvisorBackgroundResponseDto } from './dtos/advisor-background.dto';
+import { PortfolioItemResponseDto } from './dtos/advisor-portfolio.dto';
 import { PublicAdvisorQueryDto } from './dtos/public-advisor-query.dto';
 import { PublicAdvisorResponseDto } from './dtos/public-advisor-response.dto';
 
@@ -31,6 +34,7 @@ export class PublicAdvisorsController {
   constructor(
     private readonly advisors: AdvisorsService,
     private readonly background: AdvisorBackgroundService,
+    private readonly portfolio: AdvisorPortfolioService,
   ) {}
 
   @Public()
@@ -68,5 +72,18 @@ export class PublicAdvisorsController {
     @Param('advisorId', ParseUUIDPipe) advisorId: string,
   ): Promise<AdvisorBackgroundResponseDto> {
     return this.background.findPublic(advisorId);
+  }
+
+  /** The work their profile shows, in the Advisor's order. */
+  @Public()
+  @Get(':advisorId/portfolio')
+  @ApiGetMany(PortfolioItemResponseDto, {
+    name: 'Portfolio item',
+    public: true,
+  })
+  findPortfolio(
+    @Param('advisorId', ParseUUIDPipe) advisorId: string,
+  ): Promise<PortfolioItemResponseDto[]> {
+    return this.portfolio.findPublic(advisorId);
   }
 }

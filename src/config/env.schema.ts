@@ -79,6 +79,11 @@ const baseEnvSchema = z.object({
   OMISE_PUBLIC_KEY: z.string(),
   OMISE_SECRET_KEY: z.string(),
   CURRENCY_CODE: z.string().lowercase().default('thb'),
+  // Matching. With a key, `POST /matching` asks Claude which services fit a
+  // problem; without one it ranks them by the problem's words, so the API boots
+  // and matching still answers with no key set.
+  ANTHROPIC_API_KEY: optionalSecret,
+  MATCHING_MODEL: z.string().trim().min(1).default('claude-haiku-5-5'),
 });
 
 export const envSchema = baseEnvSchema.superRefine((env, context) => {

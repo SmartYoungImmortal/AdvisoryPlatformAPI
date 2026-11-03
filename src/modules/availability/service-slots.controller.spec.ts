@@ -1,3 +1,4 @@
+import { BETTER_AUTH_PUBLIC_KEY } from '@/common/decorators/public.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { AvailabilityService } from './availability.service';
 import { ServiceSlotsController } from './service-slots.controller';
@@ -12,6 +13,12 @@ describe('ServiceSlotsController', () => {
     expect(Reflect.getMetadataKeys(handler)).not.toContain('ROLES');
   });
 
+  it('is public, so a visitor can read the times before signing up', () => {
+    const handler = ServiceSlotsController.prototype.findSlots;
+
+    expect(Reflect.getMetadata(BETTER_AUTH_PUBLIC_KEY, handler)).toBe(true);
+  });
+
   it('reads the slots for the signed-in account', async () => {
     const findSlots = jest.fn().mockResolvedValue([]);
     const controller = new ServiceSlotsController({
@@ -22,5 +29,17 @@ describe('ServiceSlotsController', () => {
       controller.findSlots(user, 'service-1', query),
     ).resolves.toEqual([]);
     expect(findSlots).toHaveBeenCalledWith('service-1', query, 'user-1');
+  });
+
+  it('reads the slots for a visitor with no session', async () => {
+    const findSlots = jest.fn().mockResolvedValue([]);
+    const controller = new ServiceSlotsController({
+      findSlots,
+    } as unknown as AvailabilityService);
+
+    await expect(
+      controller.findSlots(null, 'service-1', query),
+    ).resolves.toEqual([]);
+    expect(findSlots).toHaveBeenCalledWith('service-1', query, null);
   });
 });

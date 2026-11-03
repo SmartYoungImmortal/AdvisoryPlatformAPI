@@ -199,17 +199,18 @@ export class AvailabilityService {
     return profile;
   }
 
+  /** `viewerId` is `null` for a visitor with no session. */
   async findSlots(
     serviceId: string,
     query: SlotQueryDto,
-    adviseeId: string,
+    viewerId: string | null,
   ): Promise<AvailabilitySlotResponseDto[]> {
     this.assertDateRange(query);
     const context = await this.withPackage(
       await this.getSchedulingContext(serviceId),
       query.packageId,
     );
-    await this.assertCanViewSlots(context, adviseeId);
+    await this.assertCanViewSlots(context, viewerId);
     return this.deriveSlots(context, query.from, query.to);
   }
 
@@ -408,18 +409,20 @@ export class AvailabilityService {
 
   private async assertCanViewSlots(
     context: SchedulingContext,
-    adviseeId: string,
+    viewerId: string | null,
   ): Promise<void> {
     // A Service that turned screening on but asks no question has nothing to be answered, so it is
-    // open as if unscreened rather than closed to everyone.
+    // open as if unscreened rather than closed to everyone. A visitor with no session has answered
+    // nothing, so a screened Service is closed to them as to an account not yet accepted.
     if (
-      context.service.advisorId !== adviseeId &&
+      context.service.advisorId !== viewerId &&
       context.service.screeningRequired &&
       (await this.repository.hasScreeningQuestions(context.service.id)) &&
-      !(await this.repository.hasAcceptedScreening(
-        context.service.id,
-        adviseeId,
-      ))
+      (viewerId === null ||
+        !(await this.repository.hasAcceptedScreening(
+          context.service.id,
+          viewerId,
+        )))
     ) {
       throw new BadRequestException(AVAILABILITY_MESSAGES.screeningRequired);
     }

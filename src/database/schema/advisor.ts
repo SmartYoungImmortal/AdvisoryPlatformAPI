@@ -249,3 +249,44 @@ export const advisorCredentials = pgTable(
     ),
   ],
 );
+
+/**
+ * Work an Advisor has done, shown on their profile: what it was, a line on it, where it lives,
+ * and up to four pictures of it. Unlike the background lists a piece is edited one at a time,
+ * because its pictures are uploaded to it, so it keeps its id.
+ */
+export const advisorPortfolioItems = pgTable(
+  'advisor_portfolio_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    advisorId: uuid('advisor_id')
+      .notNull()
+      .references(() => advisorProfiles.userId, { onDelete: 'cascade' }),
+    title: varchar('title', { length: 120 }).notNull(),
+    description: varchar('description', { length: 1000 }),
+    link: varchar('link', { length: 500 }),
+    /** Storage keys, or absolute URLs for demo pictures, in the order they are shown. */
+    imageKeys: text('image_keys')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    modifiedAt: timestamp('modified_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('advisor_portfolio_items_advisor_order_idx').on(
+      table.advisorId,
+      table.sortOrder,
+    ),
+    check(
+      'advisor_portfolio_items_image_limit',
+      sql`coalesce(array_length(${table.imageKeys}, 1), 0) <= 4`,
+    ),
+  ],
+);
