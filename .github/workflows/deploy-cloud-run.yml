@@ -83,6 +83,8 @@ jobs:
           env_vars: |-
             NODE_ENV=production
             BETTER_AUTH_URL=${{ vars.BETTER_AUTH_URL }}
+            FRONTEND_URL=${{ vars.FRONTEND_URL }}
+            BACKEND_PUBLIC_URL=${{ vars.BACKEND_PUBLIC_URL }}
             TRUSTED_ORIGINS=${{ env.TRUSTED_ORIGINS_ESCAPED }}
             SMTP_HOST=${{ vars.SMTP_HOST }}
             SMTP_PORT=${{ vars.SMTP_PORT || '587' }}
