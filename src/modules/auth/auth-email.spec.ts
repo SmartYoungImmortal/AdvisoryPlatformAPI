@@ -50,7 +50,7 @@ describe('createAuthEmailSender', () => {
     expect(messages[0]).toMatchObject({
       from: 'Advisory Platform <no-reply@example.test>',
       to: 'user@example.test',
-      subject: 'Verify your Advisory Platform email',
+      subject: 'ยืนยันอีเมลของคุณ | Advisory Platform',
     });
     expect(messages[0].text).toContain(
       'https://app.example.test/verify?token=secret&callbackURL=%2Fhome',
@@ -59,7 +59,31 @@ describe('createAuthEmailSender', () => {
       '&lt;img src=&quot;x&quot; onerror=&#39;alert(1)&#39;&gt;',
     );
     expect(messages[0].html).toContain('token=secret&amp;callbackURL=');
-    expect(messages[0].html).not.toContain('<img');
+    // The logo is the only image; the name never becomes one.
+    expect(messages[0].html.match(/<img/g)).toHaveLength(1);
+    expect(messages[0].html).not.toContain('<img src="x"');
+  });
+
+  it('draws the button and prints the same link under it', async () => {
+    const sendEmail = createAuthEmailSender({
+      from: 'Advisory Platform <no-reply@example.test>',
+      transport,
+    });
+
+    await sendEmail({
+      kind: 'verification',
+      to: 'user@example.test',
+      name: 'Araya',
+      url: 'https://app.example.test/verify?token=secret',
+    });
+
+    const links = messages[0].html.match(
+      /href="https:\/\/app\.example\.test\/verify\?token=secret"/g,
+    );
+    expect(links).toHaveLength(2);
+    expect(messages[0].html).toContain('ยืนยันอีเมล</a>');
+    expect(messages[0].html).toContain('สวัสดี Araya');
+    expect(messages[0].text).toContain('The link expires in one hour.');
   });
 
   it('sends a password-reset link and uses a safe greeting when the user has no name', async () => {
@@ -77,11 +101,11 @@ describe('createAuthEmailSender', () => {
 
     expect(messages[0]).toMatchObject({
       to: 'user@example.test',
-      subject: 'Reset your Advisory Platform password',
+      subject: 'ตั้งรหัสผ่านใหม่ | Advisory Platform',
     });
-    expect(messages[0].text).toContain('Hi there');
+    expect(messages[0].text).toContain('สวัสดี มีคำขอ');
     expect(messages[0].text).toContain('expires in one hour');
-    expect(messages[0].html).toContain('Reset password');
+    expect(messages[0].html).toContain('ตั้งรหัสผ่านใหม่</a>');
   });
 
   it('sends email-change confirmation to the current address and escapes the target', async () => {
@@ -100,7 +124,7 @@ describe('createAuthEmailSender', () => {
 
     expect(messages[0]).toMatchObject({
       to: 'current@example.test',
-      subject: 'Confirm your Advisory Platform email change',
+      subject: 'ยืนยันการเปลี่ยนอีเมล | Advisory Platform',
     });
     expect(messages[0].text).toContain('<script@example.test>');
     expect(messages[0].html).toContain('&lt;script@example.test&gt;');
