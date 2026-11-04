@@ -21,7 +21,7 @@ jest.mock('better-auth/plugins/admin/access', () => ({
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@/config/env.schema';
 import type { DrizzleDB } from '@/database/database.module';
-import { createAuth } from './auth.config';
+import { authBaseURL, createAuth } from './auth.config';
 import {
   afterUserCreated,
   beforeProviderAccountCreated,
@@ -123,6 +123,36 @@ describe('createAuth user hooks', () => {
     expect(auth.options.databaseHooks?.account?.create?.before).toEqual(
       expect.any(Function),
     );
+  });
+});
+
+describe('authBaseURL', () => {
+  const qa = 'https://qa.example.test';
+
+  it('follows a local dev server that forwards to the deployed API, and nothing else', () => {
+    expect(
+      authBaseURL(qa, [qa, 'http://localhost:3000', 'http://127.0.0.1:3001']),
+    ).toEqual({
+      allowedHosts: ['localhost:3000', '127.0.0.1:3001'],
+      protocol: 'http',
+      fallback: qa,
+    });
+  });
+
+  it('stays the public address when no loopback origin is trusted', () => {
+    expect(authBaseURL(qa, [qa, 'https://www.example.test'])).toBe(qa);
+  });
+
+  it('keeps the cookies of the public origin on every address and reads the forwarded host', () => {
+    const auth = createAuth({} as DrizzleDB, stubConfig());
+
+    expect(auth.options.baseURL).toEqual({
+      allowedHosts: ['localhost:3001'],
+      protocol: 'http',
+      fallback: 'http://localhost:3000',
+    });
+    expect(auth.options.advanced?.trustedProxyHeaders).toBe(true);
+    expect(auth.options.advanced?.useSecureCookies).toBe(false);
   });
 });
 
