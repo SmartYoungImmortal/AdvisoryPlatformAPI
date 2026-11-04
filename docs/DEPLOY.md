@@ -79,7 +79,8 @@ done
 
 `google-client-id` and `google-client-secret` come from a **Web application** OAuth client
 (Google Auth Platform → Clients) whose redirect URI is `<BETTER_AUTH_URL>/api/auth/callback/google`
-— for qa, `https://advisory-platform-qa.nsza.workers.dev/api/auth/callback/google`.
+— for qa, `https://advisory-platform-qa.nsza.workers.dev/api/auth/callback/google`, plus
+`http://localhost:3000/api/auth/callback/google` for a local `next dev` (see below).
 Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` and `SMTP_FROM` as variables in each GitHub
 Environment. Production also requires the `smtp-user` and `smtp-password` secrets.
 
@@ -120,5 +121,8 @@ So the browser never talks to `*.run.app`. The frontend's Worker forwards `/api/
 `/socket.io/*` to this service, every cookie is the frontend's own, and the API's public
 URLs (`BETTER_AUTH_URL`, `FRONTEND_URL`, `BACKEND_PUBLIC_URL`) are the frontend's origin.
 `next dev` forwards the same paths, which is why `http://localhost:3000` is a trusted
-origin of the qa service. With a domain of our own, `app.<domain>` and `api.<domain>` would
+origin of the qa service. It names itself in `x-forwarded-host`, and for a trusted loopback
+origin better-auth builds its links from that host instead of `BETTER_AUTH_URL`
+(`authBaseURL` in `src/modules/auth/auth.config.ts`): Google sends a sign-in started on
+localhost back to localhost, where its state cookie is. With a domain of our own, `app.<domain>` and `api.<domain>` would
 do the same job without the hop.
