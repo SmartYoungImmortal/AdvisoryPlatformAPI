@@ -6,6 +6,7 @@ import {
 import type { NotificationsRepository } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
 import type { PushService } from './push/push.service';
+import type { NotificationsRealtime } from './notifications-realtime';
 import type { Notification } from './notifications.types';
 
 const ownerId = '11111111-1111-1111-1111-111111111111';
@@ -43,10 +44,12 @@ describe('NotificationsService', () => {
     >
   >;
   let push: jest.Mocked<Pick<PushService, 'sendToUser'>>;
+  let realtime: jest.Mocked<Pick<NotificationsRealtime, 'announce'>>;
   let service: NotificationsService;
 
   beforeEach(() => {
     push = { sendToUser: jest.fn().mockResolvedValue(undefined) };
+    realtime = { announce: jest.fn() };
     repository = {
       findPageForOwner: jest.fn(),
       countUnread: jest.fn(),
@@ -60,6 +63,7 @@ describe('NotificationsService', () => {
     service = new NotificationsService(
       repository as unknown as NotificationsRepository,
       push as unknown as PushService,
+      realtime as unknown as NotificationsRealtime,
     );
   });
 
@@ -229,6 +233,8 @@ describe('NotificationsService', () => {
         en: { title: 'Booking confirmed', content: 'Tomorrow 10:00' },
         resourceId: '44444444-4444-4444-4444-444444444444',
       });
+
+      expect(realtime.announce).toHaveBeenCalledWith(ownerId);
 
       expect(push.sendToUser).toHaveBeenCalledWith(ownerId, {
         title: 'จองสำเร็จ',

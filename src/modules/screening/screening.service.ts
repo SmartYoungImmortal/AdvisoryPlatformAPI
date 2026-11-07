@@ -202,7 +202,7 @@ export class ScreeningService {
         notification,
       );
       // The notification is saved with the request, so the push goes out only once both are.
-      this.notifications.sendPush({ ...notification, resourceId: request.id });
+      this.notifications.deliver({ ...notification, resourceId: request.id });
       return new ScreeningRequestResponseDto(request);
     } catch (error: unknown) {
       // Another request for the same Service was saved at the same moment and the unique index
@@ -280,7 +280,7 @@ export class ScreeningService {
     if (!decided) {
       throw new ConflictException(SCREENING_MESSAGES.alreadyDecided);
     }
-    this.notifications.sendPush(notification);
+    this.notifications.deliver(notification);
 
     return new AdvisorScreeningRequestResponseDto({
       ...current,

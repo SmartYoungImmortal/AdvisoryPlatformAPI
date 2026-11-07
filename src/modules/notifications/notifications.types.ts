@@ -19,8 +19,8 @@ export interface NotifyInput {
   resourceId?: string | null;
 }
 
-/** Input for `NotificationsService.sendPush()`: the Thai text and what it is about. */
-export type PushInput = Pick<
+/** Input for `NotificationsService.deliver()`: the Thai text and what it is about. */
+export type DeliveryInput = Pick<
   NotifyInput,
   'ownerId' | 'type' | 'title' | 'content' | 'resourceId'
 >;

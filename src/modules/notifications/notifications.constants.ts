@@ -12,7 +12,20 @@ export const NOTIFICATION_MESSAGES = {
   read: 'Notification marked as read',
   allRead: 'All notifications marked as read',
   invalidCursor: 'Invalid cursor',
+  socketUnauthorized: 'Authentication required',
 } as const;
+
+/** The Socket.IO namespace that tells a user's open apps when a notification arrives. */
+export const NOTIFICATIONS_NAMESPACE = '/notifications';
+
+export const NOTIFICATION_EVENTS = {
+  created: 'notification:new',
+} as const;
+
+/** The room every connection of one user joins. */
+export function notificationSocketRoom(userId: string): string {
+  return `user:${userId}`;
+}
 
 /**
  * The welcome a new account gets (`NotificationsService.welcome()`). Every sign-up

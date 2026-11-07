@@ -89,7 +89,7 @@ function makeRow(
 
 describe('ScreeningService', () => {
   let service_: ScreeningService;
-  let notifications: jest.Mocked<Pick<NotificationsService, 'sendPush'>>;
+  let notifications: jest.Mocked<Pick<NotificationsService, 'deliver'>>;
   let repository: jest.Mocked<
     Pick<
       ScreeningRepository,
@@ -127,7 +127,7 @@ describe('ScreeningService', () => {
       markViewed: jest.fn(),
       decidePending: jest.fn(),
     };
-    notifications = { sendPush: jest.fn() };
+    notifications = { deliver: jest.fn() };
     service_ = new ScreeningService(
       repository as unknown as ScreeningRepository,
       notifications as unknown as NotificationsService,
@@ -263,7 +263,7 @@ describe('ScreeningService', () => {
           },
         },
       );
-      expect(notifications.sendPush).toHaveBeenCalledWith(
+      expect(notifications.deliver).toHaveBeenCalledWith(
         expect.objectContaining({
           ownerId: advisor.id,
           type: 'SCREENING_REQUESTED',
@@ -370,7 +370,7 @@ describe('ScreeningService', () => {
           answers: [{ questionId: q1, answer: 'x' }],
         }),
       ).rejects.toThrow(ConflictException);
-      expect(notifications.sendPush).not.toHaveBeenCalled();
+      expect(notifications.deliver).not.toHaveBeenCalled();
     });
 
     it('rethrows any other database error', async () => {
@@ -464,7 +464,7 @@ describe('ScreeningService', () => {
         },
       );
       expect(repository.findServiceNames).not.toHaveBeenCalled();
-      expect(notifications.sendPush).toHaveBeenCalledWith(
+      expect(notifications.deliver).toHaveBeenCalledWith(
         expect.objectContaining({
           ownerId: advisee.id,
           type: 'SCREENING_DECIDED',
@@ -556,7 +556,7 @@ describe('ScreeningService', () => {
       await expect(service_.accept(advisor, requestId)).rejects.toThrow(
         ConflictException,
       );
-      expect(notifications.sendPush).not.toHaveBeenCalled();
+      expect(notifications.deliver).not.toHaveBeenCalled();
     });
   });
 });

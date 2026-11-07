@@ -16,7 +16,8 @@ import {
   WELCOME_NOTIFICATION,
 } from './notifications.constants';
 import { NotificationsRepository } from './notifications.repository';
-import type { NotifyInput, PushInput } from './notifications.types';
+import type { DeliveryInput, NotifyInput } from './notifications.types';
+import { NotificationsRealtime } from './notifications-realtime';
 import { pushUrlFor } from './push/push.constants';
 import { PushService } from './push/push.service';
 
@@ -25,6 +26,7 @@ export class NotificationsService {
   constructor(
     private readonly repository: NotificationsRepository,
     private readonly push: PushService,
+    private readonly realtime: NotificationsRealtime,
   ) {}
 
   async findMine(
@@ -101,19 +103,21 @@ export class NotificationsService {
       input.type === 'NEW_MESSAGE' && input.resourceId
         ? await this.repository.upsertUnreadMessage(input)
         : await this.repository.createWithTranslations(input);
-    this.sendPush({ ...input, resourceId: row.resourceId });
+    this.deliver({ ...input, resourceId: row.resourceId });
     return new NotificationResponseDto(row);
   }
 
   /**
-   * Sends a notification to the owner's devices by Web Push. `notify()` calls this. A feature that
-   * saves its notification in its own transaction calls it after that transaction succeeds.
+   * Tells the owner a notification has arrived: a live signal to their open apps
+   * and a Web Push to their devices. `notify()` calls this. A feature that saves its
+   * notification in its own transaction calls it after that transaction succeeds.
    *
-   * Not awaited: the request that caused the notification must not wait on push services, and
-   * `sendToUser` never rejects. Sent in Thai, the source language, because the owner's own language
-   * is not stored anywhere.
+   * Neither is awaited: the request that caused the notification must not wait on
+   * them, and neither throws. The push is sent in Thai, the source language,
+   * because the owner's own language is not stored anywhere.
    */
-  sendPush(input: PushInput): void {
+  deliver(input: DeliveryInput): void {
+    this.realtime.announce(input.ownerId);
     void this.push.sendToUser(input.ownerId, {
       title: input.title,
       body: input.content ?? '',
