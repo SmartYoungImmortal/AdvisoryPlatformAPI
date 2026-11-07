@@ -13,6 +13,7 @@ import {
 } from '@/common/pagination/offset-pagination.dto';
 import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { IdentitySubmissionResponseDto } from './dtos/identity-submission-response.dto';
 import { IdentityVerificationQueryDto } from './dtos/identity-verification-query.dto';
 import { IdentityVerificationResponseDto } from './dtos/identity-verification-response.dto';
@@ -23,6 +24,7 @@ import {
   IDENTITY_DOCUMENT_EXTENSIONS,
   IDENTITY_DOCUMENT_URL_EXPIRY_SECONDS,
   IDENTITY_VERIFICATION_MESSAGES,
+  VERIFICATION_DECIDED_NOTIFICATION,
   MAX_IDENTITY_DOCUMENT_BYTES,
   SUBMITTABLE_IDENTITY_STATUSES,
   identityDocumentObjectKey,
@@ -44,6 +46,7 @@ export class IdentityVerificationService {
   constructor(
     private readonly repository: IdentityVerificationRepository,
     private readonly storage: SeaweedFsStorageService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   findManyForAdmin(
@@ -175,11 +178,11 @@ export class IdentityVerificationService {
    * Approval is what makes an applicant an Advisor: the repository writes the
    * verified status and `user.role = 'advisor'` in one transaction.
    */
-  approve(
+  async approve(
     admin: SessionUser,
     advisorId: string,
   ): Promise<IdentityVerificationResponseDto> {
-    return this.decide(advisorId, (accepted) =>
+    const decided = await this.decide(advisorId, (accepted) =>
       this.repository.approve(advisorId, accepted, {
         verificationStatus: 'VERIFIED',
         verifiedAt: new Date(),
@@ -189,18 +192,24 @@ export class IdentityVerificationService {
         rejectionReason: null,
       }),
     );
+    const { approved } = VERIFICATION_DECIDED_NOTIFICATION;
+    await this.notifyDecision(advisorId, approved.title, approved.content, {
+      title: approved.en.title,
+      content: approved.en.content,
+    });
+    return decided;
   }
 
   /**
    * A rejection leaves the applicant an Advisee. They may submit a new document,
    * which puts the record back to `SUBMITTED` for a fresh review.
    */
-  reject(
+  async reject(
     admin: SessionUser,
     advisorId: string,
     dto: RejectIdentityVerificationDto,
   ): Promise<IdentityVerificationResponseDto> {
-    return this.decide(advisorId, (accepted) =>
+    const decided = await this.decide(advisorId, (accepted) =>
       this.repository.decide(advisorId, accepted, {
         verificationStatus: 'REJECTED',
         rejectionReason: dto.reason,
@@ -211,6 +220,35 @@ export class IdentityVerificationService {
         verifiedAt: null,
       }),
     );
+    const { rejected } = VERIFICATION_DECIDED_NOTIFICATION;
+    await this.notifyDecision(advisorId, rejected.title, dto.reason, {
+      title: rejected.en.title,
+      content: dto.reason,
+    });
+    return decided;
+  }
+
+  /**
+   * Tells the applicant how their identity check went. Only the admin whose ruling was written
+   * gets here (`decide` refuses the others), so it is sent once. A failure must not undo it.
+   */
+  private async notifyDecision(
+    advisorId: string,
+    title: string,
+    content: string,
+    en: { title: string; content: string },
+  ): Promise<void> {
+    try {
+      await this.notifications.notify({
+        ownerId: advisorId,
+        type: 'VERIFICATION_DECIDED',
+        title,
+        content,
+        en,
+      });
+    } catch {
+      // The decision stands; the applicant still sees it on their verification page.
+    }
   }
 
   /**
