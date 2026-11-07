@@ -7,6 +7,7 @@ import type { ReviewRow } from './dtos/review-response.dto';
 import type { ReviewsRepository } from './reviews.repository';
 import { REVIEW_MESSAGES } from './reviews.constants';
 import { ReviewsService } from './reviews.service';
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
 type Review = InferSelectModel<typeof serviceReviews>;
@@ -59,6 +60,7 @@ function makeRow(overrides: Partial<ReviewRow> = {}): ReviewRow {
 
 describe('ReviewsService', () => {
   let service: ReviewsService;
+  let notifications: jest.Mocked<Pick<NotificationsService, 'notify'>>;
   let repository: jest.Mocked<ReviewsRepository>;
 
   beforeEach(() => {
@@ -77,7 +79,11 @@ describe('ReviewsService', () => {
       publicAdvisorExists: jest.fn(),
       publicAdvisorIds: jest.fn(),
     } as unknown as jest.Mocked<ReviewsRepository>;
-    service = new ReviewsService(repository);
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+    service = new ReviewsService(
+      repository,
+      notifications as unknown as NotificationsService,
+    );
   });
 
   describe('create', () => {
@@ -100,6 +106,27 @@ describe('ReviewsService', () => {
       expect(result.reviewerDisplayName).toBe('อารยา ส.');
       expect(result.serviceDurationMinutes).toBe(45);
       expect(result.packageName).toBe('In depth');
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisor.id,
+          type: 'REVIEW_RECEIVED',
+          title: 'คุณได้รับรีวิวใหม่',
+          content: expect.stringContaining('อารยา ส. ให้') as string,
+          resourceId: result.appointmentId,
+        }),
+      );
+    });
+
+    it('keeps the review when the notification fails', async () => {
+      repository.findAppointmentForAdvisee.mockResolvedValue(makeAppointment());
+      repository.findByAppointmentId.mockResolvedValue(undefined);
+      repository.create.mockResolvedValue(makeReview());
+      repository.findDetailed.mockResolvedValue(makeRow());
+      notifications.notify.mockRejectedValue(new Error('down'));
+
+      await expect(
+        service.create(advisee, bookingId, { stars: 5 }),
+      ).resolves.toEqual(expect.objectContaining({ stars: 5 }));
     });
 
     it('stores a missing comment as null rather than undefined', async () => {

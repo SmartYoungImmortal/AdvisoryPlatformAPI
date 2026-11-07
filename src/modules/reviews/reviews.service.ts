@@ -9,6 +9,7 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
   AdvisorRatingSummariesDto,
   AdvisorRatingSummaryItemDto,
@@ -17,7 +18,10 @@ import { AdvisorRatingSummaryDto } from './dtos/advisor-rating-summary.dto';
 import { CreateReviewDto } from './dtos/create-review.dto';
 import { ReplyToReviewDto } from './dtos/reply-to-review.dto';
 import { ReviewResponseDto } from './dtos/review-response.dto';
-import { REVIEW_MESSAGES } from './reviews.constants';
+import {
+  REVIEW_MESSAGES,
+  REVIEW_RECEIVED_NOTIFICATION,
+} from './reviews.constants';
 import { ReviewsRepository } from './reviews.repository';
 
 /** The only appointment state a consultation can be reviewed from. */
@@ -25,7 +29,10 @@ const REVIEWABLE_STATE = 'COMPLETED';
 
 @Injectable()
 export class ReviewsService {
-  constructor(private readonly repository: ReviewsRepository) {}
+  constructor(
+    private readonly repository: ReviewsRepository,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * Writing the Advisee's own review. Two distinct failures reach the client as two distinct
@@ -57,7 +64,32 @@ export class ReviewsService {
       stars: dto.stars,
       comment: dto.comment ?? null,
     });
-    return this.requireDetailed(appointmentId);
+    const review = await this.requireDetailed(appointmentId);
+    await this.notifyAdvisor(appointment.advisorId, review);
+    return review;
+  }
+
+  /** Tells the advisor about a new review. A failure must not undo the review. */
+  private async notifyAdvisor(
+    advisorId: string,
+    review: ReviewResponseDto,
+  ): Promise<void> {
+    const name = review.reviewerDisplayName;
+    try {
+      await this.notifications.notify({
+        ownerId: advisorId,
+        type: 'REVIEW_RECEIVED',
+        title: REVIEW_RECEIVED_NOTIFICATION.title,
+        content: REVIEW_RECEIVED_NOTIFICATION.content(name, review.stars),
+        en: {
+          title: REVIEW_RECEIVED_NOTIFICATION.en.title,
+          content: REVIEW_RECEIVED_NOTIFICATION.en.content(name, review.stars),
+        },
+        resourceId: review.appointmentId,
+      });
+    } catch {
+      // The review stands; the advisor still finds it in their reviews.
+    }
   }
 
   /** The Advisee changing their mind. The Advisor's reply is left where it is. */
