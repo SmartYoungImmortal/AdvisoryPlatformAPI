@@ -14,6 +14,7 @@ describe('NotificationsController', () => {
       markAllRead: jest.fn(),
       markRead: jest.fn(),
       findOne: jest.fn(),
+      findUpcomingSession: jest.fn(),
     } as unknown as jest.Mocked<NotificationsService>;
     const controller = new NotificationsController(service);
     const query = new CursorPaginationDto();
@@ -23,11 +24,13 @@ describe('NotificationsController', () => {
     void controller.markAllRead(user);
     void controller.markRead(user, notificationId);
     void controller.findOne(user, notificationId);
+    void controller.findUpcomingSession(user);
 
     expect(service.findMine).toHaveBeenCalledWith(user.id, query);
     expect(service.countUnread).toHaveBeenCalledWith(user.id);
     expect(service.markAllRead).toHaveBeenCalledWith(user.id);
     expect(service.markRead).toHaveBeenCalledWith(user.id, notificationId);
     expect(service.findOne).toHaveBeenCalledWith(user.id, notificationId);
+    expect(service.findUpcomingSession).toHaveBeenCalledWith(user.id);
   });
 });

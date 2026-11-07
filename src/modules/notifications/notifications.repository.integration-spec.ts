@@ -4,8 +4,12 @@ import { Pool } from 'pg';
 import { runWithLocale } from '@/common/i18n/request-locale';
 import type { DrizzleDB } from '@/database/database.module';
 import {
+  advisorProfiles,
   notificationTranslations,
   notifications,
+  serviceAppointments,
+  serviceCategories,
+  services,
   user,
 } from '@/database/schema';
 import { NotificationsRepository } from './notifications.repository';
@@ -218,5 +222,141 @@ describe('NotificationsRepository (integration)', () => {
       repository.findPageForOwner(ownerId, 20),
     );
     expect(row.title).toBe('1 minutes ago');
+  });
+});
+
+/** The next-session read the mobile banner uses, against real appointments. */
+describe('NotificationsRepository.findUpcomingSession (integration)', () => {
+  let pool: Pool;
+  let db: DrizzleDB;
+  let repository: NotificationsRepository;
+
+  const adviseeId = crypto.randomUUID();
+  const advisorId = crypto.randomUUID();
+  const categoryId = crypto.randomUUID();
+  const serviceId = crypto.randomUUID();
+  const userIds = [adviseeId, advisorId];
+  const minutes = (n: number) => new Date(Date.now() + n * 60_000);
+
+  const appointment = (
+    startsIn: number,
+    endsIn: number,
+    state: 'BOOKED' | 'IN_PROGRESS' | 'CANCELLED',
+  ) => ({
+    serviceId,
+    advisorId,
+    adviseeId,
+    startTime: minutes(startsIn),
+    endTime: minutes(endsIn),
+    unavailableUntil: minutes(endsIn),
+    state,
+    // Cancelled rows and test rows must not collide in the advisor's no-overlap constraint.
+    blocksAvailability: false,
+  });
+
+  beforeAll(async () => {
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    db = drizzle({ client: pool });
+    repository = new NotificationsRepository(db);
+
+    await db.insert(user).values(
+      userIds.map((id) => ({
+        id,
+        email: `${id}@sessions.example.test`,
+        displayName: id === advisorId ? 'อารยา ส.' : 'ณัฐพงศ์ ด.',
+        fullName: 'Session Test',
+        timezone: 'Asia/Bangkok',
+      })),
+    );
+    await db
+      .insert(advisorProfiles)
+      .values({ userId: advisorId, headline: 'Session test advisor' });
+    await db
+      .insert(serviceCategories)
+      .values({ id: categoryId, name: `Session test ${categoryId}` });
+    await db.insert(services).values({
+      id: serviceId,
+      advisorId,
+      categoryId,
+      name: 'วางแผนภาษี',
+      priceSatang: 60000,
+      durationMinutes: 30,
+      isPublished: true,
+    });
+  });
+
+  afterEach(async () => {
+    await db
+      .delete(serviceAppointments)
+      .where(eq(serviceAppointments.serviceId, serviceId));
+  });
+
+  afterAll(async () => {
+    await db.delete(services).where(eq(services.id, serviceId));
+    await db
+      .delete(serviceCategories)
+      .where(eq(serviceCategories.id, categoryId));
+    await db
+      .delete(advisorProfiles)
+      .where(eq(advisorProfiles.userId, advisorId));
+    await db.delete(user).where(inArray(user.id, userIds));
+    await pool.end();
+  });
+
+  it('finds a booked session that starts within the window, for both of its people', async () => {
+    await db
+      .insert(serviceAppointments)
+      .values([
+        appointment(5, 35, 'BOOKED'),
+        appointment(40, 70, 'BOOKED'),
+        appointment(3, 33, 'CANCELLED'),
+        appointment(-60, -30, 'BOOKED'),
+      ]);
+
+    const asAdvisee = await repository.findUpcomingSession(
+      adviseeId,
+      new Date(),
+      minutes(10),
+    );
+    expect(asAdvisee).toEqual(
+      expect.objectContaining({
+        state: 'BOOKED',
+        serviceName: 'วางแผนภาษี',
+        advisorName: 'อารยา ส.',
+        adviseeName: 'ณัฐพงศ์ ด.',
+      }),
+    );
+    expect(asAdvisee?.startTime.getTime()).toBeGreaterThan(Date.now());
+
+    const asAdvisor = await repository.findUpcomingSession(
+      advisorId,
+      new Date(),
+      minutes(10),
+    );
+    expect(asAdvisor?.bookingId).toBe(asAdvisee?.bookingId);
+  });
+
+  it('puts a session already in progress first, and finds nothing outside the window', async () => {
+    await db
+      .insert(serviceAppointments)
+      .values([
+        appointment(5, 35, 'BOOKED'),
+        appointment(-20, 10, 'IN_PROGRESS'),
+      ]);
+
+    const next = await repository.findUpcomingSession(
+      adviseeId,
+      new Date(),
+      minutes(10),
+    );
+    expect(next?.state).toBe('IN_PROGRESS');
+
+    await db
+      .delete(serviceAppointments)
+      .where(eq(serviceAppointments.serviceId, serviceId));
+    await db.insert(serviceAppointments).values(appointment(30, 60, 'BOOKED'));
+    expect(
+      await repository.findUpcomingSession(adviseeId, new Date(), minutes(10)),
+    ).toBeUndefined();
   });
 });

@@ -37,6 +37,7 @@ describe('NotificationsService', () => {
       | 'countUnread'
       | 'markRead'
       | 'findOneForOwner'
+      | 'findUpcomingSession'
       | 'markAllRead'
       | 'createWithTranslations'
       | 'createWelcome'
@@ -55,6 +56,7 @@ describe('NotificationsService', () => {
       countUnread: jest.fn(),
       markRead: jest.fn(),
       findOneForOwner: jest.fn(),
+      findUpcomingSession: jest.fn(),
       markAllRead: jest.fn(),
       createWithTranslations: jest.fn(),
       createWelcome: jest.fn(),
@@ -124,6 +126,51 @@ describe('NotificationsService', () => {
   it('counts unread notifications', async () => {
     repository.countUnread.mockResolvedValue(4);
     await expect(service.countUnread(ownerId)).resolves.toEqual({ count: 4 });
+  });
+
+  describe('findUpcomingSession', () => {
+    const row = {
+      bookingId: '44444444-4444-4444-4444-444444444444',
+      startTime: new Date('2026-11-07T07:00:00Z'),
+      endTime: new Date('2026-11-07T07:30:00Z'),
+      state: 'BOOKED' as const,
+      advisorId: '55555555-5555-5555-5555-555555555555',
+      adviseeId: ownerId,
+      serviceName: 'วางแผนภาษี',
+      advisorName: 'อารยา ส.',
+      adviseeName: 'ณัฐพงศ์ ด.',
+    };
+
+    it('answers null when no session is about to start', async () => {
+      repository.findUpcomingSession.mockResolvedValue(undefined);
+      await expect(service.findUpcomingSession(ownerId)).resolves.toBeNull();
+    });
+
+    it('looks as far ahead as the video call opens', async () => {
+      repository.findUpcomingSession.mockResolvedValue(undefined);
+      await service.findUpcomingSession(ownerId);
+
+      const [, now, startsBy] = repository.findUpcomingSession.mock.calls[0];
+      expect(startsBy.getTime() - now.getTime()).toBe(10 * 60_000);
+    });
+
+    it('names the other person, from either side', async () => {
+      repository.findUpcomingSession.mockResolvedValue(row);
+
+      await expect(service.findUpcomingSession(ownerId)).resolves.toEqual(
+        expect.objectContaining({
+          role: 'advisee',
+          counterpartName: 'อารยา ส.',
+          serviceName: 'วางแผนภาษี',
+        }),
+      );
+      await expect(service.findUpcomingSession(row.advisorId)).resolves.toEqual(
+        expect.objectContaining({
+          role: 'advisor',
+          counterpartName: 'ณัฐพงศ์ ด.',
+        }),
+      );
+    });
   });
 
   describe('findOne', () => {

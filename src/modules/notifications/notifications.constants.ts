@@ -8,6 +8,7 @@ export const NOTIFICATION_MESSAGES = {
   ...crudMessages('Notification'),
   found: 'Notifications found',
   foundOne: 'Notification found',
+  upcomingSession: 'Upcoming session',
   unreadCounted: 'Unread notifications counted',
   read: 'Notification marked as read',
   allRead: 'All notifications marked as read',

@@ -21,6 +21,7 @@ import {
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { NotificationCountResponseDto } from './dtos/notification-count-response.dto';
 import { NotificationResponseDto } from './dtos/notification-response.dto';
+import { UpcomingSessionResponseDto } from './dtos/upcoming-session-response.dto';
 import { NOTIFICATION_MESSAGES } from './notifications.constants';
 import { NotificationsService } from './notifications.service';
 
@@ -52,7 +53,16 @@ export class NotificationsController {
     return this.notifications.countUnread(user.id);
   }
 
-  // Declared after `unread-count`, so that path is never read as an id.
+  @Get('upcoming-session')
+  @ResponseMessage(NOTIFICATION_MESSAGES.upcomingSession)
+  @ApiGetOne(UpcomingSessionResponseDto, { name: 'Upcoming session' })
+  findUpcomingSession(
+    @CurrentUser() user: SessionUser,
+  ): Promise<UpcomingSessionResponseDto | null> {
+    return this.notifications.findUpcomingSession(user.id);
+  }
+
+  // Declared after `unread-count` and `upcoming-session`, so neither path is read as an id.
   @Get(':notificationId')
   @ResponseMessage(NOTIFICATION_MESSAGES.foundOne)
   @ApiGetOne(NotificationResponseDto, { name: 'Notification' })

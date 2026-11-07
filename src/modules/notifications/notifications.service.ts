@@ -11,6 +11,8 @@ import {
 } from '@/common/pagination/cursor-pagination.dto';
 import { NotificationCountResponseDto } from './dtos/notification-count-response.dto';
 import { NotificationResponseDto } from './dtos/notification-response.dto';
+import { UpcomingSessionResponseDto } from './dtos/upcoming-session-response.dto';
+import { MEETING } from '@/modules/bookings/bookings.constants';
 import {
   NOTIFICATION_MESSAGES,
   WELCOME_NOTIFICATION,
@@ -68,6 +70,26 @@ export class NotificationsService {
       throw new NotFoundException(NOTIFICATION_MESSAGES.notFound);
     }
     return new NotificationResponseDto(row);
+  }
+
+  /**
+   * The caller's session that starts within the next few minutes, or is in progress; `null` when
+   * there is none. "A few minutes" is when its video call opens, so the banner's join button
+   * always works.
+   */
+  async findUpcomingSession(
+    userId: string,
+  ): Promise<UpcomingSessionResponseDto | null> {
+    const now = new Date();
+    const startsBy = new Date(
+      now.getTime() + MEETING.opensMinutesBefore * 60_000,
+    );
+    const row = await this.repository.findUpcomingSession(
+      userId,
+      now,
+      startsBy,
+    );
+    return row ? new UpcomingSessionResponseDto(row, userId) : null;
   }
 
   async countUnread(ownerId: string): Promise<NotificationCountResponseDto> {

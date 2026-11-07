@@ -1,5 +1,5 @@
 import type { InferSelectModel } from 'drizzle-orm';
-import type { notifications } from '@/database/schema';
+import type { notifications, serviceAppointments } from '@/database/schema';
 
 export type Notification = InferSelectModel<typeof notifications>;
 export type NotificationType = Notification['type'];
@@ -17,6 +17,19 @@ export interface NotifyInput {
   content?: string | null;
   en: { title: string; content?: string | null };
   resourceId?: string | null;
+}
+
+/** The user's next session, with both people's names, for the mobile session banner. */
+export interface UpcomingSessionRow {
+  bookingId: string;
+  startTime: Date;
+  endTime: Date;
+  state: InferSelectModel<typeof serviceAppointments>['state'];
+  advisorId: string;
+  adviseeId: string;
+  serviceName: string;
+  advisorName: string;
+  adviseeName: string;
 }
 
 /** Input for `NotificationsService.deliver()`: the Thai text and what it is about. */
