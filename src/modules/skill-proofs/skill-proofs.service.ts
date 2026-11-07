@@ -14,6 +14,7 @@ import {
 } from '@/common/pagination/offset-pagination.dto';
 import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { OwnSkillProofResponseDto } from './dtos/own-skill-proof-response.dto';
 import { RejectSkillProofDto } from './dtos/reject-skill-proof.dto';
 import { SkillProofQueryDto } from './dtos/skill-proof-query.dto';
@@ -23,6 +24,7 @@ import {
   DECIDABLE_SKILL_PROOF_STATUSES,
   MAX_SKILL_PROOF_BYTES,
   SKILL_PROOF_EXTENSIONS,
+  SKILL_PROOF_DECIDED_TITLES,
   SKILL_PROOF_MESSAGES,
   SKILL_PROOF_URL_EXPIRY_SECONDS,
   decodeUploadedFileName,
@@ -48,6 +50,7 @@ export class SkillProofsService {
   constructor(
     private readonly repository: SkillProofsRepository,
     private readonly storage: SeaweedFsStorageService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   findManyForAdmin(
@@ -198,7 +201,38 @@ export class SkillProofsService {
     if (!reviewed) {
       throw await this.refusal(proofId);
     }
-    return this.findOneForAdmin(proofId);
+    const proof = await this.findOneForAdmin(proofId);
+    await this.notifyReviewed(proof);
+    return proof;
+  }
+
+  /**
+   * Tells the Advisor how their document was reviewed. Only the Admin whose review was written
+   * gets here (`repository.review` refuses the others), so it is sent once. A failure must not undo
+   * the review.
+   */
+  private async notifyReviewed(proof: SkillProofResponseDto): Promise<void> {
+    if (proof.reviewStatus === 'PENDING') return;
+    const title = SKILL_PROOF_DECIDED_TITLES[proof.reviewStatus];
+    const content = proof.rejectionReason
+      ? `${proof.skillName} · ${proof.rejectionReason}`
+      : proof.skillName;
+    try {
+      await this.notifications.notify({
+        ownerId: proof.advisorId,
+        type: 'SKILL_PROOF_DECIDED',
+        title: title.th,
+        content,
+        en: { title: title.en, content },
+        resourceId: proof.id,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not notify skill proof ${proof.id}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   /**

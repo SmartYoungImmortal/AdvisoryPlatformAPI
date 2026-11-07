@@ -9,6 +9,7 @@ import type { skillProofDocuments } from '@/database/schema';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
 import type { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import type { OwnSkillProofRow } from './dtos/own-skill-proof-response.dto';
 import { SkillProofQueryDto } from './dtos/skill-proof-query.dto';
 import type { SkillProofRow } from './dtos/skill-proof-response.dto';
@@ -103,6 +104,7 @@ describe('SkillProofsService', () => {
     >
   >;
   let service: SkillProofsService;
+  let notifications: { notify: jest.Mock };
 
   beforeEach(() => {
     repository = {
@@ -124,9 +126,11 @@ describe('SkillProofsService', () => {
         .fn()
         .mockResolvedValue('https://storage.example.test/signed'),
     };
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
     service = new SkillProofsService(
       repository as unknown as SkillProofsRepository,
       storage as unknown as SeaweedFsStorageService,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -332,6 +336,27 @@ describe('SkillProofsService', () => {
       );
       expect(result.reviewStatus).toBe('APPROVED');
       expect(result.reviewedByAdminId).toBe(admin.id);
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: result.advisorId,
+          type: 'SKILL_PROOF_DECIDED',
+          title: 'หลักฐานความเชี่ยวชาญผ่านการตรวจสอบ',
+          content: result.skillName,
+          resourceId: proofId,
+        }),
+      );
+    });
+
+    it('keeps the review when the notification fails', async () => {
+      repository.review.mockResolvedValue(true);
+      repository.findOneForAdmin.mockResolvedValue(
+        queueRow({ reviewStatus: 'APPROVED' }),
+      );
+      notifications.notify.mockRejectedValue(new Error('push down'));
+
+      await expect(service.approve(admin, proofId)).resolves.toEqual(
+        expect.objectContaining({ reviewStatus: 'APPROVED' }),
+      );
     });
 
     it('conflicts on a document that has already been reviewed', async () => {
@@ -342,6 +367,7 @@ describe('SkillProofsService', () => {
         new ConflictException(SKILL_PROOF_MESSAGES.alreadyReviewed),
       );
       expect(repository.findOneForAdmin).not.toHaveBeenCalled();
+      expect(notifications.notify).not.toHaveBeenCalled();
     });
 
     it('404s when the document does not exist at all', async () => {
@@ -383,6 +409,13 @@ describe('SkillProofsService', () => {
         Date,
       );
       expect(result.rejectionReason).toBe('The certificate has expired');
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'SKILL_PROOF_DECIDED',
+          title: 'หลักฐานความเชี่ยวชาญไม่ผ่านการตรวจสอบ',
+          content: `${result.skillName} · The certificate has expired`,
+        }),
+      );
     });
 
     it('conflicts on a document that has already been rejected', async () => {
