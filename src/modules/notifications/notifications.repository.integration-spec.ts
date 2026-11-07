@@ -106,6 +106,30 @@ describe('NotificationsRepository (integration)', () => {
     expect(await repository.countUnread(otherId)).toBe(1);
   });
 
+  it("finds one of the owner's notifications, in the request's language, never another owner's", async () => {
+    const created = await repository.createWithTranslations({
+      ownerId,
+      type: 'BOOKING_CONFIRMED',
+      title: 'การจองของคุณได้รับการยืนยันแล้ว',
+      content: null,
+      en: { title: 'Your booking is confirmed', content: null },
+    });
+
+    expect(await repository.findOneForOwner(created.id, ownerId)).toEqual(
+      expect.objectContaining({
+        id: created.id,
+        title: 'การจองของคุณได้รับการยืนยันแล้ว',
+      }),
+    );
+    const inEnglish = await runWithLocale('en', () =>
+      repository.findOneForOwner(created.id, ownerId),
+    );
+    expect(inEnglish?.title).toBe('Your booking is confirmed');
+    expect(
+      await repository.findOneForOwner(created.id, otherId),
+    ).toBeUndefined();
+  });
+
   it('keeps one unread notification per chat room, and starts a new one once read', async () => {
     const first = await repository.upsertUnreadMessage(message('สวัสดีครับ'));
     const second = await repository.upsertUnreadMessage(

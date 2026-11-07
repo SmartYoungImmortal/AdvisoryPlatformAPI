@@ -56,6 +56,18 @@ export class NotificationsService {
     };
   }
 
+  /** One of the owner's notifications; 404 if it does not exist or belongs to someone else. */
+  async findOne(
+    ownerId: string,
+    notificationId: string,
+  ): Promise<NotificationResponseDto> {
+    const row = await this.repository.findOneForOwner(notificationId, ownerId);
+    if (!row) {
+      throw new NotFoundException(NOTIFICATION_MESSAGES.notFound);
+    }
+    return new NotificationResponseDto(row);
+  }
+
   async countUnread(ownerId: string): Promise<NotificationCountResponseDto> {
     return new NotificationCountResponseDto(
       await this.repository.countUnread(ownerId),

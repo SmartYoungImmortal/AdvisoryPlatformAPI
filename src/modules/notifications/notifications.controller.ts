@@ -52,6 +52,17 @@ export class NotificationsController {
     return this.notifications.countUnread(user.id);
   }
 
+  // Declared after `unread-count`, so that path is never read as an id.
+  @Get(':notificationId')
+  @ResponseMessage(NOTIFICATION_MESSAGES.foundOne)
+  @ApiGetOne(NotificationResponseDto, { name: 'Notification' })
+  findOne(
+    @CurrentUser() user: SessionUser,
+    @Param('notificationId', ParseUUIDPipe) notificationId: string,
+  ): Promise<NotificationResponseDto> {
+    return this.notifications.findOne(user.id, notificationId);
+  }
+
   @Patch('read-all')
   @ResponseMessage(NOTIFICATION_MESSAGES.allRead)
   @ApiUpdate(NotificationCountResponseDto, { name: 'Notifications' })

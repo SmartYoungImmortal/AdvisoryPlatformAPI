@@ -75,6 +75,19 @@ export class NotificationsRepository extends EntityRepository<
       .limit(limit);
   }
 
+  /** One notification in the request's language. `undefined` if it does not belong to the owner. */
+  async findOneForOwner(
+    id: string,
+    ownerId: string,
+  ): Promise<Notification | undefined> {
+    const [row] = await this.db
+      .select(localizedNotification())
+      .from(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.ownerId, ownerId)))
+      .limit(1);
+    return row;
+  }
+
   countUnread(ownerId: string): Promise<number> {
     return this.count(this.unreadWhere(ownerId));
   }

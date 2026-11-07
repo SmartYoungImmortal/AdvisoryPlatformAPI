@@ -35,6 +35,7 @@ describe('NotificationsService', () => {
       | 'findPageForOwner'
       | 'countUnread'
       | 'markRead'
+      | 'findOneForOwner'
       | 'markAllRead'
       | 'createWithTranslations'
       | 'createWelcome'
@@ -50,6 +51,7 @@ describe('NotificationsService', () => {
       findPageForOwner: jest.fn(),
       countUnread: jest.fn(),
       markRead: jest.fn(),
+      findOneForOwner: jest.fn(),
       markAllRead: jest.fn(),
       createWithTranslations: jest.fn(),
       createWelcome: jest.fn(),
@@ -118,6 +120,29 @@ describe('NotificationsService', () => {
   it('counts unread notifications', async () => {
     repository.countUnread.mockResolvedValue(4);
     await expect(service.countUnread(ownerId)).resolves.toEqual({ count: 4 });
+  });
+
+  describe('findOne', () => {
+    it("returns one of the owner's notifications", async () => {
+      repository.findOneForOwner.mockResolvedValue(makeNotification());
+
+      await expect(
+        service.findOne(ownerId, '33333333-3333-3333-3333-333333333333'),
+      ).resolves.toEqual(
+        expect.objectContaining({ id: '33333333-3333-3333-3333-333333333333' }),
+      );
+      expect(repository.findOneForOwner).toHaveBeenCalledWith(
+        '33333333-3333-3333-3333-333333333333',
+        ownerId,
+      );
+    });
+
+    it("is a 404 for someone else's or a missing notification", async () => {
+      repository.findOneForOwner.mockResolvedValue(undefined);
+      await expect(
+        service.findOne(ownerId, '33333333-3333-3333-3333-333333333333'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   describe('markRead', () => {

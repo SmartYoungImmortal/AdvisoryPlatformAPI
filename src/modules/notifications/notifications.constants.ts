@@ -7,6 +7,7 @@ import { crudMessages } from '@/common/constants/crud-messages';
 export const NOTIFICATION_MESSAGES = {
   ...crudMessages('Notification'),
   found: 'Notifications found',
+  foundOne: 'Notification found',
   unreadCounted: 'Unread notifications counted',
   read: 'Notification marked as read',
   allRead: 'All notifications marked as read',
