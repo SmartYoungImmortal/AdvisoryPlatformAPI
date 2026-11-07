@@ -247,6 +247,17 @@ describe('PayoutsService', () => {
     expect(repository.settlePendingPayout).toHaveBeenCalledWith(payoutId, {
       status: 'FAILED',
     });
+    expect(notifications.notify).toHaveBeenCalledWith({
+      ownerId: advisor.id,
+      type: 'PAYOUT_FAILED',
+      title: 'การโอนเงินไม่สำเร็จ',
+      content: '฿1,480 · โปรดตรวจสอบบัญชีรับเงิน',
+      en: {
+        title: "A payout didn't go through",
+        content: '฿1,480 · please check your payout account',
+      },
+      resourceId: payoutId,
+    });
   });
 
   it('refuses to settle a payout that was already paid', async () => {

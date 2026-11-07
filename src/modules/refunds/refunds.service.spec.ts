@@ -1,6 +1,7 @@
 import { ConflictException, Logger, NotFoundException } from '@nestjs/common';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdminRefundCaseQueryDto } from './dtos/admin-refund-case-query.dto';
 import type { RefundsRepository } from './refunds.repository';
 import { RefundsService } from './refunds.service';
@@ -57,6 +58,7 @@ const evidence: RefundCaseEvidenceRow = {
 
 describe('RefundsService', () => {
   let service: RefundsService;
+  let notifications: { notify: jest.Mock };
   let repository: jest.Mocked<
     Pick<
       RefundsRepository,
@@ -89,7 +91,11 @@ describe('RefundsService', () => {
       findById: jest.fn(),
       ruleOpenCase: jest.fn(),
     };
-    service = new RefundsService(repository as unknown as RefundsRepository);
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+    service = new RefundsService(
+      repository as unknown as RefundsRepository,
+      notifications as unknown as NotificationsService,
+    );
   });
 
   afterEach(() => {
@@ -256,6 +262,29 @@ describe('RefundsService', () => {
     );
     const [, values] = repository.ruleOpenCase.mock.calls[0];
     expect(values.resolvedAt).toBeInstanceOf(Date);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerId: advisee.id,
+        type: 'REFUND_DECIDED',
+        title: 'คำขอคืนเงินได้รับอนุมัติ',
+        resourceId: invoiceId,
+      }),
+    );
+  });
+
+  it('keeps an approval when the notification fails', async () => {
+    repository.findById.mockResolvedValue(makeRefundCase());
+    repository.ruleOpenCase.mockResolvedValue(
+      makeRefundCase({ status: 'APPROVED' }),
+    );
+    repository.findOneForAdmin.mockResolvedValue(
+      makeAdminRow({ status: 'APPROVED' }),
+    );
+    notifications.notify.mockRejectedValue(new Error('push down'));
+
+    await expect(service.approve(admin, refundCaseId)).resolves.toEqual(
+      expect.objectContaining({ status: 'APPROVED' }),
+    );
   });
 
   it('refuses to approve a case that was already approved', async () => {
@@ -288,6 +317,7 @@ describe('RefundsService', () => {
       ConflictException,
     );
     expect(repository.findOneForAdmin).not.toHaveBeenCalled();
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('reports a ruling on a case that does not exist as absent', async () => {
@@ -323,5 +353,17 @@ describe('RefundsService', () => {
     expect(values.resolvedAt).toBeInstanceOf(Date);
     // The requester's own words are never overwritten by the Admin's.
     expect(values).not.toHaveProperty('reason');
+    // The Advisee reads the Admin's reason in the notification.
+    expect(notifications.notify).toHaveBeenCalledWith({
+      ownerId: advisee.id,
+      type: 'REFUND_DECIDED',
+      title: 'คำขอคืนเงินถูกปฏิเสธ',
+      content: 'Outside policy',
+      en: {
+        title: 'Your refund request was declined',
+        content: 'Outside policy',
+      },
+      resourceId: invoiceId,
+    });
   });
 });

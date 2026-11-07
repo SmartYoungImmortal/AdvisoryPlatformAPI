@@ -31,3 +31,19 @@ export const REFUND_CASE_OPEN_STATUS = 'OPEN';
  * inventing a fourth number for free text.
  */
 export const REFUND_REASON_MAX_LENGTH = 4_000;
+
+/** What the Advisee is told when an Admin decides their refund request. */
+export const REFUND_DECIDED_NOTIFICATION = {
+  approved: {
+    title: 'คำขอคืนเงินได้รับอนุมัติ',
+    content: 'เงินจะคืนไปยังช่องทางที่คุณใช้ชำระ',
+    en: {
+      title: 'Your refund request was approved',
+      content: 'The money goes back the way you paid',
+    },
+  },
+  rejected: {
+    title: 'คำขอคืนเงินถูกปฏิเสธ',
+    en: { title: 'Your refund request was declined' },
+  },
+} as const;

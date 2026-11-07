@@ -18,6 +18,7 @@ import { MarkPayoutPaidDto } from './dtos/mark-payout-paid.dto';
 import { PayoutResponseDto } from './dtos/payout-response.dto';
 import {
   PAYOUT_MESSAGES,
+  PAYOUT_FAILED_NOTIFICATION,
   PAYOUT_PAID_NOTIFICATION,
   PAYOUT_PENDING_STATUS,
 } from './payouts.constants';
@@ -83,26 +84,27 @@ export class PayoutsService {
         ? {}
         : { providerTransferId: dto.providerTransferId }),
     });
-    await this.notifyPaid(payout);
+    await this.notifySettled(payout, 'PAYOUT_SENT', PAYOUT_PAID_NOTIFICATION);
     return payout;
   }
 
   /**
-   * Tells the advisor the money is on its way. Only the admin whose ruling was written gets here
+   * Tells the advisor a payout was settled. Only the admin whose ruling was written gets here
    * (`settle` refuses the others), so it is sent once. A failure must not undo the payout.
    */
-  private async notifyPaid(payout: AdminPayoutResponseDto): Promise<void> {
+  private async notifySettled(
+    payout: AdminPayoutResponseDto,
+    type: 'PAYOUT_SENT' | 'PAYOUT_FAILED',
+    copy: typeof PAYOUT_PAID_NOTIFICATION | typeof PAYOUT_FAILED_NOTIFICATION,
+  ): Promise<void> {
     const amount = formatBaht(payout.netAmountSatang);
     try {
       await this.notifications.notify({
         ownerId: payout.advisorId,
-        type: 'PAYOUT_SENT',
-        title: PAYOUT_PAID_NOTIFICATION.title,
-        content: PAYOUT_PAID_NOTIFICATION.content(amount),
-        en: {
-          title: PAYOUT_PAID_NOTIFICATION.en.title,
-          content: PAYOUT_PAID_NOTIFICATION.en.content(amount),
-        },
+        type,
+        title: copy.title,
+        content: copy.content(amount),
+        en: { title: copy.en.title, content: copy.en.content(amount) },
         resourceId: payout.id,
       });
     } catch {
@@ -117,8 +119,14 @@ export class PayoutsService {
    * There is no `reason` on this route: `payouts` has no column for a failure note, and inventing
    * one is the schema owner's call rather than this module's. See the handoff note in the report.
    */
-  markFailed(payoutId: string): Promise<AdminPayoutResponseDto> {
-    return this.settle(payoutId, { status: 'FAILED' });
+  async markFailed(payoutId: string): Promise<AdminPayoutResponseDto> {
+    const payout = await this.settle(payoutId, { status: 'FAILED' });
+    await this.notifySettled(
+      payout,
+      'PAYOUT_FAILED',
+      PAYOUT_FAILED_NOTIFICATION,
+    );
+    return payout;
   }
 
   /**

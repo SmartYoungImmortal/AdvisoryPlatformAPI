@@ -27,6 +27,15 @@ export const PAYOUT_PAID_NOTIFICATION = {
   },
 } as const;
 
+export const PAYOUT_FAILED_NOTIFICATION = {
+  title: 'การโอนเงินไม่สำเร็จ',
+  content: (amount: string) => `${amount} · โปรดตรวจสอบบัญชีรับเงิน`,
+  en: {
+    title: "A payout didn't go through",
+    content: (amount: string) => `${amount} · please check your payout account`,
+  },
+} as const;
+
 export const PAYOUT_ACCOUNT_MESSAGES = {
   ...crudMessages('Payout account'),
   saved: 'Payout account saved',
