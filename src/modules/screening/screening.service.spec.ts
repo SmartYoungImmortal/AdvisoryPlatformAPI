@@ -161,10 +161,14 @@ describe('ScreeningService', () => {
 
     it('replaces the list in the order given', async () => {
       repository.findOwnedService.mockResolvedValue(service);
-      repository.replaceQuestions.mockResolvedValue([
-        makeQuestion(q1),
-        makeQuestion(q2, { isRequired: false }),
-      ]);
+      repository.findServiceNames.mockResolvedValue({
+        th: 'วางแผนภาษี',
+        en: 'Tax planning',
+      });
+      repository.replaceQuestions.mockResolvedValue({
+        questions: [makeQuestion(q1), makeQuestion(q2, { isRequired: false })],
+        expiredAdviseeIds: [],
+      });
 
       const result = await service_.replaceQuestions(advisor, serviceId, {
         questions: [
@@ -173,11 +177,44 @@ describe('ScreeningService', () => {
         ],
       });
 
-      expect(repository.replaceQuestions).toHaveBeenCalledWith(serviceId, [
-        { question: 'First', isRequired: true },
-        { question: 'Second', isRequired: false },
-      ]);
+      expect(repository.replaceQuestions).toHaveBeenCalledWith(
+        serviceId,
+        [
+          { question: 'First', isRequired: true },
+          { question: 'Second', isRequired: false },
+        ],
+        expect.objectContaining({ type: 'SCREENING_EXPIRED' }),
+      );
       expect(result).toHaveLength(2);
+      expect(notifications.deliver).not.toHaveBeenCalled();
+    });
+
+    it('tells each advisee whose acceptance expired, after the questions are saved', async () => {
+      repository.findOwnedService.mockResolvedValue(service);
+      repository.findServiceNames.mockResolvedValue({
+        th: 'วางแผนภาษี',
+        en: 'Tax planning',
+      });
+      repository.replaceQuestions.mockResolvedValue({
+        questions: [makeQuestion(q1)],
+        expiredAdviseeIds: [advisee.id],
+      });
+
+      await service_.replaceQuestions(advisor, serviceId, {
+        questions: [{ question: 'First', isRequired: true }],
+      });
+
+      expect(notifications.deliver).toHaveBeenCalledWith({
+        ownerId: advisee.id,
+        type: 'SCREENING_EXPIRED',
+        title: 'คำถามคัดกรองมีการเปลี่ยนแปลง',
+        content: 'วางแผนภาษี · ตอบคำถามใหม่ก่อนจอง',
+        en: {
+          title: 'The screening questions changed',
+          content: 'Tax planning · answer the new questions before booking',
+        },
+        resourceId: serviceId,
+      });
     });
   });
 

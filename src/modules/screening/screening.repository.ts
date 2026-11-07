@@ -125,6 +125,7 @@ export class ScreeningRepository extends EntityRepository<
    * Replaces all questions of a Service. Old questions are soft-deleted because old answers still
    * point to them. Accepted requests become EXPIRED, so the Advisee has to answer the new
    * questions. Pending requests keep their saved answers.
+   * Each Advisee whose acceptance expired gets `expiredNotice`, saved in the same transaction.
    *
    * The new questions are written in the request's language: each one's text is that language's
    * translation as well as the row's own fallback for any other.
@@ -132,7 +133,8 @@ export class ScreeningRepository extends EntityRepository<
   replaceQuestions(
     serviceId: string,
     questions: ScreeningQuestionInput[],
-  ): Promise<ScreeningQuestion[]> {
+    expiredNotice: Omit<ScreeningNotification, 'ownerId'>,
+  ): Promise<{ questions: ScreeningQuestion[]; expiredAdviseeIds: string[] }> {
     return this.db.transaction(async (tx) => {
       const now = new Date();
       await tx
@@ -158,7 +160,7 @@ export class ScreeningRepository extends EntityRepository<
         .returning();
       await saveScreeningQuestionTranslations(tx, created);
 
-      await tx
+      const expired = await tx
         .update(screeningRequests)
         .set({ status: 'EXPIRED' })
         .where(
@@ -166,9 +168,19 @@ export class ScreeningRepository extends EntityRepository<
             eq(screeningRequests.serviceId, serviceId),
             eq(screeningRequests.status, 'ACCEPTED'),
           ),
-        );
+        )
+        .returning({ adviseeId: screeningRequests.adviseeId });
+      for (const { adviseeId } of expired) {
+        await this.insertNotification(tx, {
+          ...expiredNotice,
+          ownerId: adviseeId,
+        });
+      }
 
-      return created;
+      return {
+        questions: created,
+        expiredAdviseeIds: expired.map((row) => row.adviseeId),
+      };
     });
   }
 

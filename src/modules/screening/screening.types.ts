@@ -57,7 +57,7 @@ export interface ScreeningAnswerRow {
  */
 export interface ScreeningNotification {
   ownerId: string;
-  type: 'SCREENING_REQUESTED' | 'SCREENING_DECIDED';
+  type: 'SCREENING_REQUESTED' | 'SCREENING_DECIDED' | 'SCREENING_EXPIRED';
   title: string;
   content: string | null;
   en: { title: string; content: string | null };

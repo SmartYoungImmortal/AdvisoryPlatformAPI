@@ -55,14 +55,35 @@ export class ScreeningService {
     serviceId: string,
     dto: ReplaceScreeningQuestionsDto,
   ): Promise<ScreeningQuestionResponseDto[]> {
-    await this.getOwnedService(user.id, serviceId);
-    const questions = await this.repository.replaceQuestions(
-      serviceId,
-      dto.questions.map((question) => ({
-        question: question.question,
-        isRequired: question.isRequired,
-      })),
-    );
+    const service = await this.getOwnedService(user.id, serviceId);
+    const names = await this.repository.findServiceNames(serviceId);
+    const expiredNotice = {
+      type: 'SCREENING_EXPIRED' as const,
+      title: SCREENING_NOTIFICATIONS.expiredTitle,
+      content: SCREENING_NOTIFICATIONS.expiredContent(
+        names?.th ?? service.name,
+      ),
+      en: {
+        title: SCREENING_NOTIFICATIONS.en.expiredTitle,
+        content: SCREENING_NOTIFICATIONS.en.expiredContent(
+          names?.en ?? service.name,
+        ),
+      },
+      resourceId: serviceId,
+    };
+    const { questions, expiredAdviseeIds } =
+      await this.repository.replaceQuestions(
+        serviceId,
+        dto.questions.map((question) => ({
+          question: question.question,
+          isRequired: question.isRequired,
+        })),
+        expiredNotice,
+      );
+    // The notifications are saved with the questions, so the push goes out only once both are.
+    for (const ownerId of expiredAdviseeIds) {
+      this.notifications.deliver({ ...expiredNotice, ownerId });
+    }
     return questions.map(
       (question) => new ScreeningQuestionResponseDto(question),
     );
