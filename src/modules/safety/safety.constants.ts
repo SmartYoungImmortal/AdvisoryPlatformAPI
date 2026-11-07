@@ -34,6 +34,25 @@ export type OffPlatformFlagOutcome = (typeof FLAG_OUTCOMES)[number];
 export const FLAG_CONFIRMED_STATUS =
   'CONFIRMED' satisfies OffPlatformFlagOutcome;
 
+/**
+ * The warning a user gets when an admin confirms one of their messages asked to continue outside
+ * the platform; it names the penalty points when there are any.
+ */
+export const POLICY_WARNING_NOTIFICATION = {
+  title: 'คำเตือนจากทีมงาน Advisory',
+  content: (points: number) =>
+    points > 0
+      ? `ข้อความของคุณชวนติดต่อกันนอก Advisory จึงได้รับ ${points} คะแนนโทษ`
+      : 'ข้อความของคุณชวนติดต่อกันนอก Advisory โปรดคุยและชำระเงินผ่าน Advisory เท่านั้น',
+  en: {
+    title: 'A warning from the Advisory team',
+    content: (points: number) =>
+      points > 0
+        ? `Your message asked to continue outside Advisory, so ${points} penalty ${points === 1 ? 'point was' : 'points were'} added.`
+        : 'Your message asked to continue outside Advisory. Please keep chats and payments on Advisory.',
+  },
+} as const;
+
 export const REPORT_MESSAGES = {
   notFound: 'Report not found',
   submitted: 'Report submitted',
