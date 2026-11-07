@@ -1,3 +1,4 @@
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
@@ -52,6 +53,7 @@ const coveredInvoice: PayoutInvoiceRow = {
 
 describe('PayoutsService', () => {
   let service: PayoutsService;
+  let notifications: jest.Mocked<Pick<NotificationsService, 'notify'>>;
   let repository: jest.Mocked<
     Pick<
       PayoutsRepository,
@@ -77,7 +79,11 @@ describe('PayoutsService', () => {
       findById: jest.fn(),
       settlePendingPayout: jest.fn(),
     };
-    service = new PayoutsService(repository as unknown as PayoutsRepository);
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+    service = new PayoutsService(
+      repository as unknown as PayoutsRepository,
+      notifications as unknown as NotificationsService,
+    );
   });
 
   it('pages the queue and counts it under the same status and advisor filter', async () => {
@@ -184,6 +190,31 @@ describe('PayoutsService', () => {
     );
     const [, values] = repository.settlePendingPayout.mock.calls[0];
     expect(values.paidAt).toBeInstanceOf(Date);
+  });
+
+  it('tells the advisor once the payout is paid, and keeps it paid if that fails', async () => {
+    repository.findById.mockResolvedValue(makePayout());
+    repository.settlePendingPayout.mockResolvedValue(
+      makePayout({ status: 'PAID', paidAt: createdAt }),
+    );
+    repository.findOneForAdmin.mockResolvedValue(
+      makeAdminRow({ status: 'PAID', paidAt: createdAt }),
+    );
+
+    await service.markPaid(payoutId, {});
+    expect(notifications.notify).toHaveBeenCalledWith({
+      ownerId: advisor.id,
+      type: 'PAYOUT_SENT',
+      title: 'เงินเข้าบัญชีแล้ว',
+      content: '฿1,480 · หลังหักค่าโอน',
+      en: { title: 'Payout sent', content: '฿1,480 after the transfer fee' },
+      resourceId: payoutId,
+    });
+
+    notifications.notify.mockRejectedValue(new Error('down'));
+    await expect(service.markPaid(payoutId, {})).resolves.toEqual(
+      expect.objectContaining({ status: 'PAID' }),
+    );
   });
 
   it('leaves an existing transfer id alone when the body omits one', async () => {

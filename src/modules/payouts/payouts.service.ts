@@ -8,18 +8,27 @@ import {
   type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
+import { formatBaht } from '@/common/utils/format-baht';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdminPayoutDetailResponseDto } from './dtos/admin-payout-detail-response.dto';
 import { AdminPayoutQueryDto } from './dtos/admin-payout-query.dto';
 import { AdminPayoutResponseDto } from './dtos/admin-payout-response.dto';
 import { MarkPayoutPaidDto } from './dtos/mark-payout-paid.dto';
 import { PayoutResponseDto } from './dtos/payout-response.dto';
-import { PAYOUT_MESSAGES, PAYOUT_PENDING_STATUS } from './payouts.constants';
+import {
+  PAYOUT_MESSAGES,
+  PAYOUT_PAID_NOTIFICATION,
+  PAYOUT_PENDING_STATUS,
+} from './payouts.constants';
 import { PayoutsRepository } from './payouts.repository';
 
 @Injectable()
 export class PayoutsService {
-  constructor(private readonly repository: PayoutsRepository) {}
+  constructor(
+    private readonly repository: PayoutsRepository,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   findManyForAdmin(
     query: AdminPayoutQueryDto,
@@ -63,17 +72,42 @@ export class PayoutsService {
    * reconciling a payout without the provider reference to hand does not erase a reference that is
    * already on the row.
    */
-  markPaid(
+  async markPaid(
     payoutId: string,
     dto: MarkPayoutPaidDto,
   ): Promise<AdminPayoutResponseDto> {
-    return this.settle(payoutId, {
+    const payout = await this.settle(payoutId, {
       status: 'PAID',
       paidAt: new Date(),
       ...(dto.providerTransferId === undefined
         ? {}
         : { providerTransferId: dto.providerTransferId }),
     });
+    await this.notifyPaid(payout);
+    return payout;
+  }
+
+  /**
+   * Tells the advisor the money is on its way. Only the admin whose ruling was written gets here
+   * (`settle` refuses the others), so it is sent once. A failure must not undo the payout.
+   */
+  private async notifyPaid(payout: AdminPayoutResponseDto): Promise<void> {
+    const amount = formatBaht(payout.netAmountSatang);
+    try {
+      await this.notifications.notify({
+        ownerId: payout.advisorId,
+        type: 'PAYOUT_SENT',
+        title: PAYOUT_PAID_NOTIFICATION.title,
+        content: PAYOUT_PAID_NOTIFICATION.content(amount),
+        en: {
+          title: PAYOUT_PAID_NOTIFICATION.en.title,
+          content: PAYOUT_PAID_NOTIFICATION.en.content(amount),
+        },
+        resourceId: payout.id,
+      });
+    } catch {
+      // The payout stands; the advisor still sees it in their payout history.
+    }
   }
 
   /**

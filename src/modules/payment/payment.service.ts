@@ -33,6 +33,8 @@ import {
   services,
 } from '@/database/schema';
 import { BookingsService } from '@/modules/bookings/bookings.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
+import { formatBaht } from '@/common/utils/format-baht';
 import type {
   CouponPreviewDto,
   CouponPreviewResponse,
@@ -91,6 +93,7 @@ export class PaymentService {
     private readonly serviceInvoiceRepository: PaymentServiceInvoicesRepository,
     @Inject(DRIZZLE) private readonly database: DrizzleDB,
     private readonly bookings: BookingsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** What the browser needs to turn a card into a token: the account's public key, never the secret. */
@@ -537,8 +540,32 @@ export class PaymentService {
           this.bookings.confirmPayment(appointmentId),
         ),
       );
+      // The read that recorded the success (above, while `paidAt` was empty) tells the advisee.
+      if (!invoice.paidAt) await this.notifyPaid(invoice.id);
     }
     return chargeResult.status;
+  }
+
+  /** "Payment successful" with the amount, opening the receipt. A failure must not undo the payment. */
+  private async notifyPaid(invoiceId: string): Promise<void> {
+    try {
+      const [invoice, adviseeId] = await Promise.all([
+        this.serviceInvoiceRepository.findById(invoiceId),
+        this.serviceInvoiceRepository.findAdviseeId(invoiceId),
+      ]);
+      if (!invoice || !adviseeId) return;
+      const amount = formatBaht(invoice.amountSatang);
+      await this.notifications.notify({
+        ownerId: adviseeId,
+        type: 'PAYMENT_SUCCEEDED',
+        title: PaymentConfig.paidNotification.title,
+        content: amount,
+        en: { title: PaymentConfig.paidNotification.en.title, content: amount },
+        resourceId: invoiceId,
+      });
+    } catch {
+      // The payment stands; the receipt is still in the history.
+    }
   }
 
   /** Where checkout goes once a charge's outcome is known: the frontend's page for it. */
