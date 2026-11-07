@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import { ScreeningRequestQueryDto } from './dtos/screening-request-query.dto';
 import { SCREENING_NOTIFICATIONS } from './screening.constants';
 import type { ScreeningRepository } from './screening.repository';
@@ -88,6 +89,7 @@ function makeRow(
 
 describe('ScreeningService', () => {
   let service_: ScreeningService;
+  let notifications: jest.Mocked<Pick<NotificationsService, 'sendPush'>>;
   let repository: jest.Mocked<
     Pick<
       ScreeningRepository,
@@ -125,8 +127,10 @@ describe('ScreeningService', () => {
       markViewed: jest.fn(),
       decidePending: jest.fn(),
     };
+    notifications = { sendPush: jest.fn() };
     service_ = new ScreeningService(
       repository as unknown as ScreeningRepository,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -259,6 +263,14 @@ describe('ScreeningService', () => {
           },
         },
       );
+      expect(notifications.sendPush).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisor.id,
+          type: 'SCREENING_REQUESTED',
+          title: SCREENING_NOTIFICATIONS.requestedTitle,
+          resourceId: requestId,
+        }),
+      );
     });
 
     it('words the English answer count in the singular and the plural', () => {
@@ -358,6 +370,7 @@ describe('ScreeningService', () => {
           answers: [{ questionId: q1, answer: 'x' }],
         }),
       ).rejects.toThrow(ConflictException);
+      expect(notifications.sendPush).not.toHaveBeenCalled();
     });
 
     it('rethrows any other database error', async () => {
@@ -451,6 +464,14 @@ describe('ScreeningService', () => {
         },
       );
       expect(repository.findServiceNames).not.toHaveBeenCalled();
+      expect(notifications.sendPush).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisee.id,
+          type: 'SCREENING_DECIDED',
+          title: SCREENING_NOTIFICATIONS.acceptedTitle,
+          resourceId: serviceId,
+        }),
+      );
     });
 
     it('names the service in each language when declining, not in the advisor’s', async () => {
@@ -535,6 +556,7 @@ describe('ScreeningService', () => {
       await expect(service_.accept(advisor, requestId)).rejects.toThrow(
         ConflictException,
       );
+      expect(notifications.sendPush).not.toHaveBeenCalled();
     });
   });
 });
