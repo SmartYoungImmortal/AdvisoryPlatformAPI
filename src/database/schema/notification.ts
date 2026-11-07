@@ -27,6 +27,14 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   // The first notification an account gets. `resourceId` is null for an Advisee's (it points them
   // at the expert search) and the Advisor's own user id for an Advisor's (their profile to fill in).
   'WELCOME',
+  'BOOKING_CANCELLED',
+  'BOOKING_RESCHEDULED',
+  'REFUND_DECIDED',
+  'PAYOUT_FAILED',
+  'SKILL_PROOF_DECIDED',
+  'SCREENING_EXPIRED',
+  'REVIEW_REPLIED',
+  'REPORT_RESOLVED',
 ]);
 
 /**
