@@ -234,6 +234,7 @@ describe('ReviewsService', () => {
   describe('reply', () => {
     it('stores the advisor reply', async () => {
       repository.findAppointmentForAdvisor.mockResolvedValue(makeAppointment());
+      repository.findByAppointmentId.mockResolvedValue(makeReview());
       repository.setAdvisorReply.mockResolvedValue(
         makeReview({ advisorReply: 'Thank you' }),
       );
@@ -250,6 +251,34 @@ describe('ReviewsService', () => {
         'Thank you',
       );
       expect(result.advisorReply).toBe('Thank you');
+      expect(notifications.notify).toHaveBeenCalledWith({
+        ownerId: advisee.id,
+        type: 'REVIEW_REPLIED',
+        title: 'ที่ปรึกษาตอบกลับรีวิวของคุณ',
+        content: 'Thank you',
+        en: {
+          title: 'The advisor replied to your review',
+          content: 'Thank you',
+        },
+        resourceId: bookingId,
+      });
+    });
+
+    it('does not notify again when the advisor edits their reply', async () => {
+      repository.findAppointmentForAdvisor.mockResolvedValue(makeAppointment());
+      repository.findByAppointmentId.mockResolvedValue(
+        makeReview({ advisorReply: 'Thanks' }),
+      );
+      repository.setAdvisorReply.mockResolvedValue(
+        makeReview({ advisorReply: 'Thank you' }),
+      );
+      repository.findDetailed.mockResolvedValue(
+        makeRow({ advisorReply: 'Thank you' }),
+      );
+
+      await service.reply(advisor, bookingId, { reply: 'Thank you' });
+
+      expect(notifications.notify).not.toHaveBeenCalled();
     });
 
     it('is a 404 when the caller is not the appointment’s advisor', async () => {

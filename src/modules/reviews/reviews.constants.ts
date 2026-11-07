@@ -15,6 +15,12 @@ export const REVIEW_RECEIVED_NOTIFICATION = {
   },
 } as const;
 
+/** The content is the reply itself, as the Advisor wrote it, in either language. */
+export const REVIEW_REPLIED_TITLES = {
+  th: 'ที่ปรึกษาตอบกลับรีวิวของคุณ',
+  en: 'The advisor replied to your review',
+} as const;
+
 export const REVIEW_MESSAGES = {
   ...crudMessages('Review'),
   alreadyReviewed: 'This consultation has already been reviewed',

@@ -8,6 +8,7 @@ import {
   type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
+import { previewText } from '@/common/utils/preview-text';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
@@ -21,6 +22,7 @@ import { ReviewResponseDto } from './dtos/review-response.dto';
 import {
   REVIEW_MESSAGES,
   REVIEW_RECEIVED_NOTIFICATION,
+  REVIEW_REPLIED_TITLES,
 } from './reviews.constants';
 import { ReviewsRepository } from './reviews.repository';
 
@@ -132,13 +134,38 @@ export class ReviewsService {
     );
     if (!appointment) throw new NotFoundException(REVIEW_MESSAGES.notFound);
 
+    const before = await this.repository.findByAppointmentId(appointmentId);
     const updated = await this.repository.setAdvisorReply(
       appointmentId,
       dto.reply,
     );
     // No review row to reply to reads the same as no appointment: there is nothing here.
     if (!updated) throw new NotFoundException(REVIEW_MESSAGES.notFound);
+    // Only the first reply is news to the Advisee; editing it later is not.
+    if (!before?.advisorReply) {
+      await this.notifyReplied(appointment.adviseeId, appointmentId, dto.reply);
+    }
     return this.requireDetailed(appointmentId);
+  }
+
+  private async notifyReplied(
+    adviseeId: string,
+    appointmentId: string,
+    reply: string,
+  ): Promise<void> {
+    const content = previewText(reply);
+    try {
+      await this.notifications.notify({
+        ownerId: adviseeId,
+        type: 'REVIEW_REPLIED',
+        title: REVIEW_REPLIED_TITLES.th,
+        content,
+        en: { title: REVIEW_REPLIED_TITLES.en, content },
+        resourceId: appointmentId,
+      });
+    } catch {
+      // The reply stands; the advisee still sees it on their review.
+    }
   }
 
   findMineAsAdvisor(

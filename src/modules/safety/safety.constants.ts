@@ -53,6 +53,26 @@ export const POLICY_WARNING_NOTIFICATION = {
   },
 } as const;
 
+/** What the reporter is told once an admin has looked at their report. */
+export const REPORT_RESOLVED_NOTIFICATION = {
+  title: 'รายงานของคุณได้รับการตรวจสอบแล้ว',
+  content: {
+    ACTIONED: 'ทีมงานดำเนินการกับบัญชีที่ถูกรายงานแล้ว',
+    DISMISSED: 'ทีมงานไม่พบการละเมิดกฎของแพลตฟอร์ม',
+  },
+  en: {
+    title: 'Your report has been reviewed',
+    content: {
+      ACTIONED: 'The team took action on the reported account',
+      DISMISSED: 'The team found no broken platform rules',
+    },
+  },
+} as const satisfies {
+  title: string;
+  content: Record<ReportOutcome, string>;
+  en: { title: string; content: Record<ReportOutcome, string> };
+};
+
 export const REPORT_MESSAGES = {
   notFound: 'Report not found',
   submitted: 'Report submitted',
