@@ -16,6 +16,15 @@ export const NOTIFICATION_MESSAGES = {
   socketUnauthorized: 'Authentication required',
 } as const;
 
+/** How often the API looks for sessions that need their "starts soon" reminder. */
+export const SESSION_REMINDER_SWEEP_MS = 60_000;
+
+/** The reminder both people get shortly before a session; the content is the service and time. */
+export const SESSION_REMINDER_NOTIFICATION = {
+  title: 'เซสชันใกล้เริ่มแล้ว',
+  en: { title: 'Your session starts soon' },
+} as const;
+
 /** The Socket.IO namespace that tells a user's open apps when a notification arrives. */
 export const NOTIFICATIONS_NAMESPACE = '/notifications';
 

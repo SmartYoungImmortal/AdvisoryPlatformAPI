@@ -7,6 +7,7 @@ import {
   getColumns,
   gt,
   inArray,
+  isNull,
   lt,
   lte,
   or,
@@ -31,6 +32,7 @@ import {
 } from '@/database/schema';
 import type {
   Notification,
+  ClaimedReminder,
   NotifyInput,
   UpcomingSessionRow,
 } from './notifications.types';
@@ -155,6 +157,44 @@ export class NotificationsRepository extends EntityRepository<
       .orderBy(asc(serviceAppointments.startTime))
       .limit(1);
     return row;
+  }
+
+  /**
+   * Marks every booked session that starts between `now` and `startsBy` and has not been reminded
+   * yet as reminded, and returns them. The mark and the read are one statement, so two API instances
+   * running at once never claim, and so never remind, the same session twice.
+   */
+  claimDueReminders(now: Date, startsBy: Date): Promise<ClaimedReminder[]> {
+    return this.db
+      .update(serviceAppointments)
+      .set({ sessionReminderSentAt: now })
+      .where(
+        and(
+          eq(serviceAppointments.state, 'BOOKED'),
+          isNull(serviceAppointments.sessionReminderSentAt),
+          gt(serviceAppointments.startTime, now),
+          lte(serviceAppointments.startTime, startsBy),
+        ),
+      )
+      .returning({
+        bookingId: serviceAppointments.id,
+        serviceId: serviceAppointments.serviceId,
+        advisorId: serviceAppointments.advisorId,
+        adviseeId: serviceAppointments.adviseeId,
+        startTime: serviceAppointments.startTime,
+      });
+  }
+
+  /** Service names as stored, by id. */
+  async findServiceNames(
+    serviceIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (serviceIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({ id: services.id, name: services.name })
+      .from(services)
+      .where(inArray(services.id, [...serviceIds]));
+    return new Map(rows.map((row) => [row.id, row.name]));
   }
 
   countUnread(ownerId: string): Promise<number> {

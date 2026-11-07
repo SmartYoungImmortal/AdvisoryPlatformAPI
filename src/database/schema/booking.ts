@@ -66,6 +66,10 @@ export const serviceAppointments = pgTable(
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     chatRoomId: uuid('chat_room_id').references(() => chatRooms.id),
     jitsiRoomName: varchar('jitsi_room_name'),
+    // When the "session starts soon" notification went out; null until then, so it is sent once.
+    sessionReminderSentAt: timestamp('session_reminder_sent_at', {
+      withTimezone: true,
+    }),
     state: appointmentStateEnum('state').notNull().default('PENDING_PAYMENT'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

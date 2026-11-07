@@ -336,6 +336,36 @@ describe('NotificationsRepository.findUpcomingSession (integration)', () => {
     expect(asAdvisor?.bookingId).toBe(asAdvisee?.bookingId);
   });
 
+  it('claims a due session once, and leaves the rest', async () => {
+    const [due] = await db
+      .insert(serviceAppointments)
+      .values(appointment(5, 35, 'BOOKED'))
+      .returning({ id: serviceAppointments.id });
+    await db
+      .insert(serviceAppointments)
+      .values([
+        appointment(40, 70, 'BOOKED'),
+        appointment(3, 33, 'CANCELLED'),
+        appointment(-20, 10, 'IN_PROGRESS'),
+      ]);
+    await db.insert(serviceAppointments).values({
+      ...appointment(6, 36, 'BOOKED'),
+      sessionReminderSentAt: new Date(),
+    });
+
+    const first = await repository.claimDueReminders(new Date(), minutes(10));
+    expect(first.map((row) => row.bookingId)).toEqual([due.id]);
+    expect(first[0]).toEqual(
+      expect.objectContaining({ advisorId, adviseeId, serviceId }),
+    );
+    expect(await repository.claimDueReminders(new Date(), minutes(10))).toEqual(
+      [],
+    );
+    expect(await repository.findServiceNames([serviceId])).toEqual(
+      new Map([[serviceId, 'วางแผนภาษี']]),
+    );
+  });
+
   it('puts a session already in progress first, and finds nothing outside the window', async () => {
     await db
       .insert(serviceAppointments)

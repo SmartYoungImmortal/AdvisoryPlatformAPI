@@ -32,6 +32,15 @@ export interface UpcomingSessionRow {
   adviseeName: string;
 }
 
+/** A session whose reminder this API instance has just claimed. */
+export interface ClaimedReminder {
+  bookingId: string;
+  serviceId: string;
+  advisorId: string;
+  adviseeId: string;
+  startTime: Date;
+}
+
 /** Input for `NotificationsService.deliver()`: the Thai text and what it is about. */
 export type DeliveryInput = Pick<
   NotifyInput,
