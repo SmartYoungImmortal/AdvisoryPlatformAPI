@@ -40,6 +40,8 @@ export const BOOKING_NOTIFICATION_TITLES = {
     en: 'Your booking is confirmed',
   },
   received: { th: 'มีการจองใหม่', en: 'You have a new booking' },
+  cancelled: { th: 'นัดหมายถูกยกเลิก', en: 'A session was cancelled' },
+  rescheduled: { th: 'นัดหมายถูกเลื่อน', en: 'A session was moved' },
 } as const;
 
 export function invalidTransitionMessage(
