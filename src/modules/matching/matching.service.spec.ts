@@ -378,6 +378,48 @@ describe('MatchingService.chat', () => {
     expect(model.create).toHaveBeenCalledTimes(1);
   });
 
+  it('refuses a caller past sixty asks a day, minutes apart', async () => {
+    const { service } = makeService();
+    const start = Date.parse('2026-11-09T03:00:00Z');
+    const now = jest.spyOn(Date, 'now');
+    try {
+      for (let i = 0; i < 60; i++) {
+        now.mockReturnValue(start + i * 61_000);
+        await service.chat({ messages: [said(`ภาษี ${i}`)] }, '7.7.7.7');
+      }
+      now.mockReturnValue(start + 60 * 61_000);
+      await expect(
+        service.chat({ messages: [said('ภาษี อีก')] }, '7.7.7.7'),
+      ).rejects.toBeInstanceOf(HttpException);
+      // Another caller is not held by it.
+      await expect(
+        service.chat({ messages: [said('ภาษี')] }, '7.7.7.8'),
+      ).resolves.toBeDefined();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it('answers by words once the day’s model calls are spent', async () => {
+    const model = fakeModel(
+      modelMessage({ search: null, reply: 'เรื่องอะไรคะ', suggestions: [] }),
+    );
+    const { service } = makeService('sk-test', model.client);
+    const spent = service as unknown as {
+      modelToday: { day: string; count: number };
+    };
+    spent.modelToday = {
+      day: new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10),
+      count: 1000,
+    };
+    const result = await service.chat(
+      { messages: [said('สัญญาจ้าง')] },
+      '6.6.6.6',
+    );
+    expect(model.create).not.toHaveBeenCalled();
+    expect(result.mode).toBe('keyword');
+  });
+
   it('shares the ten-a-minute limit with match', async () => {
     const { service } = makeService();
     for (let i = 0; i < 5; i++) {

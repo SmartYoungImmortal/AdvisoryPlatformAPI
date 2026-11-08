@@ -46,6 +46,14 @@ const CACHE_ENTRIES = 500;
 /** Asks a caller may make in a minute: the model is paid per call and the route is public. */
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 10;
+/** Asks a caller may make in a Bangkok day, past which they are refused like the minute's. */
+const CALLER_DAILY_MAX = 60;
+/**
+ * Model calls this instance makes in a Bangkok day, from every caller. Past
+ * it, matching still answers, by the person's words, so a crowd of addresses
+ * cannot run the bill up; Cloud Run's two instances at most make it twice this.
+ */
+const MODEL_DAILY_MAX = 1000;
 const MODEL_TIMEOUT_MS = 20_000;
 /** Matching's default model, kept cheap; `MATCHING_MODEL` raises it. */
 const DEFAULT_MODEL = 'claude-haiku-5-5';
@@ -114,6 +122,10 @@ export class MatchingService {
     { at: number; result: MatchingChatResponseDto }
   >();
   private readonly calls = new Map<string, number[]>();
+  /** Each caller's asks today; cleared when the Bangkok day turns. */
+  private readonly daily = new Map<string, number>();
+  /** The model calls made today, and the Bangkok day they count. */
+  private modelToday = { day: '', count: 0 };
 
   constructor(
     private readonly services: AdvisorServicesService,
@@ -145,7 +157,7 @@ export class MatchingService {
     const catalogue = await this.catalogue(dto);
     const apiKey = this.config.get<string>(ENV_KEYS.ANTHROPIC_API_KEY);
     let result = byKeywords(problem, catalogue);
-    if (apiKey && catalogue.length > 0) {
+    if (apiKey && catalogue.length > 0 && this.spendModelCall()) {
       try {
         const answer = await this.askModel(apiKey, problem, catalogue);
         if (answer.matches.length > 0) result = answer;
@@ -185,7 +197,7 @@ export class MatchingService {
 
     const catalogue = await this.catalogue({});
     let result: MatchingChatResponseDto | null = null;
-    if (this.model && catalogue.length > 0) {
+    if (this.model && catalogue.length > 0 && this.spendModelCall()) {
       try {
         result = await this.askChatModel(this.model, turns, catalogue);
       } catch (error) {
@@ -203,13 +215,15 @@ export class MatchingService {
     return result;
   }
 
-  /** A caller's asks in the last minute, refused past the limit. */
+  /** A caller's asks in the last minute and today, refused past either limit. */
   private admit(caller: string): void {
     const now = Date.now();
+    this.turnDay(now);
     const recent = (this.calls.get(caller) ?? []).filter(
       (at) => now - at < RATE_WINDOW_MS,
     );
-    if (recent.length >= RATE_MAX) {
+    const today = this.daily.get(caller) ?? 0;
+    if (recent.length >= RATE_MAX || today >= CALLER_DAILY_MAX) {
       throw new HttpException(
         MATCHING_MESSAGES.tooMany,
         HttpStatus.TOO_MANY_REQUESTS,
@@ -217,7 +231,35 @@ export class MatchingService {
     }
     recent.push(now);
     this.calls.set(caller, recent);
+    this.daily.set(caller, today + 1);
     if (this.calls.size > 5000) this.calls.clear();
+  }
+
+  /**
+   * Takes one of today's model calls, or answers false when they are spent,
+   * and the caller is then answered by words.
+   */
+  private spendModelCall(): boolean {
+    this.turnDay(Date.now());
+    if (this.modelToday.count >= MODEL_DAILY_MAX) {
+      if (this.modelToday.count === MODEL_DAILY_MAX) {
+        this.logger.warn(
+          `Matching reached ${MODEL_DAILY_MAX} model calls today; answering by words until tomorrow`,
+        );
+        this.modelToday.count += 1;
+      }
+      return false;
+    }
+    this.modelToday.count += 1;
+    return true;
+  }
+
+  /** Starts the counts afresh when the Bangkok day has turned. */
+  private turnDay(now: number): void {
+    const day = new Date(now + 7 * 3_600_000).toISOString().slice(0, 10);
+    if (this.modelToday.day === day) return;
+    this.modelToday = { day, count: 0 };
+    this.daily.clear();
   }
 
   private async catalogue(filter: {
