@@ -36,6 +36,18 @@ export const PaymentConfig = {
     title: 'ชำระเงินสำเร็จ',
     en: { title: 'Payment successful' },
   },
+  /**
+   * The advisee's notification when a charge is declined or a PromptPay code expires unpaid; the
+   * content is the amount and what to do next.
+   */
+  failedNotification: {
+    title: 'ชำระเงินไม่สำเร็จ',
+    content: (amount: string) => `${amount} · ลองชำระเงินอีกครั้ง`,
+    en: {
+      title: 'Payment failed',
+      content: (amount: string) => `${amount} · please try paying again`,
+    },
+  },
   /** How long a PromptPay QR code can be paid before it expires and a new one is needed. */
   promptPay: {
     expiresMinutes: 15,

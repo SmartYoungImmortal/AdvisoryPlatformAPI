@@ -1003,6 +1003,51 @@ describe('PaymentService', () => {
         expect(mockNotificationsService.notify).not.toHaveBeenCalled();
       });
 
+      it('tells the advisee the first time a failure is recorded', async () => {
+        mockInvoicesRepository.findById.mockResolvedValue({
+          id: invoiceId,
+          providerChargeId: 'ch_123',
+          paidAt: null,
+          amountSatang: 126_000,
+        });
+        mockPaymentProvider.getChargeStatus.mockResolvedValue({
+          status: 'failed',
+          brand: 'Visa',
+          lastDigits: '4242',
+        });
+
+        await service.paymentCallback(mockUser, invoiceId);
+
+        expect(mockNotificationsService.notify).toHaveBeenCalledWith({
+          ownerId: 'advisee-1',
+          type: 'PAYMENT_FAILED',
+          title: 'ชำระเงินไม่สำเร็จ',
+          content: '฿1,260 · ลองชำระเงินอีกครั้ง',
+          en: {
+            title: 'Payment failed',
+            content: '฿1,260 · please try paying again',
+          },
+          resourceId: invoiceId,
+        });
+        expect(mockBookingsService.confirmPayment).not.toHaveBeenCalled();
+      });
+
+      it('says nothing while the charge is still pending', async () => {
+        mockInvoicesRepository.findById.mockResolvedValue({
+          id: invoiceId,
+          providerChargeId: 'ch_123',
+          paidAt: null,
+          amountSatang: 126_000,
+        });
+        mockPaymentProvider.getChargeStatus.mockResolvedValue({
+          status: 'pending',
+        });
+
+        await service.paymentCallback(mockUser, invoiceId);
+
+        expect(mockNotificationsService.notify).not.toHaveBeenCalled();
+      });
+
       it('keeps the payment when the notification fails', async () => {
         mockInvoicesRepository.findById.mockResolvedValue({
           id: invoiceId,

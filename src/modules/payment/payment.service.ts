@@ -540,14 +540,21 @@ export class PaymentService {
           this.bookings.confirmPayment(appointmentId),
         ),
       );
-      // The read that recorded the success (above, while `paidAt` was empty) tells the advisee.
-      if (!invoice.paidAt) await this.notifyPaid(invoice.id);
     }
+    // The read that recorded the outcome (above, while `paidAt` was empty) tells the advisee.
+    if (chargeResult.status !== 'pending' && !invoice.paidAt)
+      await this.notifyOutcome(invoice.id, chargeResult.status);
     return chargeResult.status;
   }
 
-  /** "Payment successful" with the amount, opening the receipt. A failure must not undo the payment. */
-  private async notifyPaid(invoiceId: string): Promise<void> {
+  /**
+   * "Payment successful" or "Payment failed" with the amount, opening the receipt. A failure to
+   * notify must not undo what was recorded.
+   */
+  private async notifyOutcome(
+    invoiceId: string,
+    outcome: 'success' | 'failed',
+  ): Promise<void> {
     try {
       const [invoice, adviseeId] = await Promise.all([
         this.serviceInvoiceRepository.findById(invoiceId),
@@ -555,16 +562,34 @@ export class PaymentService {
       ]);
       if (!invoice || !adviseeId) return;
       const amount = formatBaht(invoice.amountSatang);
+      const failed = PaymentConfig.failedNotification;
+      const message =
+        outcome === 'success'
+          ? {
+              type: 'PAYMENT_SUCCEEDED' as const,
+              title: PaymentConfig.paidNotification.title,
+              content: amount,
+              en: {
+                title: PaymentConfig.paidNotification.en.title,
+                content: amount,
+              },
+            }
+          : {
+              type: 'PAYMENT_FAILED' as const,
+              title: failed.title,
+              content: failed.content(amount),
+              en: {
+                title: failed.en.title,
+                content: failed.en.content(amount),
+              },
+            };
       await this.notifications.notify({
         ownerId: adviseeId,
-        type: 'PAYMENT_SUCCEEDED',
-        title: PaymentConfig.paidNotification.title,
-        content: amount,
-        en: { title: PaymentConfig.paidNotification.en.title, content: amount },
         resourceId: invoiceId,
+        ...message,
       });
     } catch {
-      // The payment stands; the receipt is still in the history.
+      // The outcome stands; the receipt is still in the history.
     }
   }
 
