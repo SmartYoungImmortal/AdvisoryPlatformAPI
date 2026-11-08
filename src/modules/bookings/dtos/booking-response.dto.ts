@@ -7,6 +7,9 @@ type Appointment = InferSelectModel<typeof serviceAppointments>;
 export class BookingResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() serviceId: string;
+  /** The package booked; null for a service sold as itself. */
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  packageId: string | null;
   @ApiProperty() advisorId: string;
   @ApiProperty() adviseeId: string;
   @ApiProperty({ format: 'date-time' }) startTime: Date;
@@ -25,6 +28,7 @@ export class BookingResponseDto {
   constructor(appointment: Appointment) {
     this.id = appointment.id;
     this.serviceId = appointment.serviceId;
+    this.packageId = appointment.packageId;
     this.advisorId = appointment.advisorId;
     this.adviseeId = appointment.adviseeId;
     this.startTime = appointment.startTime;

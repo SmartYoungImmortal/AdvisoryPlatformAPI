@@ -15,5 +15,7 @@ import { PublicServicesController } from './public-services.controller';
     PublicServicesController,
   ],
   providers: [AdvisorServicesService, AdvisorServicesRepository],
+  // Matching reads the published catalogue through the same service the public list uses.
+  exports: [AdvisorServicesService],
 })
 export class AdvisorServicesModule {}

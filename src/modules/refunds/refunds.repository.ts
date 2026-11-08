@@ -1,4 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { and, asc, count, eq, type SQL } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { EntityRepository } from '@/common/repositories/entity.repository';
@@ -11,6 +16,10 @@ import {
   serviceInvoices,
   user,
 } from '@/database/schema';
+import {
+  MAX_REFUND_EVIDENCE_FILES,
+  REFUND_EVIDENCE_MESSAGES,
+} from './refund-evidence.constants';
 import { REFUND_CASE_OPEN_STATUS } from './refunds.constants';
 import type {
   AdminRefundCaseRow,
@@ -24,6 +33,67 @@ import type {
 export class RefundsRepository extends EntityRepository<typeof refundCases> {
   constructor(@Inject(DRIZZLE) db: DrizzleDB) {
     super(db, refundCases);
+  }
+
+  async createOpenCase(
+    input: Pick<RefundCase, 'invoiceId' | 'requestedByUserId' | 'reason'>,
+  ): Promise<RefundCase | undefined> {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .select({ id: serviceInvoices.id })
+        .from(serviceInvoices)
+        .where(eq(serviceInvoices.id, input.invoiceId))
+        .for('update');
+      const [open] = await tx
+        .select({ id: refundCases.id })
+        .from(refundCases)
+        .where(
+          and(
+            eq(refundCases.invoiceId, input.invoiceId),
+            eq(refundCases.status, REFUND_CASE_OPEN_STATUS),
+          ),
+        )
+        .limit(1);
+      if (open) return undefined;
+      const [created] = await tx.insert(refundCases).values(input).returning();
+      return created;
+    });
+  }
+
+  async appendEvidence(
+    userId: string,
+    id: string,
+    file: { objectKey: string; originalFileName: string; mimeType: string },
+  ): Promise<RefundCaseEvidenceRow> {
+    return this.db.transaction(async (tx) => {
+      const [refund] = await tx
+        .select()
+        .from(refundCases)
+        .where(
+          and(
+            eq(refundCases.id, id),
+            eq(refundCases.requestedByUserId, userId),
+          ),
+        )
+        .for('update');
+      if (!refund)
+        throw new NotFoundException(REFUND_EVIDENCE_MESSAGES.notFound);
+      const files = await tx
+        .select()
+        .from(refundCaseEvidence)
+        .where(eq(refundCaseEvidence.refundCaseId, id));
+      const existing = files.find((row) => row.objectKey === file.objectKey);
+      if (existing) return existing;
+      if (refund.status !== 'OPEN')
+        throw new BadRequestException(REFUND_EVIDENCE_MESSAGES.resolved);
+      if (files.length >= MAX_REFUND_EVIDENCE_FILES)
+        throw new BadRequestException(REFUND_EVIDENCE_MESSAGES.full);
+      const [row] = await tx
+        .insert(refundCaseEvidence)
+        .values({ refundCaseId: id, ...file })
+        .returning();
+      return row;
+    });
   }
 
   /**
@@ -84,11 +154,17 @@ export class RefundsRepository extends EntityRepository<typeof refundCases> {
   findManyForRequester(
     requesterId: string,
     options: { limit: number; offset: number },
+    invoiceId?: string,
   ): Promise<RefundCase[]> {
     return this.db
       .select()
       .from(refundCases)
-      .where(eq(refundCases.requestedByUserId, requesterId))
+      .where(
+        and(
+          eq(refundCases.requestedByUserId, requesterId),
+          invoiceId ? eq(refundCases.invoiceId, invoiceId) : undefined,
+        ),
+      )
       .orderBy(asc(refundCases.createdAt), asc(refundCases.id))
       .limit(options.limit)
       .offset(options.offset);
@@ -98,8 +174,13 @@ export class RefundsRepository extends EntityRepository<typeof refundCases> {
    * Counted over the same single table `findManyForRequester` selects from, and filtered by the
    * same predicate. The inherited `count()` is only safe here because neither side joins.
    */
-  countForRequester(requesterId: string): Promise<number> {
-    return this.count(eq(refundCases.requestedByUserId, requesterId));
+  countForRequester(requesterId: string, invoiceId?: string): Promise<number> {
+    return this.count(
+      and(
+        eq(refundCases.requestedByUserId, requesterId),
+        invoiceId ? eq(refundCases.invoiceId, invoiceId) : undefined,
+      ),
+    );
   }
 
   /** Oldest first: this is a work queue, and the case waiting longest is the one to rule on next. */

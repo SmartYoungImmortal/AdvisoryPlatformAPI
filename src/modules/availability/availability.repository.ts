@@ -18,6 +18,8 @@ import {
   availabilityWeeklyWindows,
   screeningRequests,
   serviceAppointments,
+  servicePackages,
+  serviceScreeningQuestions,
   services,
   user,
 } from '@/database/schema';
@@ -185,6 +187,21 @@ export class AvailabilityRepository {
       .where(eq(services.availabilityProfileId, profileId))
       .limit(1);
     return service !== undefined;
+  }
+
+  /** One of a service's packages, or undefined when it is not one of them. */
+  async findPackage(serviceId: string, packageId: string) {
+    const [row] = await this.db
+      .select()
+      .from(servicePackages)
+      .where(
+        and(
+          eq(servicePackages.id, packageId),
+          eq(servicePackages.serviceId, serviceId),
+        ),
+      )
+      .limit(1);
+    return row;
   }
 
   async schedulingContext(serviceId: string) {
@@ -386,6 +403,21 @@ export class AvailabilityRepository {
           gt(serviceAppointments.unavailableUntil, from),
         ),
       );
+  }
+
+  /** Whether the Service asks any question: screening a Service that asks none cannot be done. */
+  async hasScreeningQuestions(serviceId: string): Promise<boolean> {
+    const [question] = await this.db
+      .select({ id: serviceScreeningQuestions.id })
+      .from(serviceScreeningQuestions)
+      .where(
+        and(
+          eq(serviceScreeningQuestions.serviceId, serviceId),
+          isNull(serviceScreeningQuestions.deletedAt),
+        ),
+      )
+      .limit(1);
+    return question !== undefined;
   }
 
   async hasAcceptedScreening(

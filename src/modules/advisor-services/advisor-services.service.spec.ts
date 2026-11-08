@@ -29,6 +29,8 @@ const publicService: PublicServiceDocument = {
   screeningRequired: false,
   trialEnabled: false,
   trialDurationMinutes: null,
+  relatedServiceIds: [],
+  extraCategoryIds: [],
   createdAt: new Date('2026-08-29T00:00:00Z'),
 };
 
@@ -47,6 +49,8 @@ function makeService(overrides: Partial<AdvisorService> = {}): AdvisorService {
     screeningRequired: false,
     trialEnabled: false,
     trialDurationMinutes: null,
+    relatedServiceIds: [],
+    extraCategoryIds: [],
     createdAt: new Date('2026-08-29T00:00:00Z'),
     modifiedAt: new Date('2026-08-29T00:00:00Z'),
     ...overrides,
@@ -63,6 +67,8 @@ describe('AdvisorServicesService', () => {
       | 'findManyByAdvisorId'
       | 'countByAdvisorId'
       | 'findOwnedById'
+      | 'findOwnedIds'
+      | 'categoriesExist'
       | 'categoryExists'
       | 'availabilityProfileOwned'
       | 'createLocalized'
@@ -72,10 +78,20 @@ describe('AdvisorServicesService', () => {
       | 'countPublished'
       | 'findPublishedById'
       | 'findImageKeysFor'
+      | 'appendImage'
+      | 'removeImage'
+      | 'findPackagesFor'
+      | 'replacePackages'
+      | 'setPackageImage'
     >
   >;
   let availability: jest.Mocked<Pick<AvailabilityService, 'openOn'>>;
-  let storage: jest.Mocked<Pick<SeaweedFsStorageService, 'createDownloadUrl'>>;
+  let storage: jest.Mocked<
+    Pick<
+      SeaweedFsStorageService,
+      'createDownloadUrl' | 'putObject' | 'removeObject'
+    >
+  >;
 
   beforeEach(() => {
     repository = {
@@ -84,6 +100,8 @@ describe('AdvisorServicesService', () => {
       findManyByAdvisorId: jest.fn(),
       countByAdvisorId: jest.fn(),
       findOwnedById: jest.fn(),
+      findOwnedIds: jest.fn().mockResolvedValue([]),
+      categoriesExist: jest.fn().mockResolvedValue(true),
       categoryExists: jest.fn(),
       availabilityProfileOwned: jest.fn(),
       createLocalized: jest.fn(),
@@ -93,14 +111,97 @@ describe('AdvisorServicesService', () => {
       countPublished: jest.fn(),
       findPublishedById: jest.fn(),
       findImageKeysFor: jest.fn().mockResolvedValue([]),
+      appendImage: jest.fn(),
+      removeImage: jest.fn(),
+      findPackagesFor: jest.fn().mockResolvedValue([]),
+      replacePackages: jest.fn(),
+      setPackageImage: jest.fn(),
     };
     availability = { openOn: jest.fn() };
-    storage = { createDownloadUrl: jest.fn() };
+    storage = {
+      createDownloadUrl: jest.fn(),
+      putObject: jest.fn(),
+      removeObject: jest.fn(),
+    };
     service = new AdvisorServicesService(
       repository as unknown as AdvisorServicesRepository,
       availability as unknown as AvailabilityService,
       storage as unknown as SeaweedFsStorageService,
     );
+  });
+
+  it('keeps the draft unchanged when image storage fails', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    storage.putObject.mockRejectedValue(new Error('storage offline'));
+    await expect(
+      service.uploadImage(advisor, serviceId, {
+        buffer: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+        size: 8,
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toThrow('Image storage is unavailable');
+    expect(repository.appendImage).not.toHaveBeenCalled();
+    expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+
+  it('removes the uploaded object if attaching it to the service fails', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    repository.appendImage.mockRejectedValue(
+      new BadRequestException('Image limit'),
+    );
+    await expect(
+      service.uploadImage(advisor, serviceId, {
+        buffer: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+        size: 8,
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toThrow('Image limit');
+    expect(storage.removeObject).toHaveBeenCalledWith(
+      expect.stringMatching(/^services\//),
+    );
+  });
+
+  it('removes a stored photograph and deletes its object, but leaves a hotlinked one alone', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    repository.removeImage.mockResolvedValueOnce(`services/${serviceId}/a.png`);
+    await service.removeImage(advisor, serviceId, 1);
+    expect(repository.removeImage).toHaveBeenCalledWith(
+      advisor.id,
+      serviceId,
+      1,
+    );
+    expect(storage.removeObject).toHaveBeenCalledWith(
+      `services/${serviceId}/a.png`,
+    );
+
+    storage.removeObject.mockClear();
+    repository.removeImage.mockResolvedValueOnce(
+      'https://images.example/seed.jpg',
+    );
+    await service.removeImage(advisor, serviceId, 0);
+    expect(storage.removeObject).not.toHaveBeenCalled();
+  });
+
+  it('allows an image-free draft but refuses publishing without a stored image', async () => {
+    repository.findOwnedById.mockResolvedValue(makeService());
+    repository.categoryExists.mockResolvedValue(true);
+    repository.availabilityProfileOwned.mockResolvedValue(true);
+    repository.updateOwned.mockResolvedValue(makeService());
+    await expect(
+      service.update(advisor, serviceId, { isPublished: false }),
+    ).resolves.toMatchObject({ isPublished: false });
+    await expect(
+      service.update(advisor, serviceId, { isPublished: true }),
+    ).rejects.toThrow('Add a service image before publishing');
+    repository.findImageKeysFor.mockResolvedValue([
+      { serviceId, objectKey: 'services/real.png' },
+    ]);
+    repository.updateOwned.mockResolvedValue(
+      makeService({ isPublished: true }),
+    );
+    await expect(
+      service.update(advisor, serviceId, { isPublished: true }),
+    ).resolves.toMatchObject({ isPublished: true });
   });
 
   it('lists only the current advisor services', async () => {
@@ -210,6 +311,82 @@ describe('AdvisorServicesService', () => {
     );
   });
 
+  describe('the other categories a service is found under', () => {
+    const other = '66666666-6666-4666-8666-666666666666';
+
+    beforeEach(() => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.categoryExists.mockResolvedValue(true);
+      repository.availabilityProfileOwned.mockResolvedValue(true);
+      repository.updateOwned.mockResolvedValue(makeService());
+    });
+
+    it('stores each once, never the main one', async () => {
+      repository.categoriesExist.mockResolvedValue(true);
+      await service.update(advisor, serviceId, {
+        extraCategoryIds: [other, categoryId, other],
+      });
+      expect(repository.updateOwned).toHaveBeenCalledWith(
+        advisor.id,
+        serviceId,
+        expect.objectContaining({ extraCategoryIds: [other] }),
+      );
+    });
+
+    it('refuses a category that does not exist', async () => {
+      repository.categoriesExist.mockResolvedValue(false);
+      await expect(
+        service.update(advisor, serviceId, { extraCategoryIds: [other] }),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.updateOwned).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the services a page shows beside it', () => {
+    const otherA = '44444444-4444-4444-4444-444444444444';
+    const otherB = '55555555-5555-5555-5555-555555555555';
+
+    beforeEach(() => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.categoryExists.mockResolvedValue(true);
+      repository.availabilityProfileOwned.mockResolvedValue(true);
+      repository.updateOwned.mockResolvedValue(makeService());
+    });
+
+    it('stores the advisor’s own, each once and never the service itself', async () => {
+      repository.findOwnedIds.mockResolvedValue([otherA, otherB]);
+      await service.update(advisor, serviceId, {
+        relatedServiceIds: [otherA, serviceId, otherA, otherB],
+      });
+      expect(repository.findOwnedIds).toHaveBeenCalledWith(advisor.id, [
+        otherA,
+        otherB,
+      ]);
+      expect(repository.updateOwned).toHaveBeenCalledWith(
+        advisor.id,
+        serviceId,
+        expect.objectContaining({ relatedServiceIds: [otherA, otherB] }),
+      );
+    });
+
+    it('refuses a service that belongs to someone else', async () => {
+      repository.findOwnedIds.mockResolvedValue([otherA]);
+      await expect(
+        service.update(advisor, serviceId, {
+          relatedServiceIds: [otherA, otherB],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.updateOwned).not.toHaveBeenCalled();
+    });
+
+    it('leaves them alone when the request does not name them', async () => {
+      await service.update(advisor, serviceId, { name: 'Renamed' });
+      expect(repository.findOwnedIds).not.toHaveBeenCalled();
+      const [, , changes] = repository.updateOwned.mock.calls[0];
+      expect(changes).not.toHaveProperty('relatedServiceIds');
+    });
+  });
+
   it('searches published Services directly in Postgres', async () => {
     repository.findPublished.mockResolvedValue([publicService]);
     repository.countPublished.mockResolvedValue(1);
@@ -302,6 +479,135 @@ describe('AdvisorServicesService', () => {
     await expect(service.findPublishedById(serviceId)).resolves.toEqual(
       expect.objectContaining({ id: serviceId }),
     );
+  });
+
+  describe('packages', () => {
+    const packageRow = {
+      id: '77777777-7777-4777-8777-777777777777',
+      serviceId,
+      name: 'Quick question',
+      description: null,
+      durationMinutes: 30,
+      priceSatang: 90000,
+      imageKey: null as string | null,
+      sortOrder: 0,
+      createdAt: new Date('2026-10-28T00:00:00.000Z'),
+      modifiedAt: new Date('2026-10-28T00:00:00.000Z'),
+    };
+
+    it('lists them on the public detail route, in their order', async () => {
+      repository.findPublishedById.mockResolvedValue(publicService);
+      repository.findPackagesFor.mockResolvedValue([packageRow]);
+
+      const detail = await service.findPublishedById(serviceId);
+
+      expect(repository.findPackagesFor).toHaveBeenCalledWith(serviceId);
+      expect(detail.packages).toEqual([
+        expect.objectContaining({
+          id: packageRow.id,
+          name: 'Quick question',
+          description: null,
+          durationMinutes: 30,
+          priceSatang: 90000,
+          image: null,
+        }),
+      ]);
+    });
+
+    it('shows a package’s own picture, presigned, and never its key', async () => {
+      repository.findPublishedById.mockResolvedValue(publicService);
+      repository.findPackagesFor.mockResolvedValue([
+        { ...packageRow, imageKey: 'services/s/packages/p/a.jpg' },
+      ]);
+      storage.createDownloadUrl.mockResolvedValue('https://files.test/a.jpg');
+
+      const detail = await service.findPublishedById(serviceId);
+
+      expect(detail.packages[0].image).toBe('https://files.test/a.jpg');
+      expect(detail.packages[0]).not.toHaveProperty('imageKey');
+    });
+
+    it('swaps a package’s picture and removes the one it replaced', async () => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.setPackageImage.mockResolvedValue(
+        'services/s/packages/p/old.jpg',
+      );
+      storage.putObject.mockResolvedValue(undefined);
+      storage.removeObject.mockResolvedValue(undefined);
+      const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
+
+      await service.uploadPackageImage(advisor, serviceId, packageRow.id, {
+        buffer: png,
+        mimetype: 'image/png',
+        size: png.length,
+      } as Express.Multer.File);
+
+      const [{ key }] = storage.putObject.mock.calls[0];
+      expect(repository.setPackageImage).toHaveBeenCalledWith(
+        serviceId,
+        packageRow.id,
+        key,
+      );
+      expect(storage.removeObject).toHaveBeenCalledWith(
+        'services/s/packages/p/old.jpg',
+      );
+    });
+
+    it('takes the pictures of packages left out of a replace with them', async () => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.findPackagesFor.mockResolvedValue([
+        { ...packageRow, imageKey: 'services/s/packages/p/gone.jpg' },
+      ]);
+      repository.replacePackages.mockResolvedValue([]);
+      storage.removeObject.mockResolvedValue(undefined);
+
+      await service.replacePackages(advisor, serviceId, { packages: [] });
+
+      expect(storage.removeObject).toHaveBeenCalledWith(
+        'services/s/packages/p/gone.jpg',
+      );
+    });
+
+    it('refuses an id that is not one of the service’s packages', async () => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.findPackagesFor.mockResolvedValue([packageRow]);
+
+      await expect(
+        service.replacePackages(advisor, serviceId, {
+          packages: [
+            {
+              id: '88888888-8888-4888-8888-888888888888',
+              name: 'Elsewhere',
+              durationMinutes: 30,
+              priceSatang: 0,
+            },
+          ],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.replacePackages).not.toHaveBeenCalled();
+    });
+
+    it('keeps a known id, adds the new ones, in the order sent', async () => {
+      repository.findOwnedById.mockResolvedValue(makeService());
+      repository.findPackagesFor.mockResolvedValue([packageRow]);
+      repository.replacePackages.mockResolvedValue([packageRow]);
+      const packages = [
+        { name: 'In depth', durationMinutes: 90, priceSatang: 250000 },
+        {
+          id: packageRow.id,
+          name: 'Quick question',
+          durationMinutes: 30,
+          priceSatang: 90000,
+        },
+      ];
+
+      await service.replacePackages(advisor, serviceId, { packages });
+
+      expect(repository.replacePackages).toHaveBeenCalledWith(
+        serviceId,
+        packages,
+      );
+    });
   });
 
   it('hides an unpublished Service from the public detail route', async () => {

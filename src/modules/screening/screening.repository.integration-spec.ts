@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { runWithLocale } from '@/common/i18n/request-locale';
@@ -44,6 +44,13 @@ describe('ScreeningRepository (integration)', () => {
     content: null,
     en: { title: 'New screening request', content: null },
   });
+  const expiredNotice = {
+    type: 'SCREENING_EXPIRED' as const,
+    title: 'คำถามคัดกรองมีการเปลี่ยนแปลง',
+    content: null,
+    en: { title: 'The screening questions changed', content: null },
+    resourceId: serviceId,
+  };
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -142,10 +149,16 @@ describe('ScreeningRepository (integration)', () => {
   });
 
   it('runs a request from submission to decision', async () => {
-    const [first, second] = await repository.replaceQuestions(serviceId, [
-      { question: 'คุณต้องการปรึกษาเรื่องอะไร', isRequired: true },
-      { question: 'อยากได้อะไรจากการปรึกษาครั้งนี้', isRequired: false },
-    ]);
+    const {
+      questions: [first, second],
+    } = await repository.replaceQuestions(
+      serviceId,
+      [
+        { question: 'คุณต้องการปรึกษาเรื่องอะไร', isRequired: true },
+        { question: 'อยากได้อะไรจากการปรึกษาครั้งนี้', isRequired: false },
+      ],
+      expiredNotice,
+    );
     expect([first.displayOrder, second.displayOrder]).toEqual([0, 1]);
     // Outside a request the language is Thai, so each question is also its Thai translation.
     const questionTranslations = await db
@@ -255,8 +268,26 @@ describe('ScreeningRepository (integration)', () => {
 
   it('soft-deletes replaced questions and expires acceptances given against them', async () => {
     const before = await repository.findActiveQuestions(serviceId);
-    await repository.replaceQuestions(serviceId, [
-      { question: 'คำถามใหม่', isRequired: true },
+    const { expiredAdviseeIds } = await repository.replaceQuestions(
+      serviceId,
+      [{ question: 'คำถามใหม่', isRequired: true }],
+      expiredNotice,
+    );
+    expect(expiredAdviseeIds).toEqual([adviseeId]);
+    const sent = await db
+      .select({
+        type: notifications.type,
+        resourceId: notifications.resourceId,
+      })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.ownerId, adviseeId),
+          eq(notifications.type, 'SCREENING_EXPIRED'),
+        ),
+      );
+    expect(sent).toEqual([
+      { type: 'SCREENING_EXPIRED', resourceId: serviceId },
     ]);
 
     const active = await repository.findActiveQuestions(serviceId);
@@ -325,10 +356,14 @@ describe('ScreeningRepository (integration)', () => {
   });
 
   it('writes questions replaced in English as English translations', async () => {
-    const [question] = await runWithLocale('en', () =>
-      repository.replaceQuestions(serviceId, [
-        { question: 'What would you like to discuss?', isRequired: true },
-      ]),
+    const {
+      questions: [question],
+    } = await runWithLocale('en', () =>
+      repository.replaceQuestions(
+        serviceId,
+        [{ question: 'What would you like to discuss?', isRequired: true }],
+        expiredNotice,
+      ),
     );
 
     await expect(

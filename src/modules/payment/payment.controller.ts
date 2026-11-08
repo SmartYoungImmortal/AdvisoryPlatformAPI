@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import {
   CheckoutDto,
   CheckoutResponse,
@@ -22,6 +23,17 @@ import {
   PaymentStatusDto,
 } from '@/modules/payment/dto/invoice.dto';
 import { InvoiceDto } from '@/modules/payment/dto/invoice.dto';
+import {
+  BookingInvoiceDto,
+  CouponPreviewDto,
+  CouponPreviewResponse,
+} from '@/modules/payment/dto/coupon.dto';
+import {
+  PromptPayDto,
+  PromptPayResponse,
+  PromptPayStatusResponse,
+} from '@/modules/payment/dto/promptpay.dto';
+import { MobileBankingDto } from '@/modules/payment/dto/mobile-banking.dto';
 import {
   ApiCreate,
   ApiGetOne,
@@ -48,6 +60,68 @@ export class PaymentController {
 
     return result;
     // return res.redirect(HttpStatus.SEE_OTHER, result.url);
+  }
+
+  /** Pay an invoice by PromptPay: the QR code to scan, its amount, and when it expires. */
+  @Post('promptpay')
+  @ApiCreate(PromptPayResponse)
+  postPromptPay(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: PromptPayDto,
+  ): Promise<PromptPayResponse> {
+    return this.paymentService.payByPromptPay(user, dto);
+  }
+
+  /** Pay an invoice in a Thai bank's app: the page that opens the app. */
+  @Post('mobile-banking')
+  @ApiCreate(CheckoutResponse)
+  postMobileBanking(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: MobileBankingDto,
+  ): Promise<CheckoutResponse> {
+    return this.paymentService.payByMobileBanking(user, dto);
+  }
+
+  /** Whether the invoice's PromptPay code has been paid; asked until it has. */
+  @Get('invoice/:id/promptpay-status')
+  @ApiGetOne(PromptPayStatusResponse)
+  getPromptPayStatus(
+    @CurrentUser() user: SessionUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PromptPayStatusResponse> {
+    return this.paymentService.promptPayStatus(user, id);
+  }
+
+  /** The Omise public key the browser tokenises a card with. Public: it is the key meant to be. */
+  @Public()
+  @Get('public-key')
+  getPublicKey(): { publicKey: string } {
+    return this.paymentService.publicKey();
+  }
+
+  /** The invoice for a booking `POST /bookings` holds, less its coupon: the one checkout charges. */
+  @Post('invoice/for-booking/:bookingId')
+  @ApiCreate(InvoiceDto)
+  postBookingInvoice(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+    @Body() dto: BookingInvoiceDto,
+  ): Promise<InvoiceDto> {
+    return this.paymentService.createBookingInvoice(
+      user,
+      bookingId,
+      dto.couponCode,
+    );
+  }
+
+  /** What a coupon would take off a booking. 400 for any code that cannot be used. */
+  @Post('coupons/preview')
+  @ApiCreate(CouponPreviewResponse)
+  previewCoupon(
+    @CurrentUser() user: SessionUser,
+    @Body() dto: CouponPreviewDto,
+  ): Promise<CouponPreviewResponse> {
+    return this.paymentService.previewCoupon(user, dto);
   }
 
   @Post('invoice')
@@ -77,6 +151,16 @@ export class PaymentController {
     @Query() query: OffsetPaginationDto,
   ): Promise<PaginatedResult<AdviseeInvoiceResponseDto>> {
     return this.paymentService.findMyInvoices(user, query);
+  }
+
+  /** The receipt linked to this user's booking, regardless of history pagination. */
+  @Get('invoices/for-booking/:bookingId')
+  @ApiGetOne(AdviseeInvoiceResponseDto, { name: 'Invoice' })
+  getMyBookingInvoice(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+  ): Promise<AdviseeInvoiceResponseDto> {
+    return this.paymentService.findMyBookingInvoice(user, bookingId);
   }
 
   /** One receipt from that history. Checkout keeps its own `invoice/:id` above. */

@@ -10,7 +10,13 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { user, chatRooms, services, advisorProfiles } from '@/database/schema';
+import {
+  user,
+  chatRooms,
+  services,
+  servicePackages,
+  advisorProfiles,
+} from '@/database/schema';
 
 export const appointmentStateEnum = pgEnum('appointment_state', [
   'PENDING_PAYMENT',
@@ -33,6 +39,12 @@ export const serviceAppointments = pgTable(
     serviceId: uuid('service_id')
       .notNull()
       .references(() => services.id),
+    // The package booked, when the service is sold in packages. Its length is
+    // already in `endTime`; null for a service sold as itself, and for a
+    // booking whose package was since removed.
+    packageId: uuid('package_id').references(() => servicePackages.id, {
+      onDelete: 'set null',
+    }),
     // Denormalized for the advisor-wide exclusion constraint. The booking service verifies this
     // matches the selected service's owner before inserting the appointment.
     advisorId: uuid('advisor_id')
@@ -54,6 +66,10 @@ export const serviceAppointments = pgTable(
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     chatRoomId: uuid('chat_room_id').references(() => chatRooms.id),
     jitsiRoomName: varchar('jitsi_room_name'),
+    // When the "session starts soon" notification went out; null until then, so it is sent once.
+    sessionReminderSentAt: timestamp('session_reminder_sent_at', {
+      withTimezone: true,
+    }),
     state: appointmentStateEnum('state').notNull().default('PENDING_PAYMENT'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

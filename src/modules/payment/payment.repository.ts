@@ -169,6 +169,57 @@ export class PaymentServiceInvoicesRepository extends EntityRepository<
     return row;
   }
 
+  /** Resolve the stored relation, including later sessions on a shared invoice. */
+  async findForBooking(
+    bookingId: string,
+    adviseeId: string,
+  ): Promise<AdviseeInvoiceRow | undefined> {
+    const [link] = await this.db
+      .select({ invoiceId: serviceAppointmentsOnInvoice.serviceInvoiceId })
+      .from(serviceAppointmentsOnInvoice)
+      .innerJoin(
+        serviceAppointments,
+        eq(
+          serviceAppointments.id,
+          serviceAppointmentsOnInvoice.serviceAppointmentId,
+        ),
+      )
+      .where(
+        and(
+          eq(serviceAppointments.id, bookingId),
+          eq(serviceAppointments.adviseeId, adviseeId),
+        ),
+      )
+      .limit(1);
+    return link ? this.findOneForAdvisee(link.invoiceId, adviseeId) : undefined;
+  }
+
+  /** The advisee an invoice belongs to: whoever booked the appointments it pays for. */
+  async findAdviseeId(invoiceId: string): Promise<string | undefined> {
+    const [row] = await this.db
+      .select({ adviseeId: serviceAppointments.adviseeId })
+      .from(serviceAppointmentsOnInvoice)
+      .innerJoin(
+        serviceAppointments,
+        eq(
+          serviceAppointments.id,
+          serviceAppointmentsOnInvoice.serviceAppointmentId,
+        ),
+      )
+      .where(eq(serviceAppointmentsOnInvoice.serviceInvoiceId, invoiceId))
+      .limit(1);
+    return row?.adviseeId;
+  }
+
+  /** The appointments an invoice pays for: the bookings its payment confirms. */
+  async findAppointmentIds(invoiceId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ id: serviceAppointmentsOnInvoice.serviceAppointmentId })
+      .from(serviceAppointmentsOnInvoice)
+      .where(eq(serviceAppointmentsOnInvoice.serviceInvoiceId, invoiceId));
+    return rows.map((row) => row.id);
+  }
+
   /**
    * Counted over the same joins `selectForAdvisee` uses, not through the inherited `count()`.
    * Ownership lives in the joined appointments, so `service_invoices` alone would count every

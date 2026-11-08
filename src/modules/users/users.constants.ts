@@ -8,6 +8,7 @@ export const USER_MESSAGES = {
   avatarTooLarge: 'Avatar must not exceed 5 MB',
   storageUnavailable: 'File storage is currently unavailable',
   deleted: 'Account deleted',
-  deletionBlocked: 'Resolve upcoming appointments before deleting your account',
+  deletionBlocked:
+    'Resolve upcoming appointments and settle unpaid earnings before deleting your account',
   notFound: 'User profile not found',
 } as const;

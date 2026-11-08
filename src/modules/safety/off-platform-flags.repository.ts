@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, type InferSelectModel, type SQL } from 'drizzle-orm';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { offPlatformFlags } from '@/database/schema';
+import { chatMessages, offPlatformFlags } from '@/database/schema';
 import {
   FLAG_PENDING_STATUS,
   type OffPlatformFlagOutcome,
@@ -50,6 +50,16 @@ export class OffPlatformFlagsRepository extends EntityRepository<
    * The ruling, as one conditional UPDATE — see `UserReportsRepository.resolveIfOpen`.
    * `status = PENDING_REVIEW` in the WHERE is what makes a second ruling write nothing.
    */
+  /** Who sent a flagged chat message. */
+  async findMessageSenderId(messageId: string): Promise<string | undefined> {
+    const [row] = await this.db
+      .select({ senderUserId: chatMessages.senderUserId })
+      .from(chatMessages)
+      .where(eq(chatMessages.id, messageId))
+      .limit(1);
+    return row?.senderUserId;
+  }
+
   async reviewIfPending(
     flagId: string,
     values: {

@@ -9,6 +9,7 @@ import type {
   serviceAppointments,
   services,
 } from '@/database/schema';
+import type { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import type { AvailabilityService } from '@/modules/availability/availability.service';
 import type { NotificationsService } from '@/modules/notifications/notifications.service';
@@ -31,6 +32,7 @@ function makeAppointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
     id: bookingId,
     serviceId,
+    packageId: null,
     advisorId: advisor.id,
     adviseeId: advisee.id,
     type: 'CONSULTATION',
@@ -68,6 +70,7 @@ function makeGlobal(
 describe('BookingsService', () => {
   let service: BookingsService;
   let notifications: jest.Mocked<Pick<NotificationsService, 'notify'>>;
+  let storage: jest.Mocked<Pick<SeaweedFsStorageService, 'createDownloadUrl'>>;
   let repository: jest.Mocked<
     Pick<
       BookingsRepository,
@@ -82,11 +85,19 @@ describe('BookingsService', () => {
       | 'findManyForAdvisee'
       | 'countForAdvisee'
       | 'findManyForAdvisor'
+      | 'findDetailForAdvisor'
       | 'countForAdvisor'
+      | 'nameMeetingRoom'
     >
   >;
   let availability: jest.Mocked<
-    Pick<AvailabilityService, 'findSlotAt' | 'getGlobal'>
+    Pick<
+      AvailabilityService,
+      | 'findSlotAt'
+      | 'findRescheduleSlots'
+      | 'findReplacementSlotAt'
+      | 'getGlobal'
+    >
   >;
 
   beforeEach(() => {
@@ -102,15 +113,30 @@ describe('BookingsService', () => {
       findManyForAdvisee: jest.fn(),
       countForAdvisee: jest.fn(),
       findManyForAdvisor: jest.fn(),
+      findDetailForAdvisor: jest.fn(),
       countForAdvisor: jest.fn(),
+      nameMeetingRoom: jest.fn(),
     };
-    availability = { findSlotAt: jest.fn(), getGlobal: jest.fn() };
+    availability = {
+      findSlotAt: jest.fn(),
+      findRescheduleSlots: jest.fn(),
+      findReplacementSlotAt: jest.fn(),
+      getGlobal: jest.fn(),
+    };
     availability.getGlobal.mockResolvedValue(makeGlobal());
     notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+    storage = {
+      createDownloadUrl: jest
+        .fn()
+        .mockImplementation((key: string) =>
+          Promise.resolve(`https://signed.test/${key}`),
+        ),
+    };
     service = new BookingsService(
       repository as unknown as BookingsRepository,
       availability as unknown as AvailabilityService,
       notifications as unknown as NotificationsService,
+      storage as unknown as SeaweedFsStorageService,
     );
   });
 
@@ -248,6 +274,35 @@ describe('BookingsService', () => {
   });
 
   describe('participant lists', () => {
+    it('returns the owned advisor detail with the current screening-request link', async () => {
+      const appointment = {
+        ...makeAppointment(),
+        adviseeName: 'Advisee display',
+        adviseeAvatarKey: null,
+        serviceName: 'Service',
+        serviceImageKey: null,
+        latestScreeningRequestId: null,
+      };
+      repository.findDetailForAdvisor.mockResolvedValue(appointment);
+      await expect(
+        service.findAdvisorOne(advisor, appointment.id),
+      ).resolves.toMatchObject({
+        id: appointment.id,
+        adviseeName: 'Advisee display',
+        latestScreeningRequestId: null,
+      });
+      expect(repository.findDetailForAdvisor).toHaveBeenCalledWith(
+        appointment.id,
+        advisor.id,
+      );
+    });
+
+    it('does not reveal a missing or foreign advisor booking', async () => {
+      repository.findDetailForAdvisor.mockResolvedValue(undefined);
+      await expect(service.findAdvisorOne(advisor, 'missing')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
     it('scopes the Advisee list to the session user', async () => {
       repository.findManyForAdvisee.mockResolvedValue([makeAppointment()]);
       repository.countForAdvisee.mockResolvedValue(1);
@@ -266,7 +321,9 @@ describe('BookingsService', () => {
         {
           ...makeAppointment(),
           adviseeName: 'ธนกฤต ว.',
+          adviseeAvatarKey: null,
           serviceName: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+          serviceImageKey: null,
         },
       ]);
       repository.countForAdvisor.mockResolvedValue(1);
@@ -285,6 +342,54 @@ describe('BookingsService', () => {
         advisor.id,
         expect.anything(),
       );
+    });
+
+    it('draws the Advisor list with each picture as a URL: kept when it is one, presigned when stored', async () => {
+      repository.findManyForAdvisor.mockResolvedValue([
+        {
+          ...makeAppointment(),
+          adviseeName: 'ธนกฤต ว.',
+          adviseeAvatarKey: 'https://example.com/face.jpg',
+          serviceName: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+          serviceImageKey: 'services/abc/1.jpg',
+        },
+      ]);
+      repository.countForAdvisor.mockResolvedValue(1);
+
+      const page = await service.findAdvisorMine(
+        advisor,
+        new OffsetPaginationDto(),
+      );
+
+      expect(page.items[0]).toMatchObject({
+        adviseeAvatarUrl: 'https://example.com/face.jpg',
+        serviceImageUrl: 'https://signed.test/services/abc/1.jpg',
+      });
+      expect(storage.createDownloadUrl).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves a picture out when it cannot be signed', async () => {
+      storage.createDownloadUrl.mockRejectedValue(new Error('storage down'));
+      repository.findManyForAdvisor.mockResolvedValue([
+        {
+          ...makeAppointment(),
+          adviseeName: 'ธนกฤต ว.',
+          adviseeAvatarKey: 'avatars/me.jpg',
+          serviceName: 'วางแผนภาษีสำหรับฟรีแลนซ์',
+          serviceImageKey: null,
+        },
+      ]);
+      repository.countForAdvisor.mockResolvedValue(1);
+
+      const page = await service.findAdvisorMine(
+        advisor,
+        new OffsetPaginationDto(),
+      );
+
+      expect(page.items[0]).toMatchObject({
+        adviseeAvatarUrl: null,
+        serviceImageUrl: null,
+      });
     });
   });
 
@@ -351,6 +456,47 @@ describe('BookingsService', () => {
       expect(booking.cancelledByUserId).toBe(advisor.id);
     });
 
+    it('tells the other person, not the one who cancelled', async () => {
+      repository.findForAdvisor.mockResolvedValue(makeAppointment());
+      repository.transition.mockResolvedValue(
+        makeAppointment({ state: 'CANCELLED' }),
+      );
+      repository.findPublishedService.mockResolvedValue({
+        id: serviceId,
+        name: 'ปรึกษาการเงิน',
+      } as AdvisorService);
+
+      await service.cancelAsAdvisor(advisor, bookingId);
+
+      expect(notifications.notify).toHaveBeenCalledTimes(1);
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisee.id,
+          type: 'BOOKING_CANCELLED',
+          title: 'นัดหมายถูกยกเลิก',
+          resourceId: bookingId,
+        }),
+      );
+      expect(notifications.notify.mock.calls[0][0].content).toContain(
+        'ปรึกษาการเงิน',
+      );
+    });
+
+    it('still cancels when the notification cannot be created', async () => {
+      repository.findForAdvisee.mockResolvedValue(makeAppointment());
+      repository.transition.mockResolvedValue(
+        makeAppointment({ state: 'CANCELLED' }),
+      );
+      notifications.notify.mockRejectedValue(new Error('push down'));
+
+      await expect(
+        service.cancelAsAdvisee(advisee, bookingId),
+      ).resolves.toEqual(expect.objectContaining({ state: 'CANCELLED' }));
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ ownerId: advisor.id }),
+      );
+    });
+
     it('hides a booking the caller does not own', async () => {
       repository.findForAdvisee.mockResolvedValue(undefined);
 
@@ -369,6 +515,7 @@ describe('BookingsService', () => {
       await expect(
         service.cancelAsAdvisee(advisee, bookingId),
       ).rejects.toBeInstanceOf(ConflictException);
+      expect(notifications.notify).not.toHaveBeenCalled();
     });
   });
 
@@ -468,7 +615,7 @@ describe('BookingsService', () => {
     const newEnd = new Date('2026-09-21T04:00:00.000Z');
 
     beforeEach(() => {
-      availability.findSlotAt.mockResolvedValue({
+      availability.findReplacementSlotAt.mockResolvedValue({
         startTime: newStart,
         endTime: newEnd,
       });
@@ -488,6 +635,14 @@ describe('BookingsService', () => {
 
       expect(booking.state).toBe('BOOKED');
       expect(booking.startTime).toEqual(newStart);
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisor.id,
+          type: 'BOOKING_RESCHEDULED',
+          title: 'นัดหมายถูกเลื่อน',
+          resourceId: booking.id,
+        }),
+      );
     });
 
     it('leaves an unpaid appointment pending payment', async () => {
@@ -584,6 +739,98 @@ describe('BookingsService', () => {
           startTime: newStart.toISOString(),
         }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('openMeeting', () => {
+    // Five minutes before the appointment: inside the ten-minute window.
+    beforeEach(() => {
+      jest.useFakeTimers({ now: startTime.getTime() - 5 * 60000 });
+    });
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('names the room the first time it is opened and gives its address', async () => {
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+      repository.nameMeetingRoom.mockImplementation((_id, name) =>
+        Promise.resolve(name),
+      );
+
+      const meeting = await service.openMeeting(advisee, bookingId);
+
+      expect(repository.findForParticipant).toHaveBeenCalledWith(
+        bookingId,
+        advisee.id,
+      );
+      expect(meeting.url).toMatch(
+        /^https:\/\/meet\.jit\.si\/advisory-[0-9a-f-]{36}$/,
+      );
+    });
+
+    it('gives the room an appointment already has without naming another', async () => {
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED', jitsiRoomName: 'advisory-room' }),
+      );
+
+      const meeting = await service.openMeeting(advisor, bookingId);
+
+      expect(meeting.url).toBe('https://meet.jit.si/advisory-room');
+      expect(repository.nameMeetingRoom).not.toHaveBeenCalled();
+    });
+
+    it('rejects anybody who is not a participant', async () => {
+      repository.findForParticipant.mockResolvedValue(undefined);
+
+      await expect(service.openMeeting(advisee, bookingId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('has no room for an appointment that is not paid', async () => {
+      repository.findForParticipant.mockResolvedValue(makeAppointment());
+
+      await expect(service.openMeeting(advisee, bookingId)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('keeps a booked room shut until ten minutes before the start', async () => {
+      jest.setSystemTime(startTime.getTime() - 11 * 60000);
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+
+      await expect(service.openMeeting(advisee, bookingId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('shuts a booked room once the appointment has ended', async () => {
+      jest.setSystemTime(endTime.getTime() + 60000);
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({ state: 'BOOKED' }),
+      );
+
+      await expect(service.openMeeting(advisee, bookingId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('keeps a started session’s room open past its end', async () => {
+      jest.setSystemTime(endTime.getTime() + 15 * 60000);
+      repository.findForParticipant.mockResolvedValue(
+        makeAppointment({
+          state: 'IN_PROGRESS',
+          jitsiRoomName: 'advisory-room',
+        }),
+      );
+
+      await expect(service.openMeeting(advisee, bookingId)).resolves.toEqual({
+        url: 'https://meet.jit.si/advisory-room',
+      });
     });
   });
 

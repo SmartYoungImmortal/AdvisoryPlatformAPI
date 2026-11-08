@@ -93,6 +93,7 @@ $env:DATABASE_URL='postgresql://advisory:advisory@localhost:5432/advisory_platfo
 
 - [`AGENTS.md`](AGENTS.md) — architecture and implementation rules
 - [`docs/api-spec.md`](docs/api-spec.md) — HTTP contract and access rules
+- [`docs/notifications.md`](docs/notifications.md) — every notification type: who gets it, when, and what the web app shows
 - [`docs/ER.mermaid`](docs/ER.mermaid) and [`docs/ER.README.md`](docs/ER.README.md) — data model
 - [`docs/SPRINT-PLAN.md`](docs/SPRINT-PLAN.md) — current delivery baseline
 - [`docs/HANDOFF.md`](docs/HANDOFF.md) — implementation status and next work

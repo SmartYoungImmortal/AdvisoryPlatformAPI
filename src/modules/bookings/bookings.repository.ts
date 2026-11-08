@@ -1,10 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   and,
+  asc,
+  desc,
   eq,
   inArray,
   type InferInsertModel,
   type InferSelectModel,
+  isNull,
   or,
   sql,
   type SQL,
@@ -14,15 +17,30 @@ import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predi
 import { serviceName } from '@/common/i18n/localized-columns';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { serviceAppointments, services, user } from '@/database/schema';
+import {
+  serviceAppointments,
+  serviceImages,
+  services,
+  user,
+  screeningRequests,
+} from '@/database/schema';
 import { openBookingChatRoom } from '@/modules/chat/booking-chat-room';
 import type { AppointmentState } from './booking-states';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
-/** A booking as the Advisor's own list returns it. */
+/**
+ * A booking as the Advisor's own list returns it. The two keys are stored as
+ * they are (an absolute URL, or a storage key the service presigns): the
+ * Advisee's avatar, and the service's first photograph in carousel order.
+ */
 export type AdvisorAppointment = Appointment & {
   adviseeName: string;
   serviceName: string;
+  adviseeAvatarKey: string | null;
+  serviceImageKey: string | null;
+};
+export type AdvisorAppointmentDetail = AdvisorAppointment & {
+  latestScreeningRequestId: string | null;
 };
 type NewAppointment = InferInsertModel<typeof serviceAppointments>;
 type AppointmentUpdate = PgUpdateSetSource<typeof serviceAppointments>;
@@ -129,6 +147,24 @@ export class BookingsRepository extends EntityRepository<
     return appointment;
   }
 
+  /**
+   * Names the booking's video room unless it already has one, and returns the name the row
+   * holds: when both participants open the room at once, the first name written wins and the
+   * second caller is given it too, so the two land in the same call.
+   */
+  async nameMeetingRoom(bookingId: string, roomName: string): Promise<string> {
+    const [named] = await this.updateWhere(
+      and(
+        eq(serviceAppointments.id, bookingId),
+        isNull(serviceAppointments.jitsiRoomName),
+      ) as SQL,
+      { jitsiRoomName: roomName },
+    );
+    if (named?.jitsiRoomName) return named.jitsiRoomName;
+    const current = await this.findById(bookingId);
+    return current?.jitsiRoomName ?? roomName;
+  }
+
   findForParticipant(
     bookingId: string,
     userId: string,
@@ -185,9 +221,28 @@ export class BookingsRepository extends EntityRepository<
   }
 
   /**
+   * The Advisee's picture: the avatar they uploaded (a storage key), else the one
+   * their sign-in came with (`image`, already a URL).
+   */
+  private adviseeAvatar() {
+    return sql<string | null>`coalesce(${user.avatarKey}, ${user.image})`;
+  }
+
+  /** The booked service's first photograph in carousel order, as a correlated subquery. */
+  private firstServiceImage() {
+    return this.db
+      .select({ key: serviceImages.objectKey })
+      .from(serviceImages)
+      .where(eq(serviceImages.serviceId, serviceAppointments.serviceId))
+      .orderBy(asc(serviceImages.carouselIndex))
+      .limit(1);
+  }
+
+  /**
    * The Advisor's bookings with who booked and what, because the Advisor's desk
    * has to say both and the Advisor cannot read another user's profile or a
-   * service by id on its own. Only the Advisee's public display name is read.
+   * service by id on its own. Only the Advisee's public display name and avatar
+   * are read.
    */
   async findManyForAdvisor(
     advisorId: string,
@@ -197,7 +252,9 @@ export class BookingsRepository extends EntityRepository<
       .select({
         appointment: serviceAppointments,
         adviseeName: user.displayName,
+        adviseeAvatarKey: this.adviseeAvatar(),
         serviceName: serviceName(),
+        serviceImageKey: sql<string | null>`(${this.firstServiceImage()})`,
       })
       .from(serviceAppointments)
       .innerJoin(user, eq(user.id, serviceAppointments.adviseeId))
@@ -209,8 +266,56 @@ export class BookingsRepository extends EntityRepository<
     return rows.map((row) => ({
       ...row.appointment,
       adviseeName: row.adviseeName,
+      adviseeAvatarKey: row.adviseeAvatarKey,
       serviceName: row.serviceName,
+      serviceImageKey: row.serviceImageKey,
     }));
+  }
+
+  async findDetailForAdvisor(
+    bookingId: string,
+    advisorId: string,
+  ): Promise<AdvisorAppointmentDetail | undefined> {
+    const latestRequest = this.db
+      .select({ id: screeningRequests.id })
+      .from(screeningRequests)
+      .where(
+        and(
+          eq(screeningRequests.serviceId, serviceAppointments.serviceId),
+          eq(screeningRequests.adviseeId, serviceAppointments.adviseeId),
+        ),
+      )
+      .orderBy(desc(screeningRequests.createdAt), desc(screeningRequests.id))
+      .limit(1);
+    const [row] = await this.db
+      .select({
+        appointment: serviceAppointments,
+        adviseeName: user.displayName,
+        adviseeAvatarKey: this.adviseeAvatar(),
+        serviceName: serviceName(),
+        serviceImageKey: sql<string | null>`(${this.firstServiceImage()})`,
+        latestScreeningRequestId: sql<string | null>`(${latestRequest})`,
+      })
+      .from(serviceAppointments)
+      .innerJoin(user, eq(user.id, serviceAppointments.adviseeId))
+      .innerJoin(services, eq(services.id, serviceAppointments.serviceId))
+      .where(
+        and(
+          eq(serviceAppointments.id, bookingId),
+          eq(serviceAppointments.advisorId, advisorId),
+        ),
+      )
+      .limit(1);
+    return row
+      ? {
+          ...row.appointment,
+          adviseeName: row.adviseeName,
+          adviseeAvatarKey: row.adviseeAvatarKey,
+          serviceName: row.serviceName,
+          serviceImageKey: row.serviceImageKey,
+          latestScreeningRequestId: row.latestScreeningRequestId,
+        }
+      : undefined;
   }
 
   async countForAdvisor(advisorId: string): Promise<number> {

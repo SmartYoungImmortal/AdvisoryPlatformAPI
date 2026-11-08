@@ -10,10 +10,12 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdminProfilesRepository } from './admin-profiles.repository';
 import { OffPlatformFlagsRepository } from './off-platform-flags.repository';
 import {
   FLAG_CONFIRMED_STATUS,
+  POLICY_WARNING_NOTIFICATION,
   OFF_PLATFORM_FLAG_MESSAGES,
   SAFETY_MESSAGES,
 } from './safety.constants';
@@ -26,6 +28,7 @@ export class OffPlatformFlagsService {
   constructor(
     private readonly flags: OffPlatformFlagsRepository,
     private readonly admins: AdminProfilesRepository,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findMany(
@@ -71,6 +74,12 @@ export class OffPlatformFlagsService {
       reviewedAt: new Date(),
     });
     if (reviewed) {
+      if (reviewed.status === FLAG_CONFIRMED_STATUS) {
+        await this.warnSender(
+          reviewed.messageId,
+          reviewed.penaltyPointsApplied ?? 0,
+        );
+      }
       return new OffPlatformFlagResponseDto(reviewed);
     }
 
@@ -80,5 +89,28 @@ export class OffPlatformFlagsService {
       throw new NotFoundException(OFF_PLATFORM_FLAG_MESSAGES.notFound);
     }
     throw new ConflictException(OFF_PLATFORM_FLAG_MESSAGES.alreadyReviewed);
+  }
+
+  /**
+   * Warns whoever sent a confirmed message. Only the admin whose ruling was written gets here, so it
+   * is sent once. A failure must not undo the ruling.
+   */
+  private async warnSender(messageId: string, points: number): Promise<void> {
+    try {
+      const senderId = await this.flags.findMessageSenderId(messageId);
+      if (!senderId) return;
+      await this.notifications.notify({
+        ownerId: senderId,
+        type: 'POLICY_WARNING',
+        title: POLICY_WARNING_NOTIFICATION.title,
+        content: POLICY_WARNING_NOTIFICATION.content(points),
+        en: {
+          title: POLICY_WARNING_NOTIFICATION.en.title,
+          content: POLICY_WARNING_NOTIFICATION.en.content(points),
+        },
+      });
+    } catch {
+      // The ruling stands; the admin can see it in the queue.
+    }
   }
 }

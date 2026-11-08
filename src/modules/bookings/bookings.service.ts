@@ -5,18 +5,22 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import {
   paginateQuery,
   type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
+import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
+import { isAbsoluteUrl } from '@/common/storage/stored-image';
 import type { serviceAppointments } from '@/database/schema';
 import { AvailabilityService } from '@/modules/availability/availability.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
   ALLOWED_SOURCE_STATES,
+  canTransition,
   reopensAvailability,
   type TransitionTarget,
 } from './booking-states';
@@ -24,16 +28,48 @@ import {
   BOOKING_MESSAGES,
   BOOKING_NOTIFICATION_TITLES,
   invalidTransitionMessage,
+  MEETING,
 } from './bookings.constants';
-import { BookingsRepository } from './bookings.repository';
-import { AdvisorBookingResponseDto } from './dtos/advisor-booking-response.dto';
+import {
+  type AdvisorAppointment,
+  BookingsRepository,
+} from './bookings.repository';
+import {
+  type AdvisorBookingPictures,
+  AdvisorBookingResponseDto,
+} from './dtos/advisor-booking-response.dto';
+import { AdvisorBookingDetailResponseDto } from './dtos/advisor-booking-detail-response.dto';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
+import { MeetingResponseDto } from './dtos/meeting-response.dto';
+import type {
+  AvailabilitySlotResponseDto,
+  SlotRangeQueryDto,
+} from '@/modules/availability/dtos/availability.dto';
 import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
 type NewAppointment = InferInsertModel<typeof serviceAppointments>;
+
+/** How long a presigned avatar or service photograph on the Advisor's desk stays readable. */
+const BOOKING_PICTURE_URL_EXPIRY_SECONDS = 60 * 60;
 type AppointmentUpdate = Parameters<BookingsRepository['transition']>[2];
+
+type SchedulingRequest =
+  | {
+      readonly kind: 'new';
+      readonly serviceId: string;
+      readonly advisorId: string;
+      readonly adviseeId: string;
+      readonly startTime: Date;
+      readonly packageId?: string | null;
+    }
+  | {
+      readonly kind: 'replacement';
+      readonly original: Appointment;
+      readonly startTime: Date;
+      readonly releaseOriginal: boolean;
+    };
 
 @Injectable()
 export class BookingsService {
@@ -43,6 +79,7 @@ export class BookingsService {
     private readonly repository: BookingsRepository,
     private readonly availability: AvailabilityService,
     private readonly notifications: NotificationsService,
+    private readonly storage: SeaweedFsStorageService,
   ) {}
 
   async create(
@@ -56,7 +93,14 @@ export class BookingsService {
     const startTime = this.parseStartTime(dto.startTime);
     const appointment = await this.claimSlot(() =>
       this.repository.createWithSchedulingLock(service.advisorId, () =>
-        this.scheduledValues(service.id, service.advisorId, user.id, startTime),
+        this.scheduledValues({
+          kind: 'new',
+          serviceId: service.id,
+          advisorId: service.advisorId,
+          adviseeId: user.id,
+          startTime,
+          packageId: dto.packageId,
+        }),
       ),
     );
     return new BookingResponseDto(appointment);
@@ -74,6 +118,43 @@ export class BookingsService {
     return new BookingResponseDto(appointment);
   }
 
+  /**
+   * The session's video room, for either participant. A booked appointment's room opens
+   * `MEETING.opensMinutesBefore` its start and closes at its end; one the Advisor has started
+   * stays open, so a dropped call can be rejoined when the session runs over. The room is named
+   * the first time it is opened, which also gives appointments booked before rooms existed one.
+   */
+  async openMeeting(
+    user: SessionUser,
+    bookingId: string,
+  ): Promise<MeetingResponseDto> {
+    const appointment = await this.repository.findForParticipant(
+      bookingId,
+      user.id,
+    );
+    if (!appointment) throw new NotFoundException(BOOKING_MESSAGES.notFound);
+    if (appointment.state !== 'BOOKED' && appointment.state !== 'IN_PROGRESS')
+      throw new ConflictException(BOOKING_MESSAGES.meetingUnavailable);
+    if (appointment.state === 'BOOKED') {
+      const now = Date.now();
+      const opensAt =
+        appointment.startTime.getTime() - MEETING.opensMinutesBefore * 60000;
+      if (now < opensAt)
+        throw new BadRequestException(BOOKING_MESSAGES.meetingNotOpen);
+      if (now > appointment.endTime.getTime())
+        throw new BadRequestException(BOOKING_MESSAGES.meetingEnded);
+    }
+    const roomName =
+      appointment.jitsiRoomName ??
+      (await this.repository.nameMeetingRoom(
+        appointment.id,
+        `${MEETING.roomPrefix}${randomUUID()}`,
+      ));
+    return new MeetingResponseDto(
+      `${MEETING.baseUrl}/${encodeURIComponent(roomName)}`,
+    );
+  }
+
   findMine(
     user: SessionUser,
     page: OffsetPaginationDto,
@@ -86,16 +167,67 @@ export class BookingsService {
     );
   }
 
-  findAdvisorMine(
+  async findAdvisorMine(
     user: SessionUser,
     page: OffsetPaginationDto,
   ): Promise<PaginatedResult<AdvisorBookingResponseDto>> {
-    return paginateQuery(
+    const result = await paginateQuery(
       page,
       (options) => this.repository.findManyForAdvisor(user.id, options),
       () => this.repository.countForAdvisor(user.id),
-      (item) => new AdvisorBookingResponseDto(item),
+      (item) => item,
     );
+    const items = await Promise.all(
+      result.items.map(
+        async (item) =>
+          new AdvisorBookingResponseDto(item, await this.picturesOf(item)),
+      ),
+    );
+    return { ...result, items };
+  }
+
+  async findAdvisorOne(
+    user: SessionUser,
+    bookingId: string,
+  ): Promise<AdvisorBookingDetailResponseDto> {
+    const appointment = await this.repository.findDetailForAdvisor(
+      bookingId,
+      user.id,
+    );
+    if (!appointment) throw new NotFoundException(BOOKING_MESSAGES.notFound);
+    return new AdvisorBookingDetailResponseDto(
+      appointment,
+      await this.picturesOf(appointment),
+    );
+  }
+
+  /** A booking's two pictures as URLs: each key kept when it is one already, presigned when stored. */
+  private async picturesOf(
+    appointment: AdvisorAppointment,
+  ): Promise<AdvisorBookingPictures> {
+    const [adviseeAvatarUrl, serviceImageUrl] = await Promise.all([
+      this.pictureUrl(appointment.adviseeAvatarKey),
+      this.pictureUrl(appointment.serviceImageKey),
+    ]);
+    return { adviseeAvatarUrl, serviceImageUrl };
+  }
+
+  /** A picture that cannot be signed is left out (null) rather than failing the list it sits in. */
+  private async pictureUrl(key: string | null): Promise<string | null> {
+    if (!key) return null;
+    if (isAbsoluteUrl(key)) return key;
+    try {
+      return await this.storage.createDownloadUrl(
+        key,
+        BOOKING_PICTURE_URL_EXPIRY_SECONDS,
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not presign booking picture ${key}; it is left out of the response.`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      return null;
+    }
   }
 
   cancelAsAdvisee(
@@ -146,6 +278,23 @@ export class BookingsService {
     return this.applyTransition(bookingId, 'NO_SHOW', { state: 'NO_SHOW' });
   }
 
+  async findRescheduleSlots(
+    user: SessionUser,
+    bookingId: string,
+    query: SlotRangeQueryDto,
+  ): Promise<AvailabilitySlotResponseDto[]> {
+    const original = await this.repository.findForAdvisee(bookingId, user.id);
+    if (!original) throw new NotFoundException(BOOKING_MESSAGES.notFound);
+    if (!canTransition(original.state, 'CANCELLED'))
+      throw this.invalidTransition('CANCELLED');
+    const cancellation = await this.cancellationValues(original, user.id);
+    return this.availability.findRescheduleSlots(
+      original,
+      query,
+      cancellation.blocksAvailability === false,
+    );
+  }
+
   /**
    * A reschedule is a cancellation plus a replacement booking rather than an update in
    * place, so the original row survives as history and the replacement carries the
@@ -168,18 +317,26 @@ export class BookingsService {
         ALLOWED_SOURCE_STATES.CANCELLED,
         cancellation,
         async (current) => ({
-          ...(await this.scheduledValues(
-            current.serviceId,
-            current.advisorId,
-            user.id,
+          // Keep the booked duration even if the package has since changed.
+          ...(await this.scheduledValues({
+            kind: 'replacement',
+            original: current,
             startTime,
-          )),
+            releaseOriginal: cancellation.blocksAvailability === false,
+          })),
           state: current.state,
           chatRoomId: current.chatRoomId,
         }),
       ),
     );
     if (!replacement) throw this.invalidTransition('CANCELLED');
+    // Only the Advisee reschedules, so the Advisor is the one to tell.
+    await this.notifyChange(
+      replacement,
+      replacement.advisorId,
+      'BOOKING_RESCHEDULED',
+      BOOKING_NOTIFICATION_TITLES.rescheduled,
+    );
     return new BookingResponseDto(replacement);
   }
 
@@ -263,11 +420,69 @@ export class BookingsService {
   ): Promise<BookingResponseDto> {
     const appointment = await lookup;
     if (!appointment) throw new NotFoundException(BOOKING_MESSAGES.notFound);
-    return this.applyTransition(
+    const cancelled = await this.applyTransition(
       appointment.id,
       'CANCELLED',
       await this.cancellationValues(appointment, cancelledByUserId),
     );
+    // Whoever cancelled knows; the other person is told.
+    await this.notifyChange(
+      appointment,
+      cancelledByUserId === appointment.adviseeId
+        ? appointment.advisorId
+        : appointment.adviseeId,
+      'BOOKING_CANCELLED',
+      BOOKING_NOTIFICATION_TITLES.cancelled,
+    );
+    return cancelled;
+  }
+
+  /**
+   * "Service · date and time" in Thai and English. The Service's name is its stored text in both
+   * languages: `findPublishedService` reads the row itself, not its translations. Only the date is
+   * written the way each language writes one.
+   */
+  private async sessionLabels(
+    appointment: Appointment,
+  ): Promise<{ th: string; en: string }> {
+    const service = await this.repository.findPublishedService(
+      appointment.serviceId,
+    );
+    const describe = (dateLocale: string) => {
+      const when = new Intl.DateTimeFormat(dateLocale, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Bangkok',
+      }).format(appointment.startTime);
+      return service ? `${service.name} · ${when}` : when;
+    };
+    return { th: describe('th-TH'), en: describe('en-GB') };
+  }
+
+  /** Tells one person a session was cancelled or moved. A failure must not undo the change. */
+  private async notifyChange(
+    appointment: Appointment,
+    ownerId: string,
+    type: 'BOOKING_CANCELLED' | 'BOOKING_RESCHEDULED',
+    title: { th: string; en: string },
+  ): Promise<void> {
+    try {
+      const labels = await this.sessionLabels(appointment);
+      await this.notifications.notify({
+        ownerId,
+        type,
+        title: title.th,
+        content: labels.th,
+        en: { title: title.en, content: labels.en },
+        resourceId: appointment.id,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not notify booking ${appointment.id}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   /**
@@ -319,20 +534,28 @@ export class BookingsService {
   }
 
   private async scheduledValues(
-    serviceId: string,
-    advisorId: string,
-    adviseeId: string,
-    startTime: Date,
+    request: SchedulingRequest,
   ): Promise<NewAppointment> {
-    const slot = await this.availability.findSlotAt(
-      serviceId,
-      startTime,
-      adviseeId,
-    );
+    const { serviceId, advisorId, adviseeId, packageId } =
+      request.kind === 'replacement' ? request.original : request;
+    const slot =
+      request.kind === 'replacement'
+        ? await this.availability.findReplacementSlotAt(
+            request.original,
+            request.startTime,
+            request.releaseOriginal,
+          )
+        : await this.availability.findSlotAt(
+            serviceId,
+            request.startTime,
+            adviseeId,
+            packageId,
+          );
     if (!slot) throw new BadRequestException(BOOKING_MESSAGES.unavailable);
     const global = await this.availability.getGlobal(advisorId);
     return {
       serviceId,
+      packageId: packageId ?? null,
       advisorId,
       adviseeId,
       startTime: slot.startTime,

@@ -34,6 +34,51 @@ export type OffPlatformFlagOutcome = (typeof FLAG_OUTCOMES)[number];
 export const FLAG_CONFIRMED_STATUS =
   'CONFIRMED' satisfies OffPlatformFlagOutcome;
 
+/** "1 penalty point was" / "2 penalty points were" in the English warning. */
+const penaltyPoints = (points: number) =>
+  points === 1
+    ? `${points} penalty point was`
+    : `${points} penalty points were`;
+
+/**
+ * The warning a user gets when an admin confirms one of their messages asked to continue outside
+ * the platform; it names the penalty points when there are any.
+ */
+export const POLICY_WARNING_NOTIFICATION = {
+  title: 'คำเตือนจากทีมงาน Advisory',
+  content: (points: number) =>
+    points > 0
+      ? `ข้อความของคุณชวนติดต่อกันนอก Advisory จึงได้รับ ${points} คะแนนโทษ`
+      : 'ข้อความของคุณชวนติดต่อกันนอก Advisory โปรดคุยและชำระเงินผ่าน Advisory เท่านั้น',
+  en: {
+    title: 'A warning from the Advisory team',
+    content: (points: number) =>
+      points > 0
+        ? `Your message asked to continue outside Advisory, so ${penaltyPoints(points)} added.`
+        : 'Your message asked to continue outside Advisory. Please keep chats and payments on Advisory.',
+  },
+} as const;
+
+/** What the reporter is told once an admin has looked at their report. */
+export const REPORT_RESOLVED_NOTIFICATION = {
+  title: 'รายงานของคุณได้รับการตรวจสอบแล้ว',
+  content: {
+    ACTIONED: 'ทีมงานดำเนินการกับบัญชีที่ถูกรายงานแล้ว',
+    DISMISSED: 'ทีมงานไม่พบการละเมิดกฎของแพลตฟอร์ม',
+  },
+  en: {
+    title: 'Your report has been reviewed',
+    content: {
+      ACTIONED: 'The team took action on the reported account',
+      DISMISSED: 'The team found no broken platform rules',
+    },
+  },
+} as const satisfies {
+  title: string;
+  content: Record<ReportOutcome, string>;
+  en: { title: string; content: Record<ReportOutcome, string> };
+};
+
 export const REPORT_MESSAGES = {
   notFound: 'Report not found',
   submitted: 'Report submitted',

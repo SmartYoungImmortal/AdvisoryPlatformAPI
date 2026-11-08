@@ -26,6 +26,16 @@ const PUSH_URLS: Record<NotificationType, string> = {
   POLICY_WARNING: '/notifications',
   // Never pushed (`NotificationsService.welcome()`); the Advisee welcome's page, for completeness.
   WELCOME: '/search',
+  // Sent to whichever side did not cancel, so it opens the list both sides have.
+  BOOKING_CANCELLED: '/notifications',
+  BOOKING_RESCHEDULED: '/work/calendar',
+  REFUND_DECIDED: '/transactions',
+  PAYOUT_FAILED: '/earnings',
+  SKILL_PROOF_DECIDED: '/advisor/profile',
+  SCREENING_EXPIRED: '/bookings',
+  REVIEW_REPLIED: '/bookings',
+  REPORT_RESOLVED: '/notifications',
+  PAYMENT_FAILED: '/transactions',
 };
 
 export function pushUrlFor(type: NotificationType): string {

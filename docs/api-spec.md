@@ -65,6 +65,13 @@ Authentication is served directly by Better Auth under `/api/auth/*`. These endp
 return Better Auth's response bodies, cookies, and error shapes rather than the Nest response
 envelope used by `/api/v1/*`.
 
+Email sign-in pauses for 15 minutes after five failed credentials checks within a rolling
+15-minute window. The fifth failure and attempts during the pause return `429` with
+`code: "LOGIN_LOCKED"` and `retryAfterSeconds`. This is keyed by normalized email across clients,
+including unknown addresses, and persisted in expiring private auth records. Successful attempts
+do not remove earlier failures from the rolling window. Password-reset requests remain available.
+The auth provider's separate per-IP request throttle remains enabled in production.
+
 All browser requests must use credentials so the HttpOnly session cookie is stored and returned.
 `status` and `avatarKey` are server-owned fields and are rejected as signup input.
 
@@ -317,7 +324,10 @@ database reference.
 
 Returns the account owner's upcoming appointments that must be cancelled or completed before
 account deletion. It includes future `PENDING_PAYMENT` and `BOOKED` appointments where the user is
-either the Advisor or Advisee. The response includes only appointment id, start time, and state.
+either the Advisor or Advisee. Each appointment includes only its id, start time, and state.
+`hasUnsettledEarnings` also reports whether the owner has a pending payout or a positive-net invoice
+in `HELD_IN_ESCROW` or `RELEASED` that is not linked to a `PAID` payout for that Advisor. Failed payouts
+do not settle invoices. Refunded invoices and zero-net invoices do not count as earnings.
 
 ### `DELETE /api/v1/users/me` — `Advisee`
 
@@ -331,9 +341,9 @@ identity/proof data instead of deleting the user row and cascading through evide
 
 The API rechecks upcoming appointments inside the deletion transaction and returns `409` without
 changing the account while any remain. The user interface can load the current appointment details
-from `GET /api/v1/users/me/deletion-blockers`. Advisor withdrawable balance is not a deletion
-blocker yet: although invoice and payout tables are modelled, the API has no implemented payout or
-withdrawable-balance contract from which to calculate an authoritative amount.
+from `GET /api/v1/users/me/deletion-blockers`. Unsettled earnings are also checked inside that
+transaction and block deletion. This uses historical invoice and payout records, never current
+service prices. The response deliberately does not quote a withdrawable balance.
 
 - all sessions and authentication accounts are deleted immediately;
 - the user row is marked `DELETED` and direct identity fields are replaced with non-identifying
@@ -537,7 +547,9 @@ availability profile is a scheduling configuration, not a client-managed list of
 `POST /api/v1/advisors/me/services` creates a Service. `GET /api/v1/advisors/me/services` returns
 the standard offset-paginated own-Service list. `GET`, `PATCH`, and `DELETE`
 `/api/v1/advisors/me/services/:serviceId` read, update, and delete only an owned Service. A lookup
-outside the Advisor's ownership returns `404`.
+outside the Advisor's ownership returns `404`. Deleting an unused Service removes its images and
+screening questions in the same transaction. A Service referenced by consultation or screening
+history returns `409` and remains intact; unpublish it to remove it from discovery.
 
 Create and update fields are `categoryId`, `availabilityProfileId`, `name`, `description`,
 `priceSatang`, `durationMinutes`, `dailyConsultationLimitMinutes`, `isPublished`,
@@ -594,11 +606,13 @@ operational staff can review ownership and publishing state without using an Adv
 ## 9. Module: Chat
 
 Chat rooms are created only by the appointment or granted-trial workflows. There is no public
-room-create or membership-management endpoint. `POST /api/v1/bookings` opens the booking's room in
-the same transaction as the appointment: one `chat_rooms` row stamped with the appointment's
-`createdAt`, the Advisee and the Advisor as its two members, and the room's id on
-`service_appointments.chat_room_id`. A reschedule's replacement keeps the original's room, so the
-conversation carries on. Both are idempotent per appointment. The granted-trial workflow is not
+room-create or membership-management endpoint. `POST /api/v1/bookings` links the booking to a room in
+the same transaction as the appointment, its id on `service_appointments.chat_room_id`. There is
+one conversation per Advisee, Advisor and Service: a further booking of a Service the pair has
+booked before (another time, another package) joins the room of their earliest booking of it, and
+only a new Service opens a room — one `chat_rooms` row stamped with the appointment's `createdAt`,
+the Advisee and the Advisor as its two members. A reschedule's replacement keeps the original's
+room, so the conversation carries on. Both are idempotent per appointment. The granted-trial workflow is not
 implemented yet; until it is, tests and operational fixtures may create their linked room records
 directly; clients may not.
 
@@ -718,9 +732,25 @@ The implemented scheduling contract uses these routes, all under the standard re
   real Postgres by `test/booking-concurrency.e2e-spec.ts` and
   `bookings.repository.integration-spec.ts`.
 - `GET /api/v1/bookings/me` and `GET /api/v1/advisors/me/bookings` return the respective
-  paginated participant views.
+  paginated participant views. Advisor pagination validates and transforms `page`/`limit`
+  as numbers (defaults 1/20); invalid values return `400`.
+- `GET /api/v1/advisors/me/bookings/:bookingId` returns an advisor-only detail projection:
+  the participant-facing names and appointment fields plus `chatRoomId` and
+  `latestScreeningRequestId`, both nullable. Only the owning advisor can read it;
+  other advisors receive `404`, advisees receive `403`, unauthenticated callers receive
+  `401`, and malformed UUIDs receive `400`. The screening identifier is the latest submitted
+  request for this service and advisee, ordered by creation time then ID. It is **not** a
+  historical snapshot tied to the appointment. Fetch its answers through the existing
+  advisor-owned screening detail route. No participant email or legal name is added.
 - `GET /api/v1/bookings/:bookingId` returns one appointment to either of its two participants and
   `404` to anybody else, so an Advisor and an Advisee share one detail route.
+- `POST /api/v1/bookings/:bookingId/meeting` gives either participant the session's video call as
+  `{ url }`: a Jitsi room on `https://meet.jit.si`, named `advisory-<random uuid>` the first time
+  it is opened and stored in `service_appointments.jitsi_room_name`, so both participants reach the
+  same room. Anyone who knows the name can join, so the name is never in a list or a notification.
+  `404` for a non-participant, `409` unless the appointment is `BOOKED` or `IN_PROGRESS`. A
+  `BOOKED` room opens 10 minutes before `startTime` and closes at `endTime` (`400` outside that);
+  an `IN_PROGRESS` one stays open, so a dropped call can be rejoined when the session runs over.
 
 ### Booking state machine
 

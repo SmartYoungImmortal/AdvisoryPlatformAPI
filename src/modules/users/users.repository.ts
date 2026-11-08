@@ -1,5 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, gte, inArray, or, type InferSelectModel } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  gt,
+  gte,
+  inArray,
+  notExists,
+  or,
+  sql,
+  type InferSelectModel,
+} from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   account,
@@ -15,6 +25,10 @@ import {
   user,
   verification,
   appointmentStateEnum,
+  serviceAppointmentsOnInvoice,
+  serviceInvoices,
+  payoutInvoices,
+  payouts,
 } from '@/database/schema';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 
@@ -38,6 +52,53 @@ function isUpcomingAppointmentBlocker(
   return candidate.state === 'PENDING_PAYMENT' || candidate.state === 'BOOKED';
 }
 
+async function hasUnsettledEarnings(
+  database: Pick<DrizzleDB, 'select'>,
+  advisorId: string,
+): Promise<boolean> {
+  const settled = database
+    .select({ id: payoutInvoices.invoiceId })
+    .from(payoutInvoices)
+    .innerJoin(payouts, eq(payouts.id, payoutInvoices.payoutId))
+    .where(
+      and(
+        eq(payoutInvoices.invoiceId, serviceInvoices.id),
+        eq(payouts.advisorId, advisorId),
+        eq(payouts.status, 'PAID'),
+      ),
+    );
+  const [invoice] = await database
+    .select({ id: serviceInvoices.id })
+    .from(serviceInvoices)
+    .innerJoin(
+      serviceAppointmentsOnInvoice,
+      eq(serviceAppointmentsOnInvoice.serviceInvoiceId, serviceInvoices.id),
+    )
+    .innerJoin(
+      serviceAppointments,
+      eq(
+        serviceAppointments.id,
+        serviceAppointmentsOnInvoice.serviceAppointmentId,
+      ),
+    )
+    .where(
+      and(
+        eq(serviceAppointments.advisorId, advisorId),
+        inArray(serviceInvoices.status, ['HELD_IN_ESCROW', 'RELEASED']),
+        gt(serviceInvoices.amountSatang, serviceInvoices.platformFeeSatang),
+        notExists(settled),
+      ),
+    )
+    .limit(1);
+  if (invoice) return true;
+  const [pendingPayout] = await database
+    .select({ id: payouts.id })
+    .from(payouts)
+    .where(and(eq(payouts.advisorId, advisorId), eq(payouts.status, 'PENDING')))
+    .limit(1);
+  return Boolean(pendingPayout);
+}
+
 export type AnonymizeByIdResult =
   | { status: 'not-found' }
   | {
@@ -50,6 +111,10 @@ export type AnonymizeByIdResult =
 export class UsersRepository extends EntityRepository<typeof user> {
   constructor(@Inject(DRIZZLE) private readonly database: DrizzleDB) {
     super(database, user);
+  }
+
+  hasUnsettledEarnings(userId: string): Promise<boolean> {
+    return hasUnsettledEarnings(this.database, userId);
   }
 
   removeAvatar(userId: string): Promise<Pick<User, 'avatarKey'> | undefined> {
@@ -131,6 +196,9 @@ export class UsersRepository extends EntityRepository<typeof user> {
 
   anonymizeById(userId: string): Promise<AnonymizeByIdResult> {
     return this.database.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`,
+      );
       const [profile] = await tx
         .select()
         .from(user)
@@ -164,7 +232,10 @@ export class UsersRepository extends EntityRepository<typeof user> {
       const upcomingAppointments = appointmentCandidates.filter(
         isUpcomingAppointmentBlocker,
       );
-      if (upcomingAppointments.length > 0) {
+      if (
+        upcomingAppointments.length > 0 ||
+        (await hasUnsettledEarnings(tx, userId))
+      ) {
         return { status: 'blocked', upcomingAppointments };
       }
 

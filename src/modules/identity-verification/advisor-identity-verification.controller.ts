@@ -58,7 +58,8 @@ export class AdvisorIdentityVerificationController {
   @UseInterceptors(
     FileInterceptor('document', {
       storage: memoryStorage(),
-      limits: { fileSize: MAX_IDENTITY_DOCUMENT_BYTES, files: 1 },
+      // Busboy signals its limit at equality; the documented maximum is inclusive.
+      limits: { fileSize: MAX_IDENTITY_DOCUMENT_BYTES + 1, files: 1 },
     }),
   )
   @ResponseMessage(IDENTITY_VERIFICATION_MESSAGES.submitted)

@@ -42,6 +42,7 @@ describe('UsersService', () => {
       | 'removeAvatar'
       | 'replaceAvatar'
       | 'findDeletionBlockers'
+      | 'hasUnsettledEarnings'
       | 'anonymizeById'
     >
   >;
@@ -61,6 +62,7 @@ describe('UsersService', () => {
       removeAvatar: jest.fn(),
       replaceAvatar: jest.fn(),
       findDeletionBlockers: jest.fn(),
+      hasUnsettledEarnings: jest.fn().mockResolvedValue(false),
       anonymizeById: jest.fn(),
     };
     roleResolver = { resolve: jest.fn() };
@@ -189,6 +191,7 @@ describe('UsersService', () => {
 
     await expect(service.getDeletionBlockers(userId)).resolves.toEqual({
       upcomingAppointments,
+      hasUnsettledEarnings: false,
     });
     expect(repository.findDeletionBlockers).toHaveBeenCalledWith(userId);
   });

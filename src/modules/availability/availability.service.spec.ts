@@ -111,6 +111,7 @@ function appointment(
   return {
     id: appointmentId,
     serviceId: bookedServiceId,
+    packageId: null,
     advisorId,
     adviseeId,
     type: 'CONSULTATION',
@@ -160,9 +161,11 @@ type AvailabilityRepositoryMock = jest.Mocked<
     AvailabilityRepository,
     | 'schedulingContext'
     | 'schedulingContexts'
+    | 'findPackage'
     | 'findBlockingAppointments'
     | 'findBlockingAppointmentsForAdvisors'
     | 'hasAcceptedScreening'
+    | 'hasScreeningQuestions'
     | 'findGlobal'
     | 'upsertGlobal'
     | 'findProfiles'
@@ -180,9 +183,11 @@ function makeService(): {
   const repository: AvailabilityRepositoryMock = {
     schedulingContext: jest.fn(),
     schedulingContexts: jest.fn().mockResolvedValue(new Map()),
+    findPackage: jest.fn(),
     findBlockingAppointments: jest.fn().mockResolvedValue([]),
     findBlockingAppointmentsForAdvisors: jest.fn().mockResolvedValue([]),
     hasAcceptedScreening: jest.fn().mockResolvedValue(true),
+    hasScreeningQuestions: jest.fn().mockResolvedValue(true),
     findGlobal: jest.fn(),
     upsertGlobal: jest.fn(),
     findProfiles: jest.fn(),
@@ -226,6 +231,56 @@ describe('AvailabilityService slot derivation', () => {
       '2026-09-07T03:30:00.000Z',
       '2026-09-07T04:00:00.000Z',
     ]);
+  });
+
+  it('cuts the slots to a package’s length when one is asked for', async () => {
+    repository.schedulingContext.mockResolvedValue(context());
+    repository.findPackage.mockResolvedValue({
+      id: '99999999-9999-4999-8999-999999999999',
+      serviceId,
+      name: 'In depth',
+      description: null,
+      durationMinutes: 60,
+      priceSatang: 250000,
+      sortOrder: 1,
+      createdAt: new Date('2026-08-29T00:00:00.000Z'),
+      modifiedAt: new Date('2026-08-29T00:00:00.000Z'),
+    });
+
+    const slots = await service.findSlots(
+      serviceId,
+      {
+        from: '2026-09-07',
+        to: '2026-09-07',
+        packageId: '99999999-9999-4999-8999-999999999999',
+      },
+      adviseeId,
+    );
+
+    expect(repository.findPackage).toHaveBeenCalledWith(
+      serviceId,
+      '99999999-9999-4999-8999-999999999999',
+    );
+    expect(slots[0]?.endTime.getTime()).toBe(
+      (slots[0]?.startTime.getTime() ?? 0) + 60 * 60_000,
+    );
+  });
+
+  it('refuses a package that is not the service’s', async () => {
+    repository.schedulingContext.mockResolvedValue(context());
+    repository.findPackage.mockResolvedValue(undefined);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        {
+          from: '2026-09-07',
+          to: '2026-09-07',
+          packageId: '99999999-9999-4999-8999-999999999999',
+        },
+        adviseeId,
+      ),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('returns an empty slot list when the profile has no available windows', async () => {
@@ -511,6 +566,82 @@ describe('AvailabilityService slot derivation', () => {
     ).resolves.toEqual([]);
   });
 
+  it('lets the owner inspect a screened service without screening themselves', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ screeningRequired: true }),
+    );
+    repository.hasAcceptedScreening.mockResolvedValue(false);
+
+    const slots = await service.findSlots(
+      serviceId,
+      { from: '2026-09-07', to: '2026-09-07' },
+      advisorId,
+    );
+    expect(slots.length).toBeGreaterThan(0);
+  });
+
+  it('offers the stored booking length when replacing a booking at both daily limits', async () => {
+    const current = context({ globalLimit: 60, serviceLimit: 60 });
+    current.service.durationMinutes = 30;
+    const original = appointment(
+      '2026-09-07T02:00:00Z',
+      '2026-09-07T03:00:00Z',
+      '2026-09-07T03:30:00Z',
+    );
+    repository.schedulingContext.mockResolvedValue(current);
+    repository.findBlockingAppointments.mockResolvedValue([original]);
+
+    const range = { from: '2026-09-07', to: '2026-09-07' };
+    await expect(
+      service.findSlots(serviceId, range, adviseeId),
+    ).resolves.toEqual([]);
+    const slots = await service.findRescheduleSlots(original, range, true);
+    await expect(
+      service.findRescheduleSlots(original, range, false),
+    ).resolves.toEqual([]);
+    expect(slots).toHaveLength(5);
+    expect(
+      slots.every(
+        (slot) =>
+          slot.endTime.getTime() - slot.startTime.getTime() === 60 * 60000,
+      ),
+    ).toBe(true);
+    expect(
+      await service.findReplacementSlotAt(original, slots[1].startTime, true),
+    ).toEqual(slots[1]);
+  });
+
+  it('continues to block another appointment when offering replacement slots', async () => {
+    const original = appointment(
+      '2026-09-07T02:00:00Z',
+      '2026-09-07T03:00:00Z',
+      '2026-09-07T03:30:00Z',
+    );
+    const other = {
+      ...appointment(
+        '2026-09-07T03:30:00Z',
+        '2026-09-07T04:30:00Z',
+        '2026-09-07T05:00:00Z',
+      ),
+      id: otherServiceId,
+    };
+    repository.schedulingContext.mockResolvedValue(context());
+    repository.findBlockingAppointments.mockResolvedValue([original, other]);
+    const slots = await service.findRescheduleSlots(
+      original,
+      { from: '2026-09-07', to: '2026-09-07' },
+      true,
+    );
+    expect(slots.length).toBeGreaterThan(0);
+    expect(
+      slots.every(
+        (slot) =>
+          slot.endTime.getTime() + 30 * 60000 <= other.startTime.getTime() ||
+          slot.startTime >= other.unavailableUntil,
+      ),
+    ).toBe(true);
+  });
+
   it('requires accepted screening before exposing slots for a screened service', async () => {
     repository.schedulingContext.mockResolvedValue(
       context({ screeningRequired: true }),
@@ -525,6 +656,50 @@ describe('AvailabilityService slot derivation', () => {
       ),
     ).rejects.toThrow(BadRequestException);
     expect(repository.findBlockingAppointments).not.toHaveBeenCalled();
+  });
+
+  it('shows an unscreened service’s slots to a visitor with no session', async () => {
+    repository.schedulingContext.mockResolvedValue(context());
+
+    const slots = await service.findSlots(
+      serviceId,
+      { from: '2026-09-07', to: '2026-09-07' },
+      null,
+    );
+    expect(slots.length).toBeGreaterThan(0);
+  });
+
+  it('closes a screened service to a visitor with no session', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ screeningRequired: true }),
+    );
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        null,
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.hasAcceptedScreening).not.toHaveBeenCalled();
+    expect(repository.findBlockingAppointments).not.toHaveBeenCalled();
+  });
+
+  it('opens a screened service that asks no question as if it were unscreened', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ screeningRequired: true }),
+    );
+    repository.hasScreeningQuestions.mockResolvedValue(false);
+    repository.hasAcceptedScreening.mockResolvedValue(false);
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { from: '2026-09-07', to: '2026-09-07' },
+        adviseeId,
+      ),
+    ).resolves.toBeDefined();
+    expect(repository.hasAcceptedScreening).not.toHaveBeenCalled();
   });
 
   it('rejects impossible dates and ranges longer than 90 inclusive days', async () => {

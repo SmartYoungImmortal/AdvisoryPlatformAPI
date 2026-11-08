@@ -7,7 +7,13 @@ import * as schema from '@/database/schema';
 import { ENV_KEYS } from '@/config/env.constants';
 import type { Env } from '@/config/env.schema';
 import { createAuthEmailSender, createSmtpTransport } from './auth-email';
-import { afterUserCreated, type AuthHooks } from './auth-hooks';
+import {
+  afterUserCreated,
+  beforeProviderAccountCreated,
+  drizzleUnverifiedPasswordStore,
+  type AuthHooks,
+} from './auth-hooks';
+import { loginLockHooks } from './login-lock';
 import { admin as adminPlugin } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import {
@@ -247,6 +253,39 @@ function socialProviders(config: ConfigService<Env, true>) {
   };
 }
 
+const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * The address better-auth builds its links and callbacks from. Deployed, that
+ * is the one public origin, `BETTER_AUTH_URL`. A developer's `next dev`
+ * forwards `/api/*` to the deployed API as well and names itself in
+ * `x-forwarded-host`; for those hosts alone (the loopback origins in
+ * `TRUSTED_ORIGINS`) the address follows the request. Google's callback then
+ * returns to the localhost that set the sign-in's state cookie, instead of to
+ * the deployed site, where that cookie isn't and the sign-in ends in
+ * `state_mismatch`.
+ *
+ * `protocol` is http because a local dev server serves nothing else, and Cloud
+ * Run stamps https on everything it forwards. Anyone calling the API directly
+ * can claim a loopback host; all that buys is links to their own machine. With
+ * no loopback origin trusted, the address is fixed.
+ */
+export function authBaseURL(
+  publicURL: string,
+  trustedOrigins: readonly string[],
+) {
+  const localHosts = trustedOrigins.flatMap((origin) => {
+    const url = new URL(origin);
+    return LOOPBACK_HOSTNAMES.has(url.hostname) ? [url.host] : [];
+  });
+  if (!localHosts.length) return publicURL;
+  return {
+    allowedHosts: localHosts,
+    protocol: 'http' as const,
+    fallback: publicURL,
+  };
+}
+
 export function createAuth(
   db: DrizzleDB,
   config: ConfigService<Env, true>,
@@ -260,13 +299,16 @@ export function createAuth(
     transport: createSmtpTransport(config),
   });
   const providers = socialProviders(config);
+  const publicURL = config.get(ENV_KEYS.BETTER_AUTH_URL, { infer: true });
+  const origins = config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true });
 
   return betterAuth({
+    hooks: loginLockHooks(db),
     database: drizzleAdapter(db, { provider: 'pg', schema }),
     secret: config.get(ENV_KEYS.BETTER_AUTH_SECRET, { infer: true }),
-    baseURL: config.get(ENV_KEYS.BETTER_AUTH_URL, { infer: true }),
+    baseURL: authBaseURL(publicURL, origins),
     trustedOrigins: [
-      ...config.get(ENV_KEYS.TRUSTED_ORIGINS, { infer: true }),
+      ...origins,
       // Apple posts its callback from its own origin.
       ...('apple' in providers ? ['https://appleid.apple.com'] : []),
     ],
@@ -319,11 +361,31 @@ export function createAuth(
         // Repo-wide non-negotiable: uuid PKs everywhere, including better-auth's tables.
         generateId: () => crypto.randomUUID(),
       },
+      // `x-forwarded-host` is how a local dev server names itself; see `authBaseURL`.
+      trustedProxyHeaders: true,
+      // The cookies stay as the public origin sets them, whichever address a
+      // request resolved to, so a session works the same through either.
+      useSecureCookies: publicURL.startsWith('https://'),
+    },
+    // A provider that has verified the address may join an account whose address
+    // was never verified — someone who registered with a password and never got,
+    // or never opened, the email. The password is what makes that unsafe, and
+    // `beforeProviderAccountCreated` removes it as the accounts are joined.
+    account: {
+      accountLinking: { requireLocalEmailVerified: false },
     },
     databaseHooks: {
       user: {
         create: {
           after: afterUserCreated(hooks, new Logger('AuthHooks')),
+        },
+      },
+      account: {
+        create: {
+          before: beforeProviderAccountCreated(
+            drizzleUnverifiedPasswordStore(db),
+            new Logger('AuthHooks'),
+          ),
         },
       },
     },

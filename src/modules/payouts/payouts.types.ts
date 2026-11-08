@@ -1,7 +1,26 @@
 import type { InferSelectModel } from 'drizzle-orm';
-import type { payouts, serviceInvoices } from '@/database/schema';
+import type {
+  omiseBankAccounts,
+  payouts,
+  serviceInvoices,
+} from '@/database/schema';
+import type { PayoutBank } from './payouts.constants';
 
 export type Payout = InferSelectModel<typeof payouts>;
+export type PayoutAccountRow = InferSelectModel<typeof omiseBankAccounts>;
+
+/**
+ * An Advisor's payout account: the row that names their Omise recipient, read together with the
+ * recipient itself. `lastDigits` is null and the two flags false when Omise could not be reached.
+ */
+export interface PayoutAccount {
+  bank: PayoutBank;
+  accountName: string;
+  lastDigits: string | null;
+  verified: boolean;
+  active: boolean;
+  createdAt: Date | null;
+}
 export type PayoutStatus = Payout['status'];
 type InvoiceStatus = InferSelectModel<typeof serviceInvoices>['status'];
 

@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -11,8 +12,14 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdminProfilesRepository } from './admin-profiles.repository';
-import { REPORT_MESSAGES, SAFETY_MESSAGES } from './safety.constants';
+import {
+  REPORT_MESSAGES,
+  REPORT_RESOLVED_NOTIFICATION,
+  SAFETY_MESSAGES,
+  type ReportOutcome,
+} from './safety.constants';
 import { UserReportsRepository } from './user-reports.repository';
 import { AdminReportResponseDto } from './dtos/admin-report-response.dto';
 import { CreateReportDto } from './dtos/create-report.dto';
@@ -22,9 +29,12 @@ import { ResolveReportDto } from './dtos/resolve-report.dto';
 
 @Injectable()
 export class ReportsService {
+  private readonly logger = new Logger(ReportsService.name);
+
   constructor(
     private readonly reports: UserReportsRepository,
     private readonly admins: AdminProfilesRepository,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -127,6 +137,7 @@ export class ReportsService {
       resolvedAt: new Date(),
     });
     if (resolved) {
+      await this.notifyReporter(resolved.reporterUserId, reportId, dto.outcome);
       return new AdminReportResponseDto(resolved);
     }
 
@@ -137,5 +148,33 @@ export class ReportsService {
       throw new NotFoundException(REPORT_MESSAGES.notFound);
     }
     throw new ConflictException(REPORT_MESSAGES.alreadyResolved);
+  }
+
+  /**
+   * Tells the reporter their report was looked at. Only the admin whose ruling was written gets
+   * here, so it is sent once. A failure must not undo the ruling.
+   */
+  private async notifyReporter(
+    reporterUserId: string,
+    reportId: string,
+    outcome: ReportOutcome,
+  ): Promise<void> {
+    const copy = REPORT_RESOLVED_NOTIFICATION;
+    try {
+      await this.notifications.notify({
+        ownerId: reporterUserId,
+        type: 'REPORT_RESOLVED',
+        title: copy.title,
+        content: copy.content[outcome],
+        en: { title: copy.en.title, content: copy.en.content[outcome] },
+        resourceId: reportId,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not notify report ${reportId}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 }

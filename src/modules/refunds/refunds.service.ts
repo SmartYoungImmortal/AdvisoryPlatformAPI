@@ -6,17 +6,22 @@ import {
 } from '@nestjs/common';
 import {
   paginateQuery,
-  type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdminRefundCaseDetailResponseDto } from './dtos/admin-refund-case-detail-response.dto';
 import { AdminRefundCaseQueryDto } from './dtos/admin-refund-case-query.dto';
 import { AdminRefundCaseResponseDto } from './dtos/admin-refund-case-response.dto';
+import { MyRefundCaseQueryDto } from './dtos/my-refund-case-query.dto';
 import { CreateRefundCaseDto } from './dtos/create-refund-case.dto';
 import { RefundCaseResponseDto } from './dtos/refund-case-response.dto';
 import { RejectRefundCaseDto } from './dtos/reject-refund-case.dto';
-import { REFUND_CASE_OPEN_STATUS, REFUND_MESSAGES } from './refunds.constants';
+import {
+  REFUND_CASE_OPEN_STATUS,
+  REFUND_DECIDED_NOTIFICATION,
+  REFUND_MESSAGES,
+} from './refunds.constants';
 import { RefundsRepository } from './refunds.repository';
 import type { RefundCaseStatus } from './refunds.types';
 
@@ -24,7 +29,10 @@ import type { RefundCaseStatus } from './refunds.types';
 export class RefundsService {
   private readonly logger = new Logger(RefundsService.name);
 
-  constructor(private readonly repository: RefundsRepository) {}
+  constructor(
+    private readonly repository: RefundsRepository,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * An Advisee opening a case against their own payment.
@@ -50,22 +58,24 @@ export class RefundsService {
       throw new ConflictException(REFUND_MESSAGES.alreadyOpen);
     }
 
-    const refundCase = await this.repository.create({
+    const refundCase = await this.repository.createOpenCase({
       invoiceId: invoice.id,
       requestedByUserId: user.id,
       reason: dto.reason,
     });
+    if (!refundCase) throw new ConflictException(REFUND_MESSAGES.alreadyOpen);
     return new RefundCaseResponseDto(refundCase);
   }
 
   findMine(
     user: SessionUser,
-    page: OffsetPaginationDto,
+    page: MyRefundCaseQueryDto,
   ): Promise<PaginatedResult<RefundCaseResponseDto>> {
     return paginateQuery(
       page,
-      (options) => this.repository.findManyForRequester(user.id, options),
-      () => this.repository.countForRequester(user.id),
+      (options) =>
+        this.repository.findManyForRequester(user.id, options, page.invoiceId),
+      () => this.repository.countForRequester(user.id, page.invoiceId),
       (refundCase) => new RefundCaseResponseDto(refundCase),
     );
   }
@@ -94,11 +104,14 @@ export class RefundsService {
     return new AdminRefundCaseDetailResponseDto(row, evidence);
   }
 
-  approve(
+  async approve(
     admin: SessionUser,
     refundCaseId: string,
   ): Promise<AdminRefundCaseResponseDto> {
-    return this.rule(admin, refundCaseId, 'APPROVED');
+    const ruled = await this.rule(admin, refundCaseId, 'APPROVED');
+    const copy = REFUND_DECIDED_NOTIFICATION.approved;
+    await this.notifyDecided(ruled, copy.title, copy.content, copy.en);
+    return ruled;
   }
 
   /**
@@ -117,7 +130,41 @@ export class RefundsService {
     this.logger.warn(
       `Refund case ${refundCaseId} rejected by admin ${admin.id}. refund_cases has no column for the ruling note, so it was not stored: ${dto.reason}`,
     );
+    // The notification is the one place the Advisee sees the Admin's reason.
+    const copy = REFUND_DECIDED_NOTIFICATION.rejected;
+    await this.notifyDecided(ruled, copy.title, dto.reason, {
+      title: copy.en.title,
+      content: dto.reason,
+    });
     return ruled;
+  }
+
+  /**
+   * Tells the Advisee how their request was decided. Only the Admin whose ruling was written gets
+   * here (`rule` refuses the others), so it is sent once. A failure must not undo the ruling.
+   */
+  private async notifyDecided(
+    ruled: AdminRefundCaseResponseDto,
+    title: string,
+    content: string,
+    en: { title: string; content: string },
+  ): Promise<void> {
+    try {
+      await this.notifications.notify({
+        ownerId: ruled.requestedByUserId,
+        type: 'REFUND_DECIDED',
+        title,
+        content,
+        en,
+        resourceId: ruled.invoiceId,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not notify refund case ${ruled.id}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   /**

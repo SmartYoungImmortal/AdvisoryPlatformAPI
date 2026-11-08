@@ -83,6 +83,8 @@ jobs:
           env_vars: |-
             NODE_ENV=production
             BETTER_AUTH_URL=${{ vars.BETTER_AUTH_URL }}
+            FRONTEND_URL=${{ vars.FRONTEND_URL }}
+            BACKEND_PUBLIC_URL=${{ vars.BACKEND_PUBLIC_URL }}
             TRUSTED_ORIGINS=${{ env.TRUSTED_ORIGINS_ESCAPED }}
             SMTP_HOST=${{ vars.SMTP_HOST }}
             SMTP_PORT=${{ vars.SMTP_PORT || '587' }}
@@ -105,6 +107,8 @@ jobs:
             SEAWEEDFS_S3_SECRET_KEY=${{ vars.SECRET_PREFIX }}-seaweedfs-secret-key:latest
             SMTP_USER=${{ vars.SECRET_PREFIX }}-smtp-user:latest
             SMTP_PASSWORD=${{ vars.SECRET_PREFIX }}-smtp-password:latest
+            GOOGLE_CLIENT_ID=${{ vars.SECRET_PREFIX }}-google-client-id:latest
+            GOOGLE_CLIENT_SECRET=${{ vars.SECRET_PREFIX }}-google-client-secret:latest
           secrets_update_strategy: overwrite
 
       # better-auth answers /api/auth/ok without touching the database, so a failure here

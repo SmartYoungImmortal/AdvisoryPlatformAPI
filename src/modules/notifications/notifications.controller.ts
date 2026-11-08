@@ -21,6 +21,7 @@ import {
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { NotificationCountResponseDto } from './dtos/notification-count-response.dto';
 import { NotificationResponseDto } from './dtos/notification-response.dto';
+import { UpcomingSessionResponseDto } from './dtos/upcoming-session-response.dto';
 import { NOTIFICATION_MESSAGES } from './notifications.constants';
 import { NotificationsService } from './notifications.service';
 
@@ -50,6 +51,26 @@ export class NotificationsController {
     @CurrentUser() user: SessionUser,
   ): Promise<NotificationCountResponseDto> {
     return this.notifications.countUnread(user.id);
+  }
+
+  @Get('upcoming-session')
+  @ResponseMessage(NOTIFICATION_MESSAGES.upcomingSession)
+  @ApiGetOne(UpcomingSessionResponseDto, { name: 'Upcoming session' })
+  findUpcomingSession(
+    @CurrentUser() user: SessionUser,
+  ): Promise<UpcomingSessionResponseDto | null> {
+    return this.notifications.findUpcomingSession(user.id);
+  }
+
+  // Declared after `unread-count` and `upcoming-session`, so neither path is read as an id.
+  @Get(':notificationId')
+  @ResponseMessage(NOTIFICATION_MESSAGES.foundOne)
+  @ApiGetOne(NotificationResponseDto, { name: 'Notification' })
+  findOne(
+    @CurrentUser() user: SessionUser,
+    @Param('notificationId', ParseUUIDPipe) notificationId: string,
+  ): Promise<NotificationResponseDto> {
+    return this.notifications.findOne(user.id, notificationId);
   }
 
   @Patch('read-all')

@@ -1,17 +1,8 @@
-import {
-  Controller,
-  ForbiddenException,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Roles } from '@thallesp/nestjs-better-auth';
 import { ApiGetMany } from '@/common/decorators/api-docs.decorator';
-import { Role } from '@/common/authorization/role.enum';
-import { RoleResolver } from '@/common/authorization/role-resolver.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { AvailabilityService } from './availability.service';
 import {
@@ -22,25 +13,31 @@ import {
 @ApiTags('Availability')
 @Controller('services')
 export class ServiceSlotsController {
-  constructor(
-    private readonly availability: AvailabilityService,
-    private readonly roleResolver: RoleResolver,
-  ) {}
+  constructor(private readonly availability: AvailabilityService) {}
 
+  /**
+   * Anyone may read a published service's open times, signed in or not, so a
+   * visitor can see whether a time suits them before making an account.
+   * Booking one still needs a session (`POST /bookings`).
+   *
+   * Public, but the session is still read when there is one (the guard sets
+   * `request.user` on every route, or `null`): a screened service shows its
+   * times only to an account whose screening was accepted, and to its owner,
+   * so a visitor with no session is told it is screened, as an unscreened
+   * account is. Booking one's own service is refused where the booking is
+   * made (`BOOKING_MESSAGES.selfBooking`), not here.
+   */
+  @Public()
   @Get(':serviceId/slots')
-  @Roles(['advisee'])
-  @ApiGetMany(AvailabilitySlotResponseDto, { name: 'Available slots' })
+  @ApiGetMany(AvailabilitySlotResponseDto, {
+    name: 'Available slots',
+    public: true,
+  })
   findSlots(
-    @CurrentUser() user: SessionUser,
+    @CurrentUser() user: SessionUser | null,
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
     @Query() query: SlotQueryDto,
   ): Promise<AvailabilitySlotResponseDto[]> {
-    return this.roleResolver.resolve(user.id).then((roles) => {
-      if (roles.some((role) => role !== Role.Advisee)) {
-        throw new ForbiddenException();
-      }
-
-      return this.availability.findSlots(serviceId, query, user.id);
-    });
+    return this.availability.findSlots(serviceId, query, user?.id ?? null);
   }
 }

@@ -6,16 +6,23 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 import {
   ApiCreate,
   ApiDelete,
+  ApiGetMany,
   ApiGetOne,
   ApiGetPaginated,
   ApiUpdate,
@@ -24,11 +31,19 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import type { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
-import { ADVISOR_SERVICE_MESSAGES } from './advisor-services.constants';
+import {
+  ADVISOR_SERVICE_MESSAGES,
+  MAX_SERVICE_IMAGE_BYTES,
+} from './advisor-services.constants';
 import { AdvisorServicesService } from './advisor-services.service';
 import { AdvisorServiceQueryDto } from './dtos/advisor-service-query.dto';
 import { AdvisorServiceResponseDto } from './dtos/advisor-service-response.dto';
 import { CreateAdvisorServiceDto } from './dtos/create-advisor-service.dto';
+import { ServiceImagesResponseDto } from './dtos/service-images-response.dto';
+import {
+  ReplaceServicePackagesDto,
+  ServicePackageResponseDto,
+} from './dtos/service-package.dto';
 import { UpdateAdvisorServiceDto } from './dtos/update-advisor-service.dto';
 
 @ApiTags('Advisor Services')
@@ -54,6 +69,92 @@ export class AdvisorServicesController {
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
   ): Promise<AdvisorServiceResponseDto> {
     return this.services.findOne(user, serviceId);
+  }
+
+  @UserHasPermission({ permission: { advisorService: ['read'] } })
+  @Get(':serviceId/images')
+  @ApiGetOne(ServiceImagesResponseDto, { name: 'Service images' })
+  findImages(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+  ) {
+    return this.services.findOwnImages(user, serviceId);
+  }
+
+  @UserHasPermission({ permission: { advisorService: ['update'] } })
+  @Post(':serviceId/images')
+  @ApiCreate(ServiceImagesResponseDto, { name: 'Service images' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_SERVICE_IMAGE_BYTES + 1, files: 1 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  uploadImage(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    return this.services.uploadImage(user, serviceId, file);
+  }
+
+  /** Puts a picture on one package, in place of the one it had; answers the service's packages. */
+  @UserHasPermission({ permission: { advisorService: ['update'] } })
+  @Post(':serviceId/packages/:packageId/image')
+  @ApiCreate(ServicePackageResponseDto, { name: 'Service packages' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_SERVICE_IMAGE_BYTES + 1, files: 1 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  uploadPackageImage(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<ServicePackageResponseDto[]> {
+    return this.services.uploadPackageImage(user, serviceId, packageId, file);
+  }
+
+  /** Takes one package's picture off; answers the service's packages. */
+  @UserHasPermission({ permission: { advisorService: ['update'] } })
+  @Delete(':serviceId/packages/:packageId/image')
+  @ApiDelete(ServicePackageResponseDto, { name: 'Service packages' })
+  removePackageImage(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string,
+  ): Promise<ServicePackageResponseDto[]> {
+    return this.services.removePackageImage(user, serviceId, packageId);
+  }
+
+  /** Takes one photograph out of the carousel, by its place in it; the rest close up. */
+  @UserHasPermission({ permission: { advisorService: ['update'] } })
+  @Delete(':serviceId/images/:index')
+  @ApiDelete(ServiceImagesResponseDto, { name: 'Service images' })
+  removeImage(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('index', ParseIntPipe) index: number,
+  ) {
+    return this.services.removeImage(user, serviceId, index);
   }
 
   @UserHasPermission({ permission: { advisorService: ['createSelf'] } })
@@ -89,5 +190,27 @@ export class AdvisorServicesController {
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
   ): Promise<AdvisorServiceResponseDto> {
     return this.services.delete(user, serviceId);
+  }
+
+  @UserHasPermission({ permission: { advisorService: ['read'] } })
+  @Get(':serviceId/packages')
+  @ApiGetMany(ServicePackageResponseDto, { name: 'Service package' })
+  findPackages(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+  ): Promise<ServicePackageResponseDto[]> {
+    return this.services.findPackages(user, serviceId);
+  }
+
+  @UserHasPermission({ permission: { advisorService: ['update'] } })
+  @Put(':serviceId/packages')
+  @ResponseMessage(ADVISOR_SERVICE_MESSAGES.updated)
+  @ApiGetMany(ServicePackageResponseDto, { name: 'Service package' })
+  replacePackages(
+    @CurrentUser() user: SessionUser,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Body() dto: ReplaceServicePackagesDto,
+  ): Promise<ServicePackageResponseDto[]> {
+    return this.services.replacePackages(user, serviceId, dto);
   }
 }

@@ -1,6 +1,12 @@
 import { eq } from 'drizzle-orm';
-import type request from 'supertest';
-import { serviceAppointments, services, user } from '@/database/schema';
+import request from 'supertest';
+import {
+  serviceAppointments,
+  advisorGlobalAvailability,
+  services,
+  user,
+  screeningRequests,
+} from '@/database/schema';
 import { BookingsService } from '@/modules/bookings/bookings.service';
 import { approveAsAdvisor, signUpUser } from './support/accounts';
 import {
@@ -55,7 +61,203 @@ describe('booking lifecycle (e2e)', () => {
     return row;
   }
 
+  it('reads advisor-owned session details without exposing another participant or advisor booking', async () => {
+    const { advisor, serviceId, first } = await seedService();
+    const advisee = await signUp();
+    const bookingId = stringField(
+      await book(advisee.agent, serviceId, first),
+      'id',
+    );
+    const detail = await advisor.agent
+      .get(`/api/v1/advisors/me/bookings/${bookingId}`)
+      .expect(200);
+    expect(data(detail.body)).toMatchObject({
+      id: bookingId,
+      adviseeId: advisee.userId,
+      latestScreeningRequestId: null,
+    });
+    expect(data(detail.body)).toHaveProperty('adviseeName');
+    expect(data(detail.body)).not.toHaveProperty('email');
+    await advisee.agent
+      .get(`/api/v1/advisors/me/bookings/${bookingId}`)
+      .expect(403);
+    const stranger = await signUp();
+    await approveAsAdvisor(e2e().db, stranger, { headline: 'Other advisor' });
+    await stranger.agent
+      .get(`/api/v1/advisors/me/bookings/${bookingId}`)
+      .expect(404);
+    await advisor.agent
+      .get('/api/v1/advisors/me/bookings/not-a-uuid')
+      .expect(400);
+    const [latest] = await e2e()
+      .db.insert(screeningRequests)
+      .values({ serviceId, adviseeId: advisee.userId, status: 'DECLINED' })
+      .returning();
+    try {
+      const current = await advisor.agent
+        .get(`/api/v1/advisors/me/bookings/${bookingId}`)
+        .expect(200);
+      expect(data(current.body).latestScreeningRequestId).toBe(latest.id);
+    } finally {
+      await e2e()
+        .db.delete(screeningRequests)
+        .where(eq(screeningRequests.id, latest.id));
+    }
+  });
+
+  it('paginates advisor bookings with numeric defaults and rejects invalid page parameters', async () => {
+    const { advisor, serviceId, first, second } = await seedService();
+    const advisee = await signUp();
+    await book(advisee.agent, serviceId, first);
+    await book(advisee.agent, serviceId, second);
+    const one = await advisor.agent
+      .get('/api/v1/advisors/me/bookings?limit=1&page=1')
+      .expect(200);
+    const two = await advisor.agent
+      .get('/api/v1/advisors/me/bookings?limit=1&page=2')
+      .expect(200);
+    expect(data(one.body)).toMatchObject({
+      page: 1,
+      limit: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(data(two.body)).toMatchObject({
+      page: 2,
+      limit: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(data(one.body).items).not.toEqual(data(two.body).items);
+    const defaults = await advisor.agent
+      .get('/api/v1/advisors/me/bookings')
+      .expect(200);
+    expect(data(defaults.body)).toMatchObject({ page: 1, limit: 20, total: 2 });
+    for (const query of [
+      'limit=101',
+      'limit=0',
+      'limit=nope',
+      'page=0',
+      'page=-1',
+    ]) {
+      await advisor.agent
+        .get(`/api/v1/advisors/me/bookings?${query}`)
+        .expect(400);
+    }
+  });
+
   describe('reschedule', () => {
+    it('offers and claims a replacement at capacity while retaining the booked duration', async () => {
+      const { advisor, serviceId, bookingDate, first, second } =
+        await seedService();
+      const advisee = await signUp();
+      const original = await book(advisee.agent, serviceId, first);
+      const id = stringField(original, 'id');
+      const db = e2e().db;
+      await db
+        .update(advisorGlobalAvailability)
+        .set({ dailyConsultationLimitMinutes: 60 })
+        .where(eq(advisorGlobalAvailability.advisorId, advisor.userId));
+      await db
+        .update(services)
+        .set({ dailyConsultationLimitMinutes: 60, durationMinutes: 30 })
+        .where(eq(services.id, serviceId));
+      const range = { from: bookingDate, to: bookingDate };
+      const standard = await advisee.agent
+        .get(`/api/v1/services/${serviceId}/slots`)
+        .query(range)
+        .expect(200);
+      expect(object(standard.body).data).toEqual([]);
+      const candidates = await advisee.agent
+        .get(`/api/v1/bookings/${id}/reschedule-slots`)
+        .query(range)
+        .expect(200);
+      expect(object(candidates.body).data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            startTime: new Date(second).toISOString(),
+            endTime: new Date(
+              new Date(second).getTime() + 60 * 60000,
+            ).toISOString(),
+          }),
+        ]),
+      );
+      expect((await readState(id)).state).toBe('PENDING_PAYMENT');
+      const moved = await advisee.agent
+        .post(`/api/v1/bookings/${id}/reschedule`)
+        .send({ startTime: second })
+        .expect(200);
+      const replacement = data(moved.body);
+      expect(replacement.id).not.toBe(id);
+      expect(replacement.endTime).toBe(
+        new Date(new Date(second).getTime() + 60 * 60000).toISOString(),
+      );
+      await advisee.agent
+        .get(`/api/v1/bookings/${id}/reschedule-slots`)
+        .query(range)
+        .expect(409);
+    });
+
+    it('keeps a late-cancelled original in daily capacity when offering and claiming replacements', async () => {
+      const { advisor, serviceId, bookingDate, first, second } =
+        await seedService();
+      const advisee = await signUp();
+      const original = await book(advisee.agent, serviceId, first);
+      const id = stringField(original, 'id');
+      const notice =
+        Math.ceil((new Date(first).getTime() - Date.now()) / 60000) + 30;
+      await e2e()
+        .db.update(advisorGlobalAvailability)
+        .set({
+          dailyConsultationLimitMinutes: 60,
+          minimumBookingNoticeMinutes: notice,
+        })
+        .where(eq(advisorGlobalAvailability.advisorId, advisor.userId));
+      const candidates = await advisee.agent
+        .get(`/api/v1/bookings/${id}/reschedule-slots`)
+        .query({ from: bookingDate, to: bookingDate })
+        .expect(200);
+      expect(object(candidates.body).data).toEqual([]);
+      await advisee.agent
+        .post(`/api/v1/bookings/${id}/reschedule`)
+        .send({ startTime: second })
+        .expect(400);
+      expect((await readState(id)).state).toBe('PENDING_PAYMENT');
+    });
+
+    it('authorizes rescheduling-slot reads and rejects invalid ranges and caller-chosen package changes', async () => {
+      const { serviceId, bookingDate, first } = await seedService();
+      const advisee = await signUp();
+      const stranger = await signUp();
+      const original = await book(advisee.agent, serviceId, first);
+      const id = stringField(original, 'id');
+      const range = { from: bookingDate, to: bookingDate };
+      await request(e2e().app.getHttpServer())
+        .get(`/api/v1/bookings/${id}/reschedule-slots`)
+        .query(range)
+        .expect(401);
+      await stranger.agent
+        .get(`/api/v1/bookings/${id}/reschedule-slots`)
+        .query(range)
+        .expect(404);
+      await advisee.agent
+        .get('/api/v1/bookings/not-a-uuid/reschedule-slots')
+        .query(range)
+        .expect(400);
+      await advisee.agent
+        .get(`/api/v1/bookings/${id}/reschedule-slots`)
+        .query({ from: '2026-02-30', to: '2026-03-01' })
+        .expect(400);
+      await advisee.agent
+        .get(`/api/v1/bookings/${id}/reschedule-slots`)
+        .query({ from: '2026-01-01', to: '2026-12-31' })
+        .expect(400);
+      await advisee.agent
+        .get(`/api/v1/bookings/${id}/reschedule-slots`)
+        .query({ ...range, packageId: serviceId })
+        .expect(400);
+    });
+
     it('cancels the original and claims the new time in one transaction', async () => {
       const { serviceId, first, second } = await seedService();
       const advisee = await signUp();

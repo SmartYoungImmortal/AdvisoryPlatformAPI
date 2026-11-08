@@ -13,6 +13,7 @@ const mockCustomersUpdate = jest.fn();
 const mockCustomersCreate = jest.fn();
 const mockChargesCreate = jest.fn();
 const mockChargesRetrieve = jest.fn();
+const mockTokensRetrieve = jest.fn();
 
 jest.mock('omise', () => {
   return jest.fn().mockImplementation(() => ({
@@ -24,6 +25,9 @@ jest.mock('omise', () => {
       create: mockChargesCreate,
       retrieve: mockChargesRetrieve,
     },
+    tokens: {
+      retrieve: mockTokensRetrieve,
+    },
   }));
 });
 
@@ -34,6 +38,8 @@ jest.mock('@/modules/payment/providers/providers', () => ({
   FailureCodeEnum: {
     parse: jest.fn((val: string) => `Mocked message for ${val}`),
   },
+  PROMPTPAY_BRAND: 'PromptPay',
+  MOBILE_BANKS: { scb: 'SCB EASY', kbank: 'K PLUS' },
 }));
 
 jest.mock('@/modules/payment/providers/omise/utils', () => ({
@@ -287,6 +293,64 @@ describe('OmisePaymentProvider', () => {
       );
     });
 
+    it('charges a Google Pay token as itself, never saving it to the customer', async () => {
+      const tokenId = `${TokenIdPrefix}_googlepay`;
+      mockTokensRetrieve.mockResolvedValueOnce({
+        id: tokenId,
+        card: { tokenization_method: 'googlepay' },
+      });
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_wallet',
+        authorize_uri: 'https://omise.co/redirect',
+        card: { brand: 'Visa', last_digits: '1111' },
+      });
+
+      const result = await provider.chargeSpecificCard(
+        mockUser,
+        5000,
+        tokenId,
+        'url',
+      );
+
+      expect(mockTokensRetrieve).toHaveBeenCalledWith(tokenId);
+      expect(mockCustomersUpdate).not.toHaveBeenCalled();
+      expect(mockCustomersCreate).not.toHaveBeenCalled();
+      expect(mockChargesCreate).toHaveBeenCalledWith({
+        amount: 5000,
+        currency: 'usd',
+        card: tokenId,
+        return_uri: 'url',
+      });
+      expect(result).toMatchObject({ status: 'success', lastDigits: '1111' });
+    });
+
+    it('saves a typed card token to the customer, as before', async () => {
+      const tokenId = `${TokenIdPrefix}_typed`;
+      mockTokensRetrieve.mockResolvedValueOnce({
+        id: tokenId,
+        card: { tokenization_method: null },
+      });
+      mockCustomersUpdate.mockResolvedValueOnce({
+        id: 'cust_123',
+        cards: { data: [{ id: 'card_saved' }] },
+      });
+      jest.spyOn(omiseRepository, 'recordOmiseCards').mockResolvedValue([]);
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_typed',
+        authorize_uri: 'url',
+        card: { brand: 'Visa', last_digits: '4242' },
+      });
+
+      await provider.chargeSpecificCard(mockUser, 5000, tokenId, 'url');
+
+      expect(mockCustomersUpdate).toHaveBeenCalledWith('cust_123', {
+        card: tokenId,
+      });
+      expect(mockChargesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ customer: 'cust_123', card: 'card_saved' }),
+      );
+    });
+
     it('Branch 3: Omise API Failure Code', async () => {
       mockChargesCreate.mockResolvedValueOnce({
         failure_code: 'insufficient_funds',
@@ -340,10 +404,225 @@ describe('OmisePaymentProvider', () => {
     });
   });
 
+  describe('chargePromptPay', () => {
+    const expiresAt = new Date('2026-10-30T10:15:00.000Z');
+
+    it('makes a PromptPay charge that expires when asked and gives its QR code', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_pp1',
+        status: 'pending',
+        source: {
+          type: 'promptpay',
+          scannable_code: {
+            image: { download_uri: 'https://api.omise.co/qr.svg' },
+          },
+        },
+      });
+
+      const result = await provider.chargePromptPay(80_000, expiresAt);
+
+      expect(mockChargesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 80_000,
+          source: expect.objectContaining({ type: 'promptpay' }) as unknown,
+          expires_at: '2026-10-30T10:15:00.000Z',
+        }),
+      );
+      expect(result).toEqual({
+        status: 'pending',
+        chargeId: 'chrg_pp1',
+        qrImageUrl: 'https://api.omise.co/qr.svg',
+        expiresAt: '2026-10-30T10:15:00.000Z',
+      });
+    });
+
+    it('fails a charge the provider refused or gave no QR code', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_pp2',
+        failure_code: 'failed_processing',
+        source: { type: 'promptpay' },
+      });
+
+      expect(await provider.chargePromptPay(80_000, expiresAt)).toEqual({
+        status: 'failed',
+        errorCode: 'failed_processing',
+        message: 'Mocked message for failed_processing',
+      });
+
+      mockChargesCreate.mockResolvedValueOnce({ id: 'chrg_pp3' });
+      expect(await provider.chargePromptPay(80_000, expiresAt)).toMatchObject({
+        status: 'failed',
+        errorCode: 'unspecified',
+      });
+    });
+
+    it('fails when the provider cannot be reached', async () => {
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      mockChargesCreate.mockRejectedValueOnce(new Error('network'));
+
+      expect(await provider.chargePromptPay(80_000, expiresAt)).toMatchObject({
+        status: 'failed',
+        errorCode: 'unspecified',
+      });
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('chargeMobileBanking', () => {
+    it('makes a charge on the bank’s source and gives the page that opens its app', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_mb1',
+        status: 'pending',
+        authorize_uri: 'https://pay.omise.co/payments/pay2_test/authorize',
+        source: { type: 'mobile_banking_kbank' },
+      });
+
+      const result = await provider.chargeMobileBanking(
+        80_000,
+        'kbank',
+        'ANDROID',
+        'https://api.backend.app/payment/callback/inv',
+      );
+
+      expect(mockChargesCreate).toHaveBeenCalledWith({
+        amount: 80_000,
+        currency: 'usd',
+        source: {
+          type: 'mobile_banking_kbank',
+          amount: 80_000,
+          currency: 'usd',
+          platform_type: 'ANDROID',
+        },
+        return_uri: 'https://api.backend.app/payment/callback/inv',
+      });
+      expect(result).toEqual({
+        status: 'pending',
+        chargeId: 'chrg_mb1',
+        authorizeUri: 'https://pay.omise.co/payments/pay2_test/authorize',
+      });
+    });
+
+    it('leaves the platform out when the browser could not tell', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_mb2',
+        authorize_uri: 'https://pay.omise.co/x',
+      });
+
+      await provider.chargeMobileBanking(80_000, 'scb', undefined, 'url');
+
+      expect(mockChargesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: {
+            type: 'mobile_banking_scb',
+            amount: 80_000,
+            currency: 'usd',
+          },
+        }),
+      );
+    });
+
+    it('fails a charge the provider refused or gave no page for', async () => {
+      mockChargesCreate.mockResolvedValueOnce({
+        id: 'chrg_mb3',
+        failure_code: 'failed_processing',
+      });
+      expect(
+        await provider.chargeMobileBanking(80_000, 'bbl', undefined, 'url'),
+      ).toEqual({
+        status: 'failed',
+        errorCode: 'failed_processing',
+        message: 'Mocked message for failed_processing',
+      });
+
+      mockChargesCreate.mockResolvedValueOnce({ id: 'chrg_mb4' });
+      expect(
+        await provider.chargeMobileBanking(80_000, 'bbl', undefined, 'url'),
+      ).toMatchObject({ status: 'failed', errorCode: 'unspecified' });
+    });
+
+    it('fails when the provider cannot be reached', async () => {
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      mockChargesCreate.mockRejectedValueOnce(new Error('network'));
+
+      expect(
+        await provider.chargeMobileBanking(80_000, 'ktb', undefined, 'url'),
+      ).toMatchObject({ status: 'failed', errorCode: 'unspecified' });
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('getChargeStatus', () => {
+    it('names a charge paid in a bank’s app by the app', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_mb1',
+        status: 'successful',
+        authorize_uri: 'https://pay.omise.co/x',
+        card: null,
+        source: { type: 'mobile_banking_scb' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_mb1')).toMatchObject({
+        status: 'success',
+        brand: 'SCB EASY',
+        lastDigits: '',
+      });
+    });
+
+    it('names nothing for a source it does not know', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_x',
+        status: 'successful',
+        card: null,
+        source: { type: 'mobile_banking_unknown' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_x')).toMatchObject({
+        status: 'success',
+        brand: '',
+      });
+    });
+
+    it('names a paid PromptPay charge, which has no card, by its method', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_pp1',
+        status: 'successful',
+        authorize_uri: null,
+        card: null,
+        source: { type: 'promptpay' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_pp1')).toEqual({
+        status: 'success',
+        brand: 'PromptPay',
+        lastDigits: '',
+        redirectUrl: '',
+        chargeId: 'chrg_pp1',
+      });
+    });
+
+    it('fails a PromptPay code that expired unpaid', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_pp1',
+        status: 'expired',
+        card: null,
+        source: { type: 'promptpay' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_pp1')).toMatchObject({
+        status: 'failed',
+        brand: 'PromptPay',
+        lastDigits: '',
+      });
+    });
+
     it('Branch 1: Success', async () => {
       mockChargesRetrieve.mockResolvedValueOnce({
         id: 'chrg_ret123',
+        status: 'successful',
         authorize_uri: 'https://omise.co/redirect',
         card: {
           brand: 'JCB',
@@ -380,6 +659,35 @@ describe('OmisePaymentProvider', () => {
         lastDigits: '4321',
         errorCode: 'rejected',
         message: 'Mocked message for rejected',
+      });
+    });
+
+    it('is pending while 3-D Secure has not finished', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_ret123',
+        status: 'pending',
+        authorize_uri: 'https://omise.co/redirect',
+        card: { brand: 'Visa', last_digits: '4242' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_ret123')).toEqual({
+        status: 'pending',
+      });
+    });
+
+    it('fails a charge that ended unpaid without a failure code', async () => {
+      mockChargesRetrieve.mockResolvedValueOnce({
+        id: 'chrg_ret123',
+        status: 'expired',
+        card: { brand: 'Visa', last_digits: '4242' },
+      });
+
+      expect(await provider.getChargeStatus('chrg_ret123')).toEqual({
+        status: 'failed',
+        brand: 'Visa',
+        lastDigits: '4242',
+        errorCode: 'unspecified',
+        message: 'Mocked message for unspecified',
       });
     });
 

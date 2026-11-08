@@ -8,18 +8,28 @@ import {
   type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
+import { formatBaht } from '@/common/utils/format-baht';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdminPayoutDetailResponseDto } from './dtos/admin-payout-detail-response.dto';
 import { AdminPayoutQueryDto } from './dtos/admin-payout-query.dto';
 import { AdminPayoutResponseDto } from './dtos/admin-payout-response.dto';
 import { MarkPayoutPaidDto } from './dtos/mark-payout-paid.dto';
 import { PayoutResponseDto } from './dtos/payout-response.dto';
-import { PAYOUT_MESSAGES, PAYOUT_PENDING_STATUS } from './payouts.constants';
+import {
+  PAYOUT_MESSAGES,
+  PAYOUT_FAILED_NOTIFICATION,
+  PAYOUT_PAID_NOTIFICATION,
+  PAYOUT_PENDING_STATUS,
+} from './payouts.constants';
 import { PayoutsRepository } from './payouts.repository';
 
 @Injectable()
 export class PayoutsService {
-  constructor(private readonly repository: PayoutsRepository) {}
+  constructor(
+    private readonly repository: PayoutsRepository,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   findManyForAdmin(
     query: AdminPayoutQueryDto,
@@ -63,17 +73,43 @@ export class PayoutsService {
    * reconciling a payout without the provider reference to hand does not erase a reference that is
    * already on the row.
    */
-  markPaid(
+  async markPaid(
     payoutId: string,
     dto: MarkPayoutPaidDto,
   ): Promise<AdminPayoutResponseDto> {
-    return this.settle(payoutId, {
+    const payout = await this.settle(payoutId, {
       status: 'PAID',
       paidAt: new Date(),
       ...(dto.providerTransferId === undefined
         ? {}
         : { providerTransferId: dto.providerTransferId }),
     });
+    await this.notifySettled(payout, 'PAYOUT_SENT', PAYOUT_PAID_NOTIFICATION);
+    return payout;
+  }
+
+  /**
+   * Tells the advisor a payout was settled. Only the admin whose ruling was written gets here
+   * (`settle` refuses the others), so it is sent once. A failure must not undo the payout.
+   */
+  private async notifySettled(
+    payout: AdminPayoutResponseDto,
+    type: 'PAYOUT_SENT' | 'PAYOUT_FAILED',
+    copy: typeof PAYOUT_PAID_NOTIFICATION | typeof PAYOUT_FAILED_NOTIFICATION,
+  ): Promise<void> {
+    const amount = formatBaht(payout.netAmountSatang);
+    try {
+      await this.notifications.notify({
+        ownerId: payout.advisorId,
+        type,
+        title: copy.title,
+        content: copy.content(amount),
+        en: { title: copy.en.title, content: copy.en.content(amount) },
+        resourceId: payout.id,
+      });
+    } catch {
+      // The payout stands; the advisor still sees it in their payout history.
+    }
   }
 
   /**
@@ -83,8 +119,14 @@ export class PayoutsService {
    * There is no `reason` on this route: `payouts` has no column for a failure note, and inventing
    * one is the schema owner's call rather than this module's. See the handoff note in the report.
    */
-  markFailed(payoutId: string): Promise<AdminPayoutResponseDto> {
-    return this.settle(payoutId, { status: 'FAILED' });
+  async markFailed(payoutId: string): Promise<AdminPayoutResponseDto> {
+    const payout = await this.settle(payoutId, { status: 'FAILED' });
+    await this.notifySettled(
+      payout,
+      'PAYOUT_FAILED',
+      PAYOUT_FAILED_NOTIFICATION,
+    );
+    return payout;
   }
 
   /**

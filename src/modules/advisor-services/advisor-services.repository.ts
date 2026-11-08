@@ -1,8 +1,15 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   and,
   asc,
   count,
+  desc,
   eq,
   getTableColumns,
   gte,
@@ -10,7 +17,9 @@ import {
   inArray,
   isNull,
   lte,
+  notInArray,
   or,
+  sql,
   type InferInsertModel,
   type InferSelectModel,
   type SQL,
@@ -18,10 +27,13 @@ import {
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
 import {
+  savePackageTranslation,
   saveServiceTranslation,
   writesSourceText,
 } from '@/common/i18n/content-translations';
 import {
+  packageDescription,
+  packageName,
   serviceDescription,
   serviceName,
 } from '@/common/i18n/localized-columns';
@@ -32,10 +44,20 @@ import {
   availabilityProfiles,
   serviceCategories,
   serviceImages,
+  servicePackages,
+  serviceScreeningQuestions,
   services,
   user,
 } from '@/database/schema';
+import {
+  ADVISOR_SERVICE_MESSAGES,
+  MAX_SERVICE_IMAGES,
+} from './advisor-services.constants';
 import type { PublicServiceDocument } from './advisor-services.types';
+import type {
+  ServicePackage,
+  ServicePackageInputDto,
+} from './dtos/service-package.dto';
 import type { PublicServiceQueryDto } from './dtos/public-service-query.dto';
 
 type AdvisorService = InferSelectModel<typeof services>;
@@ -100,6 +122,24 @@ export class AdvisorServicesRepository extends EntityRepository<
       .offset(options.offset);
   }
 
+  /** Which of `serviceIds` are the advisor's own. */
+  async findOwnedIds(
+    advisorId: string,
+    serviceIds: readonly string[],
+  ): Promise<string[]> {
+    if (serviceIds.length === 0) return [];
+    const rows = await this.db
+      .select({ id: services.id })
+      .from(services)
+      .where(
+        and(
+          eq(services.advisorId, advisorId),
+          inArray(services.id, [...serviceIds]),
+        ),
+      );
+    return rows.map((row) => row.id);
+  }
+
   async findOwnedById(
     advisorId: string,
     serviceId: string,
@@ -129,6 +169,16 @@ export class AdvisorServicesRepository extends EntityRepository<
       });
       return service;
     });
+  }
+
+  /** Whether every one of the categories exists. */
+  async categoriesExist(categoryIds: readonly string[]): Promise<boolean> {
+    if (categoryIds.length === 0) return true;
+    const rows = await this.db
+      .select({ id: serviceCategories.id })
+      .from(serviceCategories)
+      .where(inArray(serviceCategories.id, [...categoryIds]));
+    return rows.length === new Set(categoryIds).size;
   }
 
   async categoryExists(categoryId: string): Promise<boolean> {
@@ -191,34 +241,42 @@ export class AdvisorServicesRepository extends EntityRepository<
     });
   }
 
-  /**
-   * The service and its photographs, in one transaction.
-   *
-   * `service_images` references the service with no cascade, so deleting the
-   * row alone fails as soon as it has photographs, which every seeded service
-   * now does. The photographs go only once the same `ownedWhere` has found the
-   * service, so another advisor's id deletes nothing, and a service that still
-   * cannot go (it has bookings) keeps its photographs when the delete rolls back.
-   * Its translations cascade, so what is returned is the localized read made
-   * before the delete.
-   */
+  /** Deletes owned configuration atomically; historical references roll back every deletion. */
   async deleteOwned(
     advisorId: string,
     serviceId: string,
   ): Promise<AdvisorService | undefined> {
-    return this.db.transaction(async (tx) => {
-      const owned = await this.findOwnedById(advisorId, serviceId, tx);
-      if (!owned) return undefined;
+    try {
+      return await this.db.transaction(async (tx) => {
+        const owned = await this.findOwnedById(advisorId, serviceId, tx);
+        if (!owned) return undefined;
 
-      await tx
-        .delete(serviceImages)
-        .where(eq(serviceImages.serviceId, serviceId));
-      const deleted = await tx
-        .delete(services)
-        .where(this.ownedWhere(advisorId, serviceId))
-        .returning({ id: services.id });
-      return deleted.length > 0 ? owned : undefined;
-    });
+        await tx
+          .delete(serviceImages)
+          .where(eq(serviceImages.serviceId, serviceId));
+        await tx
+          .delete(serviceScreeningQuestions)
+          .where(eq(serviceScreeningQuestions.serviceId, serviceId));
+        const deleted = await tx
+          .delete(services)
+          .where(this.ownedWhere(advisorId, serviceId))
+          .returning({ id: services.id });
+        return deleted.length > 0 ? owned : undefined;
+      });
+    } catch (error) {
+      const cause = error instanceof Error && error.cause ? error.cause : error;
+      if (
+        typeof cause === 'object' &&
+        cause !== null &&
+        'code' in cause &&
+        cause.code === '23503'
+      ) {
+        throw new ConflictException(
+          ADVISOR_SERVICE_MESSAGES.historyPreventsDeletion,
+        );
+      }
+      throw error;
+    }
   }
 
   async findPublished(
@@ -282,6 +340,212 @@ export class AdvisorServicesRepository extends EntityRepository<
       .orderBy(asc(serviceImages.serviceId), asc(serviceImages.carouselIndex));
   }
 
+  async appendImage(
+    advisorId: string,
+    serviceId: string,
+    objectKey: string,
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const [owned] = await tx
+        .select({ id: services.id })
+        .from(services)
+        .where(this.ownedWhere(advisorId, serviceId))
+        .for('update');
+      if (!owned) throw new BadRequestException('Service no longer exists');
+      const rows = await tx
+        .select({ index: serviceImages.carouselIndex })
+        .from(serviceImages)
+        .where(eq(serviceImages.serviceId, serviceId))
+        .orderBy(desc(serviceImages.carouselIndex))
+        .limit(1);
+      const index = rows.length ? rows[0].index + 1 : 0;
+      if (index >= MAX_SERVICE_IMAGES)
+        throw new BadRequestException('A service can have at most six images');
+      await tx
+        .insert(serviceImages)
+        .values({ serviceId, objectKey, carouselIndex: index });
+    });
+  }
+
+  /**
+   * Takes the photograph at `index` out of a service's carousel and closes the
+   * gap, so the indexes stay 0…n-1. A published service keeps at least one
+   * photograph, the rule publishing it set. Answers the removed object's key,
+   * for the caller to delete from storage.
+   */
+  async removeImage(
+    advisorId: string,
+    serviceId: string,
+    index: number,
+  ): Promise<string> {
+    return this.db.transaction(async (tx) => {
+      const [owned] = await tx
+        .select({ id: services.id, isPublished: services.isPublished })
+        .from(services)
+        .where(this.ownedWhere(advisorId, serviceId))
+        .for('update');
+      if (!owned) throw new BadRequestException('Service no longer exists');
+      const rows = await tx
+        .select({
+          index: serviceImages.carouselIndex,
+          objectKey: serviceImages.objectKey,
+        })
+        .from(serviceImages)
+        .where(eq(serviceImages.serviceId, serviceId))
+        .orderBy(asc(serviceImages.carouselIndex));
+      const target = rows.find((row) => row.index === index);
+      if (!target) throw new NotFoundException('Service image not found');
+      if (owned.isPublished && rows.length === 1)
+        throw new BadRequestException(
+          'A published service keeps at least one image',
+        );
+      await tx
+        .delete(serviceImages)
+        .where(
+          and(
+            eq(serviceImages.serviceId, serviceId),
+            eq(serviceImages.carouselIndex, index),
+          ),
+        );
+      // One step down each, lowest first, so no two rows ever share an index.
+      for (const row of rows.filter((entry) => entry.index > index)) {
+        await tx
+          .update(serviceImages)
+          .set({ carouselIndex: row.index - 1 })
+          .where(
+            and(
+              eq(serviceImages.serviceId, serviceId),
+              eq(serviceImages.carouselIndex, row.index),
+            ),
+          );
+      }
+      return target.objectKey;
+    });
+  }
+
+  /**
+   * Sets one of a service's packages' picture (null takes it off) and answers the key it had,
+   * so the object it pointed at can go. The row is locked while it is read and written.
+   */
+  setPackageImage(
+    serviceId: string,
+    packageId: string,
+    key: string | null,
+  ): Promise<string | null> {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ imageKey: servicePackages.imageKey })
+        .from(servicePackages)
+        .where(
+          and(
+            eq(servicePackages.id, packageId),
+            eq(servicePackages.serviceId, serviceId),
+          ),
+        )
+        .for('update');
+      if (!row)
+        throw new NotFoundException('Package not found on this service');
+      await tx
+        .update(servicePackages)
+        .set({ imageKey: key })
+        .where(eq(servicePackages.id, packageId));
+      return row.imageKey;
+    });
+  }
+
+  /** A service's packages, in the order they are offered, their names and lines in the request's language. */
+  findPackagesFor(
+    serviceId: string,
+    db: Pick<DrizzleDB, 'select'> = this.db,
+  ): Promise<ServicePackage[]> {
+    return db
+      .select({
+        ...getTableColumns(servicePackages),
+        name: packageName(),
+        description: packageDescription(),
+      })
+      .from(servicePackages)
+      .where(eq(servicePackages.serviceId, serviceId))
+      .orderBy(asc(servicePackages.sortOrder), asc(servicePackages.createdAt));
+  }
+
+  /**
+   * Makes a service's packages `packages`, in that order, in one transaction:
+   * one with an `id` of this service's is changed in place (so bookings made
+   * on it keep pointing at it), one without is added, and one not sent is
+   * removed (bookings made on it keep their times, their link set to null).
+   *
+   * The names and lines follow a service's rule (`content-translations.ts`): a
+   * new package's go to its own columns and to its row in the language they
+   * were written in; a kept package's go to that language's row, and to its
+   * own columns only in Thai, so an edit made in English leaves the Thai.
+   */
+  replacePackages(
+    serviceId: string,
+    packages: readonly ServicePackageInputDto[],
+  ): Promise<ServicePackage[]> {
+    return this.db.transaction(async (tx) => {
+      const kept = packages.flatMap((item) => (item.id ? [item.id] : []));
+      await tx
+        .delete(servicePackages)
+        .where(
+          kept.length > 0
+            ? and(
+                eq(servicePackages.serviceId, serviceId),
+                notInArray(servicePackages.id, kept),
+              )
+            : eq(servicePackages.serviceId, serviceId),
+        );
+      const rows = packages.map((item, sortOrder) => ({
+        id: item.id,
+        text: { name: item.name, description: item.description ?? null },
+        values: {
+          durationMinutes: item.durationMinutes,
+          priceSatang: item.priceSatang,
+          sortOrder,
+        },
+      }));
+      // The kept packages updated in place, the new ones written in one insert; their
+      // `sortOrder` carries the list's order, so neither has to run one by one.
+      await Promise.all(
+        rows.flatMap(({ id, text, values }) =>
+          id
+            ? [
+                tx
+                  .update(servicePackages)
+                  .set(writesSourceText() ? { ...values, ...text } : values)
+                  .where(
+                    and(
+                      eq(servicePackages.id, id),
+                      eq(servicePackages.serviceId, serviceId),
+                    ),
+                  ),
+                savePackageTranslation(tx, id, text),
+              ]
+            : [],
+        ),
+      );
+      const fresh = rows.flatMap(({ id, text, values }) =>
+        id ? [] : [{ ...values, ...text, serviceId }],
+      );
+      if (fresh.length > 0) {
+        const added = await tx
+          .insert(servicePackages)
+          .values(fresh)
+          .returning({ id: servicePackages.id });
+        await Promise.all(
+          added.map(({ id }, index) =>
+            savePackageTranslation(tx, id, {
+              name: fresh[index].name,
+              description: fresh[index].description,
+            }),
+          ),
+        );
+      }
+      return this.findPackagesFor(serviceId, tx);
+    });
+  }
+
   private ownedWhere(advisorId: string, serviceId: string): SQL {
     return and(
       eq(services.id, serviceId),
@@ -295,6 +559,7 @@ export class AdvisorServicesRepository extends EntityRepository<
         id: services.id,
         advisorId: services.advisorId,
         categoryId: services.categoryId,
+        extraCategoryIds: services.extraCategoryIds,
         name: serviceName(),
         description: serviceDescription(),
         priceSatang: services.priceSatang,
@@ -302,6 +567,7 @@ export class AdvisorServicesRepository extends EntityRepository<
         screeningRequired: services.screeningRequired,
         trialEnabled: services.trialEnabled,
         trialDurationMinutes: services.trialDurationMinutes,
+        relatedServiceIds: services.relatedServiceIds,
         createdAt: services.createdAt,
       })
       .from(services)
@@ -324,7 +590,13 @@ export class AdvisorServicesRepository extends EntityRepository<
       eq(user.status, 'ACTIVE'),
       eq(user.banned, false),
       isVerifiedAdvisor(services.advisorId),
-      query?.categoryId ? eq(services.categoryId, query.categoryId) : undefined,
+      // Its own category, or one it is also found under.
+      query?.categoryId
+        ? or(
+            eq(services.categoryId, query.categoryId),
+            sql`${query.categoryId}::uuid = ANY(${services.extraCategoryIds})`,
+          )
+        : undefined,
       query?.advisorId ? eq(services.advisorId, query.advisorId) : undefined,
       query?.minPriceSatang !== undefined
         ? gte(services.priceSatang, query.minPriceSatang)

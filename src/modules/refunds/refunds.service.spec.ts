@@ -1,6 +1,7 @@
 import { ConflictException, Logger, NotFoundException } from '@nestjs/common';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdminRefundCaseQueryDto } from './dtos/admin-refund-case-query.dto';
 import type { RefundsRepository } from './refunds.repository';
 import { RefundsService } from './refunds.service';
@@ -57,12 +58,13 @@ const evidence: RefundCaseEvidenceRow = {
 
 describe('RefundsService', () => {
   let service: RefundsService;
+  let notifications: { notify: jest.Mock };
   let repository: jest.Mocked<
     Pick<
       RefundsRepository,
       | 'findDisputableInvoice'
       | 'openCaseExists'
-      | 'create'
+      | 'createOpenCase'
       | 'findManyForRequester'
       | 'countForRequester'
       | 'findManyForAdmin'
@@ -79,7 +81,7 @@ describe('RefundsService', () => {
     repository = {
       findDisputableInvoice: jest.fn(),
       openCaseExists: jest.fn(),
-      create: jest.fn(),
+      createOpenCase: jest.fn(),
       findManyForRequester: jest.fn(),
       countForRequester: jest.fn(),
       findManyForAdmin: jest.fn(),
@@ -89,7 +91,11 @@ describe('RefundsService', () => {
       findById: jest.fn(),
       ruleOpenCase: jest.fn(),
     };
-    service = new RefundsService(repository as unknown as RefundsRepository);
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+    service = new RefundsService(
+      repository as unknown as RefundsRepository,
+      notifications as unknown as NotificationsService,
+    );
   });
 
   afterEach(() => {
@@ -102,7 +108,7 @@ describe('RefundsService', () => {
       amountSatang: 150000,
     });
     repository.openCaseExists.mockResolvedValue(false);
-    repository.create.mockResolvedValue(makeRefundCase());
+    repository.createOpenCase.mockResolvedValue(makeRefundCase());
 
     await expect(
       service.open(advisee, {
@@ -115,7 +121,7 @@ describe('RefundsService', () => {
       invoiceId,
       advisee.id,
     );
-    expect(repository.create).toHaveBeenCalledWith({
+    expect(repository.createOpenCase).toHaveBeenCalledWith({
       invoiceId,
       requestedByUserId: advisee.id,
       reason: 'The consultation never happened',
@@ -129,7 +135,7 @@ describe('RefundsService', () => {
       service.open(advisee, { invoiceId, reason: 'Not mine' }),
     ).rejects.toThrow(NotFoundException);
     expect(repository.openCaseExists).not.toHaveBeenCalled();
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createOpenCase).not.toHaveBeenCalled();
   });
 
   it('checks ownership before looking for an existing case, so a stranger learns nothing', async () => {
@@ -152,7 +158,7 @@ describe('RefundsService', () => {
     await expect(
       service.open(advisee, { invoiceId, reason: 'Again' }),
     ).rejects.toThrow(ConflictException);
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createOpenCase).not.toHaveBeenCalled();
   });
 
   it('keeps the reviewing Admin out of the requester own-case view', async () => {
@@ -172,10 +178,14 @@ describe('RefundsService', () => {
     const result = await service.findMine(advisee, page);
 
     expect(result.items[0]).not.toHaveProperty('reviewedByAdminId');
-    expect(repository.findManyForRequester).toHaveBeenCalledWith(advisee.id, {
-      limit: 20,
-      offset: 0,
-    });
+    expect(repository.findManyForRequester).toHaveBeenCalledWith(
+      advisee.id,
+      {
+        limit: 20,
+        offset: 0,
+      },
+      undefined,
+    );
   });
 
   it('pages the Admin queue and counts it under the same status filter', async () => {
@@ -252,6 +262,29 @@ describe('RefundsService', () => {
     );
     const [, values] = repository.ruleOpenCase.mock.calls[0];
     expect(values.resolvedAt).toBeInstanceOf(Date);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerId: advisee.id,
+        type: 'REFUND_DECIDED',
+        title: 'คำขอคืนเงินได้รับอนุมัติ',
+        resourceId: invoiceId,
+      }),
+    );
+  });
+
+  it('keeps an approval when the notification fails', async () => {
+    repository.findById.mockResolvedValue(makeRefundCase());
+    repository.ruleOpenCase.mockResolvedValue(
+      makeRefundCase({ status: 'APPROVED' }),
+    );
+    repository.findOneForAdmin.mockResolvedValue(
+      makeAdminRow({ status: 'APPROVED' }),
+    );
+    notifications.notify.mockRejectedValue(new Error('push down'));
+
+    await expect(service.approve(admin, refundCaseId)).resolves.toEqual(
+      expect.objectContaining({ status: 'APPROVED' }),
+    );
   });
 
   it('refuses to approve a case that was already approved', async () => {
@@ -284,6 +317,7 @@ describe('RefundsService', () => {
       ConflictException,
     );
     expect(repository.findOneForAdmin).not.toHaveBeenCalled();
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('reports a ruling on a case that does not exist as absent', async () => {
@@ -319,5 +353,17 @@ describe('RefundsService', () => {
     expect(values.resolvedAt).toBeInstanceOf(Date);
     // The requester's own words are never overwritten by the Admin's.
     expect(values).not.toHaveProperty('reason');
+    // The Advisee reads the Admin's reason in the notification.
+    expect(notifications.notify).toHaveBeenCalledWith({
+      ownerId: advisee.id,
+      type: 'REFUND_DECIDED',
+      title: 'คำขอคืนเงินถูกปฏิเสธ',
+      content: 'Outside policy',
+      en: {
+        title: 'Your refund request was declined',
+        content: 'Outside policy',
+      },
+      resourceId: invoiceId,
+    });
   });
 });

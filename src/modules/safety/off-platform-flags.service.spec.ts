@@ -1,3 +1,4 @@
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
   BadRequestException,
   ConflictException,
@@ -37,10 +38,15 @@ describe('OffPlatformFlagsService', () => {
   let flags: jest.Mocked<
     Pick<
       OffPlatformFlagsRepository,
-      'findManyForAdmin' | 'countForAdmin' | 'reviewIfPending' | 'findById'
+      | 'findManyForAdmin'
+      | 'countForAdmin'
+      | 'reviewIfPending'
+      | 'findById'
+      | 'findMessageSenderId'
     >
   >;
   let admins: jest.Mocked<Pick<AdminProfilesRepository, 'exists'>>;
+  let notifications: jest.Mocked<Pick<NotificationsService, 'notify'>>;
 
   beforeEach(() => {
     flags = {
@@ -48,11 +54,14 @@ describe('OffPlatformFlagsService', () => {
       countForAdmin: jest.fn(),
       reviewIfPending: jest.fn(),
       findById: jest.fn(),
+      findMessageSenderId: jest.fn().mockResolvedValue('sender-1'),
     };
     admins = { exists: jest.fn() };
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
     service = new OffPlatformFlagsService(
       flags as unknown as OffPlatformFlagsRepository,
       admins as unknown as AdminProfilesRepository,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -105,6 +114,28 @@ describe('OffPlatformFlagsService', () => {
         reviewedByAdminId: admin.id,
       }),
     );
+    expect(notifications.notify).toHaveBeenCalledWith({
+      ownerId: 'sender-1',
+      type: 'POLICY_WARNING',
+      title: 'คำเตือนจากทีมงาน Advisory',
+      content: 'ข้อความของคุณชวนติดต่อกันนอก Advisory จึงได้รับ 3 คะแนนโทษ',
+      en: {
+        title: 'A warning from the Advisory team',
+        content:
+          'Your message asked to continue outside Advisory, so 3 penalty points were added.',
+      },
+    });
+  });
+
+  it('warns no one when a flag is dismissed', async () => {
+    admins.exists.mockResolvedValue(true);
+    flags.reviewIfPending.mockResolvedValue(
+      makeFlag({ status: 'DISMISSED', reviewedByAdminId: admin.id }),
+    );
+
+    await service.resolve(admin, flagId, { outcome: 'DISMISSED' });
+
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('writes no points when a ruling omits them', async () => {

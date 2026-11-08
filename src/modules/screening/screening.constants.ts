@@ -42,6 +42,9 @@ export const SCREENING_NOTIFICATIONS = {
   acceptedContent: (advisorName: string) =>
     `${advisorName} รับคำขอ จองเวลาได้เลย`,
   declinedTitle: 'ที่ปรึกษาคนนี้ยังไม่ว่าง',
+  expiredTitle: 'คำถามคัดกรองมีการเปลี่ยนแปลง',
+  expiredContent: (serviceName: string) =>
+    `${serviceName} · ตอบคำถามใหม่ก่อนจอง`,
   en: {
     requestedTitle: 'New screening request',
     requestedContent: (adviseeName: string, answerCount: number) =>
@@ -50,5 +53,8 @@ export const SCREENING_NOTIFICATIONS = {
     acceptedContent: (advisorName: string) =>
       `${advisorName} accepted your request. You can book a time now.`,
     declinedTitle: 'This advisor isn’t available right now',
+    expiredTitle: 'The screening questions changed',
+    expiredContent: (serviceName: string) =>
+      `${serviceName} · answer the new questions before booking`,
   },
 } as const;

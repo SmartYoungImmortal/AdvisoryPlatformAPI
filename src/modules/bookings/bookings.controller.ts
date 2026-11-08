@@ -12,6 +12,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import {
   ApiCreate,
+  ApiGetMany,
   ApiGetOne,
   ApiGetPaginated,
   ApiUpdate,
@@ -25,6 +26,11 @@ import { BOOKING_MESSAGES } from './bookings.constants';
 import { BookingsService } from './bookings.service';
 import { BookingResponseDto } from './dtos/booking-response.dto';
 import { CreateBookingDto } from './dtos/create-booking.dto';
+import { MeetingResponseDto } from './dtos/meeting-response.dto';
+import {
+  AvailabilitySlotResponseDto,
+  SlotRangeQueryDto,
+} from '@/modules/availability/dtos/availability.dto';
 import { RescheduleBookingDto } from './dtos/reschedule-booking.dto';
 
 @ApiTags('Bookings')
@@ -56,6 +62,16 @@ export class BookingsController {
   ): Promise<BookingResponseDto> {
     return this.bookings.findOne(user, bookingId);
   }
+  @Post(':bookingId/meeting')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage(BOOKING_MESSAGES.meetingOpened)
+  @ApiUpdate(MeetingResponseDto, { name: 'Meeting' })
+  openMeeting(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+  ): Promise<MeetingResponseDto> {
+    return this.bookings.openMeeting(user, bookingId);
+  }
   @Post(':bookingId/cancel')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(BOOKING_MESSAGES.cancelled)
@@ -65,6 +81,15 @@ export class BookingsController {
     @Param('bookingId', ParseUUIDPipe) bookingId: string,
   ): Promise<BookingResponseDto> {
     return this.bookings.cancelAsAdvisee(user, bookingId);
+  }
+  @Get(':bookingId/reschedule-slots')
+  @ApiGetMany(AvailabilitySlotResponseDto, { name: 'Rescheduling slots' })
+  findRescheduleSlots(
+    @CurrentUser() user: SessionUser,
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+    @Query() query: SlotRangeQueryDto,
+  ): Promise<AvailabilitySlotResponseDto[]> {
+    return this.bookings.findRescheduleSlots(user, bookingId, query);
   }
   @Post(':bookingId/reschedule')
   @HttpCode(HttpStatus.OK)

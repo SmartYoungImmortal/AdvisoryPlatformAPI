@@ -67,7 +67,8 @@ paste it into a file that could be committed. For the `qa` environment:
 
 ```sh
 for name in database-url better-auth-secret omise-public-key omise-secret-key \
-            seaweedfs-access-key seaweedfs-secret-key smtp-user smtp-password; do
+            seaweedfs-access-key seaweedfs-secret-key smtp-user smtp-password \
+            google-client-id google-client-secret; do
   printf 'qa-%s: ' "$name"; read -rs value; echo
   printf '%s' "$value" | gcloud secrets create "qa-$name" --data-file=- --project "$PROJECT_ID"
 done
@@ -75,6 +76,11 @@ done
 
 `database-url` is Supabase's **session** pooler string (port 5432), for the same reasons
 `.env.example` gives. Add a new version later with `gcloud secrets versions add`.
+
+`google-client-id` and `google-client-secret` come from a **Web application** OAuth client
+(Google Auth Platform → Clients) whose redirect URI is `<BETTER_AUTH_URL>/api/auth/callback/google`
+— for qa, `https://advisory-platform-qa.nsza.workers.dev/api/auth/callback/google`, plus
+`http://localhost:3000/api/auth/callback/google` for a local `next dev` (see below).
 Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` and `SMTP_FROM` as variables in each GitHub
 Environment. Production also requires the `smtp-user` and `smtp-password` secrets.
 
@@ -95,18 +101,28 @@ Variables on each Environment (`qa`, `uat`, `production`):
 | `GCP_RUNTIME_SERVICE_ACCOUNT` | `advisory-api-runtime@<project>.iam.gserviceaccount.com` |
 | `CLOUD_RUN_SERVICE` | `advisory-api-qa` |
 | `SECRET_PREFIX` | `qa` |
-| `BETTER_AUTH_URL` | the service URL, known after the first deploy |
-| `TRUSTED_ORIGINS` | `https://advisory-platform-qa.nsza.workers.dev` |
-| `SEAWEEDFS_S3_ENDPOINT` / `_PORT` / `_USE_SSL` / `_BUCKET` / `_REGION` | the SeaweedFS gateway |
+| `BETTER_AUTH_URL` | the frontend's origin, `https://advisory-platform-qa.nsza.workers.dev` (see below) |
+| `FRONTEND_URL` | the same origin; checkout results return here |
+| `BACKEND_PUBLIC_URL` | the same origin; 3-D Secure returns to `/api/v1/payment/callback` through it |
+| `TRUSTED_ORIGINS` | `https://advisory-platform-qa.nsza.workers.dev,http://localhost:3000` |
+| `SMTP_HOST` / `_PORT` / `_SECURE` / `_FROM` | `smtp.gmail.com`, `465`, `true`, `Advisory Platform <advisoryplatform.noreply@gmail.com>` |
+| `SEAWEEDFS_S3_ENDPOINT` / `_PORT` / `_USE_SSL` / `_BUCKET` / `_REGION` | an S3-compatible store; for qa, Cloudflare R2: `<account id>.r2.cloudflarestorage.com`, `443`, `true`, `advisory-platform-qa-uploads`, `auto` |
 | `CURRENCY_CODE` (optional) | `thb` |
 | `CLOUD_RUN_MAX_INSTANCES` (optional) | `2` |
 
-## Before the frontend signs in against it
+## How the frontend reaches it
 
 The frontend is served from `*.workers.dev` and the API from `*.run.app` — two different
-sites. better-auth's session cookie is `SameSite=Lax` by default, so the browser will not
-attach it to the frontend's `fetch` calls: sign-in appears to work and every request after it
-is anonymous. `SameSite=None` would fix Chrome but not Safari, which blocks third-party cookies
-outright — and the PWA is mostly used on phones. Put both behind one registrable domain
-(`app.<domain>` and `api.<domain>` through Cloud Run domain mapping), or proxy `/api/*` from
-the frontend's own origin, before wiring the screens to this API.
+sites. better-auth's session cookie is `SameSite=Lax`, so the browser would not attach it to
+the frontend's `fetch` calls, and `SameSite=None` is no answer: Safari blocks third-party
+cookies outright, and the PWA is mostly used on phones.
+
+So the browser never talks to `*.run.app`. The frontend's Worker forwards `/api/*` and
+`/socket.io/*` to this service, every cookie is the frontend's own, and the API's public
+URLs (`BETTER_AUTH_URL`, `FRONTEND_URL`, `BACKEND_PUBLIC_URL`) are the frontend's origin.
+`next dev` forwards the same paths, which is why `http://localhost:3000` is a trusted
+origin of the qa service. It names itself in `x-forwarded-host`, and for a trusted loopback
+origin better-auth builds its links from that host instead of `BETTER_AUTH_URL`
+(`authBaseURL` in `src/modules/auth/auth.config.ts`): Google sends a sign-in started on
+localhost back to localhost, where its state cookie is. With a domain of our own, `app.<domain>` and `api.<domain>` would
+do the same job without the hop.

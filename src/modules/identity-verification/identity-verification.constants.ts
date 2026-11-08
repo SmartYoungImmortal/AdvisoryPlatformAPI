@@ -64,6 +64,25 @@ export function isTerminalIdentityStatus(
   ).includes(status);
 }
 
+/**
+ * The applicant's notification when an admin decides their identity check. A rejection's message
+ * is the admin's own reason, so it reads the same in both languages.
+ */
+export const VERIFICATION_DECIDED_NOTIFICATION = {
+  approved: {
+    title: 'ยืนยันตัวตนสำเร็จ',
+    content: 'โปรไฟล์ที่ปรึกษาของคุณเผยแพร่แล้ว',
+    en: {
+      title: 'Identity verified',
+      content: 'Your advisor profile is now published',
+    },
+  },
+  rejected: {
+    title: 'ยืนยันตัวตนไม่ผ่าน',
+    en: { title: 'Identity check unsuccessful' },
+  },
+} as const;
+
 export const IDENTITY_VERIFICATION_MESSAGES = {
   notFound: 'Identity verification not found',
   approved: 'Identity verification approved',

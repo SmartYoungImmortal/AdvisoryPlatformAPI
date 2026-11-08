@@ -146,7 +146,12 @@ export class UsersService {
   ): Promise<AccountDeletionBlockersResponseDto> {
     const upcomingAppointments =
       await this.usersRepository.findDeletionBlockers(userId);
-    return new AccountDeletionBlockersResponseDto(upcomingAppointments);
+    const hasUnsettledEarnings =
+      await this.usersRepository.hasUnsettledEarnings(userId);
+    return new AccountDeletionBlockersResponseDto(
+      upcomingAppointments,
+      hasUnsettledEarnings,
+    );
   }
 
   async deleteMe(userId: string): Promise<UserOwnProfileResponseDto> {
