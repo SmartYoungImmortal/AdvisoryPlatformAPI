@@ -53,21 +53,35 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจเรซูเม่',
             description: 'ชี้จุดที่ทำให้เรซูเม่ตกรอบ พร้อมรายการสิ่งที่ต้องแก้',
-            en: { name: 'Résumé Check', description: 'We find what is getting your résumé rejected and give you a list of fixes.' },
+            en: {
+              name: 'Résumé Check',
+              description:
+                'We find what is getting your résumé rejected and give you a list of fixes.',
+            },
             durationMinutes: 30,
             priceBaht: 690,
           },
           {
             name: 'ปรับเรซูเม่ทั้งฉบับ',
-            description: 'แก้ไปด้วยกันระหว่างนัดทีละส่วน ให้ตรงกับตำแหน่งที่จะสมัคร',
-            en: { name: 'Full Résumé Rewrite', description: "We rework it together, section by section, for the role you're applying to." },
+            description:
+              'แก้ไปด้วยกันระหว่างนัดทีละส่วน ให้ตรงกับตำแหน่งที่จะสมัคร',
+            en: {
+              name: 'Full Résumé Rewrite',
+              description:
+                "We rework it together, section by section, for the role you're applying to.",
+            },
             durationMinutes: 60,
             priceBaht: 1290,
           },
           {
             name: 'เรซูเม่สองภาษาพร้อม Cover Letter',
-            description: 'ทำทั้งฉบับภาษาไทยและภาษาอังกฤษ และร่างจดหมายสมัครงานหนึ่งฉบับ',
-            en: { name: 'Bilingual Résumé and Cover Letter', description: 'Thai and English versions of your résumé, plus one draft cover letter.' },
+            description:
+              'ทำทั้งฉบับภาษาไทยและภาษาอังกฤษ และร่างจดหมายสมัครงานหนึ่งฉบับ',
+            en: {
+              name: 'Bilingual Résumé and Cover Letter',
+              description:
+                'Thai and English versions of your résumé, plus one draft cover letter.',
+            },
             durationMinutes: 90,
             priceBaht: 1990,
           },
@@ -91,14 +105,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'รีวิวโปรไฟล์',
             description: 'ดูโปรไฟล์ปัจจุบันแล้วบอกว่าควรแก้ส่วนไหนก่อน',
-            en: { name: 'Profile Review', description: 'We go over your current profile and tell you what to fix first.' },
+            en: {
+              name: 'Profile Review',
+              description:
+                'We go over your current profile and tell you what to fix first.',
+            },
             durationMinutes: 30,
             priceBaht: 590,
           },
           {
             name: 'เขียนโปรไฟล์ใหม่',
-            description: 'เขียนหัวข้อและส่วน About ใหม่ด้วยกัน พร้อมคำค้นที่ควรใส่',
-            en: { name: 'Profile Rewrite', description: 'We rewrite your headline and About section together, with the search terms you should include.' },
+            description:
+              'เขียนหัวข้อและส่วน About ใหม่ด้วยกัน พร้อมคำค้นที่ควรใส่',
+            en: {
+              name: 'Profile Rewrite',
+              description:
+                'We rewrite your headline and About section together, with the search terms you should include.',
+            },
             durationMinutes: 60,
             priceBaht: 1190,
           },
@@ -121,14 +144,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เตรียมตัวเลข',
             description: 'ประเมินข้อเสนอที่ได้และกำหนดตัวเลขที่ควรขอ',
-            en: { name: 'Set Your Number', description: 'We assess the offer and settle the figure you should ask for.' },
+            en: {
+              name: 'Set Your Number',
+              description:
+                'We assess the offer and settle the figure you should ask for.',
+            },
             durationMinutes: 30,
             priceBaht: 790,
           },
           {
             name: 'ซ้อมต่อรองเต็มรอบ',
             description: 'เตรียมตัวเลขแล้วซ้อมคุยจริง โดยโค้ชรับบทเป็นฝ่าย HR',
-            en: { name: 'Full Negotiation Rehearsal', description: 'We set your number, then rehearse the conversation with the coach playing HR.' },
+            en: {
+              name: 'Full Negotiation Rehearsal',
+              description:
+                'We set your number, then rehearse the conversation with the coach playing HR.',
+            },
             durationMinutes: 60,
             priceBaht: 1490,
           },
@@ -152,14 +183,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ซ้อมหนึ่งรอบ',
             description: 'สัมภาษณ์จำลองหนึ่งรอบพร้อมฟีดแบ็กท้ายนัด',
-            en: { name: 'One Mock Round', description: 'One mock interview with feedback at the end.' },
+            en: {
+              name: 'One Mock Round',
+              description: 'One mock interview with feedback at the end.',
+            },
             durationMinutes: 45,
             priceBaht: 990,
           },
           {
             name: 'ซ้อมสองรอบพร้อมแก้คำตอบ',
             description: 'ซ้อม แก้ แล้วซ้อมซ้ำ จนคำตอบหลักแน่นขึ้น',
-            en: { name: 'Two Rounds With Rework', description: 'Practise, rework, and practise again until your key answers hold up.' },
+            en: {
+              name: 'Two Rounds With Rework',
+              description:
+                'Practise, rework, and practise again until your key answers hold up.',
+            },
             durationMinutes: 90,
             priceBaht: 1890,
           },
@@ -181,15 +219,25 @@ export const PART_C: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'วางแผนหางาน',
-            description: 'ได้รายชื่อบริษัทเป้าหมายและตารางรายสัปดาห์สำหรับ 90 วัน',
-            en: { name: 'Job Search Plan', description: 'A list of target companies and a weekly schedule for 90 days.' },
+            description:
+              'ได้รายชื่อบริษัทเป้าหมายและตารางรายสัปดาห์สำหรับ 90 วัน',
+            en: {
+              name: 'Job Search Plan',
+              description:
+                'A list of target companies and a weekly schedule for 90 days.',
+            },
             durationMinutes: 60,
             priceBaht: 1190,
           },
           {
             name: 'วางแผนพร้อมปรับเรซูเม่',
-            description: 'วางแผนเหมือนกัน และปรับเรซูเม่ให้ตรงกับเป้าหมายใหม่ในนัดเดียว',
-            en: { name: 'Plan Plus Résumé Update', description: 'The same plan, plus a résumé update for your new targets in the same session.' },
+            description:
+              'วางแผนเหมือนกัน และปรับเรซูเม่ให้ตรงกับเป้าหมายใหม่ในนัดเดียว',
+            en: {
+              name: 'Plan Plus Résumé Update',
+              description:
+                'The same plan, plus a résumé update for your new targets in the same session.',
+            },
             durationMinutes: 90,
             priceBaht: 1790,
           },
@@ -227,14 +275,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยสำรวจทางเลือก',
             description: 'คุยเพื่อแยกให้ชัดว่าอยากออกจากอะไร และอยากไปหาอะไร',
-            en: { name: 'Explore Your Options', description: "A conversation to separate what you want to leave behind from what you're looking for." },
+            en: {
+              name: 'Explore Your Options',
+              description:
+                "A conversation to separate what you want to leave behind from what you're looking for.",
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'วางแผนเปลี่ยนสายงาน',
             description: 'เทียบเส้นทางที่เป็นไปได้ พร้อมแผนหกเดือนแรก',
-            en: { name: 'Career Change Plan', description: 'We compare the realistic routes and draw up the first six months.' },
+            en: {
+              name: 'Career Change Plan',
+              description:
+                'We compare the realistic routes and draw up the first six months.',
+            },
             durationMinutes: 90,
             priceBaht: 2200,
           },
@@ -257,21 +313,33 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ปรึกษาเรื่องเร่งด่วน',
             description: 'คุยเฉพาะสถานการณ์ที่กำลังเจออยู่ตอนนี้',
-            en: { name: 'Urgent Question', description: "We focus on the one situation you're facing right now." },
+            en: {
+              name: 'Urgent Question',
+              description:
+                "We focus on the one situation you're facing right now.",
+            },
             durationMinutes: 30,
             priceBaht: 800,
           },
           {
             name: 'วางแนวทางการเป็นหัวหน้า',
             description: 'วางหลักการทำงานกับทีมและรูปแบบการคุยตัวต่อตัว',
-            en: { name: 'Leadership Groundwork', description: 'We set how you will work with the team and how your one-to-ones will run.' },
+            en: {
+              name: 'Leadership Groundwork',
+              description:
+                'We set how you will work with the team and how your one-to-ones will run.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'แผน 90 วันแรก',
             description: 'วางสิ่งที่ต้องทำในสามเดือนแรกของตำแหน่งใหม่',
-            en: { name: 'First 90 Days Plan', description: 'We plan what to do in your first three months in the role.' },
+            en: {
+              name: 'First 90 Days Plan',
+              description:
+                'We plan what to do in your first three months in the role.',
+            },
             durationMinutes: 90,
             priceBaht: 2100,
           },
@@ -294,14 +362,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยวางทิศทาง',
             description: 'ดูว่างานแบบไหนเหมาะกับช่วงชีวิตตอนนี้',
-            en: { name: 'Find Your Direction', description: 'We work out what kind of job fits this stage of your life.' },
+            en: {
+              name: 'Find Your Direction',
+              description:
+                'We work out what kind of job fits this stage of your life.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'วางแผนกลับเข้างาน',
             description: 'วางแผนพร้อมเรียบเรียงวิธีเล่าช่วงที่หยุดงานไป',
-            en: { name: 'Return-to-Work Plan', description: 'A full plan, including how to talk about your time away.' },
+            en: {
+              name: 'Return-to-Work Plan',
+              description:
+                'A full plan, including how to talk about your time away.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -324,14 +400,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบเร็ว',
             description: 'เทียบสองข้อเสนอจากเกณฑ์หลักที่สำคัญที่สุด',
-            en: { name: 'Quick Comparison', description: 'We compare both offers on the criteria that matter most.' },
+            en: {
+              name: 'Quick Comparison',
+              description:
+                'We compare both offers on the criteria that matter most.',
+            },
             durationMinutes: 30,
             priceBaht: 700,
           },
           {
             name: 'ตัดสินใจอย่างละเอียด',
             description: 'เทียบรอบด้าน พร้อมคำถามที่ควรถามบริษัทก่อนตอบรับ',
-            en: { name: 'Full Decision Session', description: 'A thorough comparison, plus the questions to ask each company before you say yes.' },
+            en: {
+              name: 'Full Decision Session',
+              description:
+                'A thorough comparison, plus the questions to ask each company before you say yes.',
+            },
             durationMinutes: 60,
             priceBaht: 1300,
           },
@@ -369,14 +453,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยเริ่มต้น',
             description: 'ดูภาพรวมสายงานและที่ที่ควรเริ่มสมัคร',
-            en: { name: 'Getting Started', description: 'An overview of the fields open to you and where to start applying.' },
+            en: {
+              name: 'Getting Started',
+              description:
+                'An overview of the fields open to you and where to start applying.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'วางแผนหางานพร้อมดูเรซูเม่',
             description: 'วางแผนการสมัครและปรับเรซูเม่ฉบับแรกไปด้วยกัน',
-            en: { name: 'Plan and Résumé', description: 'We plan your applications and shape your first résumé together.' },
+            en: {
+              name: 'Plan and Résumé',
+              description:
+                'We plan your applications and shape your first résumé together.',
+            },
             durationMinutes: 60,
             priceBaht: 890,
           },
@@ -399,14 +491,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยกับน้อง',
             description: 'คุยกับนักเรียนเพื่อหาคณะที่น่าสนใจ',
-            en: { name: 'Student Session', description: 'A conversation with the student to find faculties worth considering.' },
+            en: {
+              name: 'Student Session',
+              description:
+                'A conversation with the student to find faculties worth considering.',
+            },
             durationMinutes: 45,
             priceBaht: 650,
           },
           {
             name: 'คุยพร้อมผู้ปกครอง',
             description: 'คุยทั้งน้องและผู้ปกครอง และวางแผนการยื่นทุกรอบ',
-            en: { name: 'Student and Parents', description: 'Student and parents together, with a plan for every admission round.' },
+            en: {
+              name: 'Student and Parents',
+              description:
+                'Student and parents together, with a plan for every admission round.',
+            },
             durationMinutes: 90,
             priceBaht: 1200,
           },
@@ -429,14 +529,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจพอร์ต',
             description: 'ชี้จุดที่ควรแก้ เรียงตามความสำคัญ',
-            en: { name: 'Portfolio Check', description: 'What to fix, in order of importance.' },
+            en: {
+              name: 'Portfolio Check',
+              description: 'What to fix, in order of importance.',
+            },
             durationMinutes: 30,
             priceBaht: 550,
           },
           {
             name: 'ปรับพอร์ตทั้งเล่ม',
             description: 'จัดลำดับและเรียบเรียงพอร์ตใหม่ทั้งเล่มไปด้วยกัน',
-            en: { name: 'Full Portfolio Rework', description: 'We reorder and rework the whole portfolio together.' },
+            en: {
+              name: 'Full Portfolio Rework',
+              description:
+                'We reorder and rework the whole portfolio together.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -474,14 +581,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินพื้นฐาน',
             description: 'ดูว่าประสบการณ์เดิมเอามาใช้กับงานข้อมูลได้แค่ไหน',
-            en: { name: 'Background Check-In', description: 'How much of your current experience carries over into data work.' },
+            en: {
+              name: 'Background Check-In',
+              description:
+                'How much of your current experience carries over into data work.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'แผนเปลี่ยนสายหกเดือน',
-            description: 'แผนเรียนรายเดือน โปรเจกต์ที่ควรทำ และตำแหน่งที่ควรสมัคร',
-            en: { name: 'Six-Month Switch Plan', description: 'A month-by-month learning plan, the projects to build, and the roles to apply for.' },
+            description:
+              'แผนเรียนรายเดือน โปรเจกต์ที่ควรทำ และตำแหน่งที่ควรสมัคร',
+            en: {
+              name: 'Six-Month Switch Plan',
+              description:
+                'A month-by-month learning plan, the projects to build, and the roles to apply for.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -504,14 +620,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'บทเรียนแรก',
             description: 'พื้นฐานการดึงและกรองข้อมูลจากตารางเดียว',
-            en: { name: 'First Lesson', description: 'The basics of pulling and filtering data from a single table.' },
+            en: {
+              name: 'First Lesson',
+              description:
+                'The basics of pulling and filtering data from a single table.',
+            },
             durationMinutes: 60,
             priceBaht: 1000,
           },
           {
             name: 'คอร์สเข้มสองชั่วโมง',
-            description: 'ครบตั้งแต่พื้นฐานจนถึงการรวมหลายตาราง พร้อมแบบฝึกหัดกลับไปทำต่อ',
-            en: { name: 'Two-Hour Intensive', description: 'From the basics to joining tables, with exercises to take away.' },
+            description:
+              'ครบตั้งแต่พื้นฐานจนถึงการรวมหลายตาราง พร้อมแบบฝึกหัดกลับไปทำต่อ',
+            en: {
+              name: 'Two-Hour Intensive',
+              description:
+                'From the basics to joining tables, with exercises to take away.',
+            },
             durationMinutes: 120,
             priceBaht: 1800,
           },
@@ -534,14 +659,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางโครง Dashboard',
             description: 'เลือกตัวชี้วัดและร่างหน้าตา Dashboard ให้พร้อมลงมือ',
-            en: { name: 'Dashboard Outline', description: 'Choose the metrics and sketch the layout, ready to build.' },
+            en: {
+              name: 'Dashboard Outline',
+              description:
+                'Choose the metrics and sketch the layout, ready to build.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'ทำให้เสร็จในนัด',
-            description: 'ต่อข้อมูลจริงและสร้าง Dashboard ให้ใช้ได้ภายในนัดเดียว',
-            en: { name: 'Built in One Session', description: 'We connect your real data and finish a working dashboard in one sitting.' },
+            description:
+              'ต่อข้อมูลจริงและสร้าง Dashboard ให้ใช้ได้ภายในนัดเดียว',
+            en: {
+              name: 'Built in One Session',
+              description:
+                'We connect your real data and finish a working dashboard in one sitting.',
+            },
             durationMinutes: 120,
             priceBaht: 2200,
           },
@@ -565,14 +699,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'รีวิวพอร์ต',
             description: 'ความเห็นทีละโปรเจกต์พร้อมสิ่งที่ควรแก้',
-            en: { name: 'Portfolio Review', description: 'Project-by-project comments and what to change.' },
+            en: {
+              name: 'Portfolio Review',
+              description: 'Project-by-project comments and what to change.',
+            },
             durationMinutes: 45,
             priceBaht: 850,
           },
           {
             name: 'รีวิวพร้อมซ้อมเล่าโปรเจกต์',
-            description: 'รีวิวพอร์ตแล้วซ้อมเล่าโปรเจกต์เหมือนอยู่ในห้องสัมภาษณ์',
-            en: { name: 'Review and Presentation Practice', description: 'A review, then practice presenting your projects as you would in an interview.' },
+            description:
+              'รีวิวพอร์ตแล้วซ้อมเล่าโปรเจกต์เหมือนอยู่ในห้องสัมภาษณ์',
+            en: {
+              name: 'Review and Presentation Practice',
+              description:
+                'A review, then practice presenting your projects as you would in an interview.',
+            },
             durationMinutes: 90,
             priceBaht: 1600,
           },
@@ -612,21 +754,33 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยครั้งแรก',
             description: 'เล่าสิ่งที่เกิดขึ้นและดูว่าความเหนื่อยมาจากไหน',
-            en: { name: 'First Conversation', description: 'Talk through what has been happening and where the exhaustion comes from.' },
+            en: {
+              name: 'First Conversation',
+              description:
+                'Talk through what has been happening and where the exhaustion comes from.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'คุยเต็มชั่วโมง',
             description: 'คุยลึกขึ้นพร้อมวางวิธีดูแลตัวเองที่ทำได้จริง',
-            en: { name: 'Full Session', description: 'A deeper conversation, with self-care steps you can actually keep.' },
+            en: {
+              name: 'Full Session',
+              description:
+                'A deeper conversation, with self-care steps you can actually keep.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
           {
             name: 'คุยแบบยาว',
             description: 'เวลาที่มากพอสำหรับคนที่มีหลายเรื่องทับซ้อนกันอยู่',
-            en: { name: 'Extended Session', description: 'A longer session for when several things are tangled together.' },
+            en: {
+              name: 'Extended Session',
+              description:
+                'A longer session for when several things are tangled together.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -650,14 +804,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยให้โล่ง',
             description: 'ระบายและจัดลำดับสิ่งที่กังวลอยู่',
-            en: { name: 'Clear Your Head', description: 'Talk it out and put your worries in order.' },
+            en: {
+              name: 'Clear Your Head',
+              description: 'Talk it out and put your worries in order.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'เตรียมรับมือสองสัปดาห์แรก',
             description: 'วางวิธีรับมือกับสถานการณ์ที่กลัวที่สุดทีละเรื่อง',
-            en: { name: 'Prepare for the First Two Weeks', description: 'Plan how to handle the situations you dread most, one at a time.' },
+            en: {
+              name: 'Prepare for the First Two Weeks',
+              description:
+                'Plan how to handle the situations you dread most, one at a time.',
+            },
             durationMinutes: 75,
             priceBaht: 1300,
           },
@@ -681,14 +842,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยหนึ่งชั่วโมง',
             description: 'เล่าเรื่องราวและความรู้สึกในจังหวะของคุณเอง',
-            en: { name: 'One-Hour Session', description: 'Share your story and feelings at your own pace.' },
+            en: {
+              name: 'One-Hour Session',
+              description: 'Share your story and feelings at your own pace.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
           {
             name: 'คุยแบบไม่เร่งรีบ',
             description: 'เวลาที่มากพอสำหรับวันที่มีเรื่องอยากพูดเยอะ',
-            en: { name: 'Unhurried Session', description: 'Enough time for the days when there is a lot to say.' },
+            en: {
+              name: 'Unhurried Session',
+              description:
+                'Enough time for the days when there is a lot to say.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -712,14 +880,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ทำความรู้จักความคิดตัวเอง',
             description: 'ฝึกจับรูปแบบความคิดที่เกิดซ้ำบ่อย',
-            en: { name: 'Know Your Thought Patterns', description: 'Practise spotting the thoughts that keep coming back.' },
+            en: {
+              name: 'Know Your Thought Patterns',
+              description:
+                'Practise spotting the thoughts that keep coming back.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
           {
             name: 'ฝึกเต็มรูปแบบ',
-            description: 'ฝึกปรับมุมมองจากเหตุการณ์จริงของคุณ พร้อมแบบฝึกกลับไปทำที่บ้าน',
-            en: { name: 'Full Practice Session', description: 'Work through real situations from your life, with exercises to take home.' },
+            description:
+              'ฝึกปรับมุมมองจากเหตุการณ์จริงของคุณ พร้อมแบบฝึกกลับไปทำที่บ้าน',
+            en: {
+              name: 'Full Practice Session',
+              description:
+                'Work through real situations from your life, with exercises to take home.',
+            },
             durationMinutes: 90,
             priceBaht: 1550,
           },
@@ -757,14 +934,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยระบาย',
             description: 'พื้นที่ส่วนตัวสำหรับเรื่องที่พูดในที่ทำงานไม่ได้',
-            en: { name: 'Off the Record', description: "A private space for the things you can't say at work." },
+            en: {
+              name: 'Off the Record',
+              description:
+                "A private space for the things you can't say at work.",
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'คุยพร้อมวางขอบเขต',
             description: 'คุยลึกขึ้นและวางขอบเขตระหว่างงานกับชีวิตให้ชัด',
-            en: { name: 'Set Your Boundaries', description: 'A deeper conversation, ending with clearer limits between work and life.' },
+            en: {
+              name: 'Set Your Boundaries',
+              description:
+                'A deeper conversation, ending with clearer limits between work and life.',
+            },
             durationMinutes: 75,
             priceBaht: 1400,
           },
@@ -788,14 +973,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ทำความเข้าใจอารมณ์',
             description: 'หาตัวกระตุ้นและสัญญาณเตือนของตัวเอง',
-            en: { name: 'Understand Your Anger', description: 'Identify your triggers and early warning signs.' },
+            en: {
+              name: 'Understand Your Anger',
+              description: 'Identify your triggers and early warning signs.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
           {
             name: 'ฝึกสื่อสารแบบใหม่',
             description: 'ฝึกพูดในสถานการณ์จริงที่มักทะเลาะกัน',
-            en: { name: 'Practise a New Way to Talk', description: 'Rehearse the real situations where arguments usually start.' },
+            en: {
+              name: 'Practise a New Way to Talk',
+              description:
+                'Rehearse the real situations where arguments usually start.',
+            },
             durationMinutes: 90,
             priceBaht: 1600,
           },
@@ -819,14 +1011,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุณพ่อคุณแม่มาคุย',
             description: 'คุยกับผู้ปกครองเพื่อมองสถานการณ์ให้ครบ',
-            en: { name: 'Parents Only', description: 'A session with parents to see the whole picture.' },
+            en: {
+              name: 'Parents Only',
+              description: 'A session with parents to see the whole picture.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
           {
             name: 'คุยทั้งครอบครัว',
             description: 'คุยร่วมกับลูกเพื่อหาข้อตกลงที่ทุกคนรับได้',
-            en: { name: 'Whole Family', description: 'A joint session with your teenager to reach an agreement everyone can live with.' },
+            en: {
+              name: 'Whole Family',
+              description:
+                'A joint session with your teenager to reach an agreement everyone can live with.',
+            },
             durationMinutes: 90,
             priceBaht: 1600,
           },
@@ -849,14 +1048,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ฝึกเทคนิคพื้นฐาน',
             description: 'ลองเทคนิคผ่อนคลายสองถึงสามแบบไปด้วยกัน',
-            en: { name: 'Core Techniques', description: 'Try two or three relaxation techniques together.' },
+            en: {
+              name: 'Core Techniques',
+              description: 'Try two or three relaxation techniques together.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'ออกแบบกิจวัตรก่อนนอน',
             description: 'ฝึกเทคนิคและวางกิจวัตรช่วงค่ำที่เหมาะกับชีวิตคุณ',
-            en: { name: 'Design Your Evening Routine', description: 'Practise the techniques and plan an evening routine that fits your life.' },
+            en: {
+              name: 'Design Your Evening Routine',
+              description:
+                'Practise the techniques and plan an evening routine that fits your life.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -895,14 +1101,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินความเป็นไปได้',
             description: 'ดูว่าคุณเข้าเส้นทางวีซ่าแบบไหนและต้องเตรียมอะไรเพิ่ม',
-            en: { name: 'Feasibility Check', description: 'Which visa route you fit and what you still need.' },
+            en: {
+              name: 'Feasibility Check',
+              description: 'Which visa route you fit and what you still need.',
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'วางแผนย้ายประเทศ',
-            description: 'ลำดับขั้นตอนตั้งแต่เทียบวุฒิจนถึงวันเดินทาง พร้อมงบประมาณ',
-            en: { name: 'Relocation Plan', description: 'Every step from degree recognition to departure day, with a budget.' },
+            description:
+              'ลำดับขั้นตอนตั้งแต่เทียบวุฒิจนถึงวันเดินทาง พร้อมงบประมาณ',
+            en: {
+              name: 'Relocation Plan',
+              description:
+                'Every step from degree recognition to departure day, with a budget.',
+            },
             durationMinutes: 90,
             priceBaht: 2200,
           },
@@ -926,14 +1140,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจ CV',
             description: 'ชี้จุดที่ต้องปรับให้เข้ากับการสมัครงานในยุโรป',
-            en: { name: 'CV Check', description: 'What to change for European applications.' },
+            en: {
+              name: 'CV Check',
+              description: 'What to change for European applications.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'ปรับ CV พร้อมจดหมายสมัครงาน',
             description: 'ปรับ CV ทั้งฉบับและร่างจดหมายสมัครงานไปด้วยกัน',
-            en: { name: 'CV and Cover Letter', description: 'A full CV rework and a cover letter drafted together.' },
+            en: {
+              name: 'CV and Cover Letter',
+              description:
+                'A full CV rework and a cover letter drafted together.',
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
@@ -956,14 +1177,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยประเด็นหลัก',
             description: 'ไล่เรื่องที่ต้องตัดสินใจก่อนย้ายทั้งครอบครัว',
-            en: { name: 'Key Decisions', description: 'The decisions to make before the whole family moves.' },
+            en: {
+              name: 'Key Decisions',
+              description:
+                'The decisions to make before the whole family moves.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'วางแผนย้ายทั้งครอบครัว',
             description: 'วางไทม์ไลน์ งบประมาณ และรายการเอกสารของทุกคนในบ้าน',
-            en: { name: 'Family Relocation Plan', description: 'Timeline, budget and a document list for everyone in the household.' },
+            en: {
+              name: 'Family Relocation Plan',
+              description:
+                'Timeline, budget and a document list for everyone in the household.',
+            },
             durationMinutes: 120,
             priceBaht: 2600,
           },
@@ -987,14 +1216,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางเส้นทางเรียน',
             description: 'ดูระดับที่ต้องใช้และเวลาที่ต้องเผื่อไว้',
-            en: { name: 'Learning Route', description: 'The level you need and how much time to allow.' },
+            en: {
+              name: 'Learning Route',
+              description: 'The level you need and how much time to allow.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'วางแผนเรียนและสอบครบ',
             description: 'เลือกสถาบัน สนามสอบ และทำตารางเรียนรายสัปดาห์',
-            en: { name: 'Study and Exam Plan', description: 'Pick a school and exam centre, and build a weekly study schedule.' },
+            en: {
+              name: 'Study and Exam Plan',
+              description:
+                'Pick a school and exam centre, and build a weekly study schedule.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -1018,14 +1254,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กคุณสมบัติ',
             description: 'ดูว่าคุณพร้อมยื่นรอบถัดไปหรือยัง',
-            en: { name: 'Eligibility Check', description: "Whether you're ready for the next application window." },
+            en: {
+              name: 'Eligibility Check',
+              description:
+                "Whether you're ready for the next application window.",
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'วางแผนทั้งปี',
             description: 'วางแผนตั้งแต่ยื่นวีซ่าจนถึงเมืองและงานที่จะไปเริ่ม',
-            en: { name: 'Whole-Year Plan', description: 'From the visa application to the city and the job you start with.' },
+            en: {
+              name: 'Whole-Year Plan',
+              description:
+                'From the visa application to the city and the job you start with.',
+            },
             durationMinutes: 60,
             priceBaht: 990,
           },
@@ -1048,14 +1292,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบโรงเรียน',
             description: 'เทียบโรงเรียนสามถึงห้าแห่งที่เข้าเงื่อนไขของคุณ',
-            en: { name: 'School Comparison', description: 'Three to five schools that match your criteria, side by side.' },
+            en: {
+              name: 'School Comparison',
+              description:
+                'Three to five schools that match your criteria, side by side.',
+            },
             durationMinutes: 45,
             priceBaht: 700,
           },
           {
             name: 'เลือกโรงเรียนพร้อมวางงบ',
-            description: 'เลือกโรงเรียนและวางงบค่าเรียนกับค่าครองชีพตลอดหลักสูตร',
-            en: { name: 'Choose and Budget', description: 'Choose a school and budget fees and living costs for the whole course.' },
+            description:
+              'เลือกโรงเรียนและวางงบค่าเรียนกับค่าครองชีพตลอดหลักสูตร',
+            en: {
+              name: 'Choose and Budget',
+              description:
+                'Choose a school and budget fees and living costs for the whole course.',
+            },
             durationMinutes: 90,
             priceBaht: 1300,
           },
@@ -1079,14 +1332,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กเอกสาร',
             description: 'ไล่รายการเอกสารและหลักฐานการเงินที่ต้องเตรียม',
-            en: { name: 'Document Check', description: 'The documents and financial evidence you need.' },
+            en: {
+              name: 'Document Check',
+              description: 'The documents and financial evidence you need.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'ตรวจเอกสารพร้อมคำชี้แจง',
-            description: 'ตรวจชุดเอกสารและแก้ร่างคำชี้แจง Genuine Student ไปด้วยกัน',
-            en: { name: 'Documents and Statement Review', description: 'Review your documents and edit the Genuine Student statement together.' },
+            description:
+              'ตรวจชุดเอกสารและแก้ร่างคำชี้แจง Genuine Student ไปด้วยกัน',
+            en: {
+              name: 'Documents and Statement Review',
+              description:
+                'Review your documents and edit the Genuine Student statement together.',
+            },
             durationMinutes: 90,
             priceBaht: 1600,
           },
@@ -1109,14 +1370,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางงบสามเดือน',
             description: 'คำนวณเงินที่ต้องเตรียมสำหรับช่วงตั้งตัว',
-            en: { name: 'Three-Month Budget', description: 'How much money to set aside for settling in.' },
+            en: {
+              name: 'Three-Month Budget',
+              description: 'How much money to set aside for settling in.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'วางงบพร้อมเลือกที่พัก',
             description: 'วางงบและเทียบที่พักที่หาไว้ทีละที่',
-            en: { name: 'Budget and Housing', description: "A budget, plus a look at each place you're considering." },
+            en: {
+              name: 'Budget and Housing',
+              description:
+                "A budget, plus a look at each place you're considering.",
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -1154,14 +1422,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วัดระดับและวางแผน',
             description: 'ทดสอบระดับปัจจุบันและวางแผนอ่านหกเดือน',
-            en: { name: 'Level Check and Plan', description: 'Test where you are now and plan six months of study.' },
+            en: {
+              name: 'Level Check and Plan',
+              description:
+                'Test where you are now and plan six months of study.',
+            },
             durationMinutes: 45,
             priceBaht: 700,
           },
           {
             name: 'วางแผนพร้อมติวจุดอ่อน',
             description: 'วางแผนแล้วติวส่วนที่ทำข้อสอบเก่าได้น้อยที่สุดทันที',
-            en: { name: 'Plan Plus Weak-Spot Tutoring', description: 'Make the plan, then tutor the section you scored lowest on right away.' },
+            en: {
+              name: 'Plan Plus Weak-Spot Tutoring',
+              description:
+                'Make the plan, then tutor the section you scored lowest on right away.',
+            },
             durationMinutes: 90,
             priceBaht: 1300,
           },
@@ -1184,14 +1460,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ฝึกหนึ่งสถานการณ์',
             description: 'เลือกสถานการณ์ที่ใช้บ่อยที่สุดแล้วฝึกจนคล่อง',
-            en: { name: 'One Situation', description: 'Pick the situation you face most and practise until it feels natural.' },
+            en: {
+              name: 'One Situation',
+              description:
+                'Pick the situation you face most and practise until it feels natural.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
           {
             name: 'ฝึกเข้ม',
-            description: 'ฝึกหลายสถานการณ์ต่อเนื่อง ทั้งพูด เขียนอีเมล และรายงาน',
-            en: { name: 'Intensive', description: 'Several situations back to back: speaking, emails and reporting.' },
+            description:
+              'ฝึกหลายสถานการณ์ต่อเนื่อง ทั้งพูด เขียนอีเมล และรายงาน',
+            en: {
+              name: 'Intensive',
+              description:
+                'Several situations back to back: speaking, emails and reporting.',
+            },
             durationMinutes: 90,
             priceBaht: 1300,
           },
@@ -1214,14 +1499,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เลือกทุนที่เหมาะ',
             description: 'เทียบทุนที่เข้าเงื่อนไขและเลือกทางที่มีโอกาสที่สุด',
-            en: { name: 'Choose a Scholarship', description: 'Compare the awards you qualify for and pick your best route.' },
+            en: {
+              name: 'Choose a Scholarship',
+              description:
+                'Compare the awards you qualify for and pick your best route.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'วางแผนยื่นทุนทั้งปี',
             description: 'ไทม์ไลน์รายเดือนตั้งแต่เตรียมเอกสารจนถึงวันสัมภาษณ์',
-            en: { name: 'Full-Year Scholarship Plan', description: 'A month-by-month timeline from documents to interview day.' },
+            en: {
+              name: 'Full-Year Scholarship Plan',
+              description:
+                'A month-by-month timeline from documents to interview day.',
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
@@ -1245,14 +1538,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ซ้อมหนึ่งรอบ',
             description: 'สัมภาษณ์จำลองหนึ่งรอบพร้อมฟีดแบ็ก',
-            en: { name: 'One Mock Round', description: 'One mock interview with feedback.' },
+            en: {
+              name: 'One Mock Round',
+              description: 'One mock interview with feedback.',
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'ซ้อมพร้อมตรวจแผนวิจัย',
-            description: 'ตรวจแผนการวิจัยก่อน แล้วซ้อมสัมภาษณ์ด้วยคำถามที่เจาะจากแผนนั้น',
-            en: { name: 'Research Plan and Interview', description: 'Review your research plan, then practise with questions drawn from it.' },
+            description:
+              'ตรวจแผนการวิจัยก่อน แล้วซ้อมสัมภาษณ์ด้วยคำถามที่เจาะจากแผนนั้น',
+            en: {
+              name: 'Research Plan and Interview',
+              description:
+                'Review your research plan, then practise with questions drawn from it.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -1275,14 +1576,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบโรงเรียน',
             description: 'เทียบโรงเรียนที่ตรงกับเป้าหมายและงบของคุณ',
-            en: { name: 'School Comparison', description: 'Compare schools that match your goals and budget.' },
+            en: {
+              name: 'School Comparison',
+              description: 'Compare schools that match your goals and budget.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'เลือกโรงเรียนพร้อมวางงบ',
             description: 'เลือกโรงเรียน เมือง และที่พัก พร้อมงบตลอดหลักสูตร',
-            en: { name: 'Choose and Budget', description: 'Choose a school, city and housing, with a budget for the whole course.' },
+            en: {
+              name: 'Choose and Budget',
+              description:
+                'Choose a school, city and housing, with a budget for the whole course.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -1322,14 +1630,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินการกิน',
             description: 'ดูบันทึกอาหารหนึ่งสัปดาห์และชี้จุดที่ควรปรับก่อน',
-            en: { name: 'Eating Review', description: 'We go through a week of your food diary and pick out what to change first.' },
+            en: {
+              name: 'Eating Review',
+              description:
+                'We go through a week of your food diary and pick out what to change first.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'วางแผนอาหารหนึ่งเดือน',
             description: 'แผนอาหารรายวันพร้อมตัวเลือกจากร้านใกล้ที่ทำงาน',
-            en: { name: 'One-Month Meal Plan', description: 'A daily eating plan with options from places near your work.' },
+            en: {
+              name: 'One-Month Meal Plan',
+              description:
+                'A daily eating plan with options from places near your work.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
@@ -1353,14 +1669,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เริ่มต้นจัดจาน',
             description: 'หลักการจัดจานและเลือกแป้งที่ใช้ได้ทันที',
-            en: { name: 'Build Your Plate', description: 'How to build a plate and choose carbohydrates, ready to use straight away.' },
+            en: {
+              name: 'Build Your Plate',
+              description:
+                'How to build a plate and choose carbohydrates, ready to use straight away.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'วางเมนูสองสัปดาห์',
             description: 'วางเมนูทุกมื้อสองสัปดาห์จากผลตรวจเลือดของคุณ',
-            en: { name: 'Two-Week Menu', description: 'Every meal for two weeks, planned from your blood test results.' },
+            en: {
+              name: 'Two-Week Menu',
+              description:
+                'Every meal for two weeks, planned from your blood test results.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -1383,14 +1707,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ฝึกอ่านฉลาก',
             description: 'อ่านฉลากจากสินค้าที่คุณซื้อเป็นประจำ',
-            en: { name: 'Label Practice', description: 'Read the labels on the products you buy regularly.' },
+            en: {
+              name: 'Label Practice',
+              description: 'Read the labels on the products you buy regularly.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'จัดรายการซื้อของใหม่',
             description: 'อ่านฉลากแล้วจัดรายการของที่ควรซื้อแทนของเดิม',
-            en: { name: 'New Shopping List', description: 'Read the labels, then build a list of better swaps for what you buy now.' },
+            en: {
+              name: 'New Shopping List',
+              description:
+                'Read the labels, then build a list of better swaps for what you buy now.',
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -1414,14 +1745,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางหลักการกิน',
             description: 'สารอาหารสำคัญและอาหารที่ควรเลี่ยงในไตรมาสที่อยู่',
-            en: { name: 'Eating Essentials', description: "The key nutrients and the foods to avoid in the trimester you're in." },
+            en: {
+              name: 'Eating Essentials',
+              description:
+                "The key nutrients and the foods to avoid in the trimester you're in.",
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'วางเมนูรายสัปดาห์',
             description: 'เมนูหนึ่งสัปดาห์ที่ปรับตามอาการและน้ำหนักของคุณ',
-            en: { name: 'Weekly Menu', description: 'A week of meals adjusted to your symptoms and weight.' },
+            en: {
+              name: 'Weekly Menu',
+              description:
+                'A week of meals adjusted to your symptoms and weight.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -1444,14 +1783,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางหลักการกินหลังคลอด',
             description: 'สารอาหารที่ต้องได้และอาหารที่ควรเลี่ยงช่วงให้นม',
-            en: { name: 'Postnatal Eating Basics', description: 'The nutrients you need and the foods to limit while breastfeeding.' },
+            en: {
+              name: 'Postnatal Eating Basics',
+              description:
+                'The nutrients you need and the foods to limit while breastfeeding.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'วางเมนูสองสัปดาห์',
             description: 'เมนูสองสัปดาห์ที่ทำได้เร็วและปรับตามน้ำหนักของคุณ',
-            en: { name: 'Two-Week Menu', description: 'Two weeks of quick meals, adjusted to your weight.' },
+            en: {
+              name: 'Two-Week Menu',
+              description: 'Two weeks of quick meals, adjusted to your weight.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -1489,14 +1835,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางโปรแกรม',
             description: 'ได้โปรแกรมสี่สัปดาห์แรกพร้อมคลิปท่าอ้างอิง',
-            en: { name: 'Programme Only', description: 'Your first four weeks, with reference clips for each move.' },
+            en: {
+              name: 'Programme Only',
+              description:
+                'Your first four weeks, with reference clips for each move.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'วางโปรแกรมพร้อมฝึกท่า',
             description: 'วางโปรแกรมแล้วฝึกทุกท่าผ่านวิดีโอคอลจนทำถูก',
-            en: { name: 'Programme and Coaching', description: 'Your programme, then every move practised over video until you get it right.' },
+            en: {
+              name: 'Programme and Coaching',
+              description:
+                'Your programme, then every move practised over video until you get it right.',
+            },
             durationMinutes: 75,
             priceBaht: 1300,
           },
@@ -1519,14 +1873,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางตารางซ้อม',
             description: 'ตารางซ้อมรายสัปดาห์จนถึงวันแข่ง',
-            en: { name: 'Training Schedule', description: 'A week-by-week schedule up to race day.' },
+            en: {
+              name: 'Training Schedule',
+              description: 'A week-by-week schedule up to race day.',
+            },
             durationMinutes: 45,
             priceBaht: 750,
           },
           {
             name: 'ตารางซ้อมพร้อมดูท่าวิ่ง',
             description: 'วางตารางและดูคลิปท่าวิ่งของคุณเพื่อปรับให้ถูก',
-            en: { name: 'Schedule and Running Form', description: 'Your schedule, plus a look at a clip of your running form to correct it.' },
+            en: {
+              name: 'Schedule and Running Form',
+              description:
+                'Your schedule, plus a look at a clip of your running form to correct it.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -1549,14 +1910,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจโปรแกรมเดิม',
             description: 'ดูโปรแกรมและการกินตอนนี้ แล้วบอกว่าติดอยู่ตรงไหน',
-            en: { name: 'Current Routine Check', description: "We look at your current training and eating and find where you're stuck." },
+            en: {
+              name: 'Current Routine Check',
+              description:
+                "We look at your current training and eating and find where you're stuck.",
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'วางโปรแกรมเวทและอาหาร',
             description: 'โปรแกรมเวทสามเดือนพร้อมเป้าหมายอาหารและโปรตีนต่อวัน',
-            en: { name: 'Training and Eating Plan', description: 'A three-month weights programme with daily food and protein targets.' },
+            en: {
+              name: 'Training and Eating Plan',
+              description:
+                'A three-month weights programme with daily food and protein targets.',
+            },
             durationMinutes: 90,
             priceBaht: 1600,
           },
@@ -1579,14 +1948,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ดูสามท่า',
             description: 'ดูคลิปสามท่าพร้อมจุดที่ต้องแก้',
-            en: { name: 'Three Movements', description: 'Three clips reviewed, with what to fix in each.' },
+            en: {
+              name: 'Three Movements',
+              description: 'Three clips reviewed, with what to fix in each.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'ดูท่าพร้อมวางโปรแกรมแก้',
             description: 'ดูท่าทั้งหมดแล้ววางท่าเสริมสำหรับจุดอ่อนที่เจอ',
-            en: { name: 'Form Check and Fix Plan', description: 'A full review, plus supporting exercises for the weaknesses found.' },
+            en: {
+              name: 'Form Check and Fix Plan',
+              description:
+                'A full review, plus supporting exercises for the weaknesses found.',
+            },
             durationMinutes: 60,
             priceBaht: 950,
           },
@@ -1609,14 +1985,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ชุดท่าพื้นฐาน',
             description: 'ฝึกชุดท่ายืดเหยียดสำหรับคนนั่งทำงาน',
-            en: { name: 'Core Routine', description: 'A stretching routine for people who sit all day.' },
+            en: {
+              name: 'Core Routine',
+              description: 'A stretching routine for people who sit all day.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'ชุดท่าเฉพาะตัว',
-            description: 'ประเมินท่านั่งและจุดที่ปวด แล้ววางชุดท่าเฉพาะสำหรับคุณ',
-            en: { name: 'Personal Routine', description: 'We assess how you sit and where it hurts, then build a routine just for you.' },
+            description:
+              'ประเมินท่านั่งและจุดที่ปวด แล้ววางชุดท่าเฉพาะสำหรับคุณ',
+            en: {
+              name: 'Personal Routine',
+              description:
+                'We assess how you sit and where it hurts, then build a routine just for you.',
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -1653,14 +2037,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางเมนูหนึ่งสัปดาห์',
             description: 'เมนูครบทุกมื้อพร้อมรายการซื้อของ',
-            en: { name: 'One-Week Menu', description: 'Every meal planned, with a shopping list.' },
+            en: {
+              name: 'One-Week Menu',
+              description: 'Every meal planned, with a shopping list.',
+            },
             durationMinutes: 45,
             priceBaht: 650,
           },
           {
             name: 'เมนูพร้อมสูตรทำล่วงหน้า',
-            description: 'เมนูหนึ่งสัปดาห์พร้อมวิธีเตรียมวัตถุดิบล่วงหน้าในวันหยุด',
-            en: { name: 'Menu and Weekend Prep', description: 'A week of meals, plus how to prep ingredients ahead on your day off.' },
+            description:
+              'เมนูหนึ่งสัปดาห์พร้อมวิธีเตรียมวัตถุดิบล่วงหน้าในวันหยุด',
+            en: {
+              name: 'Menu and Weekend Prep',
+              description:
+                'A week of meals, plus how to prep ingredients ahead on your day off.',
+            },
             durationMinutes: 90,
             priceBaht: 1200,
           },
@@ -1683,14 +2075,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยเรื่องลูกกินยาก',
             description: 'หาวิธีที่เหมาะกับนิสัยการกินของลูกคุณ',
-            en: { name: 'Picky Eater Talk', description: "Find approaches that suit your child's eating habits." },
+            en: {
+              name: 'Picky Eater Talk',
+              description:
+                "Find approaches that suit your child's eating habits.",
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'วางเมนูกล่องข้าวสองสัปดาห์',
             description: 'ไอเดียกล่องข้าวสิบวันเรียนพร้อมวิธีเตรียมตอนเช้า',
-            en: { name: 'Two Weeks of Lunchboxes', description: 'Ten school days of lunchbox ideas, with a quick morning routine.' },
+            en: {
+              name: 'Two Weeks of Lunchboxes',
+              description:
+                'Ten school days of lunchbox ideas, with a quick morning routine.',
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -1713,14 +2113,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ปรับสูตรอาหารประจำบ้าน',
             description: 'ปรับเมนูที่ทำบ่อยที่สุดห้าเมนูให้เหมาะกับสุขภาพท่าน',
-            en: { name: 'Adapt Your Family Recipes', description: 'Rework the five dishes you cook most to suit their health.' },
+            en: {
+              name: 'Adapt Your Family Recipes',
+              description:
+                'Rework the five dishes you cook most to suit their health.',
+            },
             durationMinutes: 45,
             priceBaht: 700,
           },
           {
             name: 'วางเมนูผู้สูงวัยหนึ่งสัปดาห์',
-            description: 'เมนูหนึ่งสัปดาห์ที่คุมเกลือ น้ำตาล และไขมัน พร้อมรายการซื้อของ',
-            en: { name: 'One-Week Menu for Older Parents', description: 'A week of meals with controlled salt, sugar and fat, plus a shopping list.' },
+            description:
+              'เมนูหนึ่งสัปดาห์ที่คุมเกลือ น้ำตาล และไขมัน พร้อมรายการซื้อของ',
+            en: {
+              name: 'One-Week Menu for Older Parents',
+              description:
+                'A week of meals with controlled salt, sugar and fat, plus a shopping list.',
+            },
             durationMinutes: 90,
             priceBaht: 1300,
           },
@@ -1743,14 +2152,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางงบค่ากับข้าว',
             description: 'ดูค่าใช้จ่ายตอนนี้และตั้งงบรายสัปดาห์ที่ทำได้',
-            en: { name: 'Set a Food Budget', description: 'Review current spending and set a weekly budget you can keep.' },
+            en: {
+              name: 'Set a Food Budget',
+              description:
+                'Review current spending and set a weekly budget you can keep.',
+            },
             durationMinutes: 30,
             priceBaht: 400,
           },
           {
             name: 'วางงบพร้อมรายการซื้อของ',
-            description: 'ตั้งงบ วางรายการซื้อของ และวิธีเก็บวัตถุดิบให้อยู่ได้ทั้งสัปดาห์',
-            en: { name: 'Budget and Shopping List', description: 'A budget, a shopping list, and how to store food so it lasts the week.' },
+            description:
+              'ตั้งงบ วางรายการซื้อของ และวิธีเก็บวัตถุดิบให้อยู่ได้ทั้งสัปดาห์',
+            en: {
+              name: 'Budget and Shopping List',
+              description:
+                'A budget, a shopping list, and how to store food so it lasts the week.',
+            },
             durationMinutes: 60,
             priceBaht: 750,
           },
@@ -1788,14 +2206,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เริ่มต้นแพลนต์เบส',
             description: 'แหล่งสารอาหารสำคัญและเมนูไทยที่เริ่มได้ทันที',
-            en: { name: 'Plant-Based Basics', description: 'Where the key nutrients come from, and Thai dishes to start with.' },
+            en: {
+              name: 'Plant-Based Basics',
+              description:
+                'Where the key nutrients come from, and Thai dishes to start with.',
+            },
             durationMinutes: 45,
             priceBaht: 750,
           },
           {
             name: 'แผนเปลี่ยนสี่สัปดาห์',
             description: 'แผนลดเนื้อสัตว์ทีละขั้นพร้อมเมนูรายสัปดาห์',
-            en: { name: 'Four-Week Switch Plan', description: 'A step-by-step plan for cutting out meat, with weekly menus.' },
+            en: {
+              name: 'Four-Week Switch Plan',
+              description:
+                'A step-by-step plan for cutting out meat, with weekly menus.',
+            },
             durationMinutes: 90,
             priceBaht: 1400,
           },
@@ -1818,14 +2244,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจการกินช่วงซ้อม',
             description: 'ดูว่ากินพอกับปริมาณการซ้อมตอนนี้หรือไม่',
-            en: { name: 'Training Diet Check', description: "Whether you're eating enough for the training you do now." },
+            en: {
+              name: 'Training Diet Check',
+              description:
+                "Whether you're eating enough for the training you do now.",
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'แผนกินถึงวันแข่ง',
             description: 'แผนกินช่วงซ้อมจนถึงแผนกินดื่มระหว่างวันแข่ง',
-            en: { name: 'Race-Day Fuelling Plan', description: 'From training-block meals to what to eat and drink during the race.' },
+            en: {
+              name: 'Race-Day Fuelling Plan',
+              description:
+                'From training-block meals to what to eat and drink during the race.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -1848,14 +2282,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'หาน้ำตาลแฝง',
             description: 'ไล่ดูเครื่องดื่มและของว่างที่กินในหนึ่งวัน',
-            en: { name: 'Find the Hidden Sugar', description: 'Go through the drinks and snacks in a typical day.' },
+            en: {
+              name: 'Find the Hidden Sugar',
+              description: 'Go through the drinks and snacks in a typical day.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'แผนลดน้ำตาลหกสัปดาห์',
             description: 'แผนลดทีละขั้นพร้อมรายการของว่างทดแทน',
-            en: { name: 'Six-Week Sugar Plan', description: 'A gradual reduction plan with a list of swap snacks.' },
+            en: {
+              name: 'Six-Week Sugar Plan',
+              description:
+                'A gradual reduction plan with a list of swap snacks.',
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -1878,14 +2319,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางเมนูเตรียมล่วงหน้า',
             description: 'เมนูหนึ่งสัปดาห์พร้อมรายการวัตถุดิบที่ต้องเตรียม',
-            en: { name: 'Prep Menu', description: 'A week of meals, plus the list of ingredients to prepare.' },
+            en: {
+              name: 'Prep Menu',
+              description:
+                'A week of meals, plus the list of ingredients to prepare.',
+            },
             durationMinutes: 45,
             priceBaht: 650,
           },
           {
             name: 'วางเมนูพร้อมขั้นตอนเตรียม',
             description: 'เมนู ลำดับการเตรียมในวันหยุด และวิธีเก็บแต่ละอย่าง',
-            en: { name: 'Menu and Prep Order', description: 'The menu, the order to prepare things on your day off, and how to store each one.' },
+            en: {
+              name: 'Menu and Prep Order',
+              description:
+                'The menu, the order to prepare things on your day off, and how to store each one.',
+            },
             durationMinutes: 90,
             priceBaht: 1200,
           },
@@ -1925,21 +2374,33 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางทิศทางแบรนด์',
             description: 'คุยและสรุปทิศทางพร้อมภาพอ้างอิง',
-            en: { name: 'Brand Direction', description: 'Talk it through and agree a direction, with reference images.' },
+            en: {
+              name: 'Brand Direction',
+              description:
+                'Talk it through and agree a direction, with reference images.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ร่างโลโก้พร้อมชุดสี',
             description: 'ร่างแนวทางโลโก้สองแบบพร้อมชุดสีและฟอนต์',
-            en: { name: 'Logo Sketches and Palette', description: 'Two logo directions sketched, with a colour palette and fonts.' },
+            en: {
+              name: 'Logo Sketches and Palette',
+              description:
+                'Two logo directions sketched, with a colour palette and fonts.',
+            },
             durationMinutes: 120,
             priceBaht: 3500,
           },
           {
             name: 'คู่มือ CI ฉบับย่อ',
             description: 'สรุปการใช้โลโก้ สี และฟอนต์เป็นคู่มือสั้นสำหรับทีม',
-            en: { name: 'Short CI Guide', description: 'A short guide for your team on using the logo, colours and fonts.' },
+            en: {
+              name: 'Short CI Guide',
+              description:
+                'A short guide for your team on using the logo, colours and fonts.',
+            },
             durationMinutes: 180,
             priceBaht: 6500,
           },
@@ -1962,14 +2423,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ระดมชื่อ',
             description: 'ได้รายชื่อที่คัดแล้วห้าถึงสิบชื่อพร้อมเหตุผล',
-            en: { name: 'Name Brainstorm', description: 'A shortlist of five to ten names, with the reasoning for each.' },
+            en: {
+              name: 'Name Brainstorm',
+              description:
+                'A shortlist of five to ten names, with the reasoning for each.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'ชื่อพร้อมบุคลิกแบรนด์',
             description: 'เลือกชื่อสุดท้ายและเขียนบุคลิกกับน้ำเสียงของแบรนด์',
-            en: { name: 'Name and Personality', description: "Pick the final name and write down the brand's personality and tone." },
+            en: {
+              name: 'Name and Personality',
+              description:
+                "Pick the final name and write down the brand's personality and tone.",
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
@@ -1992,14 +2461,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางแนวทางบรรจุภัณฑ์',
             description: 'เลือกวัสดุ ขนาด และข้อมูลบนฉลากที่ต้องมี',
-            en: { name: 'Packaging Direction', description: 'Choose materials, sizes and the label information required.' },
+            en: {
+              name: 'Packaging Direction',
+              description:
+                'Choose materials, sizes and the label information required.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ร่างแบบพร้อมคุมต้นทุน',
-            description: 'ร่างหน้าตาบรรจุภัณฑ์และเทียบราคาโรงพิมพ์ให้ได้ต้นทุนที่ตั้งไว้',
-            en: { name: 'Design Draft and Costing', description: 'Draft the look and compare printer quotes to hit your target cost.' },
+            description:
+              'ร่างหน้าตาบรรจุภัณฑ์และเทียบราคาโรงพิมพ์ให้ได้ต้นทุนที่ตั้งไว้',
+            en: {
+              name: 'Design Draft and Costing',
+              description:
+                'Draft the look and compare printer quotes to hit your target cost.',
+            },
             durationMinutes: 120,
             priceBaht: 3200,
           },
@@ -2022,14 +2500,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'รีวิวพอร์ต',
             description: 'ความเห็นทีละงานพร้อมลำดับที่ควรจัดใหม่',
-            en: { name: 'Portfolio Review', description: 'Comments on each piece and a better running order.' },
+            en: {
+              name: 'Portfolio Review',
+              description: 'Comments on each piece and a better running order.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'รีวิวพร้อมซ้อมนำเสนอ',
             description: 'รีวิวพอร์ตแล้วซ้อมเล่างานเหมือนอยู่ในห้องสัมภาษณ์',
-            en: { name: 'Review and Presentation Practice', description: 'A review, then practice presenting your work as in an interview.' },
+            en: {
+              name: 'Review and Presentation Practice',
+              description:
+                'A review, then practice presenting your work as in an interview.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -2067,21 +2552,33 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'รีวิวช่องเดิม',
             description: 'ดูคลิปที่ลงไปแล้วและบอกว่าควรปรับอะไร',
-            en: { name: 'Channel Review', description: "A look at what you've posted so far and what to change." },
+            en: {
+              name: 'Channel Review',
+              description:
+                "A look at what you've posted so far and what to change.",
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'วางแผน 30 วัน',
             description: 'หัวข้อคลิปครบ 30 วันพร้อมฮุกเปิดคลิป',
-            en: { name: '30-Day Plan', description: 'Thirty days of video topics, each with an opening hook.' },
+            en: {
+              name: '30-Day Plan',
+              description:
+                'Thirty days of video topics, each with an opening hook.',
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
           {
             name: 'วางแผนพร้อมสคริปต์ 10 คลิป',
             description: 'แผน 30 วันและเขียนสคริปต์คลิปแรกสิบคลิปไปด้วยกัน',
-            en: { name: 'Plan and 10 Scripts', description: 'The 30-day plan, plus the first ten scripts written together.' },
+            en: {
+              name: 'Plan and 10 Scripts',
+              description:
+                'The 30-day plan, plus the first ten scripts written together.',
+            },
             durationMinutes: 120,
             priceBaht: 2800,
           },
@@ -2104,14 +2601,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางคอนเซปต์ช่อง',
             description: 'เลือกหัวข้อช่องและรูปแบบคลิปหลัก',
-            en: { name: 'Channel Concept', description: 'Choose the channel topic and main video format.' },
+            en: {
+              name: 'Channel Concept',
+              description: 'Choose the channel topic and main video format.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'วางช่องพร้อมแผนสามเดือน',
             description: 'คอนเซปต์ หน้าปก ชื่อคลิป และตารางลงคลิปสามเดือน',
-            en: { name: 'Channel and Three-Month Plan', description: 'Concept, thumbnails, titles and a three-month posting schedule.' },
+            en: {
+              name: 'Channel and Three-Month Plan',
+              description:
+                'Concept, thumbnails, titles and a three-month posting schedule.',
+            },
             durationMinutes: 90,
             priceBaht: 1600,
           },
@@ -2134,14 +2638,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางโครงไลฟ์',
             description: 'โครงไลฟ์หนึ่งชั่วโมงพร้อมการจัดมุมกล้อง',
-            en: { name: 'Live Structure', description: 'A one-hour live outline plus camera set-up.' },
+            en: {
+              name: 'Live Structure',
+              description: 'A one-hour live outline plus camera set-up.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'วางโครงพร้อมซ้อมไลฟ์',
             description: 'วางโครงแล้วซ้อมไลฟ์สั้นๆ พร้อมฟีดแบ็ก',
-            en: { name: 'Structure and Rehearsal', description: 'The outline, then a short practice live with feedback.' },
+            en: {
+              name: 'Structure and Rehearsal',
+              description:
+                'The outline, then a short practice live with feedback.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -2164,14 +2675,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'แก้แคปชันเดิม',
             description: 'ปรับแคปชันที่ใช้อยู่ห้าโพสต์',
-            en: { name: 'Caption Fix', description: 'Rework five captions you already use.' },
+            en: {
+              name: 'Caption Fix',
+              description: 'Rework five captions you already use.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'ฝึกเขียนพร้อมแม่แบบ',
             description: 'ฝึกเขียนจากสินค้าจริงและได้แม่แบบแคปชันสามแบบ',
-            en: { name: 'Practice and Templates', description: 'Practise on your real products and leave with three caption templates.' },
+            en: {
+              name: 'Practice and Templates',
+              description:
+                'Practise on your real products and leave with three caption templates.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -2209,14 +2727,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ฝึกพื้นฐาน',
             description: 'แสง มุมกล้อง และฉากหลังจากของที่มีในบ้าน',
-            en: { name: 'The Basics', description: 'Light, angles and backdrops from things you have at home.' },
+            en: {
+              name: 'The Basics',
+              description:
+                'Light, angles and backdrops from things you have at home.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
           {
             name: 'ถ่ายสินค้าจริงครบชุด',
             description: 'ฝึกถ่ายสินค้าจริงของคุณครบทุกมุมที่หน้าร้านต้องใช้',
-            en: { name: 'Full Product Set', description: 'Shoot your real products from every angle your store page needs.' },
+            en: {
+              name: 'Full Product Set',
+              description:
+                'Shoot your real products from every angle your store page needs.',
+            },
             durationMinutes: 120,
             priceBaht: 1700,
           },
@@ -2239,14 +2765,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตัดต่อคลิปแรก',
             description: 'ตัดต่อคลิปสั้นหนึ่งคลิปจากฟุตเทจของคุณ',
-            en: { name: 'Your First Edit', description: 'Edit one short clip from your own footage.' },
+            en: {
+              name: 'Your First Edit',
+              description: 'Edit one short clip from your own footage.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
           {
             name: 'ตัดต่อพร้อมทำเทมเพลต',
             description: 'ตัดต่อคลิปและตั้งเทมเพลตไว้ใช้กับคลิปต่อไป',
-            en: { name: 'Edit and Template', description: 'Edit a clip and set up a template for the next ones.' },
+            en: {
+              name: 'Edit and Template',
+              description:
+                'Edit a clip and set up a template for the next ones.',
+            },
             durationMinutes: 90,
             priceBaht: 1300,
           },
@@ -2269,14 +2802,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เลือกอุปกรณ์',
             description: 'รายการอุปกรณ์ที่ควรซื้อตามงบของคุณ',
-            en: { name: 'Gear List', description: 'A list of what to buy for your budget.' },
+            en: {
+              name: 'Gear List',
+              description: 'A list of what to buy for your budget.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'จัดมุมผ่านวิดีโอคอล',
             description: 'จัดไฟและตั้งค่ากล้องในพื้นที่จริงของคุณผ่านวิดีโอคอล',
-            en: { name: 'Live Set-Up Over Video', description: 'Arrange the lights and camera settings in your actual space over a video call.' },
+            en: {
+              name: 'Live Set-Up Over Video',
+              description:
+                'Arrange the lights and camera settings in your actual space over a video call.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -2299,14 +2839,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางแนวงานและราคา',
             description: 'เลือกประเภทงานที่จะรับและตั้งราคาแพ็กเกจ',
-            en: { name: 'Niche and Pricing', description: 'Choose the work you will take on and price your packages.' },
+            en: {
+              name: 'Niche and Pricing',
+              description:
+                'Choose the work you will take on and price your packages.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'เริ่มรับงานครบชุด',
             description: 'ราคา พอร์ตชุดแรก และข้อตกลงกับลูกค้าในนัดเดียว',
-            en: { name: 'Ready to Take Bookings', description: 'Pricing, a first portfolio and a client agreement in one session.' },
+            en: {
+              name: 'Ready to Take Bookings',
+              description:
+                'Pricing, a first portfolio and a client agreement in one session.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -2329,14 +2877,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'แก้สีพื้นฐาน',
             description: 'ฝึกแก้ไวต์บาลานซ์ แสง และคอนทราสต์',
-            en: { name: 'Colour Correction Basics', description: 'Practise fixing white balance, exposure and contrast.' },
+            en: {
+              name: 'Colour Correction Basics',
+              description:
+                'Practise fixing white balance, exposure and contrast.',
+            },
             durationMinutes: 60,
             priceBaht: 1000,
           },
           {
             name: 'ทำโทนสีประจำแบรนด์',
             description: 'แก้สีพื้นฐานแล้วสร้างโทนสีของแบรนด์ที่เซฟใช้ซ้ำได้',
-            en: { name: 'Brand Colour Look', description: 'Correction basics, then a reusable colour look for your brand.' },
+            en: {
+              name: 'Brand Colour Look',
+              description:
+                'Correction basics, then a reusable colour look for your brand.',
+            },
             durationMinutes: 120,
             priceBaht: 1800,
           },
@@ -2374,14 +2930,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'รีวิวพอร์ต',
             description: 'ความเห็นทีละเคสสตัดีพร้อมสิ่งที่ควรแก้',
-            en: { name: 'Portfolio Review', description: 'Comments on each case study and what to change.' },
+            en: {
+              name: 'Portfolio Review',
+              description: 'Comments on each case study and what to change.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'รีวิวพร้อมสัมภาษณ์จำลอง',
             description: 'รีวิวพอร์ตแล้วสัมภาษณ์จำลองแบบเล่าเคสสตัดี',
-            en: { name: 'Review and Mock Interview', description: 'A review, then a mock interview where you walk through a case study.' },
+            en: {
+              name: 'Review and Mock Interview',
+              description:
+                'A review, then a mock interview where you walk through a case study.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -2404,14 +2967,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตั้งเทมเพลตโพสต์',
             description: 'ตั้งเทมเพลตโพสต์และสตอรี่ที่ใช้บ่อยที่สุด',
-            en: { name: 'Post Templates', description: 'Set up the post and story templates you use most.' },
+            en: {
+              name: 'Post Templates',
+              description: 'Set up the post and story templates you use most.',
+            },
             durationMinutes: 60,
             priceBaht: 800,
           },
           {
             name: 'ตั้งชุดสื่อทั้งร้าน',
-            description: 'เทมเพลตโพสต์ สตอรี่ เมนู และป้ายโปรโมชันในชุดเดียวกัน',
-            en: { name: 'Full Shop Kit', description: 'Matching templates for posts, stories, menus and promotion signs.' },
+            description:
+              'เทมเพลตโพสต์ สตอรี่ เมนู และป้ายโปรโมชันในชุดเดียวกัน',
+            en: {
+              name: 'Full Shop Kit',
+              description:
+                'Matching templates for posts, stories, menus and promotion signs.',
+            },
             durationMinutes: 120,
             priceBaht: 1500,
           },
@@ -2434,14 +3005,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางแผนการทดสอบ',
             description: 'เขียนสถานการณ์ทดสอบและวิธีหาผู้ทดสอบ',
-            en: { name: 'Test Plan', description: 'Write the test scenarios and how to recruit testers.' },
+            en: {
+              name: 'Test Plan',
+              description:
+                'Write the test scenarios and how to recruit testers.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ทดสอบและสรุปผลด้วยกัน',
             description: 'นั่งดูการทดสอบจริงด้วยกันแล้วสรุปรายการปัญหา',
-            en: { name: 'Run and Review Together', description: 'Watch real test sessions together, then list the issues.' },
+            en: {
+              name: 'Run and Review Together',
+              description:
+                'Watch real test sessions together, then list the issues.',
+            },
             durationMinutes: 120,
             priceBaht: 2800,
           },
@@ -2481,14 +3060,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ซ้อมหนึ่งโจทย์',
             description: 'สัมภาษณ์จำลองหนึ่งรอบพร้อมฟีดแบ็กละเอียด',
-            en: { name: 'One Mock Problem', description: 'One mock interview with detailed feedback.' },
+            en: {
+              name: 'One Mock Problem',
+              description: 'One mock interview with detailed feedback.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ซ้อมสองรอบพร้อมแผนเตรียมตัว',
             description: 'ซ้อมสองโจทย์และวางแผนเตรียมตัวสี่สัปดาห์',
-            en: { name: 'Two Rounds and a Prep Plan', description: 'Two mock problems and a four-week preparation plan.' },
+            en: {
+              name: 'Two Rounds and a Prep Plan',
+              description:
+                'Two mock problems and a four-week preparation plan.',
+            },
             durationMinutes: 90,
             priceBaht: 2200,
           },
@@ -2511,14 +3097,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ทบทวนสถาปัตยกรรม',
             description: 'ดูโครงสร้างระบบปัจจุบันและจุดที่น่าจะเป็นคอขวด',
-            en: { name: 'Architecture Review', description: 'Your current design and where the bottlenecks are likely to be.' },
+            en: {
+              name: 'Architecture Review',
+              description:
+                'Your current design and where the bottlenecks are likely to be.',
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'ทบทวนพร้อมแผนปรับปรุง',
-            description: 'ทบทวนระบบแล้ววางแผนปรับปรุงเป็นขั้นตอนพร้อมลำดับความสำคัญ',
-            en: { name: 'Review and Improvement Plan', description: 'A review, then a step-by-step improvement plan in priority order.' },
+            description:
+              'ทบทวนระบบแล้ววางแผนปรับปรุงเป็นขั้นตอนพร้อมลำดับความสำคัญ',
+            en: {
+              name: 'Review and Improvement Plan',
+              description:
+                'A review, then a step-by-step improvement plan in priority order.',
+            },
             durationMinutes: 120,
             priceBaht: 3200,
           },
@@ -2542,14 +3137,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินช่องว่าง',
             description: 'เทียบงานปัจจุบันกับสิ่งที่ตำแหน่ง Senior ต้องทำ',
-            en: { name: 'Gap Assessment', description: 'Your current work compared with what a senior role requires.' },
+            en: {
+              name: 'Gap Assessment',
+              description:
+                'Your current work compared with what a senior role requires.',
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'แผนพัฒนาหกเดือน',
-            description: 'แผนรายเดือนพร้อมงานที่ควรขอรับผิดชอบเพื่อพิสูจน์ตัวเอง',
-            en: { name: 'Six-Month Growth Plan', description: 'A monthly plan, plus the work to volunteer for to prove yourself.' },
+            description:
+              'แผนรายเดือนพร้อมงานที่ควรขอรับผิดชอบเพื่อพิสูจน์ตัวเอง',
+            en: {
+              name: 'Six-Month Growth Plan',
+              description:
+                'A monthly plan, plus the work to volunteer for to prove yourself.',
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
@@ -2572,14 +3176,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ซ้อมหนึ่งโจทย์',
             description: 'สัมภาษณ์จำลองหนึ่งโจทย์พร้อมฟีดแบ็ก',
-            en: { name: 'One Mock Problem', description: 'One mock design problem with feedback.' },
+            en: {
+              name: 'One Mock Problem',
+              description: 'One mock design problem with feedback.',
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'ซ้อมพร้อมทบทวนพื้นฐาน',
             description: 'ทบทวนแนวคิดที่ต้องรู้ แล้วซ้อมโจทย์เต็มรอบ',
-            en: { name: 'Fundamentals and Mock', description: 'Review the core concepts, then work through a full mock problem.' },
+            en: {
+              name: 'Fundamentals and Mock',
+              description:
+                'Review the core concepts, then work through a full mock problem.',
+            },
             durationMinutes: 90,
             priceBaht: 2500,
           },
@@ -2616,14 +3227,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบระบบ',
             description: 'เทียบระบบที่เข้ากับร้านคุณสามระบบ',
-            en: { name: 'System Comparison', description: 'Three systems that suit your shop, side by side.' },
+            en: {
+              name: 'System Comparison',
+              description: 'Three systems that suit your shop, side by side.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'เลือกระบบพร้อมแผนติดตั้ง',
             description: 'เลือกระบบและวางขั้นตอนย้ายข้อมูลสินค้าและเริ่มใช้งาน',
-            en: { name: 'Choose and Plan the Roll-Out', description: 'Pick a system and plan moving your product data over and going live.' },
+            en: {
+              name: 'Choose and Plan the Roll-Out',
+              description:
+                'Pick a system and plan moving your product data over and going live.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -2646,14 +3264,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เลือกช่องทางรับเงิน',
             description: 'เทียบช่องทางและค่าธรรมเนียมที่เหมาะกับยอดขายของร้าน',
-            en: { name: 'Choose Payment Methods', description: "Compare methods and fees for your shop's sales volume." },
+            en: {
+              name: 'Choose Payment Methods',
+              description:
+                "Compare methods and fees for your shop's sales volume.",
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'ตั้งระบบพร้อมวิธีตรวจยอด',
             description: 'เลือกช่องทางและวางขั้นตอนตรวจเงินเข้าสำหรับพนักงาน',
-            en: { name: 'Set Up and Reconcile', description: 'Choose your methods and set up a payment-checking routine for staff.' },
+            en: {
+              name: 'Set Up and Reconcile',
+              description:
+                'Choose your methods and set up a payment-checking routine for staff.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -2677,14 +3303,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจเบื้องต้น',
             description: 'ไล่เช็กลิสต์ความปลอดภัยและสรุปจุดเสี่ยงสำคัญ',
-            en: { name: 'Initial Check', description: 'Run through the security checklist and list the main risks.' },
+            en: {
+              name: 'Initial Check',
+              description:
+                'Run through the security checklist and list the main risks.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ตรวจพร้อมแผนแก้ไข',
-            description: 'ตรวจครบและวางแผนแก้ไขสามเดือนพร้อมนโยบายสั้นๆ สำหรับพนักงาน',
-            en: { name: 'Check and Fix Plan', description: 'A full check, a three-month fix plan and a short policy for staff.' },
+            description:
+              'ตรวจครบและวางแผนแก้ไขสามเดือนพร้อมนโยบายสั้นๆ สำหรับพนักงาน',
+            en: {
+              name: 'Check and Fix Plan',
+              description:
+                'A full check, a three-month fix plan and a short policy for staff.',
+            },
             durationMinutes: 120,
             priceBaht: 2800,
           },
@@ -2708,14 +3343,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางโครงเว็บ',
             description: 'เลือกเครื่องมือและวางหน้าเว็บที่ต้องมี',
-            en: { name: 'Site Plan', description: 'Choose your tools and plan the pages you need.' },
+            en: {
+              name: 'Site Plan',
+              description: 'Choose your tools and plan the pages you need.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'สร้างเว็บไปด้วยกัน',
             description: 'ติดตั้งและสร้างเว็บจริงไปพร้อมกันจนพร้อมเปิดใช้',
-            en: { name: 'Build It Together', description: 'Install and build the real site together until it is ready to launch.' },
+            en: {
+              name: 'Build It Together',
+              description:
+                'Install and build the real site together until it is ready to launch.',
+            },
             durationMinutes: 180,
             priceBaht: 3200,
           },
@@ -2738,14 +3380,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เลือกระบบ',
             description: 'เทียบระบบที่เหมาะกับขนาดร้านและงบ',
-            en: { name: 'Choose a System', description: "Compare systems for your restaurant's size and budget." },
+            en: {
+              name: 'Choose a System',
+              description:
+                "Compare systems for your restaurant's size and budget.",
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'ตั้งระบบพร้อมเมนู',
             description: 'ตั้งระบบ ใส่เมนูจริง และทดสอบสั่งจนถึงครัว',
-            en: { name: 'Set Up With Your Menu', description: 'Set up the system, load your real menu and test an order through to the kitchen.' },
+            en: {
+              name: 'Set Up With Your Menu',
+              description:
+                'Set up the system, load your real menu and test an order through to the kitchen.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -2768,14 +3418,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ป้องกันบัญชี',
             description: 'ตั้งค่าความปลอดภัยของทุกบัญชีที่ร้านใช้',
-            en: { name: 'Lock Down Your Accounts', description: 'Security settings for every account the shop uses.' },
+            en: {
+              name: 'Lock Down Your Accounts',
+              description: 'Security settings for every account the shop uses.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'กู้บัญชีพร้อมป้องกัน',
             description: 'ไล่ขั้นตอนกู้บัญชีที่โดนแฮ็ก แล้วตั้งค่าป้องกันครบ',
-            en: { name: 'Recover and Protect', description: 'Work through recovering a hacked account, then secure everything.' },
+            en: {
+              name: 'Recover and Protect',
+              description:
+                'Work through recovering a hacked account, then secure everything.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -2790,7 +3447,8 @@ export const PART_C: readonly CatalogueAdvisor[] = [
     displayName: 'พิชญา อนันตกุล',
     fullName: 'พิชญา อนันตกุล',
     portrait: portrait(28570312),
-    headline: 'ครูเตรียมสอบ IELTS/TOEIC และโค้ชภาษาอังกฤษเพื่อการทำงาน (IELTS 8.5)',
+    headline:
+      'ครูเตรียมสอบ IELTS/TOEIC และโค้ชภาษาอังกฤษเพื่อการทำงาน (IELTS 8.5)',
     bio: 'ได้ IELTS 8.5 สอนเตรียมสอบมา 7 ปีที่สถาบันภาษาในกรุงเทพฯ ก่อนออกมาสอนตัวต่อตัว นักเรียนส่วนใหญ่เป็นคนทำงานที่ต้องใช้คะแนนยื่นเรียนต่อหรือสมัครงาน และหัวหน้างานที่ต้องประชุม เขียนอีเมล และนำเสนองานกับต่างชาติ เน้นวิเคราะห์ว่าเสียคะแนนหรือติดขัดตรงไหน แล้วฝึกเฉพาะจุดนั้น และเน้นพูดให้ชัดและมั่นใจมากกว่าพูดให้เหมือนเจ้าของภาษา',
     en: {
       headline: 'IELTS/TOEIC Tutor and Business English Coach (IELTS 8.5)',
@@ -2815,21 +3473,33 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วัดระดับและวางแผน',
             description: 'วัดระดับสี่ทักษะและวางตารางฝึกแปดสัปดาห์',
-            en: { name: 'Assessment and Plan', description: 'Assess all four skills and set an eight-week schedule.' },
+            en: {
+              name: 'Assessment and Plan',
+              description:
+                'Assess all four skills and set an eight-week schedule.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'ติวเข้มจุดอ่อน',
             description: 'ติวทักษะที่ได้คะแนนต่ำที่สุดแบบเจาะลึก',
-            en: { name: 'Weak-Spot Intensive', description: 'In-depth tutoring on your lowest-scoring skill.' },
+            en: {
+              name: 'Weak-Spot Intensive',
+              description: 'In-depth tutoring on your lowest-scoring skill.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
           {
             name: 'ติวพร้อมซ้อม Speaking',
-            description: 'ติวจุดอ่อนและซ้อม Speaking ครบสามพาร์ตพร้อมประเมินแบนด์',
-            en: { name: 'Tutoring and Speaking Mock', description: 'Weak-spot tutoring plus a full three-part Speaking mock with a band estimate.' },
+            description:
+              'ติวจุดอ่อนและซ้อม Speaking ครบสามพาร์ตพร้อมประเมินแบนด์',
+            en: {
+              name: 'Tutoring and Speaking Mock',
+              description:
+                'Weak-spot tutoring plus a full three-part Speaking mock with a band estimate.',
+            },
             durationMinutes: 120,
             priceBaht: 1900,
           },
@@ -2852,14 +3522,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจหนึ่งเรียงความ',
             description: 'ประเมินแบนด์และชี้จุดที่ต้องแก้',
-            en: { name: 'One Essay', description: 'A band estimate and what to fix.' },
+            en: {
+              name: 'One Essay',
+              description: 'A band estimate and what to fix.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'ตรวจสองเรียงความพร้อมเขียนใหม่',
             description: 'ตรวจสองเรียงความและเขียนย่อหน้าใหม่ไปด้วยกัน',
-            en: { name: 'Two Essays and a Rewrite', description: 'Two essays marked, with paragraphs rewritten together.' },
+            en: {
+              name: 'Two Essays and a Rewrite',
+              description:
+                'Two essays marked, with paragraphs rewritten together.',
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -2882,14 +3559,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางแผนอ่าน',
             description: 'วัดระดับและวางแผนอ่านจนถึงวันสอบ',
-            en: { name: 'Study Plan', description: 'A level check and a study plan up to test day.' },
+            en: {
+              name: 'Study Plan',
+              description: 'A level check and a study plan up to test day.',
+            },
             durationMinutes: 45,
             priceBaht: 700,
           },
           {
             name: 'ฝึกเทคนิคครบทุกพาร์ต',
             description: 'ฝึกเทคนิคฟังและอ่านทุกพาร์ตจากข้อสอบเสมือนจริง',
-            en: { name: 'Every Part, Practised', description: 'Listening and reading techniques for every part, using realistic tests.' },
+            en: {
+              name: 'Every Part, Practised',
+              description:
+                'Listening and reading techniques for every part, using realistic tests.',
+            },
             durationMinutes: 90,
             priceBaht: 1300,
           },
@@ -2913,14 +3597,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ฝึกประโยคสำคัญ',
             description: 'ประโยคที่ใช้บ่อยในการประชุมพร้อมฝึกพูดทันที',
-            en: { name: 'Key Phrases', description: 'The phrases you need most in meetings, practised on the spot.' },
+            en: {
+              name: 'Key Phrases',
+              description:
+                'The phrases you need most in meetings, practised on the spot.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'ประชุมจำลอง',
             description: 'ประชุมจำลองจากวาระจริงของคุณพร้อมฟีดแบ็ก',
-            en: { name: 'Mock Meeting', description: 'A mock meeting built from your real agenda, with feedback.' },
+            en: {
+              name: 'Mock Meeting',
+              description:
+                'A mock meeting built from your real agenda, with feedback.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -2943,14 +3635,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'แก้อีเมลจริง',
             description: 'แก้อีเมลที่ส่งมาสามฉบับพร้อมอธิบายเหตุผล',
-            en: { name: 'Fix Real Emails', description: 'Three of your emails edited, with the reasons explained.' },
+            en: {
+              name: 'Fix Real Emails',
+              description:
+                'Three of your emails edited, with the reasons explained.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'แก้อีเมลพร้อมแม่แบบ',
             description: 'แก้อีเมลจริงและทำแม่แบบสำหรับสถานการณ์ที่เจอบ่อย',
-            en: { name: 'Edits and Templates', description: 'Edit your emails and build templates for the situations you meet most.' },
+            en: {
+              name: 'Edits and Templates',
+              description:
+                'Edit your emails and build templates for the situations you meet most.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -2973,14 +3673,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ปรับสคริปต์',
             description: 'ปรับสคริปต์และสไลด์ให้เล่าเรื่องชัด',
-            en: { name: 'Script Edit', description: 'Make your script and slides tell a clear story.' },
+            en: {
+              name: 'Script Edit',
+              description: 'Make your script and slides tell a clear story.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'ปรับสคริปต์และซ้อมเต็มรอบ',
             description: 'ปรับสคริปต์แล้วซ้อมนำเสนอเต็มรอบพร้อมช่วงถามตอบ',
-            en: { name: 'Script and Full Rehearsal', description: 'Edit the script, then rehearse the whole talk including Q&A.' },
+            en: {
+              name: 'Script and Full Rehearsal',
+              description:
+                'Edit the script, then rehearse the whole talk including Q&A.',
+            },
             durationMinutes: 120,
             priceBaht: 2200,
           },
@@ -3017,14 +3724,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วัดระดับและวางแผน',
             description: 'ประเมินระดับและวางแผนอ่านจนถึงวันสอบ',
-            en: { name: 'Level Check and Plan', description: 'Find your level and plan your study up to the exam.' },
+            en: {
+              name: 'Level Check and Plan',
+              description:
+                'Find your level and plan your study up to the exam.',
+            },
             durationMinutes: 45,
             priceBaht: 700,
           },
           {
             name: 'ติวข้อสอบเก่า',
             description: 'ทำข้อสอบเก่าด้วยกันพร้อมอธิบายทุกข้อที่พลาด',
-            en: { name: 'Past Paper Tutoring', description: 'Work through a past paper together, explaining every mistake.' },
+            en: {
+              name: 'Past Paper Tutoring',
+              description:
+                'Work through a past paper together, explaining every mistake.',
+            },
             durationMinutes: 90,
             priceBaht: 1300,
           },
@@ -3047,14 +3762,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ฝึกหนึ่งสถานการณ์',
             description: 'ฝึกสถานการณ์ที่คุณต้องใช้บ่อยที่สุดจนคล่อง',
-            en: { name: 'One Situation', description: 'Practise the situation you face most until it comes easily.' },
+            en: {
+              name: 'One Situation',
+              description:
+                'Practise the situation you face most until it comes easily.',
+            },
             durationMinutes: 60,
             priceBaht: 1000,
           },
           {
             name: 'ฝึกครบทุกขั้นการสั่งซื้อ',
             description: 'ตั้งแต่ขอราคาจนถึงตามของและเคลมสินค้า',
-            en: { name: 'The Whole Order Cycle', description: 'From asking for a quote to chasing delivery and making claims.' },
+            en: {
+              name: 'The Whole Order Cycle',
+              description:
+                'From asking for a quote to chasing delivery and making claims.',
+            },
             durationMinutes: 90,
             priceBaht: 1400,
           },
@@ -3077,14 +3800,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เรียนครั้งละ 30 นาที',
             description: 'บทเรียนสั้นที่พอดีกับสมาธิของเด็กเล็ก',
-            en: { name: '30-Minute Lesson', description: "A short lesson that suits a young child's attention span." },
+            en: {
+              name: '30-Minute Lesson',
+              description:
+                "A short lesson that suits a young child's attention span.",
+            },
             durationMinutes: 30,
             priceBaht: 400,
           },
           {
             name: 'เรียนพร้อมเตรียมสอบ',
             description: 'บทเรียนเต็มชั่วโมงพร้อมฝึกข้อสอบ YCT',
-            en: { name: 'Lesson and Exam Practice', description: 'A full-hour lesson with YCT exam practice.' },
+            en: {
+              name: 'Lesson and Exam Practice',
+              description: 'A full-hour lesson with YCT exam practice.',
+            },
             durationMinutes: 60,
             priceBaht: 750,
           },
@@ -3121,14 +3851,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วัดระดับและวางแผน',
             description: 'ทำข้อสอบวัดระดับและวางแผนอ่านตามคะแนนเป้าหมาย',
-            en: { name: 'Diagnostic and Plan', description: 'A diagnostic test and a study plan for your target score.' },
+            en: {
+              name: 'Diagnostic and Plan',
+              description:
+                'A diagnostic test and a study plan for your target score.',
+            },
             durationMinutes: 45,
             priceBaht: 750,
           },
           {
             name: 'ติว Speaking และ Writing',
             description: 'ฝึกโครงคำตอบและทำโจทย์จริงพร้อมฟีดแบ็ก',
-            en: { name: 'Speaking and Writing Tutoring', description: 'Answer structures and real tasks, with feedback.' },
+            en: {
+              name: 'Speaking and Writing Tutoring',
+              description: 'Answer structures and real tasks, with feedback.',
+            },
             durationMinutes: 90,
             priceBaht: 1400,
           },
@@ -3151,14 +3888,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ตั้งเป้าคะแนน',
             description: 'ดูคะแนนที่หลักสูตรต้องการและระดับปัจจุบันของคุณ',
-            en: { name: 'Set Your Target', description: 'The scores your programmes want, and where you are now.' },
+            en: {
+              name: 'Set Your Target',
+              description:
+                'The scores your programmes want, and where you are now.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'แผนอ่านสามเดือน',
             description: 'แผนอ่านรายสัปดาห์พร้อมแหล่งฝึกที่คุ้มเวลา',
-            en: { name: 'Three-Month Study Plan', description: 'A weekly plan with the practice materials most worth your time.' },
+            en: {
+              name: 'Three-Month Study Plan',
+              description:
+                'A weekly plan with the practice materials most worth your time.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -3182,14 +3927,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คัดหลักสูตร',
             description: 'คัดรายชื่อหลักสูตรที่ตรงกับเป้าหมายและงบ',
-            en: { name: 'Programme Shortlist', description: 'A shortlist of programmes that fit your goals and budget.' },
+            en: {
+              name: 'Programme Shortlist',
+              description:
+                'A shortlist of programmes that fit your goals and budget.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'วางแผนสมัครทั้งรอบ',
             description: 'ไทม์ไลน์ครบตั้งแต่สอบจนถึงวันกดส่งใบสมัคร',
-            en: { name: 'Full Application Plan', description: 'A complete timeline from tests to hitting submit.' },
+            en: {
+              name: 'Full Application Plan',
+              description: 'A complete timeline from tests to hitting submit.',
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
@@ -3213,14 +3965,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'วางเรื่องเรียงความ',
             description: 'หาแก่นเรื่องและวางโครงเรียงความทุกชิ้น',
-            en: { name: 'Essay Strategy', description: 'Find your core story and outline every essay.' },
+            en: {
+              name: 'Essay Strategy',
+              description: 'Find your core story and outline every essay.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'เรียงความและสัมภาษณ์',
             description: 'ตรวจเรียงความแล้วซ้อมสัมภาษณ์เต็มรอบ',
-            en: { name: 'Essays and Interview', description: 'Review your essays, then rehearse a full interview.' },
+            en: {
+              name: 'Essays and Interview',
+              description:
+                'Review your essays, then rehearse a full interview.',
+            },
             durationMinutes: 120,
             priceBaht: 3000,
           },
@@ -3244,14 +4003,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยภาพรวม',
             description: 'ดูความเป็นไปได้ งบประมาณ และสาขาที่เหมาะ',
-            en: { name: 'Overview', description: 'Feasibility, budget and the right subject area.' },
+            en: {
+              name: 'Overview',
+              description: 'Feasibility, budget and the right subject area.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'วางแผนสมัครทั้งปี',
             description: 'คัดรายชื่อมหาวิทยาลัยและทำไทม์ไลน์การสมัครครบทุกขั้น',
-            en: { name: 'Full-Year Application Plan', description: 'A university shortlist and a step-by-step application timeline.' },
+            en: {
+              name: 'Full-Year Application Plan',
+              description:
+                'A university shortlist and a step-by-step application timeline.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -3275,14 +4041,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'หาแก่นเรื่อง',
             description: 'คุยหาเรื่องเด่นและวางโครงเรียงความ',
-            en: { name: 'Find Your Story', description: 'Find your strongest material and outline the essay.' },
+            en: {
+              name: 'Find Your Story',
+              description:
+                'Find your strongest material and outline the essay.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'แก้ร่างทั้งฉบับ',
             description: 'แก้ร่างทีละย่อหน้าจนพร้อมส่ง',
-            en: { name: 'Full Draft Edit', description: 'Edit the draft paragraph by paragraph until it is ready to submit.' },
+            en: {
+              name: 'Full Draft Edit',
+              description:
+                'Edit the draft paragraph by paragraph until it is ready to submit.',
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
@@ -3305,21 +4079,32 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ซ้อมสัมภาษณ์ทุน',
             description: 'สัมภาษณ์จำลองตามรูปแบบจริง พร้อมฟีดแบ็กทุกคำตอบ',
-            en: { name: 'Interview Practice', description: 'A mock interview in the real format, with feedback on every answer.' },
+            en: {
+              name: 'Interview Practice',
+              description:
+                'A mock interview in the real format, with feedback on every answer.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'วางเรื่องเรียงความ',
             description: 'วางประเด็นของทั้งสี่เรียงความให้ไปในทางเดียวกัน',
-            en: { name: 'Essay Strategy', description: 'Plan all four essays so they point the same way.' },
+            en: {
+              name: 'Essay Strategy',
+              description: 'Plan all four essays so they point the same way.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ดูแลครบทั้งใบสมัคร',
             description: 'ตรวจเรียงความทั้งสี่เรื่องและซ้อมสัมภาษณ์ในนัดเดียว',
-            en: { name: 'Whole Application', description: 'Review all four essays and practise the interview in one session.' },
+            en: {
+              name: 'Whole Application',
+              description:
+                'Review all four essays and practise the interview in one session.',
+            },
             durationMinutes: 120,
             priceBaht: 3200,
           },
@@ -3342,14 +4127,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กลิสต์ก่อนบิน',
             description: 'ไล่รายการสิ่งที่ต้องทำให้เสร็จก่อนเดินทาง',
-            en: { name: 'Pre-Departure Checklist', description: 'Everything to get done before you leave.' },
+            en: {
+              name: 'Pre-Departure Checklist',
+              description: 'Everything to get done before you leave.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'วางแผนเดือนแรกที่อังกฤษ',
             description: 'วางงบประมาณ ที่พัก และสิ่งที่ต้องจัดการในเดือนแรก',
-            en: { name: 'Your First Month in the UK', description: 'Budget, accommodation and what to sort out in your first month.' },
+            en: {
+              name: 'Your First Month in the UK',
+              description:
+                'Budget, accommodation and what to sort out in your first month.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -3389,14 +4181,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยคนเดียว',
             description: 'คุยกับฝ่ายใดฝ่ายหนึ่งเพื่อมองความสัมพันธ์ให้ชัดขึ้น',
-            en: { name: 'Individual Session', description: 'One partner on their own, to see the relationship more clearly.' },
+            en: {
+              name: 'Individual Session',
+              description:
+                'One partner on their own, to see the relationship more clearly.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'คุยเป็นคู่',
             description: 'คุยพร้อมกันทั้งสองฝ่ายโดยมีคนกลางช่วยดูแลการสนทนา',
-            en: { name: 'Couple Session', description: 'Both partners together, with the counsellor guiding the conversation.' },
+            en: {
+              name: 'Couple Session',
+              description:
+                'Both partners together, with the counsellor guiding the conversation.',
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
@@ -3420,14 +4220,23 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยหนึ่งชั่วโมง',
             description: 'เล่าสิ่งที่เกิดขึ้นและความรู้สึกในจังหวะของคุณ',
-            en: { name: 'One-Hour Session', description: 'Talk about what happened and how you feel, at your own pace.' },
+            en: {
+              name: 'One-Hour Session',
+              description:
+                'Talk about what happened and how you feel, at your own pace.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
           {
             name: 'คุยแบบไม่เร่งรีบ',
-            description: 'เวลาที่มากพอสำหรับเรื่องที่ซับซ้อน เช่น ลูกหรือทรัพย์สิน',
-            en: { name: 'Unhurried Session', description: 'Enough time for complicated matters such as children or shared property.' },
+            description:
+              'เวลาที่มากพอสำหรับเรื่องที่ซับซ้อน เช่น ลูกหรือทรัพย์สิน',
+            en: {
+              name: 'Unhurried Session',
+              description:
+                'Enough time for complicated matters such as children or shared property.',
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -3451,14 +4260,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยให้โล่ง',
             description: 'พื้นที่ระบายความเหนื่อยและความรู้สึกผิด',
-            en: { name: 'Talk It Out', description: 'Space to let out the exhaustion and the guilt.' },
+            en: {
+              name: 'Talk It Out',
+              description: 'Space to let out the exhaustion and the guilt.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'คุยพร้อมวางแผนแบ่งภาระ',
             description: 'คุยและวางแผนแบ่งงานดูแลกับคนในครอบครัว',
-            en: { name: 'Talk and Share the Load', description: 'Talk it through, then plan how to share caring with your family.' },
+            en: {
+              name: 'Talk and Share the Load',
+              description:
+                'Talk it through, then plan how to share caring with your family.',
+            },
             durationMinutes: 75,
             priceBaht: 1300,
           },
@@ -3496,14 +4312,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ฝึกเทคนิคแรก',
             description: 'ฝึกเทคนิคสั้นสองแบบที่เริ่มใช้ได้พรุ่งนี้',
-            en: { name: 'First Techniques', description: 'Two short techniques you can start using tomorrow.' },
+            en: {
+              name: 'First Techniques',
+              description: 'Two short techniques you can start using tomorrow.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'วางกิจวัตรฝึกสติ',
             description: 'ฝึกหลายเทคนิคและวางกิจวัตรที่เข้ากับตารางงานของคุณ',
-            en: { name: 'Build a Practice Routine', description: 'Several techniques, plus a routine that fits your work schedule.' },
+            en: {
+              name: 'Build a Practice Routine',
+              description:
+                'Several techniques, plus a routine that fits your work schedule.',
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -3526,14 +4349,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เลือกเป้าหมาย',
             description: 'ทบทวนและเลือกเป้าหมายที่สำคัญจริง',
-            en: { name: 'Choose Your Goals', description: 'Reflect and pick the goals that really matter.' },
+            en: {
+              name: 'Choose Your Goals',
+              description: 'Reflect and pick the goals that really matter.',
+            },
             durationMinutes: 45,
             priceBaht: 750,
           },
           {
             name: 'เป้าหมายพร้อมแผนนิสัย',
-            description: 'เลือกเป้าหมายและแตกเป็นนิสัยรายสัปดาห์พร้อมวิธีติดตาม',
-            en: { name: 'Goals and Habit Plan', description: 'Choose your goals and turn them into weekly habits with a way to track them.' },
+            description:
+              'เลือกเป้าหมายและแตกเป็นนิสัยรายสัปดาห์พร้อมวิธีติดตาม',
+            en: {
+              name: 'Goals and Habit Plan',
+              description:
+                'Choose your goals and turn them into weekly habits with a way to track them.',
+            },
             durationMinutes: 90,
             priceBaht: 1300,
           },
@@ -3556,14 +4387,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'ดูว่าเวลาหายไปไหน',
             description: 'ไล่ดูหนึ่งสัปดาห์ของคุณและหาสิ่งที่ปล่อยได้',
-            en: { name: 'Where Your Time Goes', description: 'Go through a week of your life and find what can be let go.' },
+            en: {
+              name: 'Where Your Time Goes',
+              description:
+                'Go through a week of your life and find what can be let go.',
+            },
             durationMinutes: 45,
             priceBaht: 750,
           },
           {
             name: 'วางสมดุลใหม่',
             description: 'วางตารางชีวิตใหม่พร้อมวิธีคุยแบ่งงานกับคนในบ้าน',
-            en: { name: 'A New Balance', description: 'A new weekly rhythm, and how to share tasks with the people at home.' },
+            en: {
+              name: 'A New Balance',
+              description:
+                'A new weekly rhythm, and how to share tasks with the people at home.',
+            },
             durationMinutes: 75,
             priceBaht: 1200,
           },
@@ -3586,14 +4425,22 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'จัดการความตื่นเต้น',
             description: 'เทคนิคหายใจและเตรียมตัวก่อนพูด',
-            en: { name: 'Handle the Nerves', description: 'Breathing and preparation techniques for before you speak.' },
+            en: {
+              name: 'Handle the Nerves',
+              description:
+                'Breathing and preparation techniques for before you speak.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'ฝึกพร้อมซ้อมพูดจริง',
             description: 'ฝึกเทคนิคแล้วซ้อมพูดเรื่องที่คุณต้องพูดจริง',
-            en: { name: 'Practise With a Real Talk', description: 'Learn the techniques, then rehearse a talk you actually have to give.' },
+            en: {
+              name: 'Practise With a Real Talk',
+              description:
+                'Learn the techniques, then rehearse a talk you actually have to give.',
+            },
             durationMinutes: 90,
             priceBaht: 1400,
           },
@@ -3616,14 +4463,21 @@ export const PART_C: readonly CatalogueAdvisor[] = [
           {
             name: 'เรียนชุดท่าแรก',
             description: 'ฝึกชุดท่า 20 นาทีพร้อมการหายใจ',
-            en: { name: 'First Routine', description: 'Learn a 20-minute routine with breathing.' },
+            en: {
+              name: 'First Routine',
+              description: 'Learn a 20-minute routine with breathing.',
+            },
             durationMinutes: 30,
             priceBaht: 400,
           },
           {
             name: 'ชุดท่าปรับตามร่างกาย',
             description: 'ปรับท่าให้เข้ากับจุดที่ตึงและความยืดหยุ่นของคุณ',
-            en: { name: 'Routine Tailored to You', description: 'Adapt the poses to where you feel tight and how flexible you are.' },
+            en: {
+              name: 'Routine Tailored to You',
+              description:
+                'Adapt the poses to where you feel tight and how flexible you are.',
+            },
             durationMinutes: 60,
             priceBaht: 700,
           },

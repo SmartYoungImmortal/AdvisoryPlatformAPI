@@ -1,4 +1,8 @@
-import type { CatalogueAdvisor, CataloguePackage, CatalogueService } from './types';
+import type {
+  CatalogueAdvisor,
+  CataloguePackage,
+  CatalogueService,
+} from './types';
 
 /**
  * Part B of the large demo catalogue: business, work and law. Advisors in
@@ -67,14 +71,35 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Facebook Ads for an Online Clothing Shop on 300 Baht a Day',
           description:
-            "For clothing shops new to ads, or already running them without getting messages. We build a real campaign in your account together, from the audience and images to the message prompt, then split the 300 baht so you can test in the first week. You leave with a live campaign and clear rules for when to switch an ad off.",
+            'For clothing shops new to ads, or already running them without getting messages. We build a real campaign in your account together, from the audience and images to the message prompt, then split the 300 baht so you can test in the first week. You leave with a live campaign and clear rules for when to switch an ad off.',
         },
         category: SHOP,
         photos: [photo(7857577), photo(5531746)],
         packages: [
-          pkg(30, 600, 'ตรวจแอดที่ยิงอยู่', 'ดูแคมเปญที่เปิดอยู่แล้วชี้ว่าเงินรั่วตรงไหน', 'Check My Current Ads', 'A look at the campaigns you already run, to find where the money leaks.'),
-          pkg(60, 1200, 'ตั้งแคมเปญใหม่ด้วยกัน', 'ตั้งแคมเปญทดสอบตั้งแต่ศูนย์ในบัญชีของคุณจนเปิดใช้งานได้', 'Build a Campaign Together', 'Build a test campaign from scratch in your account, through to going live.'),
-          pkg(90, 1900, 'แคมเปญพร้อมชุดข้อความ', 'ตั้งแคมเปญและเขียนข้อความโฆษณาชุดแรก 5 ชิ้นไว้สลับทดสอบ', 'Campaign Plus Ad Copy', 'Set up the campaign and write a first set of five ad captions to rotate.'),
+          pkg(
+            30,
+            600,
+            'ตรวจแอดที่ยิงอยู่',
+            'ดูแคมเปญที่เปิดอยู่แล้วชี้ว่าเงินรั่วตรงไหน',
+            'Check My Current Ads',
+            'A look at the campaigns you already run, to find where the money leaks.',
+          ),
+          pkg(
+            60,
+            1200,
+            'ตั้งแคมเปญใหม่ด้วยกัน',
+            'ตั้งแคมเปญทดสอบตั้งแต่ศูนย์ในบัญชีของคุณจนเปิดใช้งานได้',
+            'Build a Campaign Together',
+            'Build a test campaign from scratch in your account, through to going live.',
+          ),
+          pkg(
+            90,
+            1900,
+            'แคมเปญพร้อมชุดข้อความ',
+            'ตั้งแคมเปญและเขียนข้อความโฆษณาชุดแรก 5 ชิ้นไว้สลับทดสอบ',
+            'Campaign Plus Ad Copy',
+            'Set up the campaign and write a first set of five ad captions to rotate.',
+          ),
         ],
       }),
       service({
@@ -90,8 +115,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(12969403), photo(577195)],
         packages: [
-          pkg(30, 700, 'ถามเฉพาะจุด', 'ดูแคมเปญเดียวที่สงสัยและตอบว่าควรไปต่อหรือหยุด', 'One Campaign, One Answer', 'Look at the one campaign you are unsure about and decide: keep going or stop.'),
-          pkg(60, 1400, 'ไล่ทั้งบัญชี', 'ไล่ทุกแคมเปญในบัญชีและตั้งเกณฑ์ต้นทุนต่อลูกค้าร่วมกัน', 'Whole Account Review', 'Go through every campaign in the account and agree on a target cost per customer.'),
+          pkg(
+            30,
+            700,
+            'ถามเฉพาะจุด',
+            'ดูแคมเปญเดียวที่สงสัยและตอบว่าควรไปต่อหรือหยุด',
+            'One Campaign, One Answer',
+            'Look at the one campaign you are unsure about and decide: keep going or stop.',
+          ),
+          pkg(
+            60,
+            1400,
+            'ไล่ทั้งบัญชี',
+            'ไล่ทุกแคมเปญในบัญชีและตั้งเกณฑ์ต้นทุนต่อลูกค้าร่วมกัน',
+            'Whole Account Review',
+            'Go through every campaign in the account and agree on a target cost per customer.',
+          ),
         ],
       }),
       service({
@@ -106,8 +145,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: SHOP,
         photos: [photo(4921398), photo(7343000)],
         packages: [
-          pkg(30, 600, 'ดูแชทตัวอย่าง', 'ไล่แชท 10 ห้องล่าสุดและชี้จุดที่ทำให้ลูกค้าหลุด', 'Chat Sample Review', 'Read your last ten chats and point out where customers slip away.'),
-          pkg(60, 1300, 'เขียนสคริปต์ครบชุด', 'เขียนข้อความตอบทุกขั้นตั้งแต่ทักแรกจนปิดการขายและตามลูกค้า', 'Full Chat Script', 'Write replies for every step, from first message to closing and follow-up.'),
+          pkg(
+            30,
+            600,
+            'ดูแชทตัวอย่าง',
+            'ไล่แชท 10 ห้องล่าสุดและชี้จุดที่ทำให้ลูกค้าหลุด',
+            'Chat Sample Review',
+            'Read your last ten chats and point out where customers slip away.',
+          ),
+          pkg(
+            60,
+            1300,
+            'เขียนสคริปต์ครบชุด',
+            'เขียนข้อความตอบทุกขั้นตั้งแต่ทักแรกจนปิดการขายและตามลูกค้า',
+            'Full Chat Script',
+            'Write replies for every step, from first message to closing and follow-up.',
+          ),
         ],
       }),
       service({
@@ -122,8 +175,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: BIZ,
         photos: [photo(14680058), photo(5864208)],
         packages: [
-          pkg(45, 900, 'วางแผนเร็ว', 'กำหนดพื้นที่ งบ และข้อความหลักของแคมเปญ', 'Quick Plan', 'Set the area, the budget and the main message for the campaign.'),
-          pkg(90, 2000, 'วางแคมเปญเต็ม', 'ตั้งแคมเปญในบัญชีจริงพร้อมวิธีนับลูกค้าที่มาจากแอด', 'Full Campaign Build', 'Build the campaign in your account, with a way to count customers who came from ads.'),
+          pkg(
+            45,
+            900,
+            'วางแผนเร็ว',
+            'กำหนดพื้นที่ งบ และข้อความหลักของแคมเปญ',
+            'Quick Plan',
+            'Set the area, the budget and the main message for the campaign.',
+          ),
+          pkg(
+            90,
+            2000,
+            'วางแคมเปญเต็ม',
+            'ตั้งแคมเปญในบัญชีจริงพร้อมวิธีนับลูกค้าที่มาจากแอด',
+            'Full Campaign Build',
+            'Build the campaign in your account, with a way to count customers who came from ads.',
+          ),
         ],
       }),
     ],
@@ -136,7 +203,8 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     headline: 'ที่ปรึกษาระบบงาน แฟรนไชส์ และการขายเข้าร้านค้าปลีกสำหรับ SME',
     bio: 'อดีตผู้อำนวยการฝ่ายปฏิบัติการของเครือร้านอาหารที่มีกว่า 60 สาขา ดูแลการขยายสาขา ระบบแฟรนไชส์ และการนำสินค้าของเครือเข้าร้านค้าปลีกมา 15 ปี ช่วยเจ้าของกิจการที่ยังต้องเฝ้าร้านทุกวันวางระบบให้ร้านเดินเองได้ ช่วยผู้ผลิตรายย่อยวางแบรนด์และเตรียมตัวก่อนคุยกับฝ่ายจัดซื้อของห้าง และประเมินอย่างตรงไปตรงมาว่าธุรกิจพร้อมขยายหรือยัง',
     en: {
-      headline: 'Operations, Franchise, and Retail Distribution Advisor for SMEs',
+      headline:
+        'Operations, Franchise, and Retail Distribution Advisor for SMEs',
       bio: "Former director of operations for a restaurant chain with more than 60 branches, running expansion, franchising, and getting the chain's own products into retail stores for 15 years. Helps owners who still have to be at the shop every day build systems so it runs without them, helps small producers shape their brand and prepare before meeting a retailer's buying team, and gives an honest view on whether the business is ready to grow.",
     },
     services: [
@@ -153,8 +221,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(32550092), photo(1366594), photo(7451957)],
         packages: [
-          pkg(60, 1800, 'ประเมินความพร้อม', 'ดูสินค้า ราคา และกำลังผลิตว่าพร้อมคุยกับห้างหรือยัง', 'Readiness Check', 'Check your product, price and capacity to see if you are ready to talk to a chain.'),
-          pkg(120, 3800, 'เตรียมเจรจาครบชุด', 'คำนวณราคาทุกช่องทาง เตรียมเอกสาร และซ้อมตอบคำถามฝ่ายจัดซื้อ', 'Full Negotiation Prep', 'Price every channel, prepare the documents and rehearse the buyer\'s questions.'),
+          pkg(
+            60,
+            1800,
+            'ประเมินความพร้อม',
+            'ดูสินค้า ราคา และกำลังผลิตว่าพร้อมคุยกับห้างหรือยัง',
+            'Readiness Check',
+            'Check your product, price and capacity to see if you are ready to talk to a chain.',
+          ),
+          pkg(
+            120,
+            3800,
+            'เตรียมเจรจาครบชุด',
+            'คำนวณราคาทุกช่องทาง เตรียมเอกสาร และซ้อมตอบคำถามฝ่ายจัดซื้อ',
+            'Full Negotiation Prep',
+            "Price every channel, prepare the documents and rehearse the buyer's questions.",
+          ),
         ],
       }),
       service({
@@ -164,13 +246,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Build a Brand for Local Souvenirs and Community Products',
           description:
-            "Hill-grown coffee, chilli paste or hand-woven cloth that only sells at market-stall prices? We start from who really buys it and why, then rework the name, the story and the packaging to suit those buyers. You leave with a one-page brand guide you can hand straight to a designer.",
+            'Hill-grown coffee, chilli paste or hand-woven cloth that only sells at market-stall prices? We start from who really buys it and why, then rework the name, the story and the packaging to suit those buyers. You leave with a one-page brand guide you can hand straight to a designer.',
         },
         category: BIZ,
         photos: [photo(7657849), photo(4464920)],
         packages: [
-          pkg(45, 900, 'หามุมขายใหม่', 'หาคนซื้อหลักและจุดขายที่ทำให้ตั้งราคาสูงขึ้นได้', 'Find a New Angle', 'Find your core buyer and the selling point that justifies a higher price.'),
-          pkg(90, 2400, 'แนวทางแบรนด์ครบชุด', 'วางชื่อ เรื่องเล่า โทนภาพ และบรีฟบรรจุภัณฑ์สำหรับนักออกแบบ', 'Full Brand Guide', 'Set the name, story, visual tone and a packaging brief for your designer.'),
+          pkg(
+            45,
+            900,
+            'หามุมขายใหม่',
+            'หาคนซื้อหลักและจุดขายที่ทำให้ตั้งราคาสูงขึ้นได้',
+            'Find a New Angle',
+            'Find your core buyer and the selling point that justifies a higher price.',
+          ),
+          pkg(
+            90,
+            2400,
+            'แนวทางแบรนด์ครบชุด',
+            'วางชื่อ เรื่องเล่า โทนภาพ และบรีฟบรรจุภัณฑ์สำหรับนักออกแบบ',
+            'Full Brand Guide',
+            'Set the name, story, visual tone and a packaging brief for your designer.',
+          ),
         ],
       }),
       service({
@@ -178,7 +274,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         description:
           'สำหรับเจ้าของสินค้าที่เริ่มมีตัวแทนและร้านค้าส่ง แล้วเจอปัญหาตัดราคากันเอง วางโครงราคาแต่ละระดับ ส่วนลดตามจำนวน และกติกาการขายออนไลน์ของตัวแทน ออกไปพร้อมตารางราคาที่ประกาศใช้ได้ทันที',
         en: {
-          name: 'Set Wholesale, Retail and Reseller Prices That Don\'t Clash',
+          name: "Set Wholesale, Retail and Reseller Prices That Don't Clash",
           description:
             'For product owners who now have resellers and wholesalers and are seeing them undercut each other. We set a price for each tier, volume discounts, and rules for how resellers may sell online. You leave with a price table you can announce right away.',
         },
@@ -186,8 +282,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(4483862), photo(7019222)],
         packages: [
-          pkg(30, 600, 'ตรวจราคาที่ใช้อยู่', 'ดูโครงราคาปัจจุบันและชี้ช่องที่ทำให้ตัวแทนตัดราคา', 'Review Current Prices', 'Review your current price structure and spot the gaps resellers exploit.'),
-          pkg(60, 1500, 'วางโครงราคาใหม่', 'วางราคาทุกระดับพร้อมส่วนลดและกติกาสำหรับตัวแทน', 'New Price Structure', 'Set every price tier with discounts and rules for resellers.'),
+          pkg(
+            30,
+            600,
+            'ตรวจราคาที่ใช้อยู่',
+            'ดูโครงราคาปัจจุบันและชี้ช่องที่ทำให้ตัวแทนตัดราคา',
+            'Review Current Prices',
+            'Review your current price structure and spot the gaps resellers exploit.',
+          ),
+          pkg(
+            60,
+            1500,
+            'วางโครงราคาใหม่',
+            'วางราคาทุกระดับพร้อมส่วนลดและกติกาสำหรับตัวแทน',
+            'New Price Structure',
+            'Set every price tier with discounts and rules for resellers.',
+          ),
         ],
       }),
       service({
@@ -202,8 +312,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: BIZ,
         photos: [photo(8518810), photo(7710077)],
         packages: [
-          pkg(60, 1500, 'เทียบคู่แข่ง', 'เทียบคู่แข่ง 3 รายและหาช่องว่างในตลาด', 'Competitor Comparison', 'Compare three competitors and find the gap in the market.'),
-          pkg(120, 3500, 'เวิร์กช็อปกับทีม', 'ทำเวิร์กช็อปกับทีมจนได้ตำแหน่งแบรนด์และข้อความหลักที่ตกลงกันแล้ว', 'Team Workshop', 'A workshop with your team that ends with an agreed position and key messages.'),
+          pkg(
+            60,
+            1500,
+            'เทียบคู่แข่ง',
+            'เทียบคู่แข่ง 3 รายและหาช่องว่างในตลาด',
+            'Competitor Comparison',
+            'Compare three competitors and find the gap in the market.',
+          ),
+          pkg(
+            120,
+            3500,
+            'เวิร์กช็อปกับทีม',
+            'ทำเวิร์กช็อปกับทีมจนได้ตำแหน่งแบรนด์และข้อความหลักที่ตกลงกันแล้ว',
+            'Team Workshop',
+            'A workshop with your team that ends with an agreed position and key messages.',
+          ),
         ],
       }),
       service({
@@ -213,14 +337,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Write SOPs So the Shop Runs Without You There Every Day',
           description:
-            "For owners whose shop stumbles the moment they take a day off. We walk through the day from opening to closing, pick which tasks to write up first, and design checklists staff will actually use. You leave with an SOP template and a daily checklist for your shop.",
+            'For owners whose shop stumbles the moment they take a day off. We walk through the day from opening to closing, pick which tasks to write up first, and design checklists staff will actually use. You leave with an SOP template and a daily checklist for your shop.',
         },
         category: BIZ,
         screeningRequired: true,
         photos: [photo(8895214), photo(18617712)],
         packages: [
-          pkg(60, 1500, 'หางานที่ต้องเขียนก่อน', 'ไล่งานทั้งวันและเลือก 5 งานที่ต้องมีขั้นตอนก่อน', 'Find What to Write First', 'Map the working day and pick the five tasks that need procedures first.'),
-          pkg(120, 3500, 'เขียน SOP ด้วยกัน', 'เขียน SOP และรายการตรวจของงานหลักให้เสร็จในนัด', 'Write the SOPs Together', 'Write the SOPs and checklists for your core tasks within the session.'),
+          pkg(
+            60,
+            1500,
+            'หางานที่ต้องเขียนก่อน',
+            'ไล่งานทั้งวันและเลือก 5 งานที่ต้องมีขั้นตอนก่อน',
+            'Find What to Write First',
+            'Map the working day and pick the five tasks that need procedures first.',
+          ),
+          pkg(
+            120,
+            3500,
+            'เขียน SOP ด้วยกัน',
+            'เขียน SOP และรายการตรวจของงานหลักให้เสร็จในนัด',
+            'Write the SOPs Together',
+            'Write the SOPs and checklists for your core tasks within the session.',
+          ),
         ],
       }),
       service({
@@ -236,8 +374,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(30424439), photo(16563658)],
         packages: [
-          pkg(60, 2000, 'ประเมินเบื้องต้น', 'ดูตัวเลขและระบบที่มีแล้วสรุปว่าพร้อมแค่ไหน', 'First Assessment', 'Review your numbers and systems and sum up how ready you are.'),
-          pkg(180, 6500, 'วางโมเดลแฟรนไชส์', 'วางค่าแรกเข้า ค่าธรรมเนียม และสิ่งที่แฟรนไชส์ซีจะได้รับ', 'Design the Franchise Model', 'Set the joining fee, royalties and exactly what franchisees will get.'),
+          pkg(
+            60,
+            2000,
+            'ประเมินเบื้องต้น',
+            'ดูตัวเลขและระบบที่มีแล้วสรุปว่าพร้อมแค่ไหน',
+            'First Assessment',
+            'Review your numbers and systems and sum up how ready you are.',
+          ),
+          pkg(
+            180,
+            6500,
+            'วางโมเดลแฟรนไชส์',
+            'วางค่าแรกเข้า ค่าธรรมเนียม และสิ่งที่แฟรนไชส์ซีจะได้รับ',
+            'Design the Franchise Model',
+            'Set the joining fee, royalties and exactly what franchisees will get.',
+          ),
         ],
       }),
       service({
@@ -252,8 +404,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FOOD,
         photos: [photo(239975), photo(36815720)],
         packages: [
-          pkg(45, 900, 'อ่านข้อเสนอ', 'อ่านเอกสารแฟรนไชส์และชี้ค่าใช้จ่ายที่ซ่อนอยู่', 'Read the Offer', 'Read the franchise documents and point out the hidden costs.'),
-          pkg(90, 2200, 'คำนวณคุ้มทุน', 'คำนวณจุดคุ้มทุนตามทำเลจริงและเทียบกับอีกแบรนด์ที่สนใจ', 'Break-Even Check', 'Work out break-even for your actual location and compare with another brand you are considering.'),
+          pkg(
+            45,
+            900,
+            'อ่านข้อเสนอ',
+            'อ่านเอกสารแฟรนไชส์และชี้ค่าใช้จ่ายที่ซ่อนอยู่',
+            'Read the Offer',
+            'Read the franchise documents and point out the hidden costs.',
+          ),
+          pkg(
+            90,
+            2200,
+            'คำนวณคุ้มทุน',
+            'คำนวณจุดคุ้มทุนตามทำเลจริงและเทียบกับอีกแบรนด์ที่สนใจ',
+            'Break-Even Check',
+            'Work out break-even for your actual location and compare with another brand you are considering.',
+          ),
         ],
       }),
       service({
@@ -263,14 +429,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Learn to Read Your Own Profit and Loss in One Hour',
           description:
-            "Your accountant sends you statements every year and you never read them? We open yours together line by line: where the money goes, what you really make each month, and which figures to watch monthly. You leave with a one-page summary of key numbers to track yourself.",
+            'Your accountant sends you statements every year and you never read them? We open yours together line by line: where the money goes, what you really make each month, and which figures to watch monthly. You leave with a one-page summary of key numbers to track yourself.',
         },
         category: BIZ,
         trialMinutes: 15,
         photos: [photo(33175649), photo(16098005)],
         packages: [
-          pkg(60, 1200, 'อ่านงบด้วยกัน', 'อ่านงบกำไรขาดทุนปีล่าสุดของคุณทีละบรรทัด', 'Read It Together', "Go through last year's profit and loss line by line."),
-          pkg(90, 1900, 'อ่านงบพร้อมวางตัวชี้วัด', 'อ่านงบแล้วตั้งตัวเลข 5 ตัวที่ต้องติดตามทุกเดือน', 'Read It and Set Your Numbers', 'Read the statements, then set the five numbers to track every month.'),
+          pkg(
+            60,
+            1200,
+            'อ่านงบด้วยกัน',
+            'อ่านงบกำไรขาดทุนปีล่าสุดของคุณทีละบรรทัด',
+            'Read It Together',
+            "Go through last year's profit and loss line by line.",
+          ),
+          pkg(
+            90,
+            1900,
+            'อ่านงบพร้อมวางตัวชี้วัด',
+            'อ่านงบแล้วตั้งตัวเลข 5 ตัวที่ต้องติดตามทุกเดือน',
+            'Read It and Set Your Numbers',
+            'Read the statements, then set the five numbers to track every month.',
+          ),
         ],
       }),
     ],
@@ -300,8 +480,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(12199411), photo(13929770)],
         packages: [
-          pkg(45, 800, 'วางรูปแบบคลิป', 'เลือกรูปแบบคลิป 3 แบบที่เหมาะกับร้านและเขียนโครงเรื่อง', 'Pick Your Formats', 'Choose three video formats that suit your shop and outline them.'),
-          pkg(90, 1800, 'ถ่ายและตัดด้วยกัน', 'ถ่ายและตัดต่อคลิปแรกบนมือถือของคุณจนพร้อมโพสต์', 'Shoot and Edit Together', 'Shoot and edit your first video on your own phone until it is ready to post.'),
+          pkg(
+            45,
+            800,
+            'วางรูปแบบคลิป',
+            'เลือกรูปแบบคลิป 3 แบบที่เหมาะกับร้านและเขียนโครงเรื่อง',
+            'Pick Your Formats',
+            'Choose three video formats that suit your shop and outline them.',
+          ),
+          pkg(
+            90,
+            1800,
+            'ถ่ายและตัดด้วยกัน',
+            'ถ่ายและตัดต่อคลิปแรกบนมือถือของคุณจนพร้อมโพสต์',
+            'Shoot and Edit Together',
+            'Shoot and edit your first video on your own phone until it is ready to post.',
+          ),
         ],
       }),
       service({
@@ -316,8 +510,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: BIZ,
         photos: [photo(7710049), photo(9413665)],
         packages: [
-          pkg(60, 1200, 'ปฏิทินหนึ่งเดือน', 'วางสัดส่วนคอนเทนต์และหัวข้อครบ 30 วัน', 'One-Month Calendar', 'Set the content mix and fill 30 days with topics.'),
-          pkg(90, 1900, 'ปฏิทินพร้อมแคปชัน', 'วางปฏิทินและเขียนแคปชันสัปดาห์แรกให้พร้อมโพสต์', 'Calendar Plus Captions', 'Plan the calendar and write the first week of captions, ready to post.'),
+          pkg(
+            60,
+            1200,
+            'ปฏิทินหนึ่งเดือน',
+            'วางสัดส่วนคอนเทนต์และหัวข้อครบ 30 วัน',
+            'One-Month Calendar',
+            'Set the content mix and fill 30 days with topics.',
+          ),
+          pkg(
+            90,
+            1900,
+            'ปฏิทินพร้อมแคปชัน',
+            'วางปฏิทินและเขียนแคปชันสัปดาห์แรกให้พร้อมโพสต์',
+            'Calendar Plus Captions',
+            'Plan the calendar and write the first week of captions, ready to post.',
+          ),
         ],
       }),
       service({
@@ -327,13 +535,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Find Creators to Review Your Product, at the Right Price',
           description:
-            "Want creators to review your product but unsure whom to pick or what to pay? We cover how to judge creators by real reach rather than follower count, set a budget from the results you expect, and write the brief and outreach message. You leave with a shortlist to contact and a ready brief.",
+            'Want creators to review your product but unsure whom to pick or what to pay? We cover how to judge creators by real reach rather than follower count, set a budget from the results you expect, and write the brief and outreach message. You leave with a shortlist to contact and a ready brief.',
         },
         category: BIZ,
         photos: [photo(6347571), photo(6347590)],
         packages: [
-          pkg(45, 900, 'คัดรายชื่อ', 'คัดครีเอเตอร์ 5 รายที่เหมาะกับสินค้าและงบ', 'Build a Shortlist', 'Shortlist five creators who fit your product and budget.'),
-          pkg(90, 2000, 'คัดรายชื่อพร้อมบรีฟ', 'คัดรายชื่อ ตั้งงบ และเขียนบรีฟกับข้อความติดต่อให้เสร็จ', 'Shortlist Plus Brief', 'Shortlist, set the budget, and finish the brief and outreach message.'),
+          pkg(
+            45,
+            900,
+            'คัดรายชื่อ',
+            'คัดครีเอเตอร์ 5 รายที่เหมาะกับสินค้าและงบ',
+            'Build a Shortlist',
+            'Shortlist five creators who fit your product and budget.',
+          ),
+          pkg(
+            90,
+            2000,
+            'คัดรายชื่อพร้อมบรีฟ',
+            'คัดรายชื่อ ตั้งงบ และเขียนบรีฟกับข้อความติดต่อให้เสร็จ',
+            'Shortlist Plus Brief',
+            'Shortlist, set the budget, and finish the brief and outreach message.',
+          ),
         ],
       }),
       service({
@@ -348,8 +570,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: SHOP,
         photos: [photo(7676488), photo(7482005)],
         packages: [
-          pkg(30, 600, 'ตรวจคลิปเดิม', 'ดูคลิปขาย 5 ชิ้นล่าสุดและชี้จุดที่ต้องแก้', 'Review Past Videos', 'Review your last five sales videos and show what to fix.'),
-          pkg(60, 1300, 'เขียนสคริปต์ขาย', 'วางโครงและเขียนสคริปต์คลิปขาย 5 ชิ้นสำหรับสินค้าหลัก', 'Write Sales Scripts', 'Outline and write five sales video scripts for your main products.'),
+          pkg(
+            30,
+            600,
+            'ตรวจคลิปเดิม',
+            'ดูคลิปขาย 5 ชิ้นล่าสุดและชี้จุดที่ต้องแก้',
+            'Review Past Videos',
+            'Review your last five sales videos and show what to fix.',
+          ),
+          pkg(
+            60,
+            1300,
+            'เขียนสคริปต์ขาย',
+            'วางโครงและเขียนสคริปต์คลิปขาย 5 ชิ้นสำหรับสินค้าหลัก',
+            'Write Sales Scripts',
+            'Outline and write five sales video scripts for your main products.',
+          ),
         ],
       }),
     ],
@@ -379,8 +615,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(8112180), photo(8297220)],
         packages: [
-          pkg(30, 700, 'ตรวจใบเสนอราคา', 'ตรวจใบเสนอราคาหนึ่งฉบับและบอกจุดที่ต้องแก้', 'Quotation Check', 'Review one quotation and mark what to change.'),
-          pkg(60, 1500, 'ทำแม่แบบใหม่', 'ทำแม่แบบใบเสนอราคาและอีเมลติดตามที่ใช้ได้ทุกงาน', 'New Template', 'Build a quotation template and follow-up email for every deal.'),
+          pkg(
+            30,
+            700,
+            'ตรวจใบเสนอราคา',
+            'ตรวจใบเสนอราคาหนึ่งฉบับและบอกจุดที่ต้องแก้',
+            'Quotation Check',
+            'Review one quotation and mark what to change.',
+          ),
+          pkg(
+            60,
+            1500,
+            'ทำแม่แบบใหม่',
+            'ทำแม่แบบใบเสนอราคาและอีเมลติดตามที่ใช้ได้ทุกงาน',
+            'New Template',
+            'Build a quotation template and follow-up email for every deal.',
+          ),
         ],
       }),
       service({
@@ -390,14 +640,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Targets and Commission for a Five-Person Sales Team',
           description:
-            "Your sales team has grown, but commission is still a verbal agreement. We set individual targets from past results, design commission tiers that push sales without eating your margin, and plan a weekly pipeline meeting. You leave with a target table and a commission formula.",
+            'Your sales team has grown, but commission is still a verbal agreement. We set individual targets from past results, design commission tiers that push sales without eating your margin, and plan a weekly pipeline meeting. You leave with a target table and a commission formula.',
         },
         category: BIZ,
         screeningRequired: true,
         photos: [photo(5439481), photo(7651717)],
         packages: [
-          pkg(60, 1800, 'วางเป้าทีม', 'ตั้งเป้ารายคนและรายไตรมาสจากยอดขายที่ผ่านมา', 'Set Team Targets', 'Set individual and quarterly targets from past sales.'),
-          pkg(120, 3800, 'เป้าพร้อมคอมมิชชัน', 'ตั้งเป้า ออกแบบคอมมิชชัน และคำนวณผลต่อกำไรให้เห็นก่อนใช้จริง', 'Targets and Commission', 'Set targets, design commission and show the effect on profit before rollout.'),
+          pkg(
+            60,
+            1800,
+            'วางเป้าทีม',
+            'ตั้งเป้ารายคนและรายไตรมาสจากยอดขายที่ผ่านมา',
+            'Set Team Targets',
+            'Set individual and quarterly targets from past sales.',
+          ),
+          pkg(
+            120,
+            3800,
+            'เป้าพร้อมคอมมิชชัน',
+            'ตั้งเป้า ออกแบบคอมมิชชัน และคำนวณผลต่อกำไรให้เห็นก่อนใช้จริง',
+            'Targets and Commission',
+            'Set targets, design commission and show the effect on profit before rollout.',
+          ),
         ],
       }),
       service({
@@ -407,13 +671,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Prepare Your First Government e-Bidding Submission',
           description:
-            "For businesses that want to sell to the government but have never bid. We go through registering on the government procurement system, reading the terms of reference, preparing proof of past work and the bid bond. You leave with a document checklist and a timeline for your first bid.",
+            'For businesses that want to sell to the government but have never bid. We go through registering on the government procurement system, reading the terms of reference, preparing proof of past work and the bid bond. You leave with a document checklist and a timeline for your first bid.',
         },
         category: BIZ,
         photos: [photo(357514), photo(8468119)],
         packages: [
-          pkg(60, 1800, 'ไล่ขั้นตอนทั้งหมด', 'อธิบายขั้นตอนและเอกสารที่ต้องใช้ตั้งแต่ลงทะเบียนจนยื่นซอง', 'Walk Through the Process', 'Explain every step and document, from registration to submission.'),
-          pkg(120, 4200, 'เตรียมงานจริง', 'อ่านขอบเขตงานที่จะยื่นจริงและเตรียมเอกสารไปพร้อมกัน', 'Prepare a Real Bid', 'Read the actual terms of reference and prepare the documents together.'),
+          pkg(
+            60,
+            1800,
+            'ไล่ขั้นตอนทั้งหมด',
+            'อธิบายขั้นตอนและเอกสารที่ต้องใช้ตั้งแต่ลงทะเบียนจนยื่นซอง',
+            'Walk Through the Process',
+            'Explain every step and document, from registration to submission.',
+          ),
+          pkg(
+            120,
+            4200,
+            'เตรียมงานจริง',
+            'อ่านขอบเขตงานที่จะยื่นจริงและเตรียมเอกสารไปพร้อมกัน',
+            'Prepare a Real Bid',
+            'Read the actual terms of reference and prepare the documents together.',
+          ),
         ],
       }),
       service({
@@ -423,13 +701,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Rehearse Your Pitch to a Major Corporate Client',
           description:
-            "Pitching to a big client in a few days? You present once for real to someone playing the buyer and the executive, then we rework the flow, the numbers and how you handle objections. You leave with tighter slides and answers to the hard questions you are likely to face.",
+            'Pitching to a big client in a few days? You present once for real to someone playing the buyer and the executive, then we rework the flow, the numbers and how you handle objections. You leave with tighter slides and answers to the hard questions you are likely to face.',
         },
         category: BIZ,
         photos: [photo(5668510), photo(36766676)],
         packages: [
-          pkg(60, 1500, 'ซ้อมหนึ่งรอบ', 'นำเสนอหนึ่งรอบแล้วรับฟีดแบ็กทีละช่วง', 'One Rehearsal', 'Present once, then get feedback section by section.'),
-          pkg(90, 2400, 'ซ้อมพร้อมแก้สไลด์', 'ซ้อม ปรับสไลด์ และซ้อมรอบสองกับคำถามที่ยากขึ้น', 'Rehearse and Fix the Slides', 'Rehearse, fix the slides, then run a second round with tougher questions.'),
+          pkg(
+            60,
+            1500,
+            'ซ้อมหนึ่งรอบ',
+            'นำเสนอหนึ่งรอบแล้วรับฟีดแบ็กทีละช่วง',
+            'One Rehearsal',
+            'Present once, then get feedback section by section.',
+          ),
+          pkg(
+            90,
+            2400,
+            'ซ้อมพร้อมแก้สไลด์',
+            'ซ้อม ปรับสไลด์ และซ้อมรอบสองกับคำถามที่ยากขึ้น',
+            'Rehearse and Fix the Slides',
+            'Rehearse, fix the slides, then run a second round with tougher questions.',
+          ),
         ],
       }),
       service({
@@ -445,8 +737,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(7413924), photo(7413913)],
         packages: [
-          pkg(45, 1200, 'อ่านเด็คหนึ่งรอบ', 'อ่านพิชเด็คและให้ฟีดแบ็กทีละสไลด์', 'Deck Read-Through', 'Read your deck and give feedback slide by slide.'),
-          pkg(90, 2800, 'รีวิวพร้อมเรียงเรื่องใหม่', 'รีวิวแล้วจัดลำดับเรื่องเล่าและตัวเลขใหม่ไปด้วยกัน', 'Review and Restructure', 'Review it, then rework the storyline and numbers together.'),
+          pkg(
+            45,
+            1200,
+            'อ่านเด็คหนึ่งรอบ',
+            'อ่านพิชเด็คและให้ฟีดแบ็กทีละสไลด์',
+            'Deck Read-Through',
+            'Read your deck and give feedback slide by slide.',
+          ),
+          pkg(
+            90,
+            2800,
+            'รีวิวพร้อมเรียงเรื่องใหม่',
+            'รีวิวแล้วจัดลำดับเรื่องเล่าและตัวเลขใหม่ไปด้วยกัน',
+            'Review and Restructure',
+            'Review it, then rework the storyline and numbers together.',
+          ),
         ],
       }),
       service({
@@ -461,8 +767,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: BIZ,
         photos: [photo(5439478), photo(7651738)],
         packages: [
-          pkg(60, 2000, 'แบ่งหุ้นผู้ก่อตั้ง', 'ตกลงสัดส่วนหุ้นและเงื่อนไขการทยอยได้หุ้นระหว่างผู้ก่อตั้ง', 'Founder Split', 'Agree the equity split and vesting terms between founders.'),
-          pkg(120, 4500, 'มูลค่าและตารางหุ้น', 'ประเมินมูลค่า จำลองการระดมทุน และทำตารางผู้ถือหุ้นให้เสร็จ', 'Valuation and Cap Table', 'Value the company, model the raise and finish the cap table.'),
+          pkg(
+            60,
+            2000,
+            'แบ่งหุ้นผู้ก่อตั้ง',
+            'ตกลงสัดส่วนหุ้นและเงื่อนไขการทยอยได้หุ้นระหว่างผู้ก่อตั้ง',
+            'Founder Split',
+            'Agree the equity split and vesting terms between founders.',
+          ),
+          pkg(
+            120,
+            4500,
+            'มูลค่าและตารางหุ้น',
+            'ประเมินมูลค่า จำลองการระดมทุน และทำตารางผู้ถือหุ้นให้เสร็จ',
+            'Valuation and Cap Table',
+            'Value the company, model the raise and finish the cap table.',
+          ),
         ],
       }),
       service({
@@ -478,8 +798,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(7413915), photo(5668512)],
         packages: [
-          pkg(45, 1000, 'ถามตอบหนึ่งรอบ', 'นำเสนอสั้นๆ แล้วรับคำถามยากต่อเนื่อง 30 นาที', 'One Q&A Round', 'A short pitch followed by 30 minutes of hard questions.'),
-          pkg(90, 2200, 'ซ้อมเต็มพร้อมสรุป', 'ซ้อมสองรอบ และสรุปคำตอบของคำถามที่เจอบ่อยให้ไว้ทบทวน', 'Full Rehearsal and Notes', 'Two rehearsal rounds, plus written answers to the common questions.'),
+          pkg(
+            45,
+            1000,
+            'ถามตอบหนึ่งรอบ',
+            'นำเสนอสั้นๆ แล้วรับคำถามยากต่อเนื่อง 30 นาที',
+            'One Q&A Round',
+            'A short pitch followed by 30 minutes of hard questions.',
+          ),
+          pkg(
+            90,
+            2200,
+            'ซ้อมเต็มพร้อมสรุป',
+            'ซ้อมสองรอบ และสรุปคำตอบของคำถามที่เจอบ่อยให้ไว้ทบทวน',
+            'Full Rehearsal and Notes',
+            'Two rehearsal rounds, plus written answers to the common questions.',
+          ),
         ],
       }),
       service({
@@ -494,8 +828,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: BIZ,
         photos: [photo(7034734), photo(3059749)],
         packages: [
-          pkg(60, 1500, 'เลือกทุนที่เข้าเกณฑ์', 'ดูธุรกิจของคุณแล้วเลือกทุนที่มีโอกาสได้มากที่สุด', 'Find the Right Grant', 'Review your business and pick the grants you have the best chance with.'),
-          pkg(120, 3800, 'วางข้อเสนอโครงการ', 'วางโครงข้อเสนอ ตัวชี้วัด และงบประมาณให้พร้อมเขียนฉบับเต็ม', 'Outline the Proposal', 'Outline the proposal, its indicators and budget, ready to write in full.'),
+          pkg(
+            60,
+            1500,
+            'เลือกทุนที่เข้าเกณฑ์',
+            'ดูธุรกิจของคุณแล้วเลือกทุนที่มีโอกาสได้มากที่สุด',
+            'Find the Right Grant',
+            'Review your business and pick the grants you have the best chance with.',
+          ),
+          pkg(
+            120,
+            3800,
+            'วางข้อเสนอโครงการ',
+            'วางโครงข้อเสนอ ตัวชี้วัด และงบประมาณให้พร้อมเขียนฉบับเต็ม',
+            'Outline the Proposal',
+            'Outline the proposal, its indicators and budget, ready to write in full.',
+          ),
         ],
       }),
     ],
@@ -521,14 +869,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Get Your Shopee Store Found in the First 30 Days',
           description:
-            "For new sellers, or anyone whose products nobody sees yet. We set up your storefront, categories and first listing together, and plan reviews and promotions for the first month so orders start coming in. You leave with a day-by-day list for the first 30 days.",
+            'For new sellers, or anyone whose products nobody sees yet. We set up your storefront, categories and first listing together, and plan reviews and promotions for the first month so orders start coming in. You leave with a day-by-day list for the first 30 days.',
         },
         category: SHOP,
         trialMinutes: 15,
         photos: [photo(8938731), photo(6214389)],
         packages: [
-          pkg(45, 800, 'ตั้งหน้าร้าน', 'ตั้งค่าร้าน หมวดหมู่ และสินค้าชิ้นแรกให้ถูกตั้งแต่ต้น', 'Set Up the Store', 'Set up the store, categories and first listing correctly from day one.'),
-          pkg(90, 1800, 'แผน 30 วันแรก', 'ตั้งหน้าร้านและวางแผนรีวิว โปรโมชัน และงานรายวันของเดือนแรก', 'First 30-Day Plan', 'Set up the store and plan reviews, promotions and daily tasks for the first month.'),
+          pkg(
+            45,
+            800,
+            'ตั้งหน้าร้าน',
+            'ตั้งค่าร้าน หมวดหมู่ และสินค้าชิ้นแรกให้ถูกตั้งแต่ต้น',
+            'Set Up the Store',
+            'Set up the store, categories and first listing correctly from day one.',
+          ),
+          pkg(
+            90,
+            1800,
+            'แผน 30 วันแรก',
+            'ตั้งหน้าร้านและวางแผนรีวิว โปรโมชัน และงานรายวันของเดือนแรก',
+            'First 30-Day Plan',
+            'Set up the store and plan reviews, promotions and daily tasks for the first month.',
+          ),
         ],
       }),
       service({
@@ -543,8 +905,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: SHOP,
         photos: [photo(4440842), photo(4440846)],
         packages: [
-          pkg(60, 1200, 'คำนวณกำไรต่อโปร', 'คำนวณกำไรจริงของสินค้าหลักในแต่ละรูปแบบโปรโมชัน', 'Profit per Promotion', 'Work out the real profit on your main products under each promotion type.'),
-          pkg(120, 2800, 'แผนแคมเปญทั้งร้าน', 'เลือกสินค้า ตั้งราคา วางสต็อก และกำหนดงบโฆษณาของแคมเปญ', 'Whole-Store Campaign Plan', 'Choose products, set prices, plan stock and set the ad budget for the campaign.'),
+          pkg(
+            60,
+            1200,
+            'คำนวณกำไรต่อโปร',
+            'คำนวณกำไรจริงของสินค้าหลักในแต่ละรูปแบบโปรโมชัน',
+            'Profit per Promotion',
+            'Work out the real profit on your main products under each promotion type.',
+          ),
+          pkg(
+            120,
+            2800,
+            'แผนแคมเปญทั้งร้าน',
+            'เลือกสินค้า ตั้งราคา วางสต็อก และกำหนดงบโฆษณาของแคมเปญ',
+            'Whole-Store Campaign Plan',
+            'Choose products, set prices, plan stock and set the ad budget for the campaign.',
+          ),
         ],
       }),
       service({
@@ -559,8 +935,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: SHOP,
         photos: [photo(8938722), photo(4604639)],
         packages: [
-          pkg(30, 600, 'ตรวจโฆษณา', 'ดูโฆษณาที่เปิดอยู่และชี้คีย์เวิร์ดที่ควรตัด', 'Ads Check', 'Review your live ads and flag the keywords to cut.'),
-          pkg(60, 1300, 'ตั้งโฆษณาใหม่', 'ปรับคีย์เวิร์ด ราคาประมูล และเพดานต้นทุนในบัญชีไปพร้อมกัน', 'Rebuild the Ads', 'Rework keywords, bids and cost ceilings in your account together.'),
+          pkg(
+            30,
+            600,
+            'ตรวจโฆษณา',
+            'ดูโฆษณาที่เปิดอยู่และชี้คีย์เวิร์ดที่ควรตัด',
+            'Ads Check',
+            'Review your live ads and flag the keywords to cut.',
+          ),
+          pkg(
+            60,
+            1300,
+            'ตั้งโฆษณาใหม่',
+            'ปรับคีย์เวิร์ด ราคาประมูล และเพดานต้นทุนในบัญชีไปพร้อมกัน',
+            'Rebuild the Ads',
+            'Rework keywords, bids and cost ceilings in your account together.',
+          ),
         ],
       }),
       service({
@@ -576,8 +966,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(10825661), photo(31552020)],
         packages: [
-          pkg(45, 900, 'เช็กคุณสมบัติ', 'ดูยอดขายและเอกสารว่าผ่านเกณฑ์ Mall หรือยัง', 'Eligibility Check', 'Check your sales and documents against the Mall criteria.'),
-          pkg(90, 2200, 'แผนยื่นสมัคร', 'คำนวณความคุ้มค่าและวางแผนเตรียมร้านและเอกสารก่อนยื่น', 'Application Plan', 'Weigh the costs, then plan the store and paperwork before you apply.'),
+          pkg(
+            45,
+            900,
+            'เช็กคุณสมบัติ',
+            'ดูยอดขายและเอกสารว่าผ่านเกณฑ์ Mall หรือยัง',
+            'Eligibility Check',
+            'Check your sales and documents against the Mall criteria.',
+          ),
+          pkg(
+            90,
+            2200,
+            'แผนยื่นสมัคร',
+            'คำนวณความคุ้มค่าและวางแผนเตรียมร้านและเอกสารก่อนยื่น',
+            'Application Plan',
+            'Weigh the costs, then plan the store and paperwork before you apply.',
+          ),
         ],
       }),
       service({
@@ -592,8 +996,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: SHOP,
         photos: [photo(1253646), photo(7718711)],
         packages: [
-          pkg(30, 500, 'แก้ชื่อสินค้า', 'หาคำค้นและเขียนชื่อสินค้าใหม่ 5 รายการ', 'Fix Product Titles', 'Find search terms and rewrite five product titles.'),
-          pkg(60, 1100, 'แก้หน้าสินค้าครบ', 'แก้ชื่อ รายละเอียด และรูปปกของสินค้าขายดี 5 รายการ', 'Full Listing Makeover', 'Rewrite the title, description and cover image of five best-sellers.'),
+          pkg(
+            30,
+            500,
+            'แก้ชื่อสินค้า',
+            'หาคำค้นและเขียนชื่อสินค้าใหม่ 5 รายการ',
+            'Fix Product Titles',
+            'Find search terms and rewrite five product titles.',
+          ),
+          pkg(
+            60,
+            1100,
+            'แก้หน้าสินค้าครบ',
+            'แก้ชื่อ รายละเอียด และรูปปกของสินค้าขายดี 5 รายการ',
+            'Full Listing Makeover',
+            'Rewrite the title, description and cover image of five best-sellers.',
+          ),
         ],
       }),
     ],
@@ -607,7 +1025,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     bio: 'ไลฟ์ขายเสื้อผ้าผ่าน Facebook และ TikTok มา 5 ปี ทำยอดสูงสุดในไลฟ์เดียวกว่า 4 แสนบาท และดูแลสต็อกกับการแพ็กส่งของร้านเองในวันที่ออเดอร์เข้าหลายพันกล่อง ปัจจุบันเทรนแม่ค้าและพนักงานไลฟ์ให้ร้านเสื้อผ้าและเครื่องสำอาง สอนตั้งแต่จัดฉาก เขียนสคริปต์ อ่านสถิติหลังไลฟ์ ไปจนถึงจัดที่เก็บสต็อก วางขั้นตอนแพ็ก และเลือกขนส่งให้ต้นทุนต่อกล่องลดลง',
     en: {
       headline: 'Live Selling, TikTok Shop, and Fulfilment Advisor',
-      bio: 'Has sold clothes live on Facebook and TikTok for 5 years, with a best single stream of over 400,000 baht, and has run her own shop\'s stock and packing on days with thousands of orders. Now trains sellers and live hosts for clothing and cosmetics shops, covering the set, the script, and reading the stats after each stream, through to organising stock, setting up packing steps, and choosing couriers that lower the cost per parcel.',
+      bio: "Has sold clothes live on Facebook and TikTok for 5 years, with a best single stream of over 400,000 baht, and has run her own shop's stock and packing on days with thousands of orders. Now trains sellers and live hosts for clothing and cosmetics shops, covering the set, the script, and reading the stats after each stream, through to organising stock, setting up packing steps, and choosing couriers that lower the cost per parcel.",
     },
     services: [
       service({
@@ -617,13 +1035,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Stock and Packing Steps for 200 Orders a Day',
           description:
-            'Orders have grown and you can\'t pack in time, with wrong and missed parcels. We look at your storage space and every step from printing the label to handing over to the courier, then redo the shelving, product codes and packing order. You leave with a stockroom layout and packing steps you can teach your staff.',
+            "Orders have grown and you can't pack in time, with wrong and missed parcels. We look at your storage space and every step from printing the label to handing over to the courier, then redo the shelving, product codes and packing order. You leave with a stockroom layout and packing steps you can teach your staff.",
         },
         category: SHOP,
         photos: [photo(7857553), photo(7857510), photo(7289727)],
         packages: [
-          pkg(60, 1300, 'วางขั้นตอนแพ็ก', 'ไล่ขั้นตอนแพ็กของปัจจุบันและวางลำดับใหม่ที่ผิดพลาดน้อยลง', 'Packing Workflow', 'Map your current packing steps and design a new order with fewer mistakes.'),
-          pkg(120, 2800, 'จัดห้องสต็อกทั้งระบบ', 'วางผังชั้นวาง รหัสสินค้า การนับสต็อก และขั้นตอนแพ็กครบชุด', 'Full Stockroom System', 'Plan shelving, product codes, stock counts and the full packing process.'),
+          pkg(
+            60,
+            1300,
+            'วางขั้นตอนแพ็ก',
+            'ไล่ขั้นตอนแพ็กของปัจจุบันและวางลำดับใหม่ที่ผิดพลาดน้อยลง',
+            'Packing Workflow',
+            'Map your current packing steps and design a new order with fewer mistakes.',
+          ),
+          pkg(
+            120,
+            2800,
+            'จัดห้องสต็อกทั้งระบบ',
+            'วางผังชั้นวาง รหัสสินค้า การนับสต็อก และขั้นตอนแพ็กครบชุด',
+            'Full Stockroom System',
+            'Plan shelving, product codes, stock counts and the full packing process.',
+          ),
         ],
       }),
       service({
@@ -639,8 +1071,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(12725460), photo(6667681)],
         packages: [
-          pkg(30, 500, 'เทียบขนส่ง', 'เทียบราคาขนส่ง 3 เจ้าจากออเดอร์จริงของร้าน', 'Courier Comparison', "Compare three couriers using your shop's real orders."),
-          pkg(60, 1100, 'ตั้งค่าส่งใหม่', 'คิดต้นทุนส่งต่อกล่องทั้งหมดและตั้งค่าส่งให้ลูกค้าใหม่', 'Reset Shipping Fees', 'Work out the full cost per parcel and set new shipping fees for customers.'),
+          pkg(
+            30,
+            500,
+            'เทียบขนส่ง',
+            'เทียบราคาขนส่ง 3 เจ้าจากออเดอร์จริงของร้าน',
+            'Courier Comparison',
+            "Compare three couriers using your shop's real orders.",
+          ),
+          pkg(
+            60,
+            1100,
+            'ตั้งค่าส่งใหม่',
+            'คิดต้นทุนส่งต่อกล่องทั้งหมดและตั้งค่าส่งให้ลูกค้าใหม่',
+            'Reset Shipping Fees',
+            'Work out the full cost per parcel and set new shipping fees for customers.',
+          ),
         ],
       }),
       service({
@@ -650,13 +1096,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Cut Returned Parcels on Cash on Delivery',
           description:
-            "Shops selling cash on delivery often pay shipping both ways on parcels customers refuse. We look at your return figures, find whether the product, the channel or certain customers are behind it, then set up an order confirmation step before shipping. You leave with a confirmation message and rules for declining risky orders.",
+            'Shops selling cash on delivery often pay shipping both ways on parcels customers refuse. We look at your return figures, find whether the product, the channel or certain customers are behind it, then set up an order confirmation step before shipping. You leave with a confirmation message and rules for declining risky orders.',
         },
         category: SHOP,
         photos: [photo(12725400), photo(7843997)],
         packages: [
-          pkg(45, 800, 'หาสาเหตุตีกลับ', 'ดูสถิติตีกลับและแยกสาเหตุหลัก', 'Find the Causes', 'Go through your return figures and separate the main causes.'),
-          pkg(90, 1700, 'วางระบบยืนยันออเดอร์', 'วางขั้นตอนยืนยัน ข้อความ และเกณฑ์คัดออเดอร์เสี่ยงให้ทีมใช้', 'Order Confirmation System', 'Set up confirmation steps, messages and risk rules for your team.'),
+          pkg(
+            45,
+            800,
+            'หาสาเหตุตีกลับ',
+            'ดูสถิติตีกลับและแยกสาเหตุหลัก',
+            'Find the Causes',
+            'Go through your return figures and separate the main causes.',
+          ),
+          pkg(
+            90,
+            1700,
+            'วางระบบยืนยันออเดอร์',
+            'วางขั้นตอนยืนยัน ข้อความ และเกณฑ์คัดออเดอร์เสี่ยงให้ทีมใช้',
+            'Order Confirmation System',
+            'Set up confirmation steps, messages and risk rules for your team.',
+          ),
         ],
       }),
       service({
@@ -672,8 +1132,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(4483942), photo(7019315)],
         packages: [
-          pkg(60, 1400, 'เทียบต้นทุน', 'คำนวณต้นทุนต่อออเดอร์ของการแพ็กเองเทียบกับจ้างคลัง', 'Cost Comparison', 'Compare cost per order for in-house packing and outsourcing.'),
-          pkg(90, 2200, 'เทียบพร้อมอ่านสัญญา', 'เทียบต้นทุนและอ่านข้อเสนอของผู้ให้บริการ 2 รายไปด้วยกัน', 'Compare and Read the Contracts', "Compare costs and read two providers' offers together."),
+          pkg(
+            60,
+            1400,
+            'เทียบต้นทุน',
+            'คำนวณต้นทุนต่อออเดอร์ของการแพ็กเองเทียบกับจ้างคลัง',
+            'Cost Comparison',
+            'Compare cost per order for in-house packing and outsourcing.',
+          ),
+          pkg(
+            90,
+            2200,
+            'เทียบพร้อมอ่านสัญญา',
+            'เทียบต้นทุนและอ่านข้อเสนอของผู้ให้บริการ 2 รายไปด้วยกัน',
+            'Compare and Read the Contracts',
+            "Compare costs and read two providers' offers together.",
+          ),
         ],
       }),
       service({
@@ -683,14 +1157,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Your First TikTok Shop Live, With People Watching',
           description:
-            "For anyone who has never gone live, or does but gets fewer than ten viewers. We set up the camera angle, light and sound with what you have, pick your time slot, and plan the first ten minutes that make people stop and watch. You leave with your set ready and an outline for your first stream.",
+            'For anyone who has never gone live, or does but gets fewer than ten viewers. We set up the camera angle, light and sound with what you have, pick your time slot, and plan the first ten minutes that make people stop and watch. You leave with your set ready and an outline for your first stream.',
         },
         category: SHOP,
         trialMinutes: 15,
         photos: [photo(6593771), photo(6347621)],
         packages: [
-          pkg(45, 800, 'จัดฉากไลฟ์', 'จัดกล้อง แสง เสียง และมุมโชว์สินค้าผ่านวิดีโอคอล', 'Set Up Your Set', 'Set up camera, light, sound and product angles over video call.'),
-          pkg(90, 1700, 'ซ้อมไลฟ์จริง', 'จัดฉากแล้วซ้อมไลฟ์ 20 นาทีพร้อมฟีดแบ็กทันที', 'Practice Live', 'Set up, then run a 20-minute practice stream with live feedback.'),
+          pkg(
+            45,
+            800,
+            'จัดฉากไลฟ์',
+            'จัดกล้อง แสง เสียง และมุมโชว์สินค้าผ่านวิดีโอคอล',
+            'Set Up Your Set',
+            'Set up camera, light, sound and product angles over video call.',
+          ),
+          pkg(
+            90,
+            1700,
+            'ซ้อมไลฟ์จริง',
+            'จัดฉากแล้วซ้อมไลฟ์ 20 นาทีพร้อมฟีดแบ็กทันที',
+            'Practice Live',
+            'Set up, then run a 20-minute practice stream with live feedback.',
+          ),
         ],
       }),
       service({
@@ -705,8 +1193,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: SHOP,
         photos: [photo(12432838), photo(3812433)],
         packages: [
-          pkg(60, 1200, 'โครงไลฟ์', 'วางโครงไลฟ์ 2 ชั่วโมงแบ่งเป็นช่วงพร้อมจังหวะปล่อยโปร', 'Live Outline', 'Outline a two-hour stream in segments, with timing for offers.'),
-          pkg(90, 1900, 'สคริปต์เต็ม', 'เขียนสคริปต์เต็มพร้อมประโยคปิดการขายและตอบคำถามที่เจอบ่อย', 'Full Script', 'Write the full script, with closing lines and answers to common questions.'),
+          pkg(
+            60,
+            1200,
+            'โครงไลฟ์',
+            'วางโครงไลฟ์ 2 ชั่วโมงแบ่งเป็นช่วงพร้อมจังหวะปล่อยโปร',
+            'Live Outline',
+            'Outline a two-hour stream in segments, with timing for offers.',
+          ),
+          pkg(
+            90,
+            1900,
+            'สคริปต์เต็ม',
+            'เขียนสคริปต์เต็มพร้อมประโยคปิดการขายและตอบคำถามที่เจอบ่อย',
+            'Full Script',
+            'Write the full script, with closing lines and answers to common questions.',
+          ),
         ],
       }),
       service({
@@ -716,13 +1218,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Get Creators Selling for You Through Affiliates',
           description:
-            "Have creators tag your products and earn commission on sales. We set a commission rate that keeps your margin, choose products that suit affiliates, decide how to send samples without waste, and track who really sells. You leave with an offer for creators and a tracking sheet.",
+            'Have creators tag your products and earn commission on sales. We set a commission rate that keeps your margin, choose products that suit affiliates, decide how to send samples without waste, and track who really sells. You leave with an offer for creators and a tracking sheet.',
         },
         category: SHOP,
         photos: [photo(7480538), photo(17642672)],
         packages: [
-          pkg(45, 900, 'ตั้งค่าคอมมิชชัน', 'คำนวณอัตราคอมมิชชันและเลือกสินค้าที่จะเปิดแอฟฟิลิเอต', 'Set the Commission', 'Work out commission rates and choose which products to open to affiliates.'),
-          pkg(90, 1800, 'แผนแอฟฟิลิเอตครบ', 'ตั้งค่าคอมมิชชัน เขียนข้อเสนอ และวางวิธีคัดและติดตามครีเอเตอร์', 'Full Affiliate Plan', 'Set commission, write the offer, and plan how to pick and track creators.'),
+          pkg(
+            45,
+            900,
+            'ตั้งค่าคอมมิชชัน',
+            'คำนวณอัตราคอมมิชชันและเลือกสินค้าที่จะเปิดแอฟฟิลิเอต',
+            'Set the Commission',
+            'Work out commission rates and choose which products to open to affiliates.',
+          ),
+          pkg(
+            90,
+            1800,
+            'แผนแอฟฟิลิเอตครบ',
+            'ตั้งค่าคอมมิชชัน เขียนข้อเสนอ และวางวิธีคัดและติดตามครีเอเตอร์',
+            'Full Affiliate Plan',
+            'Set commission, write the offer, and plan how to pick and track creators.',
+          ),
         ],
       }),
     ],
@@ -736,7 +1252,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     bio: 'ทำธุรกิจนำเข้าสินค้าจากจีนมา 10 ปี ทั้งของใช้ในบ้านและเครื่องสำอาง และผลิตสินค้าแบรนด์ตัวเองกับโรงงาน OEM มาแล้วกว่า 20 รายการ ช่วยแม่ค้าที่อยากเลิกรับของต่อจากคนอื่น หันมานำเข้าเองหรือทำแบรนด์ของตัวเอง โดยไม่ต้องลองผิดลองถูกด้วยเงินก้อนแรก',
     en: {
       headline: 'Import and Private-Label Advisor',
-      bio: "Has imported goods from China for 10 years, from homeware to cosmetics, and produced more than 20 private-label products with OEM factories. Helps sellers stop buying from middlemen and import directly or launch their own brand, without gambling their first big sum on trial and error.",
+      bio: 'Has imported goods from China for 10 years, from homeware to cosmetics, and produced more than 20 private-label products with OEM factories. Helps sellers stop buying from middlemen and import directly or launch their own brand, without gambling their first big sum on trial and error.',
     },
     services: [
       service({
@@ -752,8 +1268,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(6595779), photo(3057963)],
         packages: [
-          pkg(45, 900, 'เริ่มสั่งของ', 'อธิบายขั้นตอนสั่งและนำเข้าตั้งแต่เลือกร้านจนของถึงมือ', 'Start Ordering', 'Walk through ordering and importing, from choosing a supplier to receiving the goods.'),
-          pkg(90, 1800, 'คัดร้านด้วยกัน', 'คัดผู้ขาย 3 รายสำหรับสินค้าที่คุณจะสั่งจริงและเทียบเงื่อนไข', 'Vet Suppliers Together', 'Vet three suppliers for the product you plan to order and compare their terms.'),
+          pkg(
+            45,
+            900,
+            'เริ่มสั่งของ',
+            'อธิบายขั้นตอนสั่งและนำเข้าตั้งแต่เลือกร้านจนของถึงมือ',
+            'Start Ordering',
+            'Walk through ordering and importing, from choosing a supplier to receiving the goods.',
+          ),
+          pkg(
+            90,
+            1800,
+            'คัดร้านด้วยกัน',
+            'คัดผู้ขาย 3 รายสำหรับสินค้าที่คุณจะสั่งจริงและเทียบเงื่อนไข',
+            'Vet Suppliers Together',
+            'Vet three suppliers for the product you plan to order and compare their terms.',
+          ),
         ],
       }),
       service({
@@ -768,8 +1298,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: SHOP,
         photos: [photo(29822711), photo(36652835)],
         packages: [
-          pkg(30, 600, 'คิดสินค้าเดียว', 'คำนวณต้นทุนนำเข้าจริงของสินค้าหนึ่งรายการ', 'One Product', 'Work out the real landed cost of one product.'),
-          pkg(60, 1200, 'ไฟล์ต้นทุนครบ', 'ทำไฟล์คำนวณต้นทุนและราคาขายที่ใช้ได้กับทุกสินค้า', 'Full Costing Sheet', 'Build a cost and price sheet that works for every product.'),
+          pkg(
+            30,
+            600,
+            'คิดสินค้าเดียว',
+            'คำนวณต้นทุนนำเข้าจริงของสินค้าหนึ่งรายการ',
+            'One Product',
+            'Work out the real landed cost of one product.',
+          ),
+          pkg(
+            60,
+            1200,
+            'ไฟล์ต้นทุนครบ',
+            'ทำไฟล์คำนวณต้นทุนและราคาขายที่ใช้ได้กับทุกสินค้า',
+            'Full Costing Sheet',
+            'Build a cost and price sheet that works for every product.',
+          ),
         ],
       }),
       service({
@@ -785,8 +1329,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(7797009), photo(8101520), photo(16378444)],
         packages: [
-          pkg(60, 1500, 'วางงบและไทม์ไลน์', 'ประเมินงบและเวลาตั้งแต่พัฒนาสูตรจนได้สินค้าล็อตแรก', 'Budget and Timeline', 'Estimate the budget and time from formula to first batch.'),
-          pkg(120, 3200, 'เทียบโรงงาน', 'วางงบ ไทม์ไลน์ และเทียบใบเสนอราคาของโรงงาน 2–3 แห่งด้วยกัน', 'Compare Factories', "Plan budget and timeline, and compare two or three factories' quotes together."),
+          pkg(
+            60,
+            1500,
+            'วางงบและไทม์ไลน์',
+            'ประเมินงบและเวลาตั้งแต่พัฒนาสูตรจนได้สินค้าล็อตแรก',
+            'Budget and Timeline',
+            'Estimate the budget and time from formula to first batch.',
+          ),
+          pkg(
+            120,
+            3200,
+            'เทียบโรงงาน',
+            'วางงบ ไทม์ไลน์ และเทียบใบเสนอราคาของโรงงาน 2–3 แห่งด้วยกัน',
+            'Compare Factories',
+            "Plan budget and timeline, and compare two or three factories' quotes together.",
+          ),
         ],
       }),
       service({
@@ -796,14 +1354,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Prepare Cosmetic Notification and FDA Registration',
           description:
-            "Cosmetics and supplements need the right notification or Thai FDA number before you sell. We work out which category your product falls under, who files, the factory documents you need, and the claims your label must not make. You leave with a document list and checked label wording.",
+            'Cosmetics and supplements need the right notification or Thai FDA number before you sell. We work out which category your product falls under, who files, the factory documents you need, and the claims your label must not make. You leave with a document list and checked label wording.',
         },
         category: SHOP,
         screeningRequired: true,
         photos: [photo(6167442), photo(8100816)],
         packages: [
-          pkg(45, 900, 'เช็กประเภทสินค้า', 'ดูว่าสินค้าต้องจดแจ้งแบบไหนและต้องใช้เอกสารอะไร', 'Check the Category', 'Find out which registration your product needs and what documents.'),
-          pkg(90, 1900, 'ตรวจฉลากและเอกสาร', 'ไล่เอกสารครบชุดและตรวจข้อความบนฉลากทีละบรรทัด', 'Label and Document Review', 'Go through the full document set and check the label line by line.'),
+          pkg(
+            45,
+            900,
+            'เช็กประเภทสินค้า',
+            'ดูว่าสินค้าต้องจดแจ้งแบบไหนและต้องใช้เอกสารอะไร',
+            'Check the Category',
+            'Find out which registration your product needs and what documents.',
+          ),
+          pkg(
+            90,
+            1900,
+            'ตรวจฉลากและเอกสาร',
+            'ไล่เอกสารครบชุดและตรวจข้อความบนฉลากทีละบรรทัด',
+            'Label and Document Review',
+            'Go through the full document set and check the label line by line.',
+          ),
         ],
       }),
     ],
@@ -827,16 +1399,30 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         description:
           'ลูกค้าต่อราคาเพราะใบเสนอราคาบอกแค่ตัวเลข ปรับใบเสนอราคาของคุณให้มีขอบเขตงาน จำนวนรอบแก้ ไฟล์ที่ส่งมอบ และตัวเลือกราคา 3 ระดับ ให้ลูกค้าเลือกแทนการต่อ ออกไปพร้อมแม่แบบใบเสนอราคาที่ใช้ได้ทุกงาน',
         en: {
-          name: 'Freelance Quotes Clients Don\'t Haggle Over',
+          name: "Freelance Quotes Clients Don't Haggle Over",
           description:
-            "Clients haggle when a quote shows nothing but a number. We rework yours to set out the scope, number of revisions, files delivered and three price tiers, so the client chooses instead of bargaining. You leave with a quote template for every job.",
+            'Clients haggle when a quote shows nothing but a number. We rework yours to set out the scope, number of revisions, files delivered and three price tiers, so the client chooses instead of bargaining. You leave with a quote template for every job.',
         },
         category: FREELANCE,
         trialMinutes: 15,
         photos: [photo(7651555), photo(7688187)],
         packages: [
-          pkg(30, 500, 'ตรวจใบเสนอราคา', 'ตรวจใบเสนอราคาที่ใช้อยู่และชี้จุดที่ชวนให้ลูกค้าต่อ', 'Quote Check', 'Review your current quote and show what invites haggling.'),
-          pkg(60, 1000, 'ทำแม่แบบใหม่', 'ทำแม่แบบใบเสนอราคา 3 ระดับพร้อมข้อความส่งลูกค้า', 'New Template', 'Build a three-tier quote template and the message to send with it.'),
+          pkg(
+            30,
+            500,
+            'ตรวจใบเสนอราคา',
+            'ตรวจใบเสนอราคาที่ใช้อยู่และชี้จุดที่ชวนให้ลูกค้าต่อ',
+            'Quote Check',
+            'Review your current quote and show what invites haggling.',
+          ),
+          pkg(
+            60,
+            1000,
+            'ทำแม่แบบใหม่',
+            'ทำแม่แบบใบเสนอราคา 3 ระดับพร้อมข้อความส่งลูกค้า',
+            'New Template',
+            'Build a three-tier quote template and the message to send with it.',
+          ),
         ],
       }),
       service({
@@ -846,13 +1432,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Take a Clear Brief and Keep Revisions in Check',
           description:
-            "Endless revisions usually start with a vague brief. We practise asking the questions that get at what the client really wants, set revision rules before work begins, and handle requests that go beyond scope. You leave with a brief form and replies for extra revision requests.",
+            'Endless revisions usually start with a vague brief. We practise asking the questions that get at what the client really wants, set revision rules before work begins, and handle requests that go beyond scope. You leave with a brief form and replies for extra revision requests.',
         },
         category: FREELANCE,
         photos: [photo(7147737), photo(7147701)],
         packages: [
-          pkg(45, 700, 'ฟอร์มรับบรีฟ', 'ทำแบบฟอร์มรับบรีฟที่เหมาะกับงานของคุณ', 'Brief Form', 'Build a brief form that suits your kind of work.'),
-          pkg(60, 1100, 'บรีฟและรอบแก้', 'ทำฟอร์มบรีฟ กติการอบแก้ และซ้อมคุยกับลูกค้าที่ขอแก้ไม่จบ', 'Brief and Revisions', 'Build the brief form and revision rules, and practise with a never-satisfied client.'),
+          pkg(
+            45,
+            700,
+            'ฟอร์มรับบรีฟ',
+            'ทำแบบฟอร์มรับบรีฟที่เหมาะกับงานของคุณ',
+            'Brief Form',
+            'Build a brief form that suits your kind of work.',
+          ),
+          pkg(
+            60,
+            1100,
+            'บรีฟและรอบแก้',
+            'ทำฟอร์มบรีฟ กติการอบแก้ และซ้อมคุยกับลูกค้าที่ขอแก้ไม่จบ',
+            'Brief and Revisions',
+            'Build the brief form and revision rules, and practise with a never-satisfied client.',
+          ),
         ],
       }),
       service({
@@ -867,8 +1467,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(12903003), photo(9414330)],
         packages: [
-          pkg(45, 800, 'คัดงานใส่พอร์ต', 'ดูพอร์ตปัจจุบันและเลือกงานที่ควรเก็บและควรเอาออก', 'Choose What Stays', 'Review your portfolio and decide what stays and what goes.'),
-          pkg(90, 1600, 'จัดพอร์ตใหม่', 'คัดงาน เขียนคำอธิบาย และวางโครงหน้าพอร์ตใหม่ไปด้วยกัน', 'Portfolio Rebuild', 'Choose work, write the descriptions and plan the new layout together.'),
+          pkg(
+            45,
+            800,
+            'คัดงานใส่พอร์ต',
+            'ดูพอร์ตปัจจุบันและเลือกงานที่ควรเก็บและควรเอาออก',
+            'Choose What Stays',
+            'Review your portfolio and decide what stays and what goes.',
+          ),
+          pkg(
+            90,
+            1600,
+            'จัดพอร์ตใหม่',
+            'คัดงาน เขียนคำอธิบาย และวางโครงหน้าพอร์ตใหม่ไปด้วยกัน',
+            'Portfolio Rebuild',
+            'Choose work, write the descriptions and plan the new layout together.',
+          ),
         ],
       }),
       service({
@@ -878,13 +1492,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Price Logo and Brand Identity Work',
           description:
-            "Logo design sells for anything from a few hundred baht to six figures. We find where your work belongs, split logo, identity set and brand guide into packages, and price them from the time you really spend. You leave with rates you can explain to clients with confidence.",
+            'Logo design sells for anything from a few hundred baht to six figures. We find where your work belongs, split logo, identity set and brand guide into packages, and price them from the time you really spend. You leave with rates you can explain to clients with confidence.',
         },
         category: FREELANCE,
         photos: [photo(8546649), photo(37663439), photo(6583349)],
         packages: [
-          pkg(30, 500, 'เช็กเรตปัจจุบัน', 'ดูเรตที่ใช้อยู่เทียบกับเวลาที่ใช้จริง', 'Check Your Rates', 'Compare your current rates with the time you actually spend.'),
-          pkg(60, 1000, 'วางแพ็กเกจราคา', 'แยกงานเป็นแพ็กเกจและตั้งราคาแต่ละระดับ', 'Build Price Packages', 'Split your work into packages and price each tier.'),
+          pkg(
+            30,
+            500,
+            'เช็กเรตปัจจุบัน',
+            'ดูเรตที่ใช้อยู่เทียบกับเวลาที่ใช้จริง',
+            'Check Your Rates',
+            'Compare your current rates with the time you actually spend.',
+          ),
+          pkg(
+            60,
+            1000,
+            'วางแพ็กเกจราคา',
+            'แยกงานเป็นแพ็กเกจและตั้งราคาแต่ละระดับ',
+            'Build Price Packages',
+            'Split your work into packages and price each tier.',
+          ),
         ],
       }),
     ],
@@ -914,8 +1542,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(4974907), photo(5474282)],
         packages: [
-          pkg(45, 800, 'ตรวจโปรไฟล์', 'ตรวจโปรไฟล์และพอร์ตบนแพลตฟอร์มพร้อมจุดที่ต้องแก้', 'Profile Review', 'Review your platform profile and portfolio, with fixes.'),
-          pkg(90, 1700, 'ปรับโปรไฟล์ด้วยกัน', 'เขียนโปรไฟล์ใหม่และเลือกงานแรกที่จะยื่นไปพร้อมกัน', 'Rewrite It Together', 'Rewrite your profile and choose the first jobs to bid on together.'),
+          pkg(
+            45,
+            800,
+            'ตรวจโปรไฟล์',
+            'ตรวจโปรไฟล์และพอร์ตบนแพลตฟอร์มพร้อมจุดที่ต้องแก้',
+            'Profile Review',
+            'Review your platform profile and portfolio, with fixes.',
+          ),
+          pkg(
+            90,
+            1700,
+            'ปรับโปรไฟล์ด้วยกัน',
+            'เขียนโปรไฟล์ใหม่และเลือกงานแรกที่จะยื่นไปพร้อมกัน',
+            'Rewrite It Together',
+            'Rewrite your profile and choose the first jobs to bid on together.',
+          ),
         ],
       }),
       service({
@@ -930,8 +1572,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(12899188), photo(5952738)],
         packages: [
-          pkg(30, 500, 'แก้ข้อเสนอหนึ่งฉบับ', 'แก้ข้อเสนอที่คุณกำลังจะส่งให้พร้อมยื่น', 'Fix One Proposal', 'Fix a proposal you are about to send.'),
-          pkg(60, 1000, 'แม่แบบข้อเสนอ', 'เขียนแม่แบบข้อเสนอ 3 แบบสำหรับงานประเภทที่รับบ่อย', 'Proposal Templates', 'Write three proposal templates for the work you take most.'),
+          pkg(
+            30,
+            500,
+            'แก้ข้อเสนอหนึ่งฉบับ',
+            'แก้ข้อเสนอที่คุณกำลังจะส่งให้พร้อมยื่น',
+            'Fix One Proposal',
+            'Fix a proposal you are about to send.',
+          ),
+          pkg(
+            60,
+            1000,
+            'แม่แบบข้อเสนอ',
+            'เขียนแม่แบบข้อเสนอ 3 แบบสำหรับงานประเภทที่รับบ่อย',
+            'Proposal Templates',
+            'Write three proposal templates for the work you take most.',
+          ),
         ],
       }),
       service({
@@ -946,8 +1602,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(6694543), photo(34639577)],
         packages: [
-          pkg(30, 500, 'เทียบช่องทางรับเงิน', 'เทียบค่าธรรมเนียมและอัตราแลกเปลี่ยนของช่องทางรับเงินหลัก', 'Compare Payment Routes', 'Compare fees and exchange rates on the main payment routes.'),
-          pkg(60, 1000, 'ตั้งเรตและรับเงิน', 'ตั้งเรตเป็นดอลลาร์และเลือกช่องทางรับเงินพร้อมวิธีเก็บหลักฐาน', 'Rates and Payments', 'Set your dollar rate, choose how to get paid and how to keep records.'),
+          pkg(
+            30,
+            500,
+            'เทียบช่องทางรับเงิน',
+            'เทียบค่าธรรมเนียมและอัตราแลกเปลี่ยนของช่องทางรับเงินหลัก',
+            'Compare Payment Routes',
+            'Compare fees and exchange rates on the main payment routes.',
+          ),
+          pkg(
+            60,
+            1000,
+            'ตั้งเรตและรับเงิน',
+            'ตั้งเรตเป็นดอลลาร์และเลือกช่องทางรับเงินพร้อมวิธีเก็บหลักฐาน',
+            'Rates and Payments',
+            'Set your dollar rate, choose how to get paid and how to keep records.',
+          ),
         ],
       }),
       service({
@@ -962,8 +1632,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(5145191), photo(12911769)],
         packages: [
-          pkg(30, 600, 'ซ้อมคอลสั้น', 'ซ้อมคอลแรกกับลูกค้า 20 นาทีพร้อมฟีดแบ็ก', 'Short Practice Call', 'A 20-minute practice first call with feedback.'),
-          pkg(60, 1100, 'ซ้อมเต็มรอบ', 'ซ้อมตั้งแต่ถามความต้องการจนคุยราคา และสรุปประโยคที่ควรใช้', 'Full Practice', 'Rehearse from discovery to pricing, and note the phrases to use.'),
+          pkg(
+            30,
+            600,
+            'ซ้อมคอลสั้น',
+            'ซ้อมคอลแรกกับลูกค้า 20 นาทีพร้อมฟีดแบ็ก',
+            'Short Practice Call',
+            'A 20-minute practice first call with feedback.',
+          ),
+          pkg(
+            60,
+            1100,
+            'ซ้อมเต็มรอบ',
+            'ซ้อมตั้งแต่ถามความต้องการจนคุยราคา และสรุปประโยคที่ควรใช้',
+            'Full Practice',
+            'Rehearse from discovery to pricing, and note the phrases to use.',
+          ),
         ],
       }),
       service({
@@ -973,13 +1657,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Milestones and Delivery Terms for Web Projects',
           description:
-            "Web jobs paid in one lump at the end tend to end with a silent client. We split the work into milestones tied to real deliverables, set acceptance terms, and define what counts as extra work. You leave with a milestone table and wording to drop into your contract or quote.",
+            'Web jobs paid in one lump at the end tend to end with a silent client. We split the work into milestones tied to real deliverables, set acceptance terms, and define what counts as extra work. You leave with a milestone table and wording to drop into your contract or quote.',
         },
         category: FREELANCE,
         photos: [photo(16129703), photo(4974914)],
         packages: [
-          pkg(45, 800, 'แบ่งงวดงาน', 'แบ่งงานโปรเจกต์ปัจจุบันเป็นงวดพร้อมสิ่งที่ส่งมอบ', 'Split Into Milestones', 'Split your current project into milestones with deliverables.'),
-          pkg(90, 1600, 'งวดพร้อมเงื่อนไข', 'แบ่งงวด ตั้งเงื่อนไขตรวจรับ และเขียนข้อความสำหรับสัญญา', 'Milestones and Terms', 'Set milestones and acceptance terms, and write the contract wording.'),
+          pkg(
+            45,
+            800,
+            'แบ่งงวดงาน',
+            'แบ่งงานโปรเจกต์ปัจจุบันเป็นงวดพร้อมสิ่งที่ส่งมอบ',
+            'Split Into Milestones',
+            'Split your current project into milestones with deliverables.',
+          ),
+          pkg(
+            90,
+            1600,
+            'งวดพร้อมเงื่อนไข',
+            'แบ่งงวด ตั้งเงื่อนไขตรวจรับ และเขียนข้อความสำหรับสัญญา',
+            'Milestones and Terms',
+            'Set milestones and acceptance terms, and write the contract wording.',
+          ),
         ],
       }),
     ],
@@ -1003,14 +1701,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Start Translating for Overseas Agencies',
           description:
-            "Overseas agencies have plenty of work but screen hard. We cover finding agencies that need English–Thai, preparing a translator CV, passing their tests, and the CAT tools clients usually ask for. You leave with a list of places to apply and a revised CV.",
+            'Overseas agencies have plenty of work but screen hard. We cover finding agencies that need English–Thai, preparing a translator CV, passing their tests, and the CAT tools clients usually ask for. You leave with a list of places to apply and a revised CV.',
         },
         category: FREELANCE,
         trialMinutes: 15,
         photos: [photo(5238140), photo(5238126)],
         packages: [
-          pkg(45, 800, 'วางแผนสมัครงาน', 'เลือกสำนักแปลที่ควรสมัครและสิ่งที่ต้องเตรียม', 'Application Plan', 'Choose agencies to apply to and what to prepare.'),
-          pkg(90, 1600, 'แก้ประวัติและซ้อมแบบทดสอบ', 'แก้ประวัติงานแปลและลองทำแบบทดสอบพร้อมฟีดแบ็ก', 'CV and Test Practice', 'Revise your CV and try a sample test with feedback.'),
+          pkg(
+            45,
+            800,
+            'วางแผนสมัครงาน',
+            'เลือกสำนักแปลที่ควรสมัครและสิ่งที่ต้องเตรียม',
+            'Application Plan',
+            'Choose agencies to apply to and what to prepare.',
+          ),
+          pkg(
+            90,
+            1600,
+            'แก้ประวัติและซ้อมแบบทดสอบ',
+            'แก้ประวัติงานแปลและลองทำแบบทดสอบพร้อมฟีดแบ็ก',
+            'CV and Test Practice',
+            'Revise your CV and try a sample test with feedback.',
+          ),
         ],
       }),
       service({
@@ -1025,8 +1737,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(7034453), photo(3059747)],
         packages: [
-          pkg(30, 500, 'ตั้งเรตพื้นฐาน', 'คำนวณเรตต่อคำจากความเร็วแปลจริง', 'Base Rate', 'Work out a per-word rate from your actual speed.'),
-          pkg(60, 900, 'ตารางเรตครบ', 'ทำตารางเรตทุกประเภทงานพร้อมเงื่อนไขงานด่วน', 'Full Rate Card', 'Build a rate card for every job type, with rush terms.'),
+          pkg(
+            30,
+            500,
+            'ตั้งเรตพื้นฐาน',
+            'คำนวณเรตต่อคำจากความเร็วแปลจริง',
+            'Base Rate',
+            'Work out a per-word rate from your actual speed.',
+          ),
+          pkg(
+            60,
+            900,
+            'ตารางเรตครบ',
+            'ทำตารางเรตทุกประเภทงานพร้อมเงื่อนไขงานด่วน',
+            'Full Rate Card',
+            'Build a rate card for every job type, with rush terms.',
+          ),
         ],
       }),
       service({
@@ -1041,8 +1767,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(4240587), photo(4240571)],
         packages: [
-          pkg(45, 700, 'วางตารางสัปดาห์', 'จัดงานที่มีอยู่ลงตารางและหาจุดที่ล้น', 'Weekly Schedule', 'Put your current jobs on a schedule and find the overload.'),
-          pkg(90, 1400, 'วางระบบรับงาน', 'วางระบบรับงาน ประเมินเวลา และเครื่องมือที่ใช้ติดตามงาน', 'Work Intake System', 'Set up how you take jobs, estimate time and track work.'),
+          pkg(
+            45,
+            700,
+            'วางตารางสัปดาห์',
+            'จัดงานที่มีอยู่ลงตารางและหาจุดที่ล้น',
+            'Weekly Schedule',
+            'Put your current jobs on a schedule and find the overload.',
+          ),
+          pkg(
+            90,
+            1400,
+            'วางระบบรับงาน',
+            'วางระบบรับงาน ประเมินเวลา และเครื่องมือที่ใช้ติดตามงาน',
+            'Work Intake System',
+            'Set up how you take jobs, estimate time and track work.',
+          ),
         ],
       }),
       service({
@@ -1052,13 +1792,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Turn Content Writing Into a Monthly Retainer',
           description:
-            'Writing by the piece means income that swings up and down. We turn it into a monthly retainer by offering a content package that meets the brand\'s goals, with a set number of pieces, revisions and reporting. You leave with a retainer proposal ready to send.',
+            "Writing by the piece means income that swings up and down. We turn it into a monthly retainer by offering a content package that meets the brand's goals, with a set number of pieces, revisions and reporting. You leave with a retainer proposal ready to send.",
         },
         category: FREELANCE,
         photos: [photo(1766604), photo(6893832)],
         packages: [
-          pkg(45, 800, 'ออกแบบแพ็กเกจ', 'ออกแบบแพ็กเกจรายเดือนและราคาให้เหมาะกับลูกค้าเป้าหมาย', 'Design the Package', 'Design a monthly package and price for your target clients.'),
-          pkg(90, 1500, 'แพ็กเกจพร้อมข้อเสนอ', 'ออกแบบแพ็กเกจและเขียนข้อเสนอสำหรับลูกค้ารายแรก', 'Package and Proposal', 'Design the package and write the proposal for your first client.'),
+          pkg(
+            45,
+            800,
+            'ออกแบบแพ็กเกจ',
+            'ออกแบบแพ็กเกจรายเดือนและราคาให้เหมาะกับลูกค้าเป้าหมาย',
+            'Design the Package',
+            'Design a monthly package and price for your target clients.',
+          ),
+          pkg(
+            90,
+            1500,
+            'แพ็กเกจพร้อมข้อเสนอ',
+            'ออกแบบแพ็กเกจและเขียนข้อเสนอสำหรับลูกค้ารายแรก',
+            'Package and Proposal',
+            'Design the package and write the proposal for your first client.',
+          ),
         ],
       }),
     ],
@@ -1088,8 +1842,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(17057198), photo(13470038), photo(9252721)],
         packages: [
-          pkg(30, 600, 'เช็กราคาปัจจุบัน', 'คำนวณว่าราคาที่ใช้อยู่ได้ค่าแรงต่อชั่วโมงเท่าไร', 'Check Your Prices', 'Work out the hourly pay your current prices really give you.'),
-          pkg(60, 1200, 'จัดแพ็กเกจใหม่', 'จัดแพ็กเกจงานแต่งและตั้งราคาใหม่ทั้งชุด', 'New Packages', 'Rebuild your wedding packages and prices.'),
+          pkg(
+            30,
+            600,
+            'เช็กราคาปัจจุบัน',
+            'คำนวณว่าราคาที่ใช้อยู่ได้ค่าแรงต่อชั่วโมงเท่าไร',
+            'Check Your Prices',
+            'Work out the hourly pay your current prices really give you.',
+          ),
+          pkg(
+            60,
+            1200,
+            'จัดแพ็กเกจใหม่',
+            'จัดแพ็กเกจงานแต่งและตั้งราคาใหม่ทั้งชุด',
+            'New Packages',
+            'Rebuild your wedding packages and prices.',
+          ),
         ],
       }),
       service({
@@ -1104,8 +1872,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(3637863), photo(3673469)],
         packages: [
-          pkg(45, 800, 'เงื่อนไขมัดจำ', 'วางเงื่อนไขมัดจำ เลื่อน และยกเลิกงาน', 'Deposit Terms', 'Set deposit, postponement and cancellation terms.'),
-          pkg(90, 1600, 'ข้อตกลงฉบับเต็ม', 'เขียนข้อตกลงครบทุกข้อพร้อมสิทธิ์การใช้ภาพ', 'Full Agreement', 'Write the complete agreement, including image rights.'),
+          pkg(
+            45,
+            800,
+            'เงื่อนไขมัดจำ',
+            'วางเงื่อนไขมัดจำ เลื่อน และยกเลิกงาน',
+            'Deposit Terms',
+            'Set deposit, postponement and cancellation terms.',
+          ),
+          pkg(
+            90,
+            1600,
+            'ข้อตกลงฉบับเต็ม',
+            'เขียนข้อตกลงครบทุกข้อพร้อมสิทธิ์การใช้ภาพ',
+            'Full Agreement',
+            'Write the complete agreement, including image rights.',
+          ),
         ],
       }),
       service({
@@ -1120,8 +1902,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(12096469), photo(220247), photo(32822409)],
         packages: [
-          pkg(30, 500, 'เช็กชุดที่มี', 'ดูอุปกรณ์ที่มีอยู่และบอกว่าขาดอะไร', 'Check Your Kit', 'Review the gear you have and what is missing.'),
-          pkg(60, 1000, 'วางแผนซื้ออุปกรณ์', 'วางรายการซื้อและงบตามงานที่จะรับในปีแรก', 'Gear Buying Plan', 'Plan purchases and budget around the jobs for your first year.'),
+          pkg(
+            30,
+            500,
+            'เช็กชุดที่มี',
+            'ดูอุปกรณ์ที่มีอยู่และบอกว่าขาดอะไร',
+            'Check Your Kit',
+            'Review the gear you have and what is missing.',
+          ),
+          pkg(
+            60,
+            1000,
+            'วางแผนซื้ออุปกรณ์',
+            'วางรายการซื้อและงบตามงานที่จะรับในปีแรก',
+            'Gear Buying Plan',
+            'Plan purchases and budget around the jobs for your first year.',
+          ),
         ],
       }),
       service({
@@ -1136,8 +1932,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FREELANCE,
         photos: [photo(8761674), photo(261013)],
         packages: [
-          pkg(45, 900, 'วางกลุ่มลูกค้า', 'เลือกกลุ่มลูกค้าองค์กรและช่องทางเข้าหา', 'Pick Target Clients', 'Choose corporate client groups and how to reach them.'),
-          pkg(90, 1800, 'พอร์ตและข้อเสนอ', 'จัดพอร์ตงานอีเวนต์และเขียนข้อเสนอสำหรับลูกค้าองค์กร', 'Portfolio and Proposal', 'Assemble an event portfolio and write a proposal for corporate clients.'),
+          pkg(
+            45,
+            900,
+            'วางกลุ่มลูกค้า',
+            'เลือกกลุ่มลูกค้าองค์กรและช่องทางเข้าหา',
+            'Pick Target Clients',
+            'Choose corporate client groups and how to reach them.',
+          ),
+          pkg(
+            90,
+            1800,
+            'พอร์ตและข้อเสนอ',
+            'จัดพอร์ตงานอีเวนต์และเขียนข้อเสนอสำหรับลูกค้าองค์กร',
+            'Portfolio and Proposal',
+            'Assemble an event portfolio and write a proposal for corporate clients.',
+          ),
         ],
       }),
     ],
@@ -1163,15 +1973,36 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Build a Salary Structure for a 20-Person Company',
           description:
-            "Salaries set by whoever negotiated hardest leave the team comparing notes. We group roles by responsibility, set a salary band for each level against the market, and agree the annual raise criteria. You leave with a salary table that works for current staff and future hires.",
+            'Salaries set by whoever negotiated hardest leave the team comparing notes. We group roles by responsibility, set a salary band for each level against the market, and agree the annual raise criteria. You leave with a salary table that works for current staff and future hires.',
         },
         category: HR,
         screeningRequired: true,
         photos: [photo(6963030)],
         packages: [
-          pkg(60, 1800, 'จัดกลุ่มตำแหน่ง', 'จัดกลุ่มตำแหน่งงานและเทียบเงินเดือนปัจจุบันกับตลาด', 'Group the Roles', 'Group your roles and compare current pay with the market.'),
-          pkg(120, 4200, 'โครงสร้างเงินเดือนครบ', 'วางกระบอกเงินเดือนทุกระดับและเกณฑ์ขึ้นเงินเดือนประจำปี', 'Full Salary Structure', 'Set bands for every level and the annual raise criteria.'),
-          pkg(180, 6500, 'โครงสร้างพร้อมแผนปรับ', 'วางโครงสร้าง คำนวณงบที่ต้องใช้ปรับ และวางวิธีแจ้งพนักงาน', 'Structure and Rollout', 'Build the structure, cost the adjustments, and plan how to tell staff.'),
+          pkg(
+            60,
+            1800,
+            'จัดกลุ่มตำแหน่ง',
+            'จัดกลุ่มตำแหน่งงานและเทียบเงินเดือนปัจจุบันกับตลาด',
+            'Group the Roles',
+            'Group your roles and compare current pay with the market.',
+          ),
+          pkg(
+            120,
+            4200,
+            'โครงสร้างเงินเดือนครบ',
+            'วางกระบอกเงินเดือนทุกระดับและเกณฑ์ขึ้นเงินเดือนประจำปี',
+            'Full Salary Structure',
+            'Set bands for every level and the annual raise criteria.',
+          ),
+          pkg(
+            180,
+            6500,
+            'โครงสร้างพร้อมแผนปรับ',
+            'วางโครงสร้าง คำนวณงบที่ต้องใช้ปรับ และวางวิธีแจ้งพนักงาน',
+            'Structure and Rollout',
+            'Build the structure, cost the adjustments, and plan how to tell staff.',
+          ),
         ],
       }),
       service({
@@ -1187,8 +2018,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(6169648), photo(6170191)],
         packages: [
-          pkg(60, 1500, 'โครงข้อบังคับ', 'วางหัวข้อที่กฎหมายกำหนดและที่ธุรกิจคุณต้องมี', 'Rules Outline', 'Outline the topics the law requires and those your business needs.'),
-          pkg(120, 3500, 'ร่างฉบับใช้งาน', 'ร่างข้อบังคับและคู่มือพนักงานฉบับแรกไปด้วยกัน', 'Working Draft', 'Draft the first version of the work rules and handbook together.'),
+          pkg(
+            60,
+            1500,
+            'โครงข้อบังคับ',
+            'วางหัวข้อที่กฎหมายกำหนดและที่ธุรกิจคุณต้องมี',
+            'Rules Outline',
+            'Outline the topics the law requires and those your business needs.',
+          ),
+          pkg(
+            120,
+            3500,
+            'ร่างฉบับใช้งาน',
+            'ร่างข้อบังคับและคู่มือพนักงานฉบับแรกไปด้วยกัน',
+            'Working Draft',
+            'Draft the first version of the work rules and handbook together.',
+          ),
         ],
       }),
       service({
@@ -1203,8 +2048,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: HR,
         photos: [photo(4344878), photo(8518623)],
         packages: [
-          pkg(60, 1600, 'วางเกณฑ์ประเมิน', 'วางเกณฑ์ประเมินที่วัดได้สำหรับกลุ่มงานหลัก', 'Set the Criteria', 'Set measurable criteria for your main job groups.'),
-          pkg(120, 3600, 'ระบบประเมินครบ', 'วางเกณฑ์ แบบฟอร์ม และวิธีเชื่อมกับเงินเดือนและโบนัส', 'Full Review System', 'Criteria, forms, and the link to pay and bonus.'),
+          pkg(
+            60,
+            1600,
+            'วางเกณฑ์ประเมิน',
+            'วางเกณฑ์ประเมินที่วัดได้สำหรับกลุ่มงานหลัก',
+            'Set the Criteria',
+            'Set measurable criteria for your main job groups.',
+          ),
+          pkg(
+            120,
+            3600,
+            'ระบบประเมินครบ',
+            'วางเกณฑ์ แบบฟอร์ม และวิธีเชื่อมกับเงินเดือนและโบนัส',
+            'Full Review System',
+            'Criteria, forms, and the link to pay and bonus.',
+          ),
         ],
       }),
       service({
@@ -1214,14 +2073,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Benefits That Fit Your Budget and Keep People',
           description:
-            "The benefits you offer may not be what your staff value. We review current benefits and their cost per head, compare them with what others in your industry get, then rebuild the package within the same budget. You leave with a benefits package to announce and a way to explain it to the team.",
+            'The benefits you offer may not be what your staff value. We review current benefits and their cost per head, compare them with what others in your industry get, then rebuild the package within the same budget. You leave with a benefits package to announce and a way to explain it to the team.',
         },
         category: HR,
         trialMinutes: 15,
         photos: [photo(8102212), photo(8102204)],
         packages: [
-          pkg(45, 900, 'ตรวจสวัสดิการเดิม', 'ดูสวัสดิการที่มีและค่าใช้จ่ายต่อหัว', 'Review Current Benefits', 'Review what you offer and what it costs per head.'),
-          pkg(90, 2000, 'จัดชุดสวัสดิการใหม่', 'จัดสวัสดิการใหม่ภายใต้งบเดิมพร้อมแผนสื่อสาร', 'Rebuild the Package', 'Rebuild benefits within the same budget, with a plan to announce it.'),
+          pkg(
+            45,
+            900,
+            'ตรวจสวัสดิการเดิม',
+            'ดูสวัสดิการที่มีและค่าใช้จ่ายต่อหัว',
+            'Review Current Benefits',
+            'Review what you offer and what it costs per head.',
+          ),
+          pkg(
+            90,
+            2000,
+            'จัดชุดสวัสดิการใหม่',
+            'จัดสวัสดิการใหม่ภายใต้งบเดิมพร้อมแผนสื่อสาร',
+            'Rebuild the Package',
+            'Rebuild benefits within the same budget, with a plan to announce it.',
+          ),
         ],
       }),
     ],
@@ -1245,14 +2118,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Hire Shop-Floor Staff Within a Month',
           description:
-            "Advertised everywhere and nobody turns up? We rewrite your job ad around what shop-floor job seekers care about, choose the channels that work in your area, and set up interviews that wrap up in three days. You leave with a job ad and a four-week hiring plan.",
+            'Advertised everywhere and nobody turns up? We rewrite your job ad around what shop-floor job seekers care about, choose the channels that work in your area, and set up interviews that wrap up in three days. You leave with a job ad and a four-week hiring plan.',
         },
         category: HR,
         trialMinutes: 15,
         photos: [photo(3769740), photo(25809274)],
         packages: [
-          pkg(30, 600, 'แก้ประกาศรับสมัคร', 'เขียนประกาศรับสมัครใหม่หนึ่งตำแหน่ง', 'Fix the Job Ad', 'Rewrite the job ad for one role.'),
-          pkg(60, 1300, 'แผนหาคน 4 สัปดาห์', 'เขียนประกาศ เลือกช่องทาง และวางขั้นตอนนัดสัมภาษณ์', 'Four-Week Hiring Plan', 'Write the ad, choose channels and set up the interview process.'),
+          pkg(
+            30,
+            600,
+            'แก้ประกาศรับสมัคร',
+            'เขียนประกาศรับสมัครใหม่หนึ่งตำแหน่ง',
+            'Fix the Job Ad',
+            'Rewrite the job ad for one role.',
+          ),
+          pkg(
+            60,
+            1300,
+            'แผนหาคน 4 สัปดาห์',
+            'เขียนประกาศ เลือกช่องทาง และวางขั้นตอนนัดสัมภาษณ์',
+            'Four-Week Hiring Plan',
+            'Write the ad, choose channels and set up the interview process.',
+          ),
         ],
       }),
       service({
@@ -1267,8 +2154,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: HR,
         photos: [photo(7644155), photo(5673502)],
         packages: [
-          pkg(45, 900, 'ชุดคำถามหนึ่งตำแหน่ง', 'ตั้งคำถามและเกณฑ์ให้คะแนนสำหรับตำแหน่งเดียว', 'One Role', 'Questions and a scoring guide for one role.'),
-          pkg(90, 1800, 'คำถามพร้อมซ้อมสัมภาษณ์', 'ตั้งคำถามและซ้อมสัมภาษณ์กับผู้สมัครสมมติพร้อมฟีดแบ็ก', 'Questions and Practice', 'Write the questions and practise on a mock candidate, with feedback.'),
+          pkg(
+            45,
+            900,
+            'ชุดคำถามหนึ่งตำแหน่ง',
+            'ตั้งคำถามและเกณฑ์ให้คะแนนสำหรับตำแหน่งเดียว',
+            'One Role',
+            'Questions and a scoring guide for one role.',
+          ),
+          pkg(
+            90,
+            1800,
+            'คำถามพร้อมซ้อมสัมภาษณ์',
+            'ตั้งคำถามและซ้อมสัมภาษณ์กับผู้สมัครสมมติพร้อมฟีดแบ็ก',
+            'Questions and Practice',
+            'Write the questions and practise on a mock candidate, with feedback.',
+          ),
         ],
       }),
       service({
@@ -1283,8 +2184,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: HR,
         photos: [photo(5668842), photo(5668839)],
         packages: [
-          pkg(45, 900, 'แผนวันแรกและสัปดาห์แรก', 'วางแผนต้อนรับวันแรกและสัปดาห์แรก', 'First Day and Week', 'Plan the first day and the first week.'),
-          pkg(90, 1800, 'แผน 30 วันครบ', 'วางแผน 30 วัน ระบบพี่เลี้ยง และจุดคุยติดตามผล', 'Full 30-Day Plan', 'A 30-day plan with a buddy system and check-ins.'),
+          pkg(
+            45,
+            900,
+            'แผนวันแรกและสัปดาห์แรก',
+            'วางแผนต้อนรับวันแรกและสัปดาห์แรก',
+            'First Day and Week',
+            'Plan the first day and the first week.',
+          ),
+          pkg(
+            90,
+            1800,
+            'แผน 30 วันครบ',
+            'วางแผน 30 วัน ระบบพี่เลี้ยง และจุดคุยติดตามผล',
+            'Full 30-Day Plan',
+            'A 30-day plan with a buddy system and check-ins.',
+          ),
         ],
       }),
       service({
@@ -1300,8 +2215,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(7644004), photo(7640819)],
         packages: [
-          pkg(60, 1500, 'หาสาเหตุ', 'วิเคราะห์ข้อมูลคนลาออกและหาสาเหตุหลัก', 'Find the Cause', 'Analyse leaver data and find the main cause.'),
-          pkg(120, 3200, 'สาเหตุพร้อมแผนแก้', 'หาสาเหตุและวางแผนแก้ไข 3 เดือนพร้อมตัวชี้วัด', 'Cause and Fix', 'Find the cause and plan three months of fixes with measures.'),
+          pkg(
+            60,
+            1500,
+            'หาสาเหตุ',
+            'วิเคราะห์ข้อมูลคนลาออกและหาสาเหตุหลัก',
+            'Find the Cause',
+            'Analyse leaver data and find the main cause.',
+          ),
+          pkg(
+            120,
+            3200,
+            'สาเหตุพร้อมแผนแก้',
+            'หาสาเหตุและวางแผนแก้ไข 3 เดือนพร้อมตัวชี้วัด',
+            'Cause and Fix',
+            'Find the cause and plan three months of fixes with measures.',
+          ),
         ],
       }),
     ],
@@ -1315,7 +2244,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     bio: 'ดูแลงานเงินเดือนและประกันสังคมให้บริษัทลูกค้ากว่า 30 แห่งมา 7 ปี ในฐานะผู้ให้บริการงานบุคคลภายนอก รู้ว่ากฎหมายกำหนดเรื่องค่าล่วงเวลา วันหยุด และเงินสมทบไว้อย่างไร ช่วยร้านและบริษัทเล็กทำให้ถูกตั้งแต่เดือนแรก ก่อนเจอค่าปรับย้อนหลัง',
     en: {
       headline: 'Payroll, Social Security and HR Admin Advisor',
-      bio: "Has run payroll and social security for more than 30 client companies as an outsourced HR provider for 7 years. Knows what the law says about overtime, holidays and contributions, and helps shops and small companies get it right from the first month, before back penalties arrive.",
+      bio: 'Has run payroll and social security for more than 30 client companies as an outsourced HR provider for 7 years. Knows what the law says about overtime, holidays and contributions, and helps shops and small companies get it right from the first month, before back penalties arrive.',
     },
     services: [
       service({
@@ -1325,14 +2254,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Register as an Employer and File Social Security Correctly',
           description:
-            "Just hired your first employee, or been filing social security hit and miss? We go through employer registration, reporting staff joining and leaving, calculating contributions, and the monthly online filing deadline. You leave with a full-year social security calendar.",
+            'Just hired your first employee, or been filing social security hit and miss? We go through employer registration, reporting staff joining and leaving, calculating contributions, and the monthly online filing deadline. You leave with a full-year social security calendar.',
         },
         category: HR,
         trialMinutes: 15,
         photos: [photo(7821577), photo(7821682)],
         packages: [
-          pkg(30, 500, 'ถามเฉพาะเรื่อง', 'ตอบคำถามประกันสังคมเรื่องที่คุณติดอยู่', 'One Question', 'Answer the one social security question you are stuck on.'),
-          pkg(60, 1100, 'ไล่ครบทุกขั้น', 'ไล่ขั้นตอนทั้งหมดในระบบจริงพร้อมปฏิทินงานทั้งปี', 'Every Step', 'Go through every step in the real system, with a year-round calendar.'),
+          pkg(
+            30,
+            500,
+            'ถามเฉพาะเรื่อง',
+            'ตอบคำถามประกันสังคมเรื่องที่คุณติดอยู่',
+            'One Question',
+            'Answer the one social security question you are stuck on.',
+          ),
+          pkg(
+            60,
+            1100,
+            'ไล่ครบทุกขั้น',
+            'ไล่ขั้นตอนทั้งหมดในระบบจริงพร้อมปฏิทินงานทั้งปี',
+            'Every Step',
+            'Go through every step in the real system, with a year-round calendar.',
+          ),
         ],
       }),
       service({
@@ -1342,13 +2285,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Calculate Overtime and Holiday Pay the Legal Way',
           description:
-            "Overtime and holiday pay are the most common payroll mistakes and the most common employee complaints. We explain the legal rates for monthly and daily workers, then check the formula you use now. You leave with a correct formula and worked examples from your own payroll.",
+            'Overtime and holiday pay are the most common payroll mistakes and the most common employee complaints. We explain the legal rates for monthly and daily workers, then check the formula you use now. You leave with a correct formula and worked examples from your own payroll.',
         },
         category: HR,
         photos: [photo(7654163), photo(8428063)],
         packages: [
-          pkg(30, 500, 'ตรวจสูตรเดิม', 'ตรวจสูตรค่าล่วงเวลาที่ใช้อยู่และชี้จุดผิด', 'Check Your Formula', 'Check your overtime formula and flag mistakes.'),
-          pkg(60, 1000, 'ทำสูตรใหม่', 'ทำสูตรคำนวณใหม่ทุกกรณีพร้อมตัวอย่าง', 'New Formula', 'Build a new formula for every case, with examples.'),
+          pkg(
+            30,
+            500,
+            'ตรวจสูตรเดิม',
+            'ตรวจสูตรค่าล่วงเวลาที่ใช้อยู่และชี้จุดผิด',
+            'Check Your Formula',
+            'Check your overtime formula and flag mistakes.',
+          ),
+          pkg(
+            60,
+            1000,
+            'ทำสูตรใหม่',
+            'ทำสูตรคำนวณใหม่ทุกกรณีพร้อมตัวอย่าง',
+            'New Formula',
+            'Build a new formula for every case, with examples.',
+          ),
         ],
       }),
       service({
@@ -1358,13 +2315,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Set Up Monthly Payroll in Excel or Software',
           description:
-            "Doing payroll by hand and making the same mistakes every month? We build a spreadsheet or pick payroll software to suit your headcount, bringing earnings, deductions, withholding tax and social security into one place. You leave with a system ready for your next pay run.",
+            'Doing payroll by hand and making the same mistakes every month? We build a spreadsheet or pick payroll software to suit your headcount, bringing earnings, deductions, withholding tax and social security into one place. You leave with a system ready for your next pay run.',
         },
         category: HR,
         photos: [photo(8296975), photo(8296982)],
         packages: [
-          pkg(60, 1300, 'ไฟล์เงินเดือน Excel', 'ตั้งไฟล์เงินเดือนพร้อมสูตรหักภาษีและประกันสังคม', 'Excel Payroll', 'Build a payroll spreadsheet with tax and social security formulas.'),
-          pkg(90, 1900, 'เลือกและตั้งโปรแกรม', 'เทียบโปรแกรมเงินเดือน 2–3 ตัวและตั้งค่าตัวที่เลือก', 'Choose and Set Up Software', 'Compare two or three payroll tools and set up the one you choose.'),
+          pkg(
+            60,
+            1300,
+            'ไฟล์เงินเดือน Excel',
+            'ตั้งไฟล์เงินเดือนพร้อมสูตรหักภาษีและประกันสังคม',
+            'Excel Payroll',
+            'Build a payroll spreadsheet with tax and social security formulas.',
+          ),
+          pkg(
+            90,
+            1900,
+            'เลือกและตั้งโปรแกรม',
+            'เทียบโปรแกรมเงินเดือน 2–3 ตัวและตั้งค่าตัวที่เลือก',
+            'Choose and Set Up Software',
+            'Compare two or three payroll tools and set up the one you choose.',
+          ),
         ],
       }),
       service({
@@ -1379,8 +2350,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: HR,
         photos: [photo(28353121), photo(28353120)],
         packages: [
-          pkg(30, 500, 'สิทธิวันลา', 'อธิบายสิทธิวันหยุดและวันลาที่พนักงานต้องได้', 'Leave Rights', 'Explain the time off your staff are entitled to.'),
-          pkg(60, 1000, 'ระบบวันลาครบ', 'วางตารางวันหยุดทั้งปีและแบบฟอร์มบันทึกวันลา', 'Full Leave System', 'Plan the year of holidays and a leave record form.'),
+          pkg(
+            30,
+            500,
+            'สิทธิวันลา',
+            'อธิบายสิทธิวันหยุดและวันลาที่พนักงานต้องได้',
+            'Leave Rights',
+            'Explain the time off your staff are entitled to.',
+          ),
+          pkg(
+            60,
+            1000,
+            'ระบบวันลาครบ',
+            'วางตารางวันหยุดทั้งปีและแบบฟอร์มบันทึกวันลา',
+            'Full Leave System',
+            'Plan the year of holidays and a leave record form.',
+          ),
         ],
       }),
     ],
@@ -1394,7 +2379,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     bio: 'อดีตผู้อำนวยการฝ่ายพัฒนาบุคลากรของบริษัทผลิตชิ้นส่วนยานยนต์ ทำงานด้านพัฒนาคนมากว่า 25 ปี และอบรมหัวหน้างานมาแล้วหลายพันคน เน้นคุยจากสถานการณ์จริงในทีมของคุณแทนทฤษฎี และให้การบ้านที่ลองทำได้ตั้งแต่วันรุ่งขึ้น',
     en: {
       headline: 'Supervisor and Team Development Coach',
-      bio: "Former head of learning and development at an auto parts manufacturer, with more than 25 years developing people and thousands of supervisors trained. Works from real situations in your team rather than theory, and gives you something to try the very next day.",
+      bio: 'Former head of learning and development at an auto parts manufacturer, with more than 25 years developing people and thousands of supervisors trained. Works from real situations in your team rather than theory, and gives you something to try the very next day.',
     },
     services: [
       service({
@@ -1410,8 +2395,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(18935245), photo(8345975)],
         packages: [
-          pkg(60, 1200, 'เริ่มต้นเป็นหัวหน้า', 'คุยเรื่องที่กังวลที่สุดและวางแผน 90 วันแรก', 'Starting Out', 'Talk through your biggest worries and plan the first 90 days.'),
-          pkg(90, 1800, 'แผนพร้อมซ้อมสถานการณ์', 'วางแผน 90 วันและซ้อมสถานการณ์ยากที่น่าจะเจอ', 'Plan and Practice', 'Plan the 90 days and rehearse the tough situations you expect.'),
+          pkg(
+            60,
+            1200,
+            'เริ่มต้นเป็นหัวหน้า',
+            'คุยเรื่องที่กังวลที่สุดและวางแผน 90 วันแรก',
+            'Starting Out',
+            'Talk through your biggest worries and plan the first 90 days.',
+          ),
+          pkg(
+            90,
+            1800,
+            'แผนพร้อมซ้อมสถานการณ์',
+            'วางแผน 90 วันและซ้อมสถานการณ์ยากที่น่าจะเจอ',
+            'Plan and Practice',
+            'Plan the 90 days and rehearse the tough situations you expect.',
+          ),
         ],
       }),
       service({
@@ -1426,8 +2425,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: HR,
         photos: [photo(5439141), photo(5439148)],
         packages: [
-          pkg(45, 900, 'วางบทพูด', 'วางโครงการคุยสำหรับกรณีของคุณ', 'Plan the Talk', 'Outline the conversation for your case.'),
-          pkg(90, 1700, 'วางบทและซ้อมคุย', 'วางโครงการคุยแล้วซ้อมจริงโดยมีคนเล่นเป็นพนักงาน', 'Plan and Rehearse', 'Plan the talk, then rehearse it with someone playing the employee.'),
+          pkg(
+            45,
+            900,
+            'วางบทพูด',
+            'วางโครงการคุยสำหรับกรณีของคุณ',
+            'Plan the Talk',
+            'Outline the conversation for your case.',
+          ),
+          pkg(
+            90,
+            1700,
+            'วางบทและซ้อมคุย',
+            'วางโครงการคุยแล้วซ้อมจริงโดยมีคนเล่นเป็นพนักงาน',
+            'Plan and Rehearse',
+            'Plan the talk, then rehearse it with someone playing the employee.',
+          ),
         ],
       }),
       service({
@@ -1437,13 +2450,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Weekly Team Meetings That Finish in 30 Minutes',
           description:
-            "Meeting every week and nothing moves? We design a reusable agenda, separate decisions from updates, and set up a way to track what was agreed. You leave with an agenda template and an action log.",
+            'Meeting every week and nothing moves? We design a reusable agenda, separate decisions from updates, and set up a way to track what was agreed. You leave with an agenda template and an action log.',
         },
         category: HR,
         photos: [photo(8101931), photo(8101928)],
         packages: [
-          pkg(30, 500, 'วาระประชุมแม่แบบ', 'วางวาระประชุมรายสัปดาห์ที่ใช้ซ้ำได้', 'Agenda Template', 'Design a reusable weekly agenda.'),
-          pkg(60, 1000, 'ระบบประชุมครบ', 'วางวาระ บทบาทในที่ประชุม และวิธีติดตามงาน', 'Full Meeting System', 'Agenda, roles in the room, and how to follow up.'),
+          pkg(
+            30,
+            500,
+            'วาระประชุมแม่แบบ',
+            'วางวาระประชุมรายสัปดาห์ที่ใช้ซ้ำได้',
+            'Agenda Template',
+            'Design a reusable weekly agenda.',
+          ),
+          pkg(
+            60,
+            1000,
+            'ระบบประชุมครบ',
+            'วางวาระ บทบาทในที่ประชุม และวิธีติดตามงาน',
+            'Full Meeting System',
+            'Agenda, roles in the room, and how to follow up.',
+          ),
         ],
       }),
       service({
@@ -1459,8 +2486,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(5668795), photo(5668856)],
         packages: [
-          pkg(60, 1800, 'ประเมินตำแหน่งสำคัญ', 'หาตำแหน่งที่เสี่ยงและผู้ที่มีแววรับช่วงต่อ', 'Assess Key Roles', 'Find at-risk roles and likely successors.'),
-          pkg(120, 4000, 'แผนส่งต่อครบ', 'วางแผนส่งต่อและแผนพัฒนาผู้สืบทอดแต่ละคน', 'Full Succession Plan', 'A succession plan and a development plan for each successor.'),
+          pkg(
+            60,
+            1800,
+            'ประเมินตำแหน่งสำคัญ',
+            'หาตำแหน่งที่เสี่ยงและผู้ที่มีแววรับช่วงต่อ',
+            'Assess Key Roles',
+            'Find at-risk roles and likely successors.',
+          ),
+          pkg(
+            120,
+            4000,
+            'แผนส่งต่อครบ',
+            'วางแผนส่งต่อและแผนพัฒนาผู้สืบทอดแต่ละคน',
+            'Full Succession Plan',
+            'A succession plan and a development plan for each successor.',
+          ),
         ],
       }),
     ],
@@ -1486,14 +2527,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Draft a Partnership Agreement Before You Open',
           description:
-            "Opening a shop with friends or family without a contract tends to go wrong when the shop does well, or badly. We cover the capital each puts in, profit split, responsibilities, leaving the partnership and how big decisions are made, then draft it into an agreement everyone reads the same way. You leave with a first draft.",
+            'Opening a shop with friends or family without a contract tends to go wrong when the shop does well, or badly. We cover the capital each puts in, profit split, responsibilities, leaving the partnership and how big decisions are made, then draft it into an agreement everyone reads the same way. You leave with a first draft.',
         },
         category: LAW,
         screeningRequired: true,
         photos: [photo(8730987), photo(5387261)],
         packages: [
-          pkg(60, 2500, 'วางข้อตกลงหลัก', 'คุยและสรุปข้อตกลงสำคัญระหว่างหุ้นส่วน', 'Key Terms', 'Discuss and summarise the key terms between partners.'),
-          pkg(120, 5500, 'ร่างสัญญาฉบับแรก', 'สรุปข้อตกลงและร่างสัญญาหุ้นส่วนฉบับแรกให้ทุกฝ่ายอ่าน', 'First Draft', 'Agree the terms and produce a first draft for every partner to read.'),
+          pkg(
+            60,
+            2500,
+            'วางข้อตกลงหลัก',
+            'คุยและสรุปข้อตกลงสำคัญระหว่างหุ้นส่วน',
+            'Key Terms',
+            'Discuss and summarise the key terms between partners.',
+          ),
+          pkg(
+            120,
+            5500,
+            'ร่างสัญญาฉบับแรก',
+            'สรุปข้อตกลงและร่างสัญญาหุ้นส่วนฉบับแรกให้ทุกฝ่ายอ่าน',
+            'First Draft',
+            'Agree the terms and produce a first draft for every partner to read.',
+          ),
         ],
       }),
       service({
@@ -1503,14 +2558,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Review a Shop Lease in a Mall or Shophouse',
           description:
-            "Retail leases often contain terms that work against the tenant: service charges, rent reviews, deposits and handover conditions. Send the lease ahead, and we go through it clause by clause to decide what to push back on. You leave with a list of points to negotiate and suggested wording.",
+            'Retail leases often contain terms that work against the tenant: service charges, rent reviews, deposits and handover conditions. Send the lease ahead, and we go through it clause by clause to decide what to push back on. You leave with a list of points to negotiate and suggested wording.',
         },
         category: LAW,
         screeningRequired: true,
         photos: [photo(11077585), photo(31878042)],
         packages: [
-          pkg(45, 1500, 'ชี้ข้อเสี่ยง', 'อ่านสัญญาและชี้ข้อที่เสี่ยงที่สุด', 'Flag the Risks', 'Read the lease and flag the riskiest clauses.'),
-          pkg(90, 3200, 'ตรวจครบพร้อมถ้อยคำแก้', 'ตรวจทุกข้อและเขียนถ้อยคำที่เสนอแก้ให้ส่งผู้ให้เช่า', 'Full Review and Redlines', 'Review every clause and write the changes to send the landlord.'),
+          pkg(
+            45,
+            1500,
+            'ชี้ข้อเสี่ยง',
+            'อ่านสัญญาและชี้ข้อที่เสี่ยงที่สุด',
+            'Flag the Risks',
+            'Read the lease and flag the riskiest clauses.',
+          ),
+          pkg(
+            90,
+            3200,
+            'ตรวจครบพร้อมถ้อยคำแก้',
+            'ตรวจทุกข้อและเขียนถ้อยคำที่เสนอแก้ให้ส่งผู้ให้เช่า',
+            'Full Review and Redlines',
+            'Review every clause and write the changes to send the landlord.',
+          ),
         ],
       }),
       service({
@@ -1518,7 +2587,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         description:
           'ลูกค้าค้างจ่ายนานจนตามเองไม่ไหว ดูหลักฐานการซื้อขายและการส่งมอบที่มีอยู่ ประเมินว่าเรื่องนี้ควรเจรจา ส่งหนังสือทวงถาม หรือเตรียมฟ้อง และค่าใช้จ่ายของแต่ละทาง ออกไปพร้อมร่างหนังสือทวงถามและขั้นตอนถัดไปที่ชัดเจน',
         en: {
-          name: 'Send a Formal Demand to a Customer Who Hasn\'t Paid',
+          name: "Send a Formal Demand to a Customer Who Hasn't Paid",
           description:
             "A customer has owed you so long you can't chase it yourself? We look at the evidence of sale and delivery you have, assess whether to negotiate, send a formal demand, or prepare to sue, and the cost of each route. You leave with a draft demand letter and clear next steps.",
         },
@@ -1526,8 +2595,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(8693379), photo(37726687)],
         packages: [
-          pkg(30, 900, 'ประเมินเรื่องหนี้', 'ดูหลักฐานและบอกทางเลือกที่เหมาะสม', 'Assess the Debt', 'Look at the evidence and lay out your options.'),
-          pkg(60, 2000, 'ร่างหนังสือทวงถาม', 'ประเมินเรื่องและร่างหนังสือทวงถามที่ส่งได้ทันที', 'Draft the Demand', 'Assess the case and draft a demand letter ready to send.'),
+          pkg(
+            30,
+            900,
+            'ประเมินเรื่องหนี้',
+            'ดูหลักฐานและบอกทางเลือกที่เหมาะสม',
+            'Assess the Debt',
+            'Look at the evidence and lay out your options.',
+          ),
+          pkg(
+            60,
+            2000,
+            'ร่างหนังสือทวงถาม',
+            'ประเมินเรื่องและร่างหนังสือทวงถามที่ส่งได้ทันที',
+            'Draft the Demand',
+            'Assess the case and draft a demand letter ready to send.',
+          ),
         ],
       }),
       service({
@@ -1537,14 +2620,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Check a Shop Fit-Out Contract Before Paying the Deposit',
           description:
-            "Fit-outs that run late or get abandoned halfway usually trace back to a loosely written contract. We check the scope, payment stages, late-delivery penalties and workmanship warranty before you pay the first deposit. You leave with the clauses to add.",
+            'Fit-outs that run late or get abandoned halfway usually trace back to a loosely written contract. We check the scope, payment stages, late-delivery penalties and workmanship warranty before you pay the first deposit. You leave with the clauses to add.',
         },
         category: LAW,
         screeningRequired: true,
         photos: [photo(6814539), photo(7054505)],
         packages: [
-          pkg(45, 1500, 'ตรวจข้อสำคัญ', 'ตรวจงวดเงิน ค่าปรับ และการรับประกันงาน', 'Check Key Clauses', 'Check payment stages, penalties and warranty.'),
-          pkg(90, 3000, 'ตรวจครบพร้อมข้อเพิ่ม', 'ตรวจทั้งสัญญาและเขียนข้อที่ต้องเพิ่มก่อนเซ็น', 'Full Review With Additions', 'Review the whole contract and write the clauses to add before signing.'),
+          pkg(
+            45,
+            1500,
+            'ตรวจข้อสำคัญ',
+            'ตรวจงวดเงิน ค่าปรับ และการรับประกันงาน',
+            'Check Key Clauses',
+            'Check payment stages, penalties and warranty.',
+          ),
+          pkg(
+            90,
+            3000,
+            'ตรวจครบพร้อมข้อเพิ่ม',
+            'ตรวจทั้งสัญญาและเขียนข้อที่ต้องเพิ่มก่อนเซ็น',
+            'Full Review With Additions',
+            'Review the whole contract and write the clauses to add before signing.',
+          ),
         ],
       }),
       service({
@@ -1559,8 +2656,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: LAW,
         photos: [photo(5669619), photo(6077326), photo(5668473)],
         packages: [
-          pkg(45, 1500, 'อธิบายขั้นตอน', 'อธิบายขั้นตอนคดีและสิ่งที่ต้องเตรียม', 'Explain the Process', 'Explain the process and what to prepare.'),
-          pkg(90, 3200, 'เตรียมคดีด้วยกัน', 'ไล่เอกสารและพยานของคุณ และซ้อมตอบคำถามในวันนัด', 'Prepare Together', 'Go through your documents and witnesses, and rehearse for the hearing.'),
+          pkg(
+            45,
+            1500,
+            'อธิบายขั้นตอน',
+            'อธิบายขั้นตอนคดีและสิ่งที่ต้องเตรียม',
+            'Explain the Process',
+            'Explain the process and what to prepare.',
+          ),
+          pkg(
+            90,
+            3200,
+            'เตรียมคดีด้วยกัน',
+            'ไล่เอกสารและพยานของคุณ และซ้อมตอบคำถามในวันนัด',
+            'Prepare Together',
+            'Go through your documents and witnesses, and rehearse for the hearing.',
+          ),
         ],
       }),
       service({
@@ -1576,8 +2687,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(6322367), photo(7821566)],
         packages: [
-          pkg(45, 1500, 'ตรวจชื่อแบรนด์', 'ตรวจความเหมือนกับเครื่องหมายที่จดไว้แล้วและประเมินความเสี่ยง', 'Name Search', 'Search for conflicting marks and assess the risk.'),
-          pkg(90, 3500, 'ตรวจและเตรียมยื่น', 'ตรวจชื่อ เลือกจำพวก และเตรียมคำขอจดทะเบียนให้พร้อมยื่น', 'Search and Prepare to File', 'Search, choose classes and prepare the application ready to file.'),
+          pkg(
+            45,
+            1500,
+            'ตรวจชื่อแบรนด์',
+            'ตรวจความเหมือนกับเครื่องหมายที่จดไว้แล้วและประเมินความเสี่ยง',
+            'Name Search',
+            'Search for conflicting marks and assess the risk.',
+          ),
+          pkg(
+            90,
+            3500,
+            'ตรวจและเตรียมยื่น',
+            'ตรวจชื่อ เลือกจำพวก และเตรียมคำขอจดทะเบียนให้พร้อมยื่น',
+            'Search and Prepare to File',
+            'Search, choose classes and prepare the application ready to file.',
+          ),
         ],
       }),
       service({
@@ -1587,13 +2712,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Deal With Copycats Using Your Brand or Photos Online',
           description:
-            "Found another shop using your brand name, logo or product photos on a marketplace? We look at how well your rights are documented, how to file a takedown through the platform, and when to send a warning letter or take legal action. You leave with steps you can take today and the evidence to gather.",
+            'Found another shop using your brand name, logo or product photos on a marketplace? We look at how well your rights are documented, how to file a takedown through the platform, and when to send a warning letter or take legal action. You leave with steps you can take today and the evidence to gather.',
         },
         category: LAW,
         photos: [photo(7857528), photo(7674983)],
         packages: [
-          pkg(45, 1400, 'ประเมินและแจ้งลบ', 'ประเมินหลักฐานและวางขั้นตอนแจ้งลบบนแพลตฟอร์ม', 'Assess and Take Down', 'Assess your evidence and plan the platform takedown.'),
-          pkg(90, 3200, 'แจ้งลบและร่างหนังสือเตือน', 'วางขั้นตอนแจ้งลบและร่างหนังสือเตือนผู้ละเมิด', 'Takedown and Warning Letter', 'Plan the takedown and draft a warning letter to the infringer.'),
+          pkg(
+            45,
+            1400,
+            'ประเมินและแจ้งลบ',
+            'ประเมินหลักฐานและวางขั้นตอนแจ้งลบบนแพลตฟอร์ม',
+            'Assess and Take Down',
+            'Assess your evidence and plan the platform takedown.',
+          ),
+          pkg(
+            90,
+            3200,
+            'แจ้งลบและร่างหนังสือเตือน',
+            'วางขั้นตอนแจ้งลบและร่างหนังสือเตือนผู้ละเมิด',
+            'Takedown and Warning Letter',
+            'Plan the takedown and draft a warning letter to the infringer.',
+          ),
         ],
       }),
       service({
@@ -1609,8 +2748,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(7147712), photo(7147720)],
         packages: [
-          pkg(45, 1500, 'ตรวจสัญญาอนุญาต', 'ตรวจสัญญาที่ได้รับมาและชี้ข้อที่ต้องแก้', 'Review a Licence', 'Review a licence you received and mark what to change.'),
-          pkg(90, 3400, 'ร่างสัญญาอนุญาต', 'ร่างสัญญาอนุญาตใช้งานตามงานจริงของคุณ', 'Draft a Licence', 'Draft a licence agreement for your actual project.'),
+          pkg(
+            45,
+            1500,
+            'ตรวจสัญญาอนุญาต',
+            'ตรวจสัญญาที่ได้รับมาและชี้ข้อที่ต้องแก้',
+            'Review a Licence',
+            'Review a licence you received and mark what to change.',
+          ),
+          pkg(
+            90,
+            3400,
+            'ร่างสัญญาอนุญาต',
+            'ร่างสัญญาอนุญาตใช้งานตามงานจริงของคุณ',
+            'Draft a Licence',
+            'Draft a licence agreement for your actual project.',
+          ),
         ],
       }),
     ],
@@ -1624,7 +2777,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     bio: 'นักกฎหมายที่ทำงานด้านคุ้มครองข้อมูลส่วนบุคคลและกฎหมายดิจิทัลมา 8 ปี เคยเป็นนิติกรประจำบริษัทอีคอมเมิร์ซ ช่วยร้านออนไลน์และสตาร์ตอัปทำเอกสารให้ครบตามกฎหมาย รวมถึงสิทธิ์ในงานออกแบบที่จ้างทำและการรับมือหนังสือแจ้งเตือนเรื่องละเมิด โดยเลือกทำเฉพาะสิ่งที่ธุรกิจขนาดนั้นต้องมีจริง',
     en: {
       headline: 'Online Business Law, PDPA, and Copyright Advisor',
-      bio: "Legal specialist in data protection and digital law for 8 years, formerly in-house counsel at an e-commerce company. Helps online shops and startups get their legal paperwork in order, including rights to commissioned design work and replies to infringement notices, doing only what a business their size really needs.",
+      bio: 'Legal specialist in data protection and digital law for 8 years, formerly in-house counsel at an e-commerce company. Helps online shops and startups get their legal paperwork in order, including rights to commissioned design work and replies to infringement notices, doing only what a business their size really needs.',
     },
     services: [
       service({
@@ -1634,13 +2787,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Make Sure Your Logo Design Contract Gives You the Rights',
           description:
-            "Hire a designer for your logo without settling copyright and you may struggle to register it, or face problems later. We review the contract or agreement you have and add a full assignment of rights. You leave with assignment wording ready to put in the contract.",
+            'Hire a designer for your logo without settling copyright and you may struggle to register it, or face problems later. We review the contract or agreement you have and add a full assignment of rights. You leave with assignment wording ready to put in the contract.',
         },
         category: LAW,
         photos: [photo(3760615), photo(4989696)],
         packages: [
-          pkg(30, 900, 'ตรวจข้อลิขสิทธิ์', 'ตรวจข้อลิขสิทธิ์ในสัญญาจ้างที่มีอยู่', 'Check the Copyright Clause', 'Check the copyright clause in your current contract.'),
-          pkg(60, 1900, 'ตรวจพร้อมร่างข้อโอนสิทธิ์', 'ตรวจสัญญาและร่างข้อโอนลิขสิทธิ์ให้ครบ', 'Review and Draft Assignment', 'Review the contract and draft a complete assignment clause.'),
+          pkg(
+            30,
+            900,
+            'ตรวจข้อลิขสิทธิ์',
+            'ตรวจข้อลิขสิทธิ์ในสัญญาจ้างที่มีอยู่',
+            'Check the Copyright Clause',
+            'Check the copyright clause in your current contract.',
+          ),
+          pkg(
+            60,
+            1900,
+            'ตรวจพร้อมร่างข้อโอนสิทธิ์',
+            'ตรวจสัญญาและร่างข้อโอนลิขสิทธิ์ให้ครบ',
+            'Review and Draft Assignment',
+            'Review the contract and draft a complete assignment clause.',
+          ),
         ],
       }),
       service({
@@ -1656,8 +2823,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(7876191), photo(8112166)],
         packages: [
-          pkg(45, 1800, 'อ่านหนังสือด้วยกัน', 'อ่านข้อกล่าวหาและประเมินความเสี่ยง', 'Read the Letter', 'Read the claims and assess the risk.'),
-          pkg(90, 3800, 'วางแนวทางตอบ', 'ประเมินข้อต่อสู้และวางแนวทางพร้อมโครงหนังสือตอบ', 'Plan the Response', 'Assess your defences and plan the reply, with an outline letter.'),
+          pkg(
+            45,
+            1800,
+            'อ่านหนังสือด้วยกัน',
+            'อ่านข้อกล่าวหาและประเมินความเสี่ยง',
+            'Read the Letter',
+            'Read the claims and assess the risk.',
+          ),
+          pkg(
+            90,
+            3800,
+            'วางแนวทางตอบ',
+            'ประเมินข้อต่อสู้และวางแนวทางพร้อมโครงหนังสือตอบ',
+            'Plan the Response',
+            'Assess your defences and plan the reply, with an outline letter.',
+          ),
         ],
       }),
       service({
@@ -1673,8 +2854,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(7857542), photo(7857532)],
         packages: [
-          pkg(45, 1200, 'สำรวจข้อมูล', 'สำรวจข้อมูลลูกค้าที่ร้านเก็บและความเสี่ยงหลัก', 'Data Survey', 'Map the customer data you hold and the main risks.'),
-          pkg(90, 2600, 'แผน PDPA ครบ', 'ทำบันทึกรายการข้อมูลและแผนทำตามกฎหมายทั้งหมด', 'Full PDPA Plan', 'Build the data inventory and a complete compliance plan.'),
+          pkg(
+            45,
+            1200,
+            'สำรวจข้อมูล',
+            'สำรวจข้อมูลลูกค้าที่ร้านเก็บและความเสี่ยงหลัก',
+            'Data Survey',
+            'Map the customer data you hold and the main risks.',
+          ),
+          pkg(
+            90,
+            2600,
+            'แผน PDPA ครบ',
+            'ทำบันทึกรายการข้อมูลและแผนทำตามกฎหมายทั้งหมด',
+            'Full PDPA Plan',
+            'Build the data inventory and a complete compliance plan.',
+          ),
         ],
       }),
       service({
@@ -1689,8 +2884,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: LAW,
         photos: [photo(2882638), photo(36740854)],
         packages: [
-          pkg(60, 1800, 'ร่างนโยบาย', 'ร่างนโยบายความเป็นส่วนตัวจากข้อมูลที่ธุรกิจเก็บจริง', 'Draft the Policy', 'Draft a privacy policy based on the data you really collect.'),
-          pkg(90, 2800, 'นโยบายและแบบยินยอม', 'ร่างนโยบายและข้อความขอความยินยอมสำหรับทุกช่องทาง', 'Policy and Consent', 'Draft the policy and consent wording for every channel.'),
+          pkg(
+            60,
+            1800,
+            'ร่างนโยบาย',
+            'ร่างนโยบายความเป็นส่วนตัวจากข้อมูลที่ธุรกิจเก็บจริง',
+            'Draft the Policy',
+            'Draft a privacy policy based on the data you really collect.',
+          ),
+          pkg(
+            90,
+            2800,
+            'นโยบายและแบบยินยอม',
+            'ร่างนโยบายและข้อความขอความยินยอมสำหรับทุกช่องทาง',
+            'Policy and Consent',
+            'Draft the policy and consent wording for every channel.',
+          ),
         ],
       }),
       service({
@@ -1705,8 +2914,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: LAW,
         photos: [photo(13422379), photo(13156207), photo(7463021)],
         packages: [
-          pkg(30, 900, 'ป้ายและระยะเก็บภาพ', 'วางข้อความป้ายแจ้งและระยะเวลาเก็บภาพ', 'Signs and Retention', 'Write the notice sign and set the retention period.'),
-          pkg(60, 1800, 'แนวปฏิบัติครบ', 'วางป้าย ระยะเก็บภาพ สิทธิ์การเข้าดู และขั้นตอนขอภาพ', 'Full CCTV Policy', 'Signs, retention, viewing rights and the request procedure.'),
+          pkg(
+            30,
+            900,
+            'ป้ายและระยะเก็บภาพ',
+            'วางข้อความป้ายแจ้งและระยะเวลาเก็บภาพ',
+            'Signs and Retention',
+            'Write the notice sign and set the retention period.',
+          ),
+          pkg(
+            60,
+            1800,
+            'แนวปฏิบัติครบ',
+            'วางป้าย ระยะเก็บภาพ สิทธิ์การเข้าดู และขั้นตอนขอภาพ',
+            'Full CCTV Policy',
+            'Signs, retention, viewing rights and the request procedure.',
+          ),
         ],
       }),
       service({
@@ -1722,8 +2945,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(15399856), photo(6669784)],
         packages: [
-          pkg(60, 1800, 'ตรวจข้อหลัก', 'ตรวจข้อชำระเงิน ยกเลิก และคืนเงิน', 'Key Clauses', 'Check the payment, cancellation and refund clauses.'),
-          pkg(120, 4500, 'ตรวจทั้งฉบับ', 'ตรวจข้อตกลงทั้งฉบับและเขียนถ้อยคำแก้ไข', 'Full Review', 'Review the whole document and write the changes.'),
+          pkg(
+            60,
+            1800,
+            'ตรวจข้อหลัก',
+            'ตรวจข้อชำระเงิน ยกเลิก และคืนเงิน',
+            'Key Clauses',
+            'Check the payment, cancellation and refund clauses.',
+          ),
+          pkg(
+            120,
+            4500,
+            'ตรวจทั้งฉบับ',
+            'ตรวจข้อตกลงทั้งฉบับและเขียนถ้อยคำแก้ไข',
+            'Full Review',
+            'Review the whole document and write the changes.',
+          ),
         ],
       }),
       service({
@@ -1738,8 +2975,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: SHOP,
         photos: [photo(7190885), photo(6347543)],
         packages: [
-          pkg(30, 700, 'ตรวจนโยบายเดิม', 'ตรวจนโยบายคืนสินค้าที่ใช้อยู่และชี้ข้อที่เสี่ยง', 'Check Your Policy', 'Check your current return policy and flag risky wording.'),
-          pkg(60, 1400, 'เขียนนโยบายใหม่', 'เขียนนโยบายคืนสินค้าและข้อความตอบลูกค้าทุกกรณี', 'New Policy', 'Write a new return policy and replies for every case.'),
+          pkg(
+            30,
+            700,
+            'ตรวจนโยบายเดิม',
+            'ตรวจนโยบายคืนสินค้าที่ใช้อยู่และชี้ข้อที่เสี่ยง',
+            'Check Your Policy',
+            'Check your current return policy and flag risky wording.',
+          ),
+          pkg(
+            60,
+            1400,
+            'เขียนนโยบายใหม่',
+            'เขียนนโยบายคืนสินค้าและข้อความตอบลูกค้าทุกกรณี',
+            'New Policy',
+            'Write a new return policy and replies for every case.',
+          ),
         ],
       }),
     ],
@@ -1769,8 +3020,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(8112231), photo(34066105)],
         packages: [
-          pkg(45, 1500, 'ประเมินกรณี', 'ประเมินเหตุเลิกจ้างและคำนวณเงินที่ต้องจ่าย', 'Assess the Case', 'Assess the grounds and calculate what is owed.'),
-          pkg(90, 3200, 'ขั้นตอนพร้อมเอกสาร', 'วางขั้นตอนเลิกจ้างและร่างหนังสือเลิกจ้างกับบันทึกการจ่ายเงิน', 'Steps and Documents', 'Plan the dismissal and draft the letter and payment record.'),
+          pkg(
+            45,
+            1500,
+            'ประเมินกรณี',
+            'ประเมินเหตุเลิกจ้างและคำนวณเงินที่ต้องจ่าย',
+            'Assess the Case',
+            'Assess the grounds and calculate what is owed.',
+          ),
+          pkg(
+            90,
+            3200,
+            'ขั้นตอนพร้อมเอกสาร',
+            'วางขั้นตอนเลิกจ้างและร่างหนังสือเลิกจ้างกับบันทึกการจ่ายเงิน',
+            'Steps and Documents',
+            'Plan the dismissal and draft the letter and payment record.',
+          ),
         ],
       }),
       service({
@@ -1785,8 +3050,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: LAW,
         photos: [photo(8730982), photo(7567600)],
         packages: [
-          pkg(30, 900, 'ตรวจหนังสือหนึ่งฉบับ', 'ตรวจหนังสือตักเตือนที่กำลังจะออก', 'Check One Warning', 'Check a warning letter you are about to issue.'),
-          pkg(60, 1800, 'แม่แบบหนังสือตักเตือน', 'ทำแม่แบบหนังสือตักเตือนสำหรับกรณีที่เจอบ่อย', 'Warning Templates', 'Build warning templates for the common cases.'),
+          pkg(
+            30,
+            900,
+            'ตรวจหนังสือหนึ่งฉบับ',
+            'ตรวจหนังสือตักเตือนที่กำลังจะออก',
+            'Check One Warning',
+            'Check a warning letter you are about to issue.',
+          ),
+          pkg(
+            60,
+            1800,
+            'แม่แบบหนังสือตักเตือน',
+            'ทำแม่แบบหนังสือตักเตือนสำหรับกรณีที่เจอบ่อย',
+            'Warning Templates',
+            'Build warning templates for the common cases.',
+          ),
         ],
       }),
       service({
@@ -1796,14 +3075,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Respond When an Employee Complains to a Labour Inspector',
           description:
-            "Summoned by the labour protection office after a staff complaint? We go through the complaint, the payroll and time records to prepare, and what to explain at the meeting. This is advice to help you prepare, not a guarantee of the decision. You leave with a document list and the points to make.",
+            'Summoned by the labour protection office after a staff complaint? We go through the complaint, the payroll and time records to prepare, and what to explain at the meeting. This is advice to help you prepare, not a guarantee of the decision. You leave with a document list and the points to make.',
         },
         category: LAW,
         screeningRequired: true,
         photos: [photo(955389), photo(5668484)],
         packages: [
-          pkg(45, 1500, 'อ่านคำร้อง', 'อ่านคำร้องและบอกสิ่งที่ต้องเตรียม', 'Read the Complaint', 'Read the complaint and list what to prepare.'),
-          pkg(90, 3000, 'เตรียมชี้แจง', 'ไล่เอกสารและวางแนวทางชี้แจงพร้อมซ้อมตอบ', 'Prepare Your Response', 'Go through the documents, plan your explanation and rehearse.'),
+          pkg(
+            45,
+            1500,
+            'อ่านคำร้อง',
+            'อ่านคำร้องและบอกสิ่งที่ต้องเตรียม',
+            'Read the Complaint',
+            'Read the complaint and list what to prepare.',
+          ),
+          pkg(
+            90,
+            3000,
+            'เตรียมชี้แจง',
+            'ไล่เอกสารและวางแนวทางชี้แจงพร้อมซ้อมตอบ',
+            'Prepare Your Response',
+            'Go through the documents, plan your explanation and rehearse.',
+          ),
         ],
       }),
       service({
@@ -1818,8 +3111,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: HR,
         photos: [photo(17937671), photo(23232403)],
         packages: [
-          pkg(45, 1200, 'ภาพรวมขั้นตอน', 'อธิบายขั้นตอน MOU และค่าใช้จ่ายทั้งหมด', 'Process Overview', 'Explain the MOU process and the full cost.'),
-          pkg(90, 2500, 'วางแผนนำเข้าแรงงาน', 'วางปฏิทินขั้นตอน งบ และหน้าที่นายจ้างตามจำนวนแรงงานที่ต้องการ', 'Hiring Plan', 'Plan the timeline, budget and employer duties for the number of workers you need.'),
+          pkg(
+            45,
+            1200,
+            'ภาพรวมขั้นตอน',
+            'อธิบายขั้นตอน MOU และค่าใช้จ่ายทั้งหมด',
+            'Process Overview',
+            'Explain the MOU process and the full cost.',
+          ),
+          pkg(
+            90,
+            2500,
+            'วางแผนนำเข้าแรงงาน',
+            'วางปฏิทินขั้นตอน งบ และหน้าที่นายจ้างตามจำนวนแรงงานที่ต้องการ',
+            'Hiring Plan',
+            'Plan the timeline, budget and employer duties for the number of workers you need.',
+          ),
         ],
       }),
     ],
@@ -1835,7 +3142,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     bio: 'เจ้าของร้านกาแฟ 3 สาขาในขอนแก่น เปิดร้านแรกเมื่อ 9 ปีก่อนด้วยเครื่องชงมือสอง ช่วยคนที่อยากเปิดคาเฟ่คิดต้นทุนให้ละเอียดก่อนลงเงิน และช่วยร้านที่เปิดแล้วแต่กำไรไม่เหลือหาว่าเงินหายไปตรงไหน ทุกตัวเลขที่ใช้มาจากร้านของตัวเอง',
     en: {
       headline: 'Owner of Three Coffee Shops and Café Start-Up Advisor',
-      bio: "Owns three coffee shops in Khon Kaen, the first opened nine years ago with a second-hand machine. Helps would-be café owners cost everything properly before they spend, and helps open cafés with no profit left over find where the money goes, using figures from her own shops.",
+      bio: 'Owns three coffee shops in Khon Kaen, the first opened nine years ago with a second-hand machine. Helps would-be café owners cost everything properly before they spend, and helps open cafés with no profit left over find where the money goes, using figures from her own shops.',
     },
     services: [
       service({
@@ -1851,9 +3158,30 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(30226594), photo(302891), photo(24613535)],
         packages: [
-          pkg(30, 500, 'คิดต้นทุน 5 เมนู', 'คำนวณต้นทุนต่อแก้วของเมนูขายดี 5 ตัว', 'Five Drinks Costed', 'Cost your five best-selling drinks per cup.'),
-          pkg(60, 1100, 'ต้นทุนทั้งเมนู', 'ทำไฟล์ต้นทุนทั้งเมนูและปรับราคาที่ขาดทุน', 'Whole Menu Costing', 'Cost the whole menu and fix the prices that lose money.'),
-          pkg(90, 1700, 'ต้นทุนพร้อมจุดคุ้มทุนร้าน', 'ทำต้นทุนทั้งเมนูและคำนวณยอดขายต่อวันที่ร้านต้องทำให้ได้', 'Menu Costs and Break-Even', 'Cost the menu and work out the daily sales the shop needs.'),
+          pkg(
+            30,
+            500,
+            'คิดต้นทุน 5 เมนู',
+            'คำนวณต้นทุนต่อแก้วของเมนูขายดี 5 ตัว',
+            'Five Drinks Costed',
+            'Cost your five best-selling drinks per cup.',
+          ),
+          pkg(
+            60,
+            1100,
+            'ต้นทุนทั้งเมนู',
+            'ทำไฟล์ต้นทุนทั้งเมนูและปรับราคาที่ขาดทุน',
+            'Whole Menu Costing',
+            'Cost the whole menu and fix the prices that lose money.',
+          ),
+          pkg(
+            90,
+            1700,
+            'ต้นทุนพร้อมจุดคุ้มทุนร้าน',
+            'ทำต้นทุนทั้งเมนูและคำนวณยอดขายต่อวันที่ร้านต้องทำให้ได้',
+            'Menu Costs and Break-Even',
+            'Cost the menu and work out the daily sales the shop needs.',
+          ),
         ],
       }),
       service({
@@ -1868,8 +3196,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FOOD,
         photos: [photo(8429813), photo(20123607), photo(16309237)],
         packages: [
-          pkg(45, 800, 'เลือกเครื่อง', 'เทียบเครื่องชงและเครื่องบดตามยอดขายและงบ', 'Choose the Machine', 'Compare machines and grinders against your volume and budget.'),
-          pkg(90, 1600, 'ชุดอุปกรณ์ครบ', 'เลือกเครื่อง อุปกรณ์บาร์ และเมล็ดกาแฟพร้อมงบรวม', 'Full Bar Set-Up', 'Choose the machine, bar tools and beans, with a total budget.'),
+          pkg(
+            45,
+            800,
+            'เลือกเครื่อง',
+            'เทียบเครื่องชงและเครื่องบดตามยอดขายและงบ',
+            'Choose the Machine',
+            'Compare machines and grinders against your volume and budget.',
+          ),
+          pkg(
+            90,
+            1600,
+            'ชุดอุปกรณ์ครบ',
+            'เลือกเครื่อง อุปกรณ์บาร์ และเมล็ดกาแฟพร้อมงบรวม',
+            'Full Bar Set-Up',
+            'Choose the machine, bar tools and beans, with a total budget.',
+          ),
         ],
       }),
       service({
@@ -1879,13 +3221,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Signature Drinks That Sell and Taste the Same Every Time',
           description:
-            "A good signature drink photographs well, makes a profit, and every barista can make it the same way. We design drinks around ingredients you already stock, write recipes in grams and millilitres, and price them. You leave with two or three standard recipes and recipe cards for the bar.",
+            'A good signature drink photographs well, makes a profit, and every barista can make it the same way. We design drinks around ingredients you already stock, write recipes in grams and millilitres, and price them. You leave with two or three standard recipes and recipe cards for the bar.',
         },
         category: FOOD,
         photos: [photo(33537453), photo(1924951)],
         packages: [
-          pkg(60, 1200, 'คิดเมนูใหม่', 'คิดเมนูซิกเนเจอร์และตั้งราคาขาย', 'New Drinks', 'Design signature drinks and set their prices.'),
-          pkg(90, 1800, 'เมนูพร้อมสูตรมาตรฐาน', 'คิดเมนู ตั้งสูตรมาตรฐาน และทำการ์ดสูตรสำหรับบาร์', 'Drinks and Standard Recipes', 'Design the drinks, set standard recipes and make bar cards.'),
+          pkg(
+            60,
+            1200,
+            'คิดเมนูใหม่',
+            'คิดเมนูซิกเนเจอร์และตั้งราคาขาย',
+            'New Drinks',
+            'Design signature drinks and set their prices.',
+          ),
+          pkg(
+            90,
+            1800,
+            'เมนูพร้อมสูตรมาตรฐาน',
+            'คิดเมนู ตั้งสูตรมาตรฐาน และทำการ์ดสูตรสำหรับบาร์',
+            'Drinks and Standard Recipes',
+            'Design the drinks, set standard recipes and make bar cards.',
+          ),
         ],
       }),
       service({
@@ -1901,8 +3257,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         screeningRequired: true,
         photos: [photo(1833586), photo(16173672), photo(19561080)],
         packages: [
-          pkg(60, 1300, 'งบเปิดร้าน', 'แตกงบเปิดร้านทุกรายการตามแผนของคุณ', 'Opening Budget', 'Itemise the opening budget for your plan.'),
-          pkg(120, 2800, 'งบและแผนก่อนเปิด', 'แตกงบ เลือกทำเล และวางรายการงานจนถึงวันเปิดร้าน', 'Budget and Pre-Opening Plan', 'Budget, location choice, and every task up to opening day.'),
+          pkg(
+            60,
+            1300,
+            'งบเปิดร้าน',
+            'แตกงบเปิดร้านทุกรายการตามแผนของคุณ',
+            'Opening Budget',
+            'Itemise the opening budget for your plan.',
+          ),
+          pkg(
+            120,
+            2800,
+            'งบและแผนก่อนเปิด',
+            'แตกงบ เลือกทำเล และวางรายการงานจนถึงวันเปิดร้าน',
+            'Budget and Pre-Opening Plan',
+            'Budget, location choice, and every task up to opening day.',
+          ),
         ],
       }),
       service({
@@ -1917,8 +3287,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FOOD,
         photos: [photo(26590808), photo(36719854), photo(6829511)],
         packages: [
-          pkg(45, 800, 'แผนเทรน', 'วางแผนเทรน 2 สัปดาห์สำหรับบาริสต้าใหม่', 'Training Plan', 'A two-week training plan for a new barista.'),
-          pkg(90, 1600, 'แผนเทรนพร้อมแบบทดสอบ', 'วางแผนเทรน เกณฑ์ทดสอบ และการ์ดสูตรมาตรฐานของร้าน', 'Plan and Skills Test', 'Training plan, skills test and standard recipe cards.'),
+          pkg(
+            45,
+            800,
+            'แผนเทรน',
+            'วางแผนเทรน 2 สัปดาห์สำหรับบาริสต้าใหม่',
+            'Training Plan',
+            'A two-week training plan for a new barista.',
+          ),
+          pkg(
+            90,
+            1600,
+            'แผนเทรนพร้อมแบบทดสอบ',
+            'วางแผนเทรน เกณฑ์ทดสอบ และการ์ดสูตรมาตรฐานของร้าน',
+            'Plan and Skills Test',
+            'Training plan, skills test and standard recipe cards.',
+          ),
         ],
       }),
     ],
@@ -1932,7 +3316,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     bio: 'เชฟที่ทำงานในครัวโรงแรมและร้านอาหารไทยมา 18 ปี ก่อนเปิดร้านอาหารตามสั่งของตัวเองในนนทบุรี ช่วยร้านอาหารวางเมนูให้ครัวทำทัน คุมต้นทุนวัตถุดิบ และจัดครัวให้คนน้อยแต่ออกอาหารได้เร็ว คุยแบบคนครัวด้วยกัน',
     en: {
       headline: 'Chef and Restaurant Kitchen Advisor',
-      bio: "Chef who worked in hotel kitchens and Thai restaurants for 18 years before opening his own made-to-order restaurant in Nonthaburi. Helps restaurants plan menus the kitchen can keep up with, control food costs, and set up a small team that still gets food out fast. Talks shop, cook to cook.",
+      bio: 'Chef who worked in hotel kitchens and Thai restaurants for 18 years before opening his own made-to-order restaurant in Nonthaburi. Helps restaurants plan menus the kitchen can keep up with, control food costs, and set up a small team that still gets food out fast. Talks shop, cook to cook.',
     },
     services: [
       service({
@@ -1948,8 +3332,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(5622189), photo(13965307), photo(17302468)],
         packages: [
-          pkg(45, 800, 'ต้นทุนเมนูหลัก', 'คำนวณต้นทุนต่อจานของเมนูขายดี 10 รายการ', 'Main Dishes Costed', 'Cost your ten best-selling dishes per plate.'),
-          pkg(90, 1700, 'ระบบคุมต้นทุน', 'คำนวณต้นทุนทั้งเมนูและวางระบบสั่งและรับวัตถุดิบ', 'Food Cost System', 'Cost the full menu and set up ordering and receiving.'),
+          pkg(
+            45,
+            800,
+            'ต้นทุนเมนูหลัก',
+            'คำนวณต้นทุนต่อจานของเมนูขายดี 10 รายการ',
+            'Main Dishes Costed',
+            'Cost your ten best-selling dishes per plate.',
+          ),
+          pkg(
+            90,
+            1700,
+            'ระบบคุมต้นทุน',
+            'คำนวณต้นทุนทั้งเมนูและวางระบบสั่งและรับวัตถุดิบ',
+            'Food Cost System',
+            'Cost the full menu and set up ordering and receiving.',
+          ),
         ],
       }),
       service({
@@ -1959,13 +3357,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'A Made-to-Order Menu the Kitchen Can Keep Up With at Rush Hour',
           description:
-            "A three-page menu slows the kitchen and leaves ingredients to waste. We cut the menu by sales and difficulty, group dishes that share ingredients, and set a cooking order that gets plates out fast at lunchtime. You leave with a shorter, more profitable menu.",
+            'A three-page menu slows the kitchen and leaves ingredients to waste. We cut the menu by sales and difficulty, group dishes that share ingredients, and set a cooking order that gets plates out fast at lunchtime. You leave with a shorter, more profitable menu.',
         },
         category: FOOD,
         photos: [photo(175754), photo(20994429), photo(12561890)],
         packages: [
-          pkg(60, 1200, 'คัดเมนู', 'คัดเมนูจากยอดขายและเวลาที่ใช้ทำ', 'Trim the Menu', 'Trim the menu by sales and cooking time.'),
-          pkg(90, 1900, 'เมนูใหม่พร้อมลำดับครัว', 'คัดเมนู จัดกลุ่มวัตถุดิบ และวางลำดับทำช่วงพีก', 'New Menu and Kitchen Flow', 'Trim the menu, group ingredients and plan the rush-hour flow.'),
+          pkg(
+            60,
+            1200,
+            'คัดเมนู',
+            'คัดเมนูจากยอดขายและเวลาที่ใช้ทำ',
+            'Trim the Menu',
+            'Trim the menu by sales and cooking time.',
+          ),
+          pkg(
+            90,
+            1900,
+            'เมนูใหม่พร้อมลำดับครัว',
+            'คัดเมนู จัดกลุ่มวัตถุดิบ และวางลำดับทำช่วงพีก',
+            'New Menu and Kitchen Flow',
+            'Trim the menu, group ingredients and plan the rush-hour flow.',
+          ),
         ],
       }),
       service({
@@ -1975,14 +3387,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Lay Out a Small Restaurant Kitchen and Its Stations',
           description:
-            "A badly arranged narrow kitchen means people bumping into each other and slow plates. Send photos and measurements before the session, and we place the stoves, prep area, fridges and washing point in the order the work actually flows. You leave with a new layout and a list of what to move or buy.",
+            'A badly arranged narrow kitchen means people bumping into each other and slow plates. Send photos and measurements before the session, and we place the stoves, prep area, fridges and washing point in the order the work actually flows. You leave with a new layout and a list of what to move or buy.',
         },
         category: FOOD,
         screeningRequired: true,
         photos: [photo(2544829), photo(15671274)],
         packages: [
-          pkg(60, 1500, 'ตรวจผังครัว', 'ดูผังครัวปัจจุบันและชี้จุดที่ทำให้ช้า', 'Kitchen Check', 'Review your current layout and find what slows you down.'),
-          pkg(120, 3200, 'ผังครัวใหม่', 'วางผังครัวใหม่ทั้งหมดพร้อมรายการปรับปรุงและงบ', 'New Kitchen Layout', 'A complete new layout, with a list of changes and a budget.'),
+          pkg(
+            60,
+            1500,
+            'ตรวจผังครัว',
+            'ดูผังครัวปัจจุบันและชี้จุดที่ทำให้ช้า',
+            'Kitchen Check',
+            'Review your current layout and find what slows you down.',
+          ),
+          pkg(
+            120,
+            3200,
+            'ผังครัวใหม่',
+            'วางผังครัวใหม่ทั้งหมดพร้อมรายการปรับปรุงและงบ',
+            'New Kitchen Layout',
+            'A complete new layout, with a list of changes and a budget.',
+          ),
         ],
       }),
       service({
@@ -1997,8 +3423,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FOOD,
         photos: [photo(38127716), photo(6937464), photo(2827263)],
         packages: [
-          pkg(60, 1300, 'สูตรน้ำซอสหลัก', 'ทำสูตรมาตรฐานของน้ำซอสและเครื่องปรุงหลัก', 'Core Sauces', 'Standard recipes for your core sauces and seasonings.'),
-          pkg(120, 2800, 'สูตรมาตรฐานทั้งเมนู', 'ทำการ์ดสูตรมาตรฐานของเมนูหลักทั้งหมดพร้อมปริมาณต่อจาน', 'Whole Menu Standards', 'Recipe cards for every main dish, with portion sizes.'),
+          pkg(
+            60,
+            1300,
+            'สูตรน้ำซอสหลัก',
+            'ทำสูตรมาตรฐานของน้ำซอสและเครื่องปรุงหลัก',
+            'Core Sauces',
+            'Standard recipes for your core sauces and seasonings.',
+          ),
+          pkg(
+            120,
+            2800,
+            'สูตรมาตรฐานทั้งเมนู',
+            'ทำการ์ดสูตรมาตรฐานของเมนูหลักทั้งหมดพร้อมปริมาณต่อจาน',
+            'Whole Menu Standards',
+            'Recipe cards for every main dish, with portion sizes.',
+          ),
         ],
       }),
       service({
@@ -2008,13 +3448,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Cut Food Waste in Your Kitchen',
           description:
-            "Kitchen waste is profit thrown in the bin every day. We find whether it comes from over-ordering, poor storage or prepping too much, then set up daily stock counts, first-in-first-out rotation and dishes that use up leftovers. You leave with a waste log and new ordering rules.",
+            'Kitchen waste is profit thrown in the bin every day. We find whether it comes from over-ordering, poor storage or prepping too much, then set up daily stock counts, first-in-first-out rotation and dishes that use up leftovers. You leave with a waste log and new ordering rules.',
         },
         category: FOOD,
         photos: [photo(5622193), photo(319798)],
         packages: [
-          pkg(45, 800, 'หาต้นเหตุของเสีย', 'ไล่ขั้นตอนในครัวและหาว่าของเสียมาจากไหน', 'Find the Waste', 'Walk through the kitchen and find where waste comes from.'),
-          pkg(90, 1600, 'ระบบลดของเสีย', 'วางแบบบันทึกของเสีย การนับสต็อก และเกณฑ์สั่งของ', 'Waste Reduction System', 'Waste log, stock counts and ordering rules.'),
+          pkg(
+            45,
+            800,
+            'หาต้นเหตุของเสีย',
+            'ไล่ขั้นตอนในครัวและหาว่าของเสียมาจากไหน',
+            'Find the Waste',
+            'Walk through the kitchen and find where waste comes from.',
+          ),
+          pkg(
+            90,
+            1600,
+            'ระบบลดของเสีย',
+            'วางแบบบันทึกของเสีย การนับสต็อก และเกณฑ์สั่งของ',
+            'Waste Reduction System',
+            'Waste log, stock counts and ordering rules.',
+          ),
         ],
       }),
     ],
@@ -2038,14 +3492,28 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Price Home-Baked Goods to Cover Your Time and Gas',
           description:
-            "Selling out every batch but earning less than 100 baht an hour? We cost ingredients, packaging, electricity, gas and your time per piece, then set prices customers will still pay. You leave with a pricing sheet to use for every new bake.",
+            'Selling out every batch but earning less than 100 baht an hour? We cost ingredients, packaging, electricity, gas and your time per piece, then set prices customers will still pay. You leave with a pricing sheet to use for every new bake.',
         },
         category: FOOD,
         trialMinutes: 15,
         photos: [photo(5907557), photo(5907536)],
         packages: [
-          pkg(30, 400, 'คิดราคาขนม 3 อย่าง', 'คำนวณต้นทุนและราคาขายของขนม 3 รายการ', 'Three Items Priced', 'Cost and price three of your bakes.'),
-          pkg(60, 900, 'ไฟล์คิดราคาครบ', 'ทำไฟล์คิดราคาที่รวมค่าแรงและค่าพลังงานสำหรับทุกเมนู', 'Full Pricing Sheet', 'A pricing sheet including labour and energy for every item.'),
+          pkg(
+            30,
+            400,
+            'คิดราคาขนม 3 อย่าง',
+            'คำนวณต้นทุนและราคาขายของขนม 3 รายการ',
+            'Three Items Priced',
+            'Cost and price three of your bakes.',
+          ),
+          pkg(
+            60,
+            900,
+            'ไฟล์คิดราคาครบ',
+            'ทำไฟล์คิดราคาที่รวมค่าแรงและค่าพลังงานสำหรับทุกเมนู',
+            'Full Pricing Sheet',
+            'A pricing sheet including labour and energy for every item.',
+          ),
         ],
       }),
       service({
@@ -2055,13 +3523,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Supply Your Bakes to Cafés on Consignment',
           description:
-            "Consignment in cafés brings steady income if the terms are right. We cover choosing cafés with the right customers, a fair revenue split, taking back unsold items and delivery rounds. You leave with an offer to send cafés and a delivery schedule.",
+            'Consignment in cafés brings steady income if the terms are right. We cover choosing cafés with the right customers, a fair revenue split, taking back unsold items and delivery rounds. You leave with an offer to send cafés and a delivery schedule.',
         },
         category: FOOD,
         photos: [photo(20634400), photo(20140442)],
         packages: [
-          pkg(45, 700, 'วางเงื่อนไขฝากขาย', 'วางส่วนแบ่งและเงื่อนไขรับคืนสินค้า', 'Consignment Terms', 'Set the revenue split and returns terms.'),
-          pkg(90, 1400, 'ข้อเสนอและรอบส่ง', 'วางเงื่อนไข เขียนข้อเสนอสำหรับคาเฟ่ และจัดรอบส่งของ', 'Offer and Delivery Rounds', 'Set terms, write the café offer and plan deliveries.'),
+          pkg(
+            45,
+            700,
+            'วางเงื่อนไขฝากขาย',
+            'วางส่วนแบ่งและเงื่อนไขรับคืนสินค้า',
+            'Consignment Terms',
+            'Set the revenue split and returns terms.',
+          ),
+          pkg(
+            90,
+            1400,
+            'ข้อเสนอและรอบส่ง',
+            'วางเงื่อนไข เขียนข้อเสนอสำหรับคาเฟ่ และจัดรอบส่งของ',
+            'Offer and Delivery Rounds',
+            'Set terms, write the café offer and plan deliveries.',
+          ),
         ],
       }),
       service({
@@ -2076,8 +3558,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FOOD,
         photos: [photo(7669757), photo(6347544)],
         packages: [
-          pkg(45, 700, 'เลือกเมนูส่งได้', 'เลือกเมนูที่เหมาะกับการส่งพัสดุ', 'Pick What Ships', 'Choose which items suit parcel delivery.'),
-          pkg(90, 1400, 'ระบบขายออนไลน์', 'เลือกเมนู วิธีแพ็ก และรอบอบรอบส่งให้เป็นระบบ', 'Online Sales Set-Up', 'Choose items, packing methods and baking and shipping days.'),
+          pkg(
+            45,
+            700,
+            'เลือกเมนูส่งได้',
+            'เลือกเมนูที่เหมาะกับการส่งพัสดุ',
+            'Pick What Ships',
+            'Choose which items suit parcel delivery.',
+          ),
+          pkg(
+            90,
+            1400,
+            'ระบบขายออนไลน์',
+            'เลือกเมนู วิธีแพ็ก และรอบอบรอบส่งให้เป็นระบบ',
+            'Online Sales Set-Up',
+            'Choose items, packing methods and baking and shipping days.',
+          ),
         ],
       }),
       service({
@@ -2092,8 +3588,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FOOD,
         photos: [photo(3992206), photo(6996205)],
         packages: [
-          pkg(45, 800, 'เช็กสิ่งที่ต้องมี', 'ดูว่าธุรกิจของคุณต้องมีใบอนุญาตและมาตรฐานอะไร', 'What You Need', 'Find out which licences and standards apply to you.'),
-          pkg(90, 1600, 'แผนขอใบอนุญาต', 'วางขั้นตอนขอใบอนุญาตและรายการปรับครัวพร้อมงบ', 'Licensing Plan', 'Plan the applications and kitchen changes, with a budget.'),
+          pkg(
+            45,
+            800,
+            'เช็กสิ่งที่ต้องมี',
+            'ดูว่าธุรกิจของคุณต้องมีใบอนุญาตและมาตรฐานอะไร',
+            'What You Need',
+            'Find out which licences and standards apply to you.',
+          ),
+          pkg(
+            90,
+            1600,
+            'แผนขอใบอนุญาต',
+            'วางขั้นตอนขอใบอนุญาตและรายการปรับครัวพร้อมงบ',
+            'Licensing Plan',
+            'Plan the applications and kitchen changes, with a budget.',
+          ),
         ],
       }),
     ],
@@ -2107,7 +3617,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
     bio: 'เคยทำงานฝ่ายดูแลร้านค้าพันธมิตรของแอปสั่งอาหาร 5 ปี ดูแลร้านอาหารในกรุงเทพฯ กว่า 400 ร้าน ช่วยร้านที่ขายผ่านแอปตั้งราคาหลังหักค่าคอมมิชชัน จัดหน้าร้านในแอปให้คนกดสั่ง และทำโปรโมชันที่ไม่ขาดทุน',
     en: {
       headline: 'Delivery and Restaurant Marketing Advisor',
-      bio: 'Spent 5 years on the merchant team of a food delivery app, looking after more than 400 Bangkok restaurants. Helps restaurants selling through apps price after commission, set up their in-app store so people order, and run promotions that don\'t lose money.',
+      bio: "Spent 5 years on the merchant team of a food delivery app, looking after more than 400 Bangkok restaurants. Helps restaurants selling through apps price after commission, set up their in-app store so people order, and run promotions that don't lose money.",
     },
     services: [
       service({
@@ -2115,7 +3625,7 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         description:
           'ขายผ่านแอปได้เยอะแต่หักค่าคอมมิชชันแล้วแทบไม่เหลือ คำนวณกำไรต่อจานหลังหักส่วนแบ่ง ค่าบรรจุภัณฑ์ และส่วนลดที่ร่วมกับแอป แล้วตั้งราคาเดลิเวอรีแยกจากหน้าร้าน ออกไปพร้อมตารางราคาเดลิเวอรีของทุกเมนู',
         en: {
-          name: 'Price Delivery Menus After the App\'s Commission',
+          name: "Price Delivery Menus After the App's Commission",
           description:
             "Selling plenty through apps but almost nothing left after commission? We work out profit per dish after the app's share, packaging and co-funded discounts, then set delivery prices separate from your dine-in menu. You leave with a delivery price table for every dish.",
         },
@@ -2123,8 +3633,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         trialMinutes: 15,
         photos: [photo(7362948), photo(12203654)],
         packages: [
-          pkg(30, 500, 'คิดกำไรต่อจาน', 'คำนวณกำไรหลังหักค่าคอมมิชชันของเมนูขายดี', 'Profit per Dish', 'Work out profit after commission on your best-sellers.'),
-          pkg(60, 1000, 'ตารางราคาเดลิเวอรี', 'ตั้งราคาเดลิเวอรีใหม่ทั้งเมนู', 'Delivery Price Table', 'Reprice the whole menu for delivery.'),
+          pkg(
+            30,
+            500,
+            'คิดกำไรต่อจาน',
+            'คำนวณกำไรหลังหักค่าคอมมิชชันของเมนูขายดี',
+            'Profit per Dish',
+            'Work out profit after commission on your best-sellers.',
+          ),
+          pkg(
+            60,
+            1000,
+            'ตารางราคาเดลิเวอรี',
+            'ตั้งราคาเดลิเวอรีใหม่ทั้งเมนู',
+            'Delivery Price Table',
+            'Reprice the whole menu for delivery.',
+          ),
         ],
       }),
       service({
@@ -2134,13 +3658,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Get Orders in Your First Month on a Delivery App',
           description:
-            "Listed on the app but nobody sees you? We set up your store page, menu photos, dish names and categories so people stop scrolling and tap in, choose launch promotions, and set opening hours to match when people order. You leave with an improved store page and a 30-day plan.",
+            'Listed on the app but nobody sees you? We set up your store page, menu photos, dish names and categories so people stop scrolling and tap in, choose launch promotions, and set opening hours to match when people order. You leave with an improved store page and a 30-day plan.',
         },
         category: FOOD,
         photos: [photo(14140792), photo(12725456)],
         packages: [
-          pkg(45, 800, 'ปรับหน้าร้านในแอป', 'ปรับชื่อเมนู หมวดหมู่ และรูปให้ดึงคนกดสั่ง', 'Store Page Fix', 'Rework dish names, categories and photos to draw orders.'),
-          pkg(90, 1600, 'หน้าร้านและแผนเปิดตัว', 'ปรับหน้าร้านและวางโปรโมชันกับเวลาเปิดของเดือนแรก', 'Store Page and Launch Plan', 'Fix the store page and plan first-month promotions and hours.'),
+          pkg(
+            45,
+            800,
+            'ปรับหน้าร้านในแอป',
+            'ปรับชื่อเมนู หมวดหมู่ และรูปให้ดึงคนกดสั่ง',
+            'Store Page Fix',
+            'Rework dish names, categories and photos to draw orders.',
+          ),
+          pkg(
+            90,
+            1600,
+            'หน้าร้านและแผนเปิดตัว',
+            'ปรับหน้าร้านและวางโปรโมชันกับเวลาเปิดของเดือนแรก',
+            'Store Page and Launch Plan',
+            'Fix the store page and plan first-month promotions and hours.',
+          ),
         ],
       }),
       service({
@@ -2150,13 +3688,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Pack Delivery Food So It Arrives Looking Good',
           description:
-            "Most bad reviews come from food that spilled, went cold or turned soggy. We choose packaging for each dish, separate sauces and crispy parts, and set up packing steps that stay fast when orders pile in. You leave with a packaging list per dish and the cost per set.",
+            'Most bad reviews come from food that spilled, went cold or turned soggy. We choose packaging for each dish, separate sauces and crispy parts, and set up packing steps that stay fast when orders pile in. You leave with a packaging list per dish and the cost per set.',
         },
         category: FOOD,
         photos: [photo(4393657), photo(4393660), photo(6613050)],
         packages: [
-          pkg(30, 500, 'เลือกบรรจุภัณฑ์', 'เลือกบรรจุภัณฑ์สำหรับเมนูขายดี 5 รายการ', 'Choose Packaging', 'Choose packaging for five best-sellers.'),
-          pkg(60, 1000, 'ระบบแพ็กครบ', 'เลือกบรรจุภัณฑ์ทั้งเมนูและวางขั้นตอนแพ็ก', 'Full Packing System', 'Packaging for the whole menu and the packing steps.'),
+          pkg(
+            30,
+            500,
+            'เลือกบรรจุภัณฑ์',
+            'เลือกบรรจุภัณฑ์สำหรับเมนูขายดี 5 รายการ',
+            'Choose Packaging',
+            'Choose packaging for five best-sellers.',
+          ),
+          pkg(
+            60,
+            1000,
+            'ระบบแพ็กครบ',
+            'เลือกบรรจุภัณฑ์ทั้งเมนูและวางขั้นตอนแพ็ก',
+            'Full Packing System',
+            'Packaging for the whole menu and the packing steps.',
+          ),
         ],
       }),
       service({
@@ -2166,13 +3718,27 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Restaurant Promotions That Win New Customers Without Losses',
           description:
-            "Discounts that only bring people in while the deal lasts? We choose promotions that turn new customers into regulars, such as set menus, loyalty cards or quiet-hour deals, and check the profit on each before launch. You leave with a three-month promotion plan with the numbers done.",
+            'Discounts that only bring people in while the deal lasts? We choose promotions that turn new customers into regulars, such as set menus, loyalty cards or quiet-hour deals, and check the profit on each before launch. You leave with a three-month promotion plan with the numbers done.',
         },
         category: FOOD,
         photos: [photo(30729111), photo(4921033)],
         packages: [
-          pkg(45, 800, 'เลือกรูปแบบโปร', 'เลือกรูปแบบโปรโมชันที่เหมาะกับร้านและคิดกำไร', 'Choose the Promotion', 'Pick promotions that suit your restaurant and check the profit.'),
-          pkg(90, 1600, 'แผนโปร 3 เดือน', 'วางแผนโปรโมชัน 3 เดือนพร้อมวิธีวัดผล', 'Three-Month Plan', 'A three-month promotion plan with how to measure it.'),
+          pkg(
+            45,
+            800,
+            'เลือกรูปแบบโปร',
+            'เลือกรูปแบบโปรโมชันที่เหมาะกับร้านและคิดกำไร',
+            'Choose the Promotion',
+            'Pick promotions that suit your restaurant and check the profit.',
+          ),
+          pkg(
+            90,
+            1600,
+            'แผนโปร 3 เดือน',
+            'วางแผนโปรโมชัน 3 เดือนพร้อมวิธีวัดผล',
+            'Three-Month Plan',
+            'A three-month promotion plan with how to measure it.',
+          ),
         ],
       }),
       service({
@@ -2187,8 +3753,22 @@ export const PART_B: readonly CatalogueAdvisor[] = [
         category: FOOD,
         photos: [photo(12935048), photo(12935069), photo(38325323)],
         packages: [
-          pkg(45, 800, 'เทียบระบบ', 'เทียบระบบ POS 3 ตัวตามขนาดร้าน', 'Compare Systems', 'Compare three POS systems for your size.'),
-          pkg(90, 1500, 'เลือกและวางแผนเริ่มใช้', 'เลือกระบบ ตั้งเมนูและสต็อก และวางแผนสอนพนักงาน', 'Choose and Roll Out', 'Choose the system, set up menu and stock, and plan staff training.'),
+          pkg(
+            45,
+            800,
+            'เทียบระบบ',
+            'เทียบระบบ POS 3 ตัวตามขนาดร้าน',
+            'Compare Systems',
+            'Compare three POS systems for your size.',
+          ),
+          pkg(
+            90,
+            1500,
+            'เลือกและวางแผนเริ่มใช้',
+            'เลือกระบบ ตั้งเมนูและสต็อก และวางแผนสอนพนักงาน',
+            'Choose and Roll Out',
+            'Choose the system, set up menu and stock, and plan staff training.',
+          ),
         ],
       }),
     ],
