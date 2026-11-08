@@ -312,7 +312,7 @@ describe('MatchingService.chat', () => {
     expect(system[0]).toEqual({ type: 'text', text: CHAT_SYSTEM_PROMPT });
     expect(system[1]?.cache_control).toEqual({ type: 'ephemeral' });
     expect(system[1]?.text).toContain(
-      '"id":"s1","n":"วางแผนภาษีสำหรับฟรีแลนซ์","c":"การเงินและภาษี, กฎหมายและสัญญา","p":1200,"m":60,"a":"คุณเอ","r":4.8,"rc":12,"t":15',
+      '"id":"s1","n":"วางแผนภาษีสำหรับฟรีแลนซ์","c":"การเงินและภาษี, กฎหมายและสัญญา","p":1200,"m":60,"r":4.8,"t":15',
     );
     expect(system[1]?.text).not.toContain(TAX);
   });
@@ -494,8 +494,9 @@ describe('compactCatalogue and recentTurns', () => {
         ['s2', 'b'],
       ]),
     );
-    expect(String(first?.d).length).toBeLessThanOrEqual(200);
-    expect(second).toEqual({ id: 's2', n: 'n', p: 500, m: 30, d: 'a b' });
+    // No description and no advisor: the name, categories, price and length carry the choice.
+    expect(first).toEqual({ id: 's1', n: 'n', p: 500, m: 30 });
+    expect(second).toEqual({ id: 's2', n: 'n', p: 500, m: 30 });
   });
 
   it('reads at most the last ten turns, starting at one of the person’s', () => {
