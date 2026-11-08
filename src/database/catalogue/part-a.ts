@@ -46,21 +46,33 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ถามข้อเดียว',
             description: 'ตอบคำถามเรื่องรายได้เสริมหนึ่งก้อนว่าต้องยื่นอย่างไร',
-            en: { name: 'One Question', description: 'How to file one specific source of side income.' },
+            en: {
+              name: 'One Question',
+              description: 'How to file one specific source of side income.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'ไล่รายได้ทั้งปี',
-            description: 'ไล่รายได้ทุกก้อนทั้งปีแล้วประมาณภาษีที่ต้องจ่ายหรือได้คืน',
-            en: { name: 'Full-Year Review', description: 'Every income stream for the year, with an estimate of tax owed or refunded.' },
+            description:
+              'ไล่รายได้ทุกก้อนทั้งปีแล้วประมาณภาษีที่ต้องจ่ายหรือได้คืน',
+            en: {
+              name: 'Full-Year Review',
+              description:
+                'Every income stream for the year, with an estimate of tax owed or refunded.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
           {
             name: 'นั่งยื่นด้วยกัน',
             description: 'นั่งกรอกแบบในระบบยื่นภาษีออนไลน์ไปพร้อมกันจนกดส่ง',
-            en: { name: 'File It Together', description: 'We fill in the online return together until you hit submit.' },
+            en: {
+              name: 'File It Together',
+              description:
+                'We fill in the online return together until you hit submit.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -83,14 +95,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กเพดานที่เหลือ',
             description: 'สรุปว่าค่าลดหย่อนแต่ละตัวยังเหลือสิทธิ์อีกเท่าไร',
-            en: { name: 'Check Remaining Limits', description: 'How much room is left under each deduction.' },
+            en: {
+              name: 'Check Remaining Limits',
+              description: 'How much room is left under each deduction.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'วางแผนลดหย่อนเต็ม',
-            description: 'จัดลำดับว่าควรเติมอะไรก่อนหลัง พร้อมเทียบภาษีที่ประหยัดได้',
-            en: { name: 'Full Deduction Plan', description: 'What to top up first, with the tax saved by each option compared.' },
+            description:
+              'จัดลำดับว่าควรเติมอะไรก่อนหลัง พร้อมเทียบภาษีที่ประหยัดได้',
+            en: {
+              name: 'Full Deduction Plan',
+              description:
+                'What to top up first, with the tax saved by each option compared.',
+            },
             durationMinutes: 75,
             priceBaht: 1500,
           },
@@ -112,15 +132,24 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'ดูสถานะและสิ่งที่ต้องส่ง',
-            description: 'อ่านข้อความจากสรรพากรด้วยกันแล้วสรุปเอกสารที่ต้องเตรียม',
-            en: { name: 'Status and Checklist', description: "Read the Revenue Department's message together and list the documents needed." },
+            description:
+              'อ่านข้อความจากสรรพากรด้วยกันแล้วสรุปเอกสารที่ต้องเตรียม',
+            en: {
+              name: 'Status and Checklist',
+              description:
+                "Read the Revenue Department's message together and list the documents needed.",
+            },
             durationMinutes: 30,
             priceBaht: 700,
           },
           {
             name: 'เตรียมคำชี้แจงพร้อมส่ง',
             description: 'ช่วยเรียงหลักฐานและร่างคำชี้แจงให้พร้อมอัปโหลด',
-            en: { name: 'Ready-to-Send Reply', description: 'Organise your evidence and draft the explanation, ready to upload.' },
+            en: {
+              name: 'Ready-to-Send Reply',
+              description:
+                'Organise your evidence and draft the explanation, ready to upload.',
+            },
             durationMinutes: 60,
             priceBaht: 1300,
           },
@@ -133,7 +162,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Tax When You Changed Jobs Mid-Year',
           description:
-            "Moved jobs during the year, have two withholding certificates, or received severance and provident fund money when you left? We work out how to combine it all on one return, which lump sums can be taxed separately, and why some people still owe tax after withholding.",
+            'Moved jobs during the year, have two withholding certificates, or received severance and provident fund money when you left? We work out how to combine it all on one return, which lump sums can be taxed separately, and why some people still owe tax after withholding.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 1000,
@@ -143,15 +172,25 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'เช็กเอกสารสองนายจ้าง',
-            description: 'รวมตัวเลขจากหนังสือรับรองทั้งสองใบแล้วดูว่าต้องจ่ายเพิ่มไหม',
-            en: { name: 'Two-Employer Check', description: 'Combine both certificates and see whether more tax is due.' },
+            description:
+              'รวมตัวเลขจากหนังสือรับรองทั้งสองใบแล้วดูว่าต้องจ่ายเพิ่มไหม',
+            en: {
+              name: 'Two-Employer Check',
+              description:
+                'Combine both certificates and see whether more tax is due.',
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'รวมเงินก้อนตอนลาออก',
-            description: 'คำนวณเทียบระหว่างรวมยื่นกับแยกยื่นเงินชดเชยและเงินกองทุน',
-            en: { name: 'Include Leaving Lump Sums', description: 'Compare combining versus separately taxing severance and fund payouts.' },
+            description:
+              'คำนวณเทียบระหว่างรวมยื่นกับแยกยื่นเงินชดเชยและเงินกองทุน',
+            en: {
+              name: 'Include Leaving Lump Sums',
+              description:
+                'Compare combining versus separately taxing severance and fund payouts.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -175,14 +214,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตารางอัตราของธุรกิจคุณ',
             description: 'สรุปอัตราหัก ณ ที่จ่ายสำหรับรายจ่ายที่คุณมีจริง',
-            en: { name: 'Your Rate Table', description: 'Withholding rates for the payments your business actually makes.' },
+            en: {
+              name: 'Your Rate Table',
+              description:
+                'Withholding rates for the payments your business actually makes.',
+            },
             durationMinutes: 30,
             priceBaht: 800,
           },
           {
             name: 'ยื่นแบบรอบแรก',
             description: 'ทำหนังสือรับรองและยื่นแบบรอบแรกไปพร้อมกัน',
-            en: { name: 'First Filing Round', description: 'Issue certificates and file your first round of returns together.' },
+            en: {
+              name: 'First Filing Round',
+              description:
+                'Issue certificates and file your first round of returns together.',
+            },
             durationMinutes: 75,
             priceBaht: 1600,
           },
@@ -219,22 +266,35 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'อ่านหนังสือด้วยกัน',
-            description: 'อธิบายว่าหนังสือฉบับนี้ต้องการอะไรและมีกำหนดเวลาเท่าไร',
-            en: { name: 'Read the Letter Together', description: 'What the letter is asking for and the deadline you have.' },
+            description:
+              'อธิบายว่าหนังสือฉบับนี้ต้องการอะไรและมีกำหนดเวลาเท่าไร',
+            en: {
+              name: 'Read the Letter Together',
+              description:
+                'What the letter is asking for and the deadline you have.',
+            },
             durationMinutes: 45,
             priceBaht: 1500,
           },
           {
             name: 'ซ้อมก่อนวันนัด',
             description: 'จัดชุดเอกสารและซ้อมตอบคำถามที่เจ้าหน้าที่มักถาม',
-            en: { name: 'Rehearse Before the Meeting', description: 'Assemble your documents and practise the questions officers usually ask.' },
+            en: {
+              name: 'Rehearse Before the Meeting',
+              description:
+                'Assemble your documents and practise the questions officers usually ask.',
+            },
             durationMinutes: 90,
             priceBaht: 2800,
           },
           {
             name: 'เตรียมคำชี้แจงเป็นลายลักษณ์อักษร',
             description: 'ร่างหนังสือชี้แจงพร้อมตารางรายได้และหลักฐานแนบ',
-            en: { name: 'Written Explanation', description: 'A drafted reply letter with an income table and supporting evidence.' },
+            en: {
+              name: 'Written Explanation',
+              description:
+                'A drafted reply letter with an income table and supporting evidence.',
+            },
             durationMinutes: 120,
             priceBaht: 4200,
           },
@@ -257,14 +317,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณแปลงเดียว',
             description: 'คำนวณภาษีและค่าธรรมเนียมทั้งหมดของทรัพย์หนึ่งรายการ',
-            en: { name: 'One Property', description: 'All tax and fees worked out for a single property.' },
+            en: {
+              name: 'One Property',
+              description: 'All tax and fees worked out for a single property.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'เทียบขายตอนนี้กับรอขาย',
-            description: 'เทียบภาระภาษีหากขายทันทีกับรอให้ครบเงื่อนไขระยะเวลาถือครอง',
-            en: { name: 'Sell Now or Wait', description: 'Tax if you sell now compared with waiting until the holding-period rules change in your favour.' },
+            description:
+              'เทียบภาระภาษีหากขายทันทีกับรอให้ครบเงื่อนไขระยะเวลาถือครอง',
+            en: {
+              name: 'Sell Now or Wait',
+              description:
+                'Tax if you sell now compared with waiting until the holding-period rules change in your favour.',
+            },
             durationMinutes: 75,
             priceBaht: 2000,
           },
@@ -277,7 +345,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Rental Income Tax for Condo and House Landlords',
           description:
-            "Renting out a room or a house and unsure how to file? We look at which income category rent falls under, whether a flat-rate or actual expense deduction works better for you, and whether to keep holding several units in your own name.",
+            'Renting out a room or a house and unsure how to file? We look at which income category rent falls under, whether a flat-rate or actual expense deduction works better for you, and whether to keep holding several units in your own name.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 900,
@@ -288,14 +356,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ห้องเดียว',
             description: 'วิธียื่นภาษีสำหรับทรัพย์ปล่อยเช่าหนึ่งรายการ',
-            en: { name: 'One Unit', description: 'How to file for a single rental property.' },
+            en: {
+              name: 'One Unit',
+              description: 'How to file for a single rental property.',
+            },
             durationMinutes: 30,
             priceBaht: 900,
           },
           {
             name: 'หลายห้องทั้งพอร์ต',
-            description: 'วางภาพรวมภาษีของทรัพย์ปล่อยเช่าทุกห้อง พร้อมเทียบรูปแบบการถือครอง',
-            en: { name: 'Whole Portfolio', description: 'The tax picture across all your rentals, comparing ways of holding them.' },
+            description:
+              'วางภาพรวมภาษีของทรัพย์ปล่อยเช่าทุกห้อง พร้อมเทียบรูปแบบการถือครอง',
+            en: {
+              name: 'Whole Portfolio',
+              description:
+                'The tax picture across all your rentals, comparing ways of holding them.',
+            },
             durationMinutes: 90,
             priceBaht: 2500,
           },
@@ -308,7 +384,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Foreign Income Tax for Remote Workers',
           description:
-            "Paid by a foreign company while working from Thailand, or bringing income from abroad into the country? We go through the residency rules, which year the income has to be declared in, and the records to keep so you can claim foreign tax credits.",
+            'Paid by a foreign company while working from Thailand, or bringing income from abroad into the country? We go through the residency rules, which year the income has to be declared in, and the records to keep so you can claim foreign tax credits.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 1800,
@@ -319,14 +395,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินสถานะ',
             description: 'ดูว่ากรณีของคุณต้องยื่นในไทยหรือไม่และยื่นปีไหน',
-            en: { name: 'Status Check', description: 'Whether you need to file in Thailand, and for which year.' },
+            en: {
+              name: 'Status Check',
+              description:
+                'Whether you need to file in Thailand, and for which year.',
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'วางแผนพร้อมเอกสาร',
             description: 'คำนวณภาษีพร้อมสรุปเอกสารสำหรับขอเครดิตภาษีต่างประเทศ',
-            en: { name: 'Plan With Paperwork', description: 'A tax calculation plus the documents needed to claim foreign tax credits.' },
+            en: {
+              name: 'Plan With Paperwork',
+              description:
+                'A tax calculation plus the documents needed to claim foreign tax credits.',
+            },
             durationMinutes: 120,
             priceBaht: 3500,
           },
@@ -353,7 +437,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Budget Your First Pay Cheque',
           description:
-            "Just started work or got a raise, but the money runs out before month-end? We split your actual salary into fixed costs, savings, and guilt-free spending, and set up separate accounts so money moves on its own. You leave with a budget you can follow from next month.",
+            'Just started work or got a raise, but the money runs out before month-end? We split your actual salary into fixed costs, savings, and guilt-free spending, and set up separate accounts so money moves on its own. You leave with a budget you can follow from next month.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 450,
@@ -364,14 +448,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตั้งงบเร็ว',
             description: 'แบ่งเงินเดือนเป็นก้อนหลักพร้อมสัดส่วนเริ่มต้น',
-            en: { name: 'Quick Budget', description: 'Split your salary into main buckets with starting percentages.' },
+            en: {
+              name: 'Quick Budget',
+              description:
+                'Split your salary into main buckets with starting percentages.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'งบพร้อมระบบบัญชี',
-            description: 'ออกแบบงบและวางว่าบัญชีไหนรับเงินอะไร ตัดอะไรอัตโนมัติ',
-            en: { name: 'Budget and Account Setup', description: 'A budget plus which account receives what, and what is paid automatically.' },
+            description:
+              'ออกแบบงบและวางว่าบัญชีไหนรับเงินอะไร ตัดอะไรอัตโนมัติ',
+            en: {
+              name: 'Budget and Account Setup',
+              description:
+                'A budget plus which account receives what, and what is paid automatically.',
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -394,14 +487,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณเป้า',
             description: 'หาตัวเลขเงินสำรองที่เหมาะกับภาระของคุณ',
-            en: { name: 'Set the Target', description: 'The emergency fund figure that fits your commitments.' },
+            en: {
+              name: 'Set the Target',
+              description:
+                'The emergency fund figure that fits your commitments.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'แผนเก็บจนครบ',
-            description: 'วางแผนรายเดือนและที่พักเงิน พร้อมนัดติดตามสั้น ๆ อีกหนึ่งครั้ง',
-            en: { name: 'Plan to Full', description: 'A monthly plan and where to park the money, with one short follow-up call.' },
+            description:
+              'วางแผนรายเดือนและที่พักเงิน พร้อมนัดติดตามสั้น ๆ อีกหนึ่งครั้ง',
+            en: {
+              name: 'Plan to Full',
+              description:
+                'A monthly plan and where to park the money, with one short follow-up call.',
+            },
             durationMinutes: 60,
             priceBaht: 950,
           },
@@ -424,14 +526,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณเงินที่ต้องมี',
             description: 'ตัวเลขเงินที่ต้องเตรียมตามจำนวนเดือนที่จะหยุดงาน',
-            en: { name: 'Runway Figure', description: 'How much you need for the number of months you plan to stop.' },
+            en: {
+              name: 'Runway Figure',
+              description:
+                'How much you need for the number of months you plan to stop.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
           {
             name: 'แผนพร้อมจุดเตือน',
-            description: 'แผนใช้เงินรายเดือนพร้อมจุดเตือนว่าเมื่อไรต้องเริ่มหางาน',
-            en: { name: 'Plan With Warning Points', description: 'A monthly spending plan with clear points for when to start job hunting.' },
+            description:
+              'แผนใช้เงินรายเดือนพร้อมจุดเตือนว่าเมื่อไรต้องเริ่มหางาน',
+            en: {
+              name: 'Plan With Warning Points',
+              description:
+                'A monthly spending plan with clear points for when to start job hunting.',
+            },
             durationMinutes: 90,
             priceBaht: 1400,
           },
@@ -444,7 +555,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'The Money Talk Before Marriage',
           description:
-            "A session for both of you to lay out income, debts, and family obligations, then agree how much to pool, how to split costs, and what your first five years should look like. Having someone in the middle makes the hard topics easier to say out loud.",
+            'A session for both of you to lay out income, debts, and family obligations, then agree how much to pool, how to split costs, and what your first five years should look like. Having someone in the middle makes the hard topics easier to say out loud.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 1200,
@@ -454,14 +565,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยครั้งแรก',
             description: 'เปิดตัวเลขของทั้งคู่และตกลงหลักการแบ่งเงิน',
-            en: { name: 'First Conversation', description: "Put both sets of numbers on the table and agree how you'll share money." },
+            en: {
+              name: 'First Conversation',
+              description:
+                "Put both sets of numbers on the table and agree how you'll share money.",
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'แผนการเงินคู่',
-            description: 'ต่อยอดเป็นแผนเป้าหมายร่วม ทั้งงานแต่ง บ้าน และเงินเก็บ',
-            en: { name: 'Joint Money Plan', description: 'Go on to a shared plan covering the wedding, a home, and savings.' },
+            description:
+              'ต่อยอดเป็นแผนเป้าหมายร่วม ทั้งงานแต่ง บ้าน และเงินเก็บ',
+            en: {
+              name: 'Joint Money Plan',
+              description:
+                'Go on to a shared plan covering the wedding, a home, and savings.',
+            },
             durationMinutes: 120,
             priceBaht: 2200,
           },
@@ -488,7 +608,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Tax for Creators Earning From Platforms and Sponsors',
           description:
-            "Earning from ad revenue shares, paid reviews, free products, and affiliate commission across several platforms? We sort out which tax category each type falls into, what counts as income, and what records you should start keeping today.",
+            'Earning from ad revenue shares, paid reviews, free products, and affiliate commission across several platforms? We sort out which tax category each type falls into, what counts as income, and what records you should start keeping today.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 800,
@@ -499,14 +619,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'จัดประเภทรายได้',
             description: 'ไล่รายได้ทุกช่องทางแล้วจัดประเภทให้ถูก',
-            en: { name: 'Classify Your Income', description: 'Go through every channel and put each one in the right category.' },
+            en: {
+              name: 'Classify Your Income',
+              description:
+                'Go through every channel and put each one in the right category.',
+            },
             durationMinutes: 30,
             priceBaht: 800,
           },
           {
             name: 'วางแผนภาษีทั้งปี',
             description: 'ประมาณภาษีทั้งปีและวางระบบเก็บหลักฐานรายรับรายจ่าย',
-            en: { name: 'Full-Year Tax Plan', description: 'An estimate of the year’s tax and a simple system for keeping income and expense records.' },
+            en: {
+              name: 'Full-Year Tax Plan',
+              description:
+                'An estimate of the year’s tax and a simple system for keeping income and expense records.',
+            },
             durationMinutes: 90,
             priceBaht: 2200,
           },
@@ -519,7 +647,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Actual or Flat-Rate Expenses: Which Saves More?',
           description:
-            "For freelancers and sellers with real costs that run high. We plug in your income and expenses and compare both methods, check whether your current paperwork is enough to claim actual costs, and what to start keeping if you want to claim them next year.",
+            'For freelancers and sellers with real costs that run high. We plug in your income and expenses and compare both methods, check whether your current paperwork is enough to claim actual costs, and what to start keeping if you want to claim them next year.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 900,
@@ -529,14 +657,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณเทียบ',
             description: 'คำนวณภาษีทั้งสองแบบจากตัวเลขของคุณ',
-            en: { name: 'Side-by-Side Calculation', description: 'Your tax worked out both ways from your own figures.' },
+            en: {
+              name: 'Side-by-Side Calculation',
+              description:
+                'Your tax worked out both ways from your own figures.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'เทียบพร้อมตรวจเอกสาร',
-            description: 'คำนวณเทียบและตรวจว่าเอกสารค่าใช้จ่ายใช้ได้จริงหรือไม่',
-            en: { name: 'Compare and Check Receipts', description: 'The comparison plus a check of whether your expense documents will stand up.' },
+            description:
+              'คำนวณเทียบและตรวจว่าเอกสารค่าใช้จ่ายใช้ได้จริงหรือไม่',
+            en: {
+              name: 'Compare and Check Receipts',
+              description:
+                'The comparison plus a check of whether your expense documents will stand up.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -560,14 +697,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินว่าต้องจดไหม',
             description: 'ดูรายได้ย้อนหลังและแนวโน้มว่าจะถึงเกณฑ์เมื่อไร',
-            en: { name: 'Do I Need to Register?', description: 'Look at past income and the trend to see when you’ll cross the threshold.' },
+            en: {
+              name: 'Do I Need to Register?',
+              description:
+                'Look at past income and the trend to see when you’ll cross the threshold.',
+            },
             durationMinutes: 45,
             priceBaht: 1300,
           },
           {
             name: 'เตรียมจดและตั้งราคาใหม่',
-            description: 'วางขั้นตอนจดทะเบียนและปรับใบเสนอราคาให้รวม VAT อย่างถูกต้อง',
-            en: { name: 'Register and Reprice', description: 'Plan the registration and update your quotes to include VAT correctly.' },
+            description:
+              'วางขั้นตอนจดทะเบียนและปรับใบเสนอราคาให้รวม VAT อย่างถูกต้อง',
+            en: {
+              name: 'Register and Reprice',
+              description:
+                'Plan the registration and update your quotes to include VAT correctly.',
+            },
             durationMinutes: 90,
             priceBaht: 2400,
           },
@@ -590,14 +736,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'วางโครงบัญชี',
             description: 'กำหนดว่าควรมีกี่บัญชีและแต่ละบัญชีมีไว้ทำอะไร',
-            en: { name: 'Account Structure', description: 'How many accounts you need and what each one is for.' },
+            en: {
+              name: 'Account Structure',
+              description:
+                'How many accounts you need and what each one is for.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'ระบบพร้อมเงินเดือนตัวเอง',
-            description: 'คำนวณเงินเดือนที่จ่ายตัวเองได้และสัดส่วนกันภาษีจากทุกยอดที่ได้รับ',
-            en: { name: 'System and Owner Salary', description: 'The salary you can pay yourself and the share of each payment to set aside for tax.' },
+            description:
+              'คำนวณเงินเดือนที่จ่ายตัวเองได้และสัดส่วนกันภาษีจากทุกยอดที่ได้รับ',
+            en: {
+              name: 'System and Owner Salary',
+              description:
+                'The salary you can pay yourself and the share of each payment to set aside for tax.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -621,21 +776,33 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'วางงบครอบครัว',
             description: 'จัดงบรายเดือนใหม่ให้รองรับค่าใช้จ่ายของลูก',
-            en: { name: 'Family Budget', description: 'A new monthly budget that makes room for the baby’s costs.' },
+            en: {
+              name: 'Family Budget',
+              description:
+                'A new monthly budget that makes room for the baby’s costs.',
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'แผนครอบครัวเต็ม',
             description: 'งบ ความคุ้มครอง และเป้าหมายเงินเก็บระยะยาวในแผนเดียว',
-            en: { name: 'Full Family Plan', description: 'Budget, protection, and long-term savings goals in a single plan.' },
+            en: {
+              name: 'Full Family Plan',
+              description:
+                'Budget, protection, and long-term savings goals in a single plan.',
+            },
             durationMinutes: 120,
             priceBaht: 3500,
           },
           {
             name: 'แผนพร้อมรายงาน',
             description: 'แผนเต็มพร้อมรายงานเป็นเอกสารและนัดทบทวนหลังสามเดือน',
-            en: { name: 'Plan With Written Report', description: 'The full plan as a written report, plus a review call after three months.' },
+            en: {
+              name: 'Plan With Written Report',
+              description:
+                'The full plan as a written report, plus a review call after three months.',
+            },
             durationMinutes: 180,
             priceBaht: 5500,
           },
@@ -648,7 +815,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: "Plan Your Child's Education Fund to University",
           description:
-            "We cost out the path you have in mind, whether state, private, or international schools, allow for fees rising every year, then break it down into a monthly savings amount and where to keep the money for the time you have left.",
+            'We cost out the path you have in mind, whether state, private, or international schools, allow for fees rising every year, then break it down into a monthly savings amount and where to keep the money for the time you have left.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 1500,
@@ -658,14 +825,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณเป้าหมาย',
             description: 'ตัวเลขทุนการศึกษาที่ต้องมีตามเส้นทางที่เลือก',
-            en: { name: 'Set the Goal', description: 'The education fund you need for the path you choose.' },
+            en: {
+              name: 'Set the Goal',
+              description:
+                'The education fund you need for the path you choose.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'แผนเก็บพร้อมที่พักเงิน',
-            description: 'แบ่งเป็นก้อนตามช่วงชั้นเรียนพร้อมแนวทางเลือกที่พักเงินแต่ละก้อน',
-            en: { name: 'Savings Plan and Where to Hold It', description: 'Split by school stage, with guidance on where to keep each portion.' },
+            description:
+              'แบ่งเป็นก้อนตามช่วงชั้นเรียนพร้อมแนวทางเลือกที่พักเงินแต่ละก้อน',
+            en: {
+              name: 'Savings Plan and Where to Hold It',
+              description:
+                'Split by school stage, with guidance on where to keep each portion.',
+            },
             durationMinutes: 90,
             priceBaht: 2400,
           },
@@ -678,7 +854,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Plan How to Pass On Your Assets',
           description:
-            "For people over 50 who want things settled before they cause family trouble. We list all your assets and debts, compare giving during your lifetime, making a will, and naming beneficiaries, along with the tax each route carries, before you hand over to a lawyer to draft the documents.",
+            'For people over 50 who want things settled before they cause family trouble. We list all your assets and debts, compare giving during your lifetime, making a will, and naming beneficiaries, along with the tax each route carries, before you hand over to a lawyer to draft the documents.',
         },
         category: 'การเงินและภาษี',
         priceBaht: 2500,
@@ -688,15 +864,25 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'ทำรายการทรัพย์สิน',
-            description: 'รวบรวมทรัพย์สินและหนี้ทั้งหมดพร้อมคำถามที่ต้องตัดสินใจ',
-            en: { name: 'Asset Inventory', description: 'Everything you own and owe, with the decisions you need to make.' },
+            description:
+              'รวบรวมทรัพย์สินและหนี้ทั้งหมดพร้อมคำถามที่ต้องตัดสินใจ',
+            en: {
+              name: 'Asset Inventory',
+              description:
+                'Everything you own and owe, with the decisions you need to make.',
+            },
             durationMinutes: 90,
             priceBaht: 2500,
           },
           {
             name: 'แผนส่งต่อทั้งครอบครัว',
-            description: 'เทียบทางเลือกการส่งต่อพร้อมภาระภาษี และร่างแนวทางให้ทนายใช้ต่อ',
-            en: { name: 'Whole-Family Succession Plan', description: 'Compare the options and their tax, and draft guidance for your lawyer to work from.' },
+            description:
+              'เทียบทางเลือกการส่งต่อพร้อมภาระภาษี และร่างแนวทางให้ทนายใช้ต่อ',
+            en: {
+              name: 'Whole-Family Succession Plan',
+              description:
+                'Compare the options and their tax, and draft guidance for your lawyer to work from.',
+            },
             durationMinutes: 180,
             priceBaht: 6500,
           },
@@ -719,14 +905,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจภาพรวม',
             description: 'ดูตัวเลขสำคัญของบ้านและชี้จุดที่ควรแก้ก่อน',
-            en: { name: 'Big-Picture Check', description: 'The household’s key numbers, and what to fix first.' },
+            en: {
+              name: 'Big-Picture Check',
+              description:
+                'The household’s key numbers, and what to fix first.',
+            },
             durationMinutes: 60,
             priceBaht: 1600,
           },
           {
             name: 'ตรวจพร้อมแผนปีหน้า',
             description: 'ตรวจละเอียดทุกหมวดและวางเป้าหมายตัวเลขของปีหน้า',
-            en: { name: 'Check-Up and Next-Year Plan', description: 'A detailed review of every area and number targets for next year.' },
+            en: {
+              name: 'Check-Up and Next-Year Plan',
+              description:
+                'A detailed review of every area and number targets for next year.',
+            },
             durationMinutes: 120,
             priceBaht: 3000,
           },
@@ -744,7 +938,8 @@ export const PART_A: readonly CatalogueAdvisor[] = [
     headline: 'ผู้สอบบัญชีรับอนุญาต ดูแลงบการเงินและระบบบัญชี SME',
     bio: 'ผู้สอบบัญชีรับอนุญาต (CPA) ประสบการณ์ 20 ปี เริ่มงานที่สำนักงานสอบบัญชีขนาดใหญ่ก่อนเปิดสำนักงานของตัวเอง ปัจจุบันตรวจสอบงบให้ SME กว่า 60 บริษัท ถนัดอธิบายงบการเงินให้เจ้าของกิจการที่ไม่ได้เรียนบัญชีเข้าใจ ช่วยแก้ปัญหางบที่ค้างหรือยื่นผิดมาหลายปี และวางระบบบัญชีออนไลน์ ผังบัญชี และการคุมสต็อกให้ร้านที่ขายหลายช่องทางทำเองได้',
     en: {
-      headline: 'Certified Public Accountant for SME Financial Statements and Bookkeeping Systems',
+      headline:
+        'Certified Public Accountant for SME Financial Statements and Bookkeeping Systems',
       bio: 'A CPA with 20 years of experience, starting at a large audit firm before opening her own practice, which now audits more than 60 SMEs. Good at explaining financial statements to owners who never studied accounting, sorting out statements that are years overdue or were filed wrong, and setting up online bookkeeping, charts of accounts, and stock control that shops selling across several channels can run themselves.',
     },
     services: [
@@ -766,14 +961,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กลิสต์ก่อนตรวจ',
             description: 'รายการเอกสารและยอดบัญชีที่ต้องเตรียมให้พร้อม',
-            en: { name: 'Pre-Audit Checklist', description: 'The documents and balances to have ready.' },
+            en: {
+              name: 'Pre-Audit Checklist',
+              description: 'The documents and balances to have ready.',
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'ตรวจยอดสำคัญก่อน',
-            description: 'ไล่ตรวจยอดที่มีความเสี่ยงสูงพร้อมแนะนำการปรับปรุงรายการ',
-            en: { name: 'Review Key Balances First', description: 'Check the high-risk balances and suggest the adjusting entries.' },
+            description:
+              'ไล่ตรวจยอดที่มีความเสี่ยงสูงพร้อมแนะนำการปรับปรุงรายการ',
+            en: {
+              name: 'Review Key Balances First',
+              description:
+                'Check the high-risk balances and suggest the adjusting entries.',
+            },
             durationMinutes: 120,
             priceBaht: 3800,
           },
@@ -797,14 +1000,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'อ่านงบปีล่าสุด',
             description: 'อธิบายงบปีล่าสุดของบริษัทคุณทีละส่วน',
-            en: { name: 'Latest Year Walk-Through', description: "Your company's latest statements explained section by section." },
+            en: {
+              name: 'Latest Year Walk-Through',
+              description:
+                "Your company's latest statements explained section by section.",
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'เทียบสามปีย้อนหลัง',
             description: 'เทียบงบสามปีเพื่อดูแนวโน้มกำไร หนี้ และเงินสด',
-            en: { name: 'Three-Year Comparison', description: 'Compare three years to see trends in profit, debt, and cash.' },
+            en: {
+              name: 'Three-Year Comparison',
+              description:
+                'Compare three years to see trends in profit, debt, and cash.',
+            },
             durationMinutes: 120,
             priceBaht: 3200,
           },
@@ -828,14 +1039,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินสถานการณ์',
             description: 'สรุปสิ่งที่ค้าง ค่าปรับโดยประมาณ และลำดับการแก้ไข',
-            en: { name: 'Assess the Situation', description: "What's outstanding, rough penalties, and the order to fix things in." },
+            en: {
+              name: 'Assess the Situation',
+              description:
+                "What's outstanding, rough penalties, and the order to fix things in.",
+            },
             durationMinutes: 60,
             priceBaht: 2200,
           },
           {
             name: 'แผนแก้ไขพร้อมไทม์ไลน์',
-            description: 'แผนแก้ไขละเอียดรายเดือนและเอกสารที่ต้องรวบรวมแต่ละขั้น',
-            en: { name: 'Remediation Plan and Timeline', description: 'A detailed month-by-month plan and the documents needed at each step.' },
+            description:
+              'แผนแก้ไขละเอียดรายเดือนและเอกสารที่ต้องรวบรวมแต่ละขั้น',
+            en: {
+              name: 'Remediation Plan and Timeline',
+              description:
+                'A detailed month-by-month plan and the documents needed at each step.',
+            },
             durationMinutes: 120,
             priceBaht: 4500,
           },
@@ -848,7 +1068,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Switch Accounting Firms Mid-Year Without Disruption',
           description:
-            "Unhappy with your current accountants but worried data will get lost if you move? We list everything you need handed over, from ledgers and filed returns to logins for online systems, and what to check before the new firm takes over.",
+            'Unhappy with your current accountants but worried data will get lost if you move? We list everything you need handed over, from ledgers and filed returns to logins for online systems, and what to check before the new firm takes over.',
         },
         category: 'บัญชีและการตรวจสอบ',
         priceBaht: 1200,
@@ -858,14 +1078,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'รายการรับมอบงาน',
             description: 'เช็กลิสต์สิ่งที่ต้องขอจากสำนักงานเดิมให้ครบ',
-            en: { name: 'Handover Checklist', description: 'A checklist of everything to collect from your old firm.' },
+            en: {
+              name: 'Handover Checklist',
+              description:
+                'A checklist of everything to collect from your old firm.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'รับมอบพร้อมตรวจยอดยกมา',
-            description: 'ตรวจยอดยกมาว่าตรงกับงบที่ยื่นก่อนส่งต่อให้สำนักงานใหม่',
-            en: { name: 'Handover and Opening Balance Check', description: 'Confirm the opening balances match the filed statements before the new firm takes over.' },
+            description:
+              'ตรวจยอดยกมาว่าตรงกับงบที่ยื่นก่อนส่งต่อให้สำนักงานใหม่',
+            en: {
+              name: 'Handover and Opening Balance Check',
+              description:
+                'Confirm the opening balances match the filed statements before the new firm takes over.',
+            },
             durationMinutes: 90,
             priceBaht: 2600,
           },
@@ -889,14 +1118,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบตัวเลือก',
             description: 'สรุปสองถึงสามโปรแกรมที่เหมาะกับธุรกิจของคุณ',
-            en: { name: 'Compare Options', description: 'A shortlist of two or three programs that suit your business.' },
+            en: {
+              name: 'Compare Options',
+              description:
+                'A shortlist of two or three programs that suit your business.',
+            },
             durationMinutes: 30,
             priceBaht: 700,
           },
           {
             name: 'เลือกพร้อมทดลองตั้งค่า',
-            description: 'เลือกโปรแกรมแล้วนั่งตั้งค่าบริษัทและเอกสารแรกไปด้วยกัน',
-            en: { name: 'Choose and Set Up', description: 'Pick a program, then set up your company and first documents together.' },
+            description:
+              'เลือกโปรแกรมแล้วนั่งตั้งค่าบริษัทและเอกสารแรกไปด้วยกัน',
+            en: {
+              name: 'Choose and Set Up',
+              description:
+                'Pick a program, then set up your company and first documents together.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -919,14 +1157,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ผังบัญชีพื้นฐาน',
             description: 'ออกแบบผังบัญชีที่เหมาะกับประเภทธุรกิจของคุณ',
-            en: { name: 'Basic Chart of Accounts', description: 'A chart of accounts designed for your type of business.' },
+            en: {
+              name: 'Basic Chart of Accounts',
+              description:
+                'A chart of accounts designed for your type of business.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ผังบัญชีพร้อมระบบเอกสาร',
             description: 'ผังบัญชีพร้อมขั้นตอนเอกสารรับจ่ายที่ทีมใช้ได้ทันที',
-            en: { name: 'Accounts Plus Document Flow', description: 'The chart plus a receipts-and-payments process your team can use straight away.' },
+            en: {
+              name: 'Accounts Plus Document Flow',
+              description:
+                'The chart plus a receipts-and-payments process your team can use straight away.',
+            },
             durationMinutes: 120,
             priceBaht: 3000,
           },
@@ -949,14 +1195,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'วิธีบันทึกรายการ',
             description: 'วิธีบันทึกยอดขายและค่าธรรมเนียมของแต่ละแพลตฟอร์ม',
-            en: { name: 'How to Record It', description: "How to record each platform's sales and fees." },
+            en: {
+              name: 'How to Record It',
+              description: "How to record each platform's sales and fees.",
+            },
             durationMinutes: 60,
             priceBaht: 1400,
           },
           {
             name: 'กระทบยอดเดือนจริง',
             description: 'นั่งกระทบยอดเดือนล่าสุดของร้านคุณด้วยกันจนตัวเลขตรง',
-            en: { name: 'Reconcile a Real Month', description: "Reconcile your shop's latest month together until the numbers agree." },
+            en: {
+              name: 'Reconcile a Real Month',
+              description:
+                "Reconcile your shop's latest month together until the numbers agree.",
+            },
             durationMinutes: 120,
             priceBaht: 2800,
           },
@@ -978,15 +1231,25 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'วางวิธีคุมสต็อก',
-            description: 'ขั้นตอนรับเข้า เบิกออก และวิธีคิดต้นทุนที่เหมาะกับร้าน',
-            en: { name: 'Stock Control Method', description: 'Receiving and issuing steps and the right costing method for your shop.' },
+            description:
+              'ขั้นตอนรับเข้า เบิกออก และวิธีคิดต้นทุนที่เหมาะกับร้าน',
+            en: {
+              name: 'Stock Control Method',
+              description:
+                'Receiving and issuing steps and the right costing method for your shop.',
+            },
             durationMinutes: 60,
             priceBaht: 1600,
           },
           {
             name: 'วางระบบพร้อมตรวจนับ',
-            description: 'วางระบบและออกแบบแบบฟอร์มตรวจนับพร้อมวิธีปรับยอดผลต่าง',
-            en: { name: 'System and Stock Count', description: 'The system, a stock-count form, and how to adjust for differences.' },
+            description:
+              'วางระบบและออกแบบแบบฟอร์มตรวจนับพร้อมวิธีปรับยอดผลต่าง',
+            en: {
+              name: 'System and Stock Count',
+              description:
+                'The system, a stock-count form, and how to adjust for differences.',
+            },
             durationMinutes: 120,
             priceBaht: 3200,
           },
@@ -1002,7 +1265,8 @@ export const PART_A: readonly CatalogueAdvisor[] = [
     headline: 'ผู้ตรวจสอบภายในและที่ปรึกษาระบบบัญชีและภาษีธุรกิจ',
     bio: 'ผู้ตรวจสอบภายในของธนาคารพาณิชย์ 25 ปี ได้วุฒิผู้ตรวจสอบภายในรับอนุญาต (CIA) และผู้สอบบัญชีภาษีอากร (TA) หลังเกษียณก่อนกำหนดหันมาช่วยธุรกิจครอบครัว นิติบุคคลอาคารชุด และมูลนิธิวางระบบการเงินให้ตรวจสอบได้ ตั้งแต่ย้ายบัญชีจาก Excel ขึ้นระบบไปจนถึงยื่นภาษีมูลค่าเพิ่มและภาษีเงินได้นิติบุคคลให้ถูกต้อง ใจเย็น ชอบอธิบายด้วยตัวอย่างจากเคสจริง และไม่ชี้นิ้วหาคนผิด',
     en: {
-      headline: 'Internal Auditor and Accounting Systems and Business Tax Advisor',
+      headline:
+        'Internal Auditor and Accounting Systems and Business Tax Advisor',
       bio: 'Spent 25 years in internal audit at a commercial bank and holds the Certified Internal Auditor (CIA) designation and a tax auditor (TA) licence. After taking early retirement he now helps family businesses, condominium juristic persons, and foundations set up finances that can be checked, from moving the books off Excel to filing VAT and corporate income tax correctly. Patient, explains through real cases, and focuses on fixing systems rather than blaming people.',
     },
     services: [
@@ -1013,7 +1277,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Move Your Books From Excel to Software Mid-Year',
           description:
-            "Kept your books in Excel for years and want to switch without waiting for January? We plan which balances to bring over and as of what date, how to move customer, product, and receivable data, and how to check the figures match after the move.",
+            'Kept your books in Excel for years and want to switch without waiting for January? We plan which balances to bring over and as of what date, how to move customer, product, and receivable data, and how to check the figures match after the move.',
         },
         category: 'บัญชีและการตรวจสอบ',
         priceBaht: 1200,
@@ -1023,14 +1287,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'แผนย้ายข้อมูล',
             description: 'กำหนดวันตัดยอดและรายการข้อมูลที่ต้องย้าย',
-            en: { name: 'Migration Plan', description: 'The cut-off date and the list of data to move.' },
+            en: {
+              name: 'Migration Plan',
+              description: 'The cut-off date and the list of data to move.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'ย้ายพร้อมตรวจยอด',
             description: 'ช่วยเตรียมไฟล์นำเข้าและตรวจยอดหลังย้ายให้ตรงกัน',
-            en: { name: 'Migrate and Verify', description: 'Prepare the import files and check the balances agree afterwards.' },
+            en: {
+              name: 'Migrate and Verify',
+              description:
+                'Prepare the import files and check the balances agree afterwards.',
+            },
             durationMinutes: 120,
             priceBaht: 3000,
           },
@@ -1053,14 +1324,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ยื่นเดือนแรกด้วยกัน',
             description: 'นั่งยื่นแบบเดือนล่าสุดด้วยกันทีละขั้น',
-            en: { name: 'First Month Together', description: 'File your latest month together, step by step.' },
+            en: {
+              name: 'First Month Together',
+              description: 'File your latest month together, step by step.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'ยื่นพร้อมคู่มือของบริษัท',
-            description: 'ยื่นจริงหนึ่งเดือนและทำคู่มือขั้นตอนสำหรับเดือนต่อ ๆ ไป',
-            en: { name: 'File and Write the Playbook', description: 'File one real month and write a step-by-step guide for the months after.' },
+            description:
+              'ยื่นจริงหนึ่งเดือนและทำคู่มือขั้นตอนสำหรับเดือนต่อ ๆ ไป',
+            en: {
+              name: 'File and Write the Playbook',
+              description:
+                'File one real month and write a step-by-step guide for the months after.',
+            },
             durationMinutes: 120,
             priceBaht: 2400,
           },
@@ -1073,7 +1352,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Check Your Tax Invoices Before a VAT Audit',
           description:
-            "Received notice of a VAT audit, or want to check yourself before claiming a refund? We sample your purchase and sales tax invoices for the required details, flag input tax at risk of being disallowed, and decide what to fix before the officer arrives.",
+            'Received notice of a VAT audit, or want to check yourself before claiming a refund? We sample your purchase and sales tax invoices for the required details, flag input tax at risk of being disallowed, and decide what to fix before the officer arrives.',
         },
         category: 'บัญชีและการตรวจสอบ',
         priceBaht: 2000,
@@ -1084,14 +1363,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'สุ่มตรวจหนึ่งเดือน',
             description: 'สุ่มตรวจเอกสารภาษีของหนึ่งเดือนและสรุปจุดเสี่ยง',
-            en: { name: 'One-Month Sample', description: "Sample one month's tax documents and summarise the risks." },
+            en: {
+              name: 'One-Month Sample',
+              description:
+                "Sample one month's tax documents and summarise the risks.",
+            },
             durationMinutes: 60,
             priceBaht: 2000,
           },
           {
             name: 'ตรวจหกเดือนพร้อมแนวทางแก้',
             description: 'ตรวจย้อนหลังหกเดือนพร้อมแนวทางแก้ไขและเอกสารชี้แจง',
-            en: { name: 'Six Months With Fixes', description: 'Review six months back, with corrections and supporting explanations.' },
+            en: {
+              name: 'Six Months With Fixes',
+              description:
+                'Review six months back, with corrections and supporting explanations.',
+            },
             durationMinutes: 180,
             priceBaht: 5500,
           },
@@ -1104,7 +1391,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Estimate Half-Year Profit and File PND 51',
           description:
-            "Companies have to estimate full-year profit to pay half-year tax, and underestimating by too much can mean surcharges. We look at your first six months, estimate the full year on a sound basis, and work out the tax due after the credits already withheld.",
+            'Companies have to estimate full-year profit to pay half-year tax, and underestimating by too much can mean surcharges. We look at your first six months, estimate the full year on a sound basis, and work out the tax due after the credits already withheld.',
         },
         category: 'บัญชีและการตรวจสอบ',
         priceBaht: 1500,
@@ -1114,14 +1401,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ประมาณการและคำนวณ',
             description: 'ประมาณกำไรทั้งปีและคำนวณภาษีครึ่งปีที่ต้องชำระ',
-            en: { name: 'Estimate and Calculate', description: 'Estimate full-year profit and the half-year tax payable.' },
+            en: {
+              name: 'Estimate and Calculate',
+              description:
+                'Estimate full-year profit and the half-year tax payable.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ประมาณการพร้อมวางแผนภาษีปลายปี',
             description: 'ต่อยอดเป็นแผนลดภาษีปลายปีที่ทำได้ตามกฎหมาย',
-            en: { name: 'Estimate Plus Year-End Planning', description: 'Go on to plan legitimate ways to reduce tax before year-end.' },
+            en: {
+              name: 'Estimate Plus Year-End Planning',
+              description:
+                'Go on to plan legitimate ways to reduce tax before year-end.',
+            },
             durationMinutes: 120,
             priceBaht: 3000,
           },
@@ -1134,7 +1429,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Review Condo Accounts Before the Annual Meeting',
           description:
-            "For committee members or co-owners who want to understand the accounts before voting to approve them. We go through common-fee income, unusually high expenses, arrears, and the sinking fund, then prepare the questions to put to the building manager at the meeting.",
+            'For committee members or co-owners who want to understand the accounts before voting to approve them. We go through common-fee income, unusually high expenses, arrears, and the sinking fund, then prepare the questions to put to the building manager at the meeting.',
         },
         category: 'บัญชีและการตรวจสอบ',
         priceBaht: 1500,
@@ -1144,14 +1439,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'อ่านงบนิติบุคคล',
             description: 'อธิบายงบปีล่าสุดและชี้รายการที่ควรถามต่อ',
-            en: { name: 'Read the Building Accounts', description: 'The latest year explained, with the items worth asking about.' },
+            en: {
+              name: 'Read the Building Accounts',
+              description:
+                'The latest year explained, with the items worth asking about.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ตรวจพร้อมคำถามสำหรับที่ประชุม',
             description: 'เทียบงบสองปีและเตรียมชุดคำถามพร้อมเอกสารที่ควรขอดู',
-            en: { name: 'Review Plus Meeting Questions', description: 'Compare two years and prepare questions plus the documents to request.' },
+            en: {
+              name: 'Review Plus Meeting Questions',
+              description:
+                'Compare two years and prepare questions plus the documents to request.',
+            },
             durationMinutes: 120,
             priceBaht: 3000,
           },
@@ -1175,14 +1478,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ไล่ขั้นตอนเงินสด',
             description: 'ไล่ขั้นตอนเงินสดของร้านและชี้จุดเสี่ยง',
-            en: { name: 'Trace the Cash Process', description: "Walk through your shop's cash handling and point out the weak spots." },
+            en: {
+              name: 'Trace the Cash Process',
+              description:
+                "Walk through your shop's cash handling and point out the weak spots.",
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'วางระบบควบคุมเงินสด',
             description: 'ออกแบบขั้นตอนปิดกะ ใบสรุปยอด และการตรวจนับแบบสุ่ม',
-            en: { name: 'Cash Control System', description: 'Shift-close steps, a daily summary sheet, and surprise cash counts.' },
+            en: {
+              name: 'Cash Control System',
+              description:
+                'Shift-close steps, a daily summary sheet, and surprise cash counts.',
+            },
             durationMinutes: 120,
             priceBaht: 3600,
           },
@@ -1195,7 +1506,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Internal Controls for a Family Business',
           description:
-            "The business has grown but every payment still goes through Mum or Dad alone. We decide who can approve what and up to which limit, separate the person paying from the person recording, and set the few reports owners should see every week.",
+            'The business has grown but every payment still goes through Mum or Dad alone. We decide who can approve what and up to which limit, separate the person paying from the person recording, and set the few reports owners should see every week.',
         },
         category: 'บัญชีและการตรวจสอบ',
         priceBaht: 2200,
@@ -1206,14 +1517,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตารางอำนาจอนุมัติ',
             description: 'ออกแบบตารางอำนาจอนุมัติและการแบ่งหน้าที่',
-            en: { name: 'Approval Matrix', description: 'Design an approval matrix and the split of duties.' },
+            en: {
+              name: 'Approval Matrix',
+              description: 'Design an approval matrix and the split of duties.',
+            },
             durationMinutes: 90,
             priceBaht: 2200,
           },
           {
             name: 'ระบบควบคุมครบชุด',
-            description: 'อำนาจอนุมัติ ขั้นตอนจ่ายเงิน และรายงานประจำสัปดาห์ในชุดเดียว',
-            en: { name: 'Full Control Set', description: 'Approval limits, payment steps, and weekly reports in one package.' },
+            description:
+              'อำนาจอนุมัติ ขั้นตอนจ่ายเงิน และรายงานประจำสัปดาห์ในชุดเดียว',
+            en: {
+              name: 'Full Control Set',
+              description:
+                'Approval limits, payment steps, and weekly reports in one package.',
+            },
             durationMinutes: 180,
             priceBaht: 5000,
           },
@@ -1236,14 +1555,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'วางระบบรับจ่าย',
             description: 'วิธีรับเงิน ออกใบเสร็จ และแยกเงินตามโครงการ',
-            en: { name: 'Receipts and Payments Setup', description: 'How to receive money, issue receipts, and track funds by project.' },
+            en: {
+              name: 'Receipts and Payments Setup',
+              description:
+                'How to receive money, issue receipts, and track funds by project.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'ระบบพร้อมรายงานประจำปี',
-            description: 'วางระบบและออกแบบรายงานการเงินประจำปีสำหรับสมาชิกและผู้บริจาค',
-            en: { name: 'System Plus Annual Report', description: 'The system and an annual financial report for members and donors.' },
+            description:
+              'วางระบบและออกแบบรายงานการเงินประจำปีสำหรับสมาชิกและผู้บริจาค',
+            en: {
+              name: 'System Plus Annual Report',
+              description:
+                'The system and an annual financial report for members and donors.',
+            },
             durationMinutes: 120,
             priceBaht: 2400,
           },
@@ -1272,7 +1600,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Home Loan Prep for Freelancers and Business Owners',
           description:
-            "No payslip but want a mortgage? We look at how a bank will assess your income, how many months of statements it will want, how much room your debt-to-income ratio leaves, and which extra documents make your case easiest for the officer to read.",
+            'No payslip but want a mortgage? We look at how a bank will assess your income, how many months of statements it will want, how much room your debt-to-income ratio leaves, and which extra documents make your case easiest for the officer to read.',
         },
         category: 'สินเชื่อและการจัดการหนี้',
         priceBaht: 1200,
@@ -1283,14 +1611,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินความพร้อม',
             description: 'ประเมินรายได้ที่ธนาคารน่าจะใช้และวงเงินโดยประมาณ',
-            en: { name: 'Readiness Check', description: 'The income a bank is likely to count and a rough loan amount.' },
+            en: {
+              name: 'Readiness Check',
+              description:
+                'The income a bank is likely to count and a rough loan amount.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'จัดชุดเอกสารยื่นกู้',
-            description: 'ไล่เอกสารทีละรายการและเขียนสรุปที่มาของรายได้แนบไปกับคำขอ',
-            en: { name: 'Application Pack', description: 'Go through every document and write an income summary to attach to the application.' },
+            description:
+              'ไล่เอกสารทีละรายการและเขียนสรุปที่มาของรายได้แนบไปกับคำขอ',
+            en: {
+              name: 'Application Pack',
+              description:
+                'Go through every document and write an income summary to attach to the application.',
+            },
             durationMinutes: 90,
             priceBaht: 2400,
           },
@@ -1314,14 +1651,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบสองข้อเสนอ',
             description: 'เทียบข้อเสนอธนาคารเดิมกับธนาคารใหม่หนึ่งราย',
-            en: { name: 'Compare Two Offers', description: 'Your current bank against one new offer.' },
+            en: {
+              name: 'Compare Two Offers',
+              description: 'Your current bank against one new offer.',
+            },
             durationMinutes: 30,
             priceBaht: 900,
           },
           {
             name: 'เทียบทุกข้อเสนอพร้อมแผนต่อรอง',
-            description: 'เทียบทุกข้อเสนอที่มีและเตรียมตัวเลขไว้ต่อรองกับธนาคารเดิม',
-            en: { name: 'All Offers and a Negotiation Plan', description: 'Compare every offer and prepare figures to negotiate with your current bank.' },
+            description:
+              'เทียบทุกข้อเสนอที่มีและเตรียมตัวเลขไว้ต่อรองกับธนาคารเดิม',
+            en: {
+              name: 'All Offers and a Negotiation Plan',
+              description:
+                'Compare every offer and prepare figures to negotiate with your current bank.',
+            },
             durationMinutes: 60,
             priceBaht: 1600,
           },
@@ -1334,7 +1679,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Turned Down for a Loan? Find Out Why Before Reapplying',
           description:
-            "Rejected once or twice and never told why? We go through your credit history, existing debts, income, and the documents you submitted to find the most likely reason, then plan what to fix and how long to wait before applying again.",
+            'Rejected once or twice and never told why? We go through your credit history, existing debts, income, and the documents you submitted to find the most likely reason, then plan what to fix and how long to wait before applying again.',
         },
         category: 'สินเชื่อและการจัดการหนี้',
         priceBaht: 1000,
@@ -1344,14 +1689,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'หาสาเหตุ',
             description: 'วิเคราะห์สาเหตุที่น่าจะทำให้ไม่ผ่าน',
-            en: { name: 'Find the Cause', description: 'Work out the most likely reasons you were declined.' },
+            en: {
+              name: 'Find the Cause',
+              description:
+                'Work out the most likely reasons you were declined.',
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'แผนยื่นใหม่',
             description: 'แผนแก้ไขรายเดือนจนถึงวันที่พร้อมยื่นอีกครั้ง',
-            en: { name: 'Reapplication Plan', description: "A month-by-month plan up to the day you're ready to apply again." },
+            en: {
+              name: 'Reapplication Plan',
+              description:
+                "A month-by-month plan up to the day you're ready to apply again.",
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -1364,7 +1717,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Get an Overdraft Line for Your Shop',
           description:
-            "Sales are good but cash is tight every month because you pay suppliers before customers pay you? We work out how big an overdraft or working-capital line to ask for, how the bank will read your accounts and statements, what collateral it may want, and the interest cost your shop can carry.",
+            'Sales are good but cash is tight every month because you pay suppliers before customers pay you? We work out how big an overdraft or working-capital line to ask for, how the bank will read your accounts and statements, what collateral it may want, and the interest cost your shop can carry.',
         },
         category: 'สินเชื่อและการจัดการหนี้',
         priceBaht: 1800,
@@ -1374,14 +1727,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณวงเงินที่ควรขอ',
             description: 'ประเมินวงเงินจากรอบเงินสดจริงของร้าน',
-            en: { name: 'Size the Credit Line', description: "Estimate the line from your shop's real cash cycle." },
+            en: {
+              name: 'Size the Credit Line',
+              description:
+                "Estimate the line from your shop's real cash cycle.",
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'เตรียมเอกสารยื่นธนาคาร',
-            description: 'จัดงบย่อ ประมาณการเงินสด และชุดเอกสารสำหรับยื่นขอวงเงิน',
-            en: { name: 'Bank Application Pack', description: 'Summary accounts, a cash forecast, and the documents for the application.' },
+            description:
+              'จัดงบย่อ ประมาณการเงินสด และชุดเอกสารสำหรับยื่นขอวงเงิน',
+            en: {
+              name: 'Bank Application Pack',
+              description:
+                'Summary accounts, a cash forecast, and the documents for the application.',
+            },
             durationMinutes: 120,
             priceBaht: 3500,
           },
@@ -1404,14 +1766,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณเทียบ',
             description: 'เทียบดอกเบี้ยที่ประหยัดได้กับการเก็บเงินไว้',
-            en: { name: 'Run the Numbers', description: 'Interest saved compared with keeping the cash.' },
+            en: {
+              name: 'Run the Numbers',
+              description: 'Interest saved compared with keeping the cash.',
+            },
             durationMinutes: 30,
             priceBaht: 800,
           },
           {
             name: 'แผนโปะหนี้รายปี',
-            description: 'วางแผนโปะเป็นรายปีให้สอดคล้องกับเงินสำรองและสิทธิลดหย่อน',
-            en: { name: 'Yearly Paydown Plan', description: 'A yearly paydown plan that fits your emergency fund and tax deduction.' },
+            description:
+              'วางแผนโปะเป็นรายปีให้สอดคล้องกับเงินสำรองและสิทธิลดหย่อน',
+            en: {
+              name: 'Yearly Paydown Plan',
+              description:
+                'A yearly paydown plan that fits your emergency fund and tax deduction.',
+            },
             durationMinutes: 60,
             priceBaht: 1400,
           },
@@ -1424,7 +1794,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Consolidate Card Debt and Personal Loans',
           description:
-            "Several cards and loans, paying the minimum every month and the balance never shrinks? We put all your debts in one table, check whether you qualify for debt consolidation with a bank that holds your mortgage or car loan, and compare rates and terms to see whether consolidating really helps.",
+            'Several cards and loans, paying the minimum every month and the balance never shrinks? We put all your debts in one table, check whether you qualify for debt consolidation with a bank that holds your mortgage or car loan, and compare rates and terms to see whether consolidating really helps.',
         },
         category: 'สินเชื่อและการจัดการหนี้',
         priceBaht: 700,
@@ -1435,14 +1805,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ทำตารางหนี้',
             description: 'รวมหนี้ทุกก้อนพร้อมดอกเบี้ยและยอดผ่อนจริง',
-            en: { name: 'Debt Table', description: 'Every debt with its real rate and monthly payment.' },
+            en: {
+              name: 'Debt Table',
+              description: 'Every debt with its real rate and monthly payment.',
+            },
             durationMinutes: 30,
             priceBaht: 700,
           },
           {
             name: 'ตารางหนี้พร้อมทางเลือกรวมหนี้',
-            description: 'เทียบทางเลือกรวมหนี้ที่คุณเข้าเงื่อนไขพร้อมขั้นตอนยื่น',
-            en: { name: 'Table Plus Consolidation Options', description: 'Compare the consolidation options you qualify for and how to apply.' },
+            description:
+              'เทียบทางเลือกรวมหนี้ที่คุณเข้าเงื่อนไขพร้อมขั้นตอนยื่น',
+            en: {
+              name: 'Table Plus Consolidation Options',
+              description:
+                'Compare the consolidation options you qualify for and how to apply.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
@@ -1465,15 +1843,25 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'เช็กคุณสมบัติ',
-            description: 'ดูว่าหนี้ก้อนไหนเข้าโครงการได้และก้อนไหนต้องใช้ทางอื่น',
-            en: { name: 'Eligibility Check', description: 'Which debts qualify for the scheme and which need another route.' },
+            description:
+              'ดูว่าหนี้ก้อนไหนเข้าโครงการได้และก้อนไหนต้องใช้ทางอื่น',
+            en: {
+              name: 'Eligibility Check',
+              description:
+                'Which debts qualify for the scheme and which need another route.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'เตรียมสมัครครบชุด',
-            description: 'เตรียมเอกสาร คำนวณค่างวด และวางงบรายเดือนหลังเข้าโครงการ',
-            en: { name: 'Full Application Prep', description: "Documents, estimated instalments, and a monthly budget for after you're in." },
+            description:
+              'เตรียมเอกสาร คำนวณค่างวด และวางงบรายเดือนหลังเข้าโครงการ',
+            en: {
+              name: 'Full Application Prep',
+              description:
+                "Documents, estimated instalments, and a monthly budget for after you're in.",
+            },
             durationMinutes: 90,
             priceBaht: 1500,
           },
@@ -1486,7 +1874,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'A Three-Year Plan to Be Debt-Free',
           description:
-            "Want to clear your debts within a set time? We decide which debt to close first, how much you can free up from your monthly budget without dropping your emergency fund, and set six-monthly checkpoints to make sure the plan is still on track.",
+            'Want to clear your debts within a set time? We decide which debt to close first, how much you can free up from your monthly budget without dropping your emergency fund, and set six-monthly checkpoints to make sure the plan is still on track.',
         },
         category: 'สินเชื่อและการจัดการหนี้',
         priceBaht: 1000,
@@ -1496,14 +1884,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'แผนปลดหนี้',
             description: 'ลำดับการปิดหนี้และยอดโปะรายเดือน',
-            en: { name: 'Payoff Plan', description: 'The order to clear debts in and the monthly overpayment.' },
+            en: {
+              name: 'Payoff Plan',
+              description:
+                'The order to clear debts in and the monthly overpayment.',
+            },
             durationMinutes: 60,
             priceBaht: 1000,
           },
           {
             name: 'แผนพร้อมติดตามสามครั้ง',
             description: 'แผนเต็มพร้อมนัดติดตามสั้น ๆ สามครั้งในปีแรก',
-            en: { name: 'Plan With Three Check-Ins', description: 'The full plan plus three short follow-up calls in the first year.' },
+            en: {
+              name: 'Plan With Three Check-Ins',
+              description:
+                'The full plan plus three short follow-up calls in the first year.',
+            },
             durationMinutes: 120,
             priceBaht: 2200,
           },
@@ -1520,7 +1916,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
     bio: 'นักวิเคราะห์สินเชื่อของบริษัทบัตรเครดิต 5 ปี เห็นมาแล้วว่าการตัดสินใจเล็ก ๆ ตอนอายุ 25 กลายเป็นปัญหาตอนจะกู้บ้านได้อย่างไร ช่วยคนรุ่นใหม่อ่านรายงานเครดิตบูโร ใช้บัตรใบแรกให้เป็น ผ่อนรถอย่างรู้ตัว และรับมือเมื่อหนี้บัตร หนี้ กยศ. หรือหนี้นอกระบบเริ่มเกินมือ',
     en: {
       headline: 'Credit and Borrowing Advisor for Young Adults',
-      bio: "Spent five years as a credit analyst at a credit card company and has seen small decisions made at 25 turn into problems when people later apply for a mortgage. Helps young adults read their credit bureau report, use a first credit card well, take on a car loan knowingly, and cope when card debt, student loans, or informal loans get out of hand.",
+      bio: 'Spent five years as a credit analyst at a credit card company and has seen small decisions made at 25 turn into problems when people later apply for a mortgage. Helps young adults read their credit bureau report, use a first credit card well, take on a car loan knowingly, and cope when card debt, student loans, or informal loans get out of hand.',
     },
     services: [
       {
@@ -1540,14 +1936,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กยอดและสิทธิ์',
             description: 'ดูยอดค้างและสิทธิ์ปรับโครงสร้างที่คุณมี',
-            en: { name: 'Balance and Rights Check', description: 'What you owe and the restructuring options open to you.' },
+            en: {
+              name: 'Balance and Rights Check',
+              description:
+                'What you owe and the restructuring options open to you.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'วางแผนผ่อนพร้อมยื่นคำขอ',
             description: 'คำนวณงวดผ่อนที่จ่ายไหวและเตรียมยื่นคำขอปรับโครงสร้าง',
-            en: { name: 'Repayment Plan and Request', description: 'Affordable instalments and a restructuring request ready to submit.' },
+            en: {
+              name: 'Repayment Plan and Request',
+              description:
+                'Affordable instalments and a restructuring request ready to submit.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -1571,14 +1975,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยหาทางออก',
             description: 'ประเมินสถานการณ์และทางเลือกที่ปลอดภัยที่สุดตอนนี้',
-            en: { name: 'Find a Way Out', description: 'Assess where you stand and the safest options right now.' },
+            en: {
+              name: 'Find a Way Out',
+              description:
+                'Assess where you stand and the safest options right now.',
+            },
             durationMinutes: 30,
             priceBaht: 400,
           },
           {
             name: 'แผนออกจากหนี้นอกระบบ',
-            description: 'แผนทีละขั้นพร้อมเอกสารสำหรับติดต่อหน่วยงานที่เกี่ยวข้อง',
-            en: { name: 'Step-by-Step Exit Plan', description: 'A step-by-step plan with the paperwork for contacting the right agencies.' },
+            description:
+              'แผนทีละขั้นพร้อมเอกสารสำหรับติดต่อหน่วยงานที่เกี่ยวข้อง',
+            en: {
+              name: 'Step-by-Step Exit Plan',
+              description:
+                'A step-by-step plan with the paperwork for contacting the right agencies.',
+            },
             durationMinutes: 60,
             priceBaht: 800,
           },
@@ -1602,14 +2015,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'อ่านรายงานด้วยกัน',
             description: 'อธิบายรายงานเครดิตของคุณทีละบรรทัด',
-            en: { name: 'Read It Together', description: 'Your credit report explained line by line.' },
+            en: {
+              name: 'Read It Together',
+              description: 'Your credit report explained line by line.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'แผนฟื้นประวัติเครดิต',
-            description: 'แผนรายเดือนเพื่อให้ประวัติเครดิตพร้อมก่อนยื่นกู้ก้อนใหญ่',
-            en: { name: 'Credit Repair Plan', description: 'A monthly plan to get your credit ready before a big loan application.' },
+            description:
+              'แผนรายเดือนเพื่อให้ประวัติเครดิตพร้อมก่อนยื่นกู้ก้อนใหญ่',
+            en: {
+              name: 'Credit Repair Plan',
+              description:
+                'A monthly plan to get your credit ready before a big loan application.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -1632,14 +2053,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'พื้นฐานบัตรเครดิต',
             description: 'เข้าใจรอบบัญชี ดอกเบี้ย และค่าธรรมเนียมที่ต้องระวัง',
-            en: { name: 'Card Basics', description: 'Billing cycles, interest, and the fees to watch for.' },
+            en: {
+              name: 'Card Basics',
+              description:
+                'Billing cycles, interest, and the fees to watch for.',
+            },
             durationMinutes: 30,
             priceBaht: 400,
           },
           {
             name: 'ตั้งกติกาการใช้บัตร',
-            description: 'ตั้งวงเงินใช้จริง วันตัดจ่ายอัตโนมัติ และวิธีเช็กยอดทุกสัปดาห์',
-            en: { name: 'Your Card Rules', description: 'A real spending limit, autopay, and a weekly balance check routine.' },
+            description:
+              'ตั้งวงเงินใช้จริง วันตัดจ่ายอัตโนมัติ และวิธีเช็กยอดทุกสัปดาห์',
+            en: {
+              name: 'Your Card Rules',
+              description:
+                'A real spending limit, autopay, and a weekly balance check routine.',
+            },
             durationMinutes: 45,
             priceBaht: 650,
           },
@@ -1662,14 +2092,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณงบรถ',
             description: 'ราคารถและค่างวดที่เหมาะกับรายได้ของคุณ',
-            en: { name: 'Car Budget', description: 'The car price and instalment that fit your income.' },
+            en: {
+              name: 'Car Budget',
+              description: 'The car price and instalment that fit your income.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'งบรถพร้อมอ่านสัญญา',
             description: 'คำนวณงบและอ่านสัญญาเช่าซื้อจริงก่อนเซ็น',
-            en: { name: 'Budget and Contract Read-Through', description: 'Set the budget and read your actual hire-purchase contract before signing.' },
+            en: {
+              name: 'Budget and Contract Read-Through',
+              description:
+                'Set the budget and read your actual hire-purchase contract before signing.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -1693,14 +2130,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'อ่านคำฟ้อง',
             description: 'อธิบายคำฟ้องและยอดที่ถูกเรียกเก็บ',
-            en: { name: 'Read the Claim', description: 'The claim and the amount being demanded, explained.' },
+            en: {
+              name: 'Read the Claim',
+              description:
+                'The claim and the amount being demanded, explained.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'เตรียมข้อเสนอไกล่เกลี่ย',
             description: 'คำนวณข้อเสนอผ่อนชำระและซ้อมการเจรจาในวันนัด',
-            en: { name: 'Mediation Offer', description: 'Work out a repayment offer and rehearse the negotiation for the day.' },
+            en: {
+              name: 'Mediation Offer',
+              description:
+                'Work out a repayment offer and rehearse the negotiation for the day.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -1719,7 +2164,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
     bio: 'ทำงานฝ่ายขายของบริษัทพัฒนาอสังหาริมทรัพย์ 5 ปี ก่อนออกมาเป็นนายหน้าอิสระที่เน้นคอนโดแนวรถไฟฟ้า เคยพาลูกค้าดูห้องมาแล้วหลายร้อยห้อง รู้ว่าตัวเลขไหนในใบเสนอราคาที่เซลส์ไม่ค่อยพูดถึง การนัดปรึกษาที่นี่เป็นความเห็นอิสระ ไม่ผูกกับโครงการใด',
     en: {
       headline: 'Bangkok Condo Buying Advisor',
-      bio: "Worked five years in sales for a property developer before becoming an independent agent focused on condos along the rail lines. Has shown clients hundreds of units and knows which figures on a quotation the sales team rarely mention. Sessions here are independent advice, not tied to any project.",
+      bio: 'Worked five years in sales for a property developer before becoming an independent agent focused on condos along the rail lines. Has shown clients hundreds of units and knows which figures on a quotation the sales team rarely mention. Sessions here are independent advice, not tied to any project.',
     },
     services: [
       {
@@ -1729,7 +2174,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Choose Your First Condo Near the Train Line',
           description:
-            "Tight budget but want to live near a station? We set criteria from your workplace, monthly repayment budget, and lifestyle, compare two or three realistic areas, and narrow it down to no more than five projects worth visiting.",
+            'Tight budget but want to live near a station? We set criteria from your workplace, monthly repayment budget, and lifestyle, compare two or three realistic areas, and narrow it down to no more than five projects worth visiting.',
         },
         category: 'อสังหาริมทรัพย์และบ้าน',
         priceBaht: 800,
@@ -1740,14 +2185,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตั้งเกณฑ์และทำเล',
             description: 'กำหนดงบ ทำเล และเกณฑ์ห้องที่เหมาะกับคุณ',
-            en: { name: 'Criteria and Area', description: 'Set your budget, area, and what you need in a unit.' },
+            en: {
+              name: 'Criteria and Area',
+              description:
+                'Set your budget, area, and what you need in a unit.',
+            },
             durationMinutes: 45,
             priceBaht: 800,
           },
           {
             name: 'คัดโครงการให้',
             description: 'คัดโครงการที่ควรไปดูพร้อมข้อดีข้อเสียของแต่ละแห่ง',
-            en: { name: 'Project Shortlist', description: 'A shortlist of projects to visit, with pros and cons for each.' },
+            en: {
+              name: 'Project Shortlist',
+              description:
+                'A shortlist of projects to visit, with pros and cons for each.',
+            },
             durationMinutes: 90,
             priceBaht: 1600,
           },
@@ -1770,14 +2223,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบสองห้อง',
             description: 'เทียบต้นทุนจริงของห้องที่คุณสนใจสองห้อง',
-            en: { name: 'Two Units', description: 'The real cost of two units you are considering.' },
+            en: {
+              name: 'Two Units',
+              description: 'The real cost of two units you are considering.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'เทียบสูงสุดห้าห้อง',
             description: 'เทียบได้สูงสุดห้าห้องพร้อมตารางต้นทุนห้าปี',
-            en: { name: 'Up to Five Units', description: 'Up to five units compared, with a five-year cost table.' },
+            en: {
+              name: 'Up to Five Units',
+              description:
+                'Up to five units compared, with a five-year cost table.',
+            },
             durationMinutes: 120,
             priceBaht: 2400,
           },
@@ -1800,14 +2260,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณห้องเดียว',
             description: 'ผลตอบแทนสุทธิของห้องหนึ่งห้อง',
-            en: { name: 'One Unit', description: 'The net return on a single unit.' },
+            en: {
+              name: 'One Unit',
+              description: 'The net return on a single unit.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'เทียบพร้อมสำรวจตลาดเช่า',
             description: 'เทียบหลายห้องพร้อมข้อมูลค่าเช่าและห้องว่างในย่านนั้น',
-            en: { name: 'Compare With Rental Market Check', description: 'Several units compared, with rents and vacancy in each area.' },
+            en: {
+              name: 'Compare With Rental Market Check',
+              description:
+                'Several units compared, with rents and vacancy in each area.',
+            },
             durationMinutes: 120,
             priceBaht: 3000,
           },
@@ -1830,14 +2297,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กลิสต์วันโอน',
             description: 'รายการค่าใช้จ่ายและเอกสารที่ต้องเตรียม',
-            en: { name: 'Transfer Day Checklist', description: 'The costs and documents to prepare.' },
+            en: {
+              name: 'Transfer Day Checklist',
+              description: 'The costs and documents to prepare.',
+            },
             durationMinutes: 30,
             priceBaht: 700,
           },
           {
             name: 'เตรียมครบพร้อมตรวจสัญญา',
-            description: 'เช็กลิสต์ครบชุดพร้อมอ่านสัญญาจะซื้อจะขายเรื่องการส่งมอบ',
-            en: { name: 'Full Prep With Contract Check', description: 'The full checklist plus a read of your sale agreement’s handover terms.' },
+            description:
+              'เช็กลิสต์ครบชุดพร้อมอ่านสัญญาจะซื้อจะขายเรื่องการส่งมอบ',
+            en: {
+              name: 'Full Prep With Contract Check',
+              description:
+                'The full checklist plus a read of your sale agreement’s handover terms.',
+            },
             durationMinutes: 60,
             priceBaht: 1300,
           },
@@ -1874,14 +2349,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กลิสต์ตรวจบ้าน',
             description: 'ลำดับการตรวจและเช็กลิสต์สำหรับบ้านแบบของคุณ',
-            en: { name: 'Inspection Checklist', description: 'An inspection order and checklist for your type of home.' },
+            en: {
+              name: 'Inspection Checklist',
+              description:
+                'An inspection order and checklist for your type of home.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'ดูรูปและวิดีโอจากวันตรวจ',
-            description: 'ส่งรูปและวิดีโอจากวันตรวจมาดูด้วยกันแล้วสรุปรายการที่ต้องให้แก้',
-            en: { name: 'Review Your Inspection Footage', description: 'Go through photos and video from your inspection and list what must be fixed.' },
+            description:
+              'ส่งรูปและวิดีโอจากวันตรวจมาดูด้วยกันแล้วสรุปรายการที่ต้องให้แก้',
+            en: {
+              name: 'Review Your Inspection Footage',
+              description:
+                'Go through photos and video from your inspection and list what must be fixed.',
+            },
             durationMinutes: 90,
             priceBaht: 1800,
           },
@@ -1905,14 +2389,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'อ่านแบบและรายการวัสดุ',
             description: 'ตรวจแบบและรายการวัสดุว่าครบและชัดเจน',
-            en: { name: 'Plans and Materials', description: 'Check the plans and materials list are complete and clear.' },
+            en: {
+              name: 'Plans and Materials',
+              description:
+                'Check the plans and materials list are complete and clear.',
+            },
             durationMinutes: 90,
             priceBaht: 2500,
           },
           {
             name: 'ตรวจแบบพร้อมสัญญา',
-            description: 'ตรวจแบบ รายการวัสดุ และสัญญาผู้รับเหมาพร้อมข้อที่ควรขอแก้',
-            en: { name: 'Plans Plus Contract', description: 'Plans, materials, and the builder contract, with the clauses to ask to change.' },
+            description:
+              'ตรวจแบบ รายการวัสดุ และสัญญาผู้รับเหมาพร้อมข้อที่ควรขอแก้',
+            en: {
+              name: 'Plans Plus Contract',
+              description:
+                'Plans, materials, and the builder contract, with the clauses to ask to change.',
+            },
             durationMinutes: 180,
             priceBaht: 5500,
           },
@@ -1936,14 +2429,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'จัดลำดับงาน',
             description: 'แยกงานจำเป็นกับงานที่รอได้ พร้อมลำดับการทำ',
-            en: { name: 'Prioritise the Work', description: 'Essential versus can-wait jobs, and the order to do them in.' },
+            en: {
+              name: 'Prioritise the Work',
+              description:
+                'Essential versus can-wait jobs, and the order to do them in.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'งบและลำดับงานครบชุด',
             description: 'ประมาณงบแต่ละหมวดและขอบเขตงานสำหรับขอราคาผู้รับเหมา',
-            en: { name: 'Full Budget and Scope', description: 'A budget by category and a scope of works for getting builder quotes.' },
+            en: {
+              name: 'Full Budget and Scope',
+              description:
+                'A budget by category and a scope of works for getting builder quotes.',
+            },
             durationMinutes: 120,
             priceBaht: 3200,
           },
@@ -1966,14 +2467,20 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ดูรูปจุดเดียว',
             description: 'ประเมินปัญหาหนึ่งจุดจากรูปและวิดีโอ',
-            en: { name: 'One Problem Area', description: 'Assess one problem from photos and video.' },
+            en: {
+              name: 'One Problem Area',
+              description: 'Assess one problem from photos and video.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'ไล่ทั้งบ้าน',
             description: 'ไล่ดูปัญหาทุกจุดที่พบพร้อมจัดลำดับความเร่งด่วน',
-            en: { name: 'Whole House', description: 'Every issue you have found, ranked by urgency.' },
+            en: {
+              name: 'Whole House',
+              description: 'Every issue you have found, ranked by urgency.',
+            },
             durationMinutes: 75,
             priceBaht: 1400,
           },
@@ -1986,7 +2493,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Letting Your Condo for the First Time: Price It and Pick a Tenant',
           description:
-            "Just got the keys and want a tenant quickly, but not a problem one? We set the rent from units actually let in the same building, prepare photos and a listing that attract the right people, and draw up screening questions to ask before any viewing.",
+            'Just got the keys and want a tenant quickly, but not a problem one? We set the rent from units actually let in the same building, prepare photos and a listing that attract the right people, and draw up screening questions to ask before any viewing.',
         },
         category: 'อสังหาริมทรัพย์และบ้าน',
         priceBaht: 600,
@@ -1997,14 +2504,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตั้งค่าเช่า',
             description: 'ตั้งค่าเช่าจากข้อมูลห้องที่ปล่อยจริงในย่านนั้น',
-            en: { name: 'Set the Rent', description: 'Price the rent from real lettings in the area.' },
+            en: {
+              name: 'Set the Rent',
+              description: 'Price the rent from real lettings in the area.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'พร้อมปล่อยเช่า',
             description: 'ตั้งราคา เขียนประกาศ และวางขั้นตอนคัดผู้เช่า',
-            en: { name: 'Ready to Let', description: 'Pricing, a written listing, and a tenant screening process.' },
+            en: {
+              name: 'Ready to Let',
+              description:
+                'Pricing, a written listing, and a tenant screening process.',
+            },
             durationMinutes: 75,
             priceBaht: 1400,
           },
@@ -2017,7 +2531,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Deposits and the Move-Out Inspection',
           description:
-            "Deposits are what landlords and tenants argue about most. We set up a move-in inspection with photos, a fair list of what can be deducted for damage, and a clear deposit return process from the day the lease is signed.",
+            'Deposits are what landlords and tenants argue about most. We set up a move-in inspection with photos, a fair list of what can be deducted for damage, and a clear deposit return process from the day the lease is signed.',
         },
         category: 'อสังหาริมทรัพย์และบ้าน',
         priceBaht: 500,
@@ -2027,14 +2541,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'วางขั้นตอนตรวจห้อง',
             description: 'ขั้นตอนตรวจห้องตอนเข้าและออกพร้อมแบบฟอร์ม',
-            en: { name: 'Inspection Process', description: 'Move-in and move-out inspection steps, with a form.' },
+            en: {
+              name: 'Inspection Process',
+              description:
+                'Move-in and move-out inspection steps, with a form.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'ชุดเอกสารผู้เช่าครบ',
-            description: 'แบบฟอร์มตรวจห้อง รายการค่าเสียหาย และข้อความในสัญญาเรื่องเงินประกัน',
-            en: { name: 'Full Tenant Paperwork', description: 'Inspection form, damage price list, and deposit wording for your lease.' },
+            description:
+              'แบบฟอร์มตรวจห้อง รายการค่าเสียหาย และข้อความในสัญญาเรื่องเงินประกัน',
+            en: {
+              name: 'Full Tenant Paperwork',
+              description:
+                'Inspection form, damage price list, and deposit wording for your lease.',
+            },
             durationMinutes: 60,
             priceBaht: 950,
           },
@@ -2047,7 +2570,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Rent Collection and Repair Requests for Several Units',
           description:
-            "Five or more rental units and losing track of who has paid? We set up billing, collection, polite reminders, and repair requests using tools you already have, plus a monthly report that fits on one page.",
+            'Five or more rental units and losing track of who has paid? We set up billing, collection, polite reminders, and repair requests using tools you already have, plus a monthly report that fits on one page.',
         },
         category: 'อสังหาริมทรัพย์และบ้าน',
         priceBaht: 1200,
@@ -2057,14 +2580,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'วางระบบเก็บเงิน',
             description: 'ระบบออกบิล เก็บเงิน และติดตามค่าเช่าค้าง',
-            en: { name: 'Collection System', description: 'Billing, collection, and chasing late rent.' },
+            en: {
+              name: 'Collection System',
+              description: 'Billing, collection, and chasing late rent.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'ระบบเต็มพร้อมแจ้งซ่อม',
-            description: 'ระบบเก็บเงิน รับแจ้งซ่อม รายชื่อช่าง และรายงานรายเดือน',
-            en: { name: 'Full System With Repairs', description: 'Collection, repair requests, a list of tradespeople, and a monthly report.' },
+            description:
+              'ระบบเก็บเงิน รับแจ้งซ่อม รายชื่อช่าง และรายงานรายเดือน',
+            en: {
+              name: 'Full System With Repairs',
+              description:
+                'Collection, repair requests, a list of tradespeople, and a monthly report.',
+            },
             durationMinutes: 120,
             priceBaht: 2400,
           },
@@ -2077,7 +2608,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: "Rent It Out or Sell? Deciding on a Condo You Don't Live In",
           description:
-            "Moved out and unsure whether to keep the condo as a rental or sell? We compare net rental income, the mortgage you still owe, tax on a sale, and actual sale prices in the same building, to show the next five years down each path.",
+            'Moved out and unsure whether to keep the condo as a rental or sell? We compare net rental income, the mortgage you still owe, tax on a sale, and actual sale prices in the same building, to show the next five years down each path.',
         },
         category: 'อสังหาริมทรัพย์และบ้าน',
         priceBaht: 1100,
@@ -2087,14 +2618,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบสองทาง',
             description: 'เทียบตัวเลขปล่อยเช่ากับขายสำหรับห้องของคุณ',
-            en: { name: 'Compare Both Paths', description: 'Rental versus sale figures for your unit.' },
+            en: {
+              name: 'Compare Both Paths',
+              description: 'Rental versus sale figures for your unit.',
+            },
             durationMinutes: 45,
             priceBaht: 1100,
           },
           {
             name: 'เทียบพร้อมแผนลงมือ',
             description: 'เทียบตัวเลขและวางขั้นตอนลงมือของทางที่เลือก',
-            en: { name: 'Compare and Plan Next Steps', description: 'The comparison plus next steps for the path you choose.' },
+            en: {
+              name: 'Compare and Plan Next Steps',
+              description:
+                'The comparison plus next steps for the path you choose.',
+            },
             durationMinutes: 90,
             priceBaht: 2000,
           },
@@ -2131,15 +2669,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'ตรวจเอกสารแปลงเดียว',
-            description: 'ตรวจเอกสารสิทธิ์ ผังเมือง และทางเข้าออกของที่ดินหนึ่งแปลง',
-            en: { name: 'One Plot Check', description: 'Title, zoning, and access checked for one plot.' },
+            description:
+              'ตรวจเอกสารสิทธิ์ ผังเมือง และทางเข้าออกของที่ดินหนึ่งแปลง',
+            en: {
+              name: 'One Plot Check',
+              description: 'Title, zoning, and access checked for one plot.',
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'ตรวจพร้อมประเมินราคา',
             description: 'ตรวจเอกสารพร้อมประเมินราคาตลาดเทียบกับราคาที่เสนอขาย',
-            en: { name: 'Checks Plus Valuation', description: 'The document checks plus a market value compared with the asking price.' },
+            en: {
+              name: 'Checks Plus Valuation',
+              description:
+                'The document checks plus a market value compared with the asking price.',
+            },
             durationMinutes: 120,
             priceBaht: 3500,
           },
@@ -2152,7 +2698,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Dividing Inherited Land Between Siblings',
           description:
-            "Your parents left one plot and there are several heirs? We look at splitting the title, holding it jointly, or selling and sharing the money, value each portion by its frontage and access, and cost out each route, so the family discusses the same numbers.",
+            'Your parents left one plot and there are several heirs? We look at splitting the title, holding it jointly, or selling and sharing the money, value each portion by its frontage and access, and cost out each route, so the family discusses the same numbers.',
         },
         category: 'อสังหาริมทรัพย์และบ้าน',
         priceBaht: 1800,
@@ -2162,14 +2708,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ทางเลือกการแบ่ง',
             description: 'เทียบทางเลือกการแบ่งพร้อมค่าใช้จ่ายโดยประมาณ',
-            en: { name: 'Division Options', description: 'Compare ways to divide, with rough costs.' },
+            en: {
+              name: 'Division Options',
+              description: 'Compare ways to divide, with rough costs.',
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'คุยพร้อมกันทั้งครอบครัว',
             description: 'นัดคุยกับทายาททุกคนพร้อมประเมินมูลค่าแต่ละแปลงย่อย',
-            en: { name: 'Whole-Family Session', description: 'A session with all the heirs, valuing each proposed portion.' },
+            en: {
+              name: 'Whole-Family Session',
+              description:
+                'A session with all the heirs, valuing each proposed portion.',
+            },
             durationMinutes: 120,
             priceBaht: 3800,
           },
@@ -2182,7 +2735,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Value Your House Before Setting a Sale Price',
           description:
-            "Want to sell but unsure what to ask? We estimate from actual sales in the area, the official appraisal value, the condition of the house, and how long you can wait to sell. You get a sensible price range and the reasoning to use with buyers or agents.",
+            'Want to sell but unsure what to ask? We estimate from actual sales in the area, the official appraisal value, the condition of the house, and how long you can wait to sell. You get a sensible price range and the reasoning to use with buyers or agents.',
         },
         category: 'อสังหาริมทรัพย์และบ้าน',
         priceBaht: 1200,
@@ -2193,14 +2746,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินเบื้องต้น',
             description: 'ช่วงราคาจากข้อมูลตลาดและรูปบ้าน',
-            en: { name: 'Initial Estimate', description: 'A price range from market data and photos of the house.' },
+            en: {
+              name: 'Initial Estimate',
+              description:
+                'A price range from market data and photos of the house.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'ประเมินพร้อมกลยุทธ์ขาย',
-            description: 'ช่วงราคาพร้อมราคาเริ่มต้น ราคาต่ำสุดที่รับได้ และจังหวะปรับราคา',
-            en: { name: 'Valuation and Sale Strategy', description: 'The range plus an asking price, your floor, and when to adjust.' },
+            description:
+              'ช่วงราคาพร้อมราคาเริ่มต้น ราคาต่ำสุดที่รับได้ และจังหวะปรับราคา',
+            en: {
+              name: 'Valuation and Sale Strategy',
+              description:
+                'The range plus an asking price, your floor, and when to adjust.',
+            },
             durationMinutes: 90,
             priceBaht: 2400,
           },
@@ -2222,15 +2784,24 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'อ่านประกาศหนึ่งรายการ',
-            description: 'อ่านประกาศขายและประเมินความเสี่ยงของทรัพย์หนึ่งรายการ',
-            en: { name: 'One Listing', description: 'Read one sale notice and assess its risks.' },
+            description:
+              'อ่านประกาศขายและประเมินความเสี่ยงของทรัพย์หนึ่งรายการ',
+            en: {
+              name: 'One Listing',
+              description: 'Read one sale notice and assess its risks.',
+            },
             durationMinutes: 45,
             priceBaht: 1300,
           },
           {
             name: 'เตรียมเข้าประมูล',
-            description: 'ประเมินราคาและวางราคาสูงสุดที่ยอมจ่ายพร้อมขั้นตอนวันประมูล',
-            en: { name: 'Auction-Ready', description: 'A valuation, your maximum bid, and what happens on auction day.' },
+            description:
+              'ประเมินราคาและวางราคาสูงสุดที่ยอมจ่ายพร้อมขั้นตอนวันประมูล',
+            en: {
+              name: 'Auction-Ready',
+              description:
+                'A valuation, your maximum bid, and what happens on auction day.',
+            },
             durationMinutes: 90,
             priceBaht: 2600,
           },
@@ -2254,14 +2825,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบเร็ว',
             description: 'เทียบเช่ากับซื้อจากตัวเลขหลักของคุณ',
-            en: { name: 'Quick Comparison', description: 'Renting versus buying from your main figures.' },
+            en: {
+              name: 'Quick Comparison',
+              description: 'Renting versus buying from your main figures.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'เทียบสิบปี',
             description: 'ตารางเทียบสิบปีพร้อมสถานการณ์ดอกเบี้ยขึ้นและลง',
-            en: { name: 'Ten-Year Comparison', description: 'A ten-year table with rising and falling rate scenarios.' },
+            en: {
+              name: 'Ten-Year Comparison',
+              description:
+                'A ten-year table with rising and falling rate scenarios.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -2274,7 +2852,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Suburban Townhouse or City Condo?',
           description:
-            "The same budget buys a three-bedroom townhouse in the suburbs or a one-bedroom condo near work. We compare commuting costs, time each day, family plans, upkeep, and resale value, so you decide from your real life rather than the brochure photos.",
+            'The same budget buys a three-bedroom townhouse in the suburbs or a one-bedroom condo near work. We compare commuting costs, time each day, family plans, upkeep, and resale value, so you decide from your real life rather than the brochure photos.',
         },
         category: 'อสังหาริมทรัพย์และบ้าน',
         priceBaht: 900,
@@ -2284,14 +2862,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบสองแบบ',
             description: 'เทียบทาวน์โฮมกับคอนโดตามโจทย์ของคุณ',
-            en: { name: 'Compare the Two', description: 'Townhouse against condo for your situation.' },
+            en: {
+              name: 'Compare the Two',
+              description: 'Townhouse against condo for your situation.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'เทียบพร้อมเลือกทำเล',
             description: 'เทียบสองแบบและคัดทำเลที่เข้ากับงบและการเดินทาง',
-            en: { name: 'Compare and Pick Areas', description: 'The comparison plus areas that fit your budget and commute.' },
+            en: {
+              name: 'Compare and Pick Areas',
+              description:
+                'The comparison plus areas that fit your budget and commute.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -2314,14 +2899,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กลิสต์มาตรฐาน',
             description: 'ชุดคำถามและจุดที่ต้องดูสำหรับการเยี่ยมชมโครงการ',
-            en: { name: 'Standard Checklist', description: 'Questions and things to look at when visiting a project.' },
+            en: {
+              name: 'Standard Checklist',
+              description:
+                'Questions and things to look at when visiting a project.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'เตรียมเฉพาะโครงการ',
-            description: 'ศึกษาโครงการที่คุณจะไปดูล่วงหน้าและปรับคำถามให้ตรงจุด',
-            en: { name: 'Project-Specific Prep', description: 'Research the projects you plan to visit and tailor the questions.' },
+            description:
+              'ศึกษาโครงการที่คุณจะไปดูล่วงหน้าและปรับคำถามให้ตรงจุด',
+            en: {
+              name: 'Project-Specific Prep',
+              description:
+                'Research the projects you plan to visit and tailor the questions.',
+            },
             durationMinutes: 60,
             priceBaht: 1000,
           },
@@ -2334,7 +2928,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Buying a Home on a Joint Loan With a Partner or Sibling',
           description:
-            "A joint loan gets you a bigger amount but ties you together for decades. We compare borrowing alone with borrowing jointly, look at who owns what share, who claims the interest deduction, and what you should agree in advance in case the relationship changes one day.",
+            'A joint loan gets you a bigger amount but ties you together for decades. We compare borrowing alone with borrowing jointly, look at who owns what share, who claims the interest deduction, and what you should agree in advance in case the relationship changes one day.',
         },
         category: 'สินเชื่อและการจัดการหนี้',
         priceBaht: 900,
@@ -2344,14 +2938,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบกู้คนเดียวกับกู้ร่วม',
             description: 'วงเงินและภาระของการกู้แต่ละแบบ',
-            en: { name: 'Solo Versus Joint', description: 'The loan amount and obligations under each option.' },
+            en: {
+              name: 'Solo Versus Joint',
+              description: 'The loan amount and obligations under each option.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'วางข้อตกลงร่วม',
-            description: 'เทียบทางเลือกและร่างประเด็นที่ควรตกลงกันเป็นลายลักษณ์อักษร',
-            en: { name: 'Draft a Shared Agreement', description: 'Compare the options and outline what to agree in writing.' },
+            description:
+              'เทียบทางเลือกและร่างประเด็นที่ควรตกลงกันเป็นลายลักษณ์อักษร',
+            en: {
+              name: 'Draft a Shared Agreement',
+              description:
+                'Compare the options and outline what to agree in writing.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -2370,7 +2972,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
     bio: 'ผู้แนะนำการลงทุนที่ได้รับใบอนุญาตจาก ก.ล.ต. ทำงานในบริษัทหลักทรัพย์จัดการกองทุน 8 ปี ตอบคำถามนักลงทุนมือใหม่มาแล้วนับหมื่นข้อ ตอนนี้สอนแบบตัวต่อตัวให้คนที่อยากเริ่มลงทุนอย่างเข้าใจ เน้นวิธีคิดและวิธีอ่านข้อมูลกองทุน ไม่ชี้ว่าควรซื้อกองทุนตัวไหนและไม่รับค่าตอบแทนจากบริษัทจัดการกองทุน',
     en: {
       headline: 'Licensed Investment Consultant Teaching Mutual Fund Basics',
-      bio: "A Thai SEC-licensed investment consultant who spent eight years at an asset management company and has answered tens of thousands of beginner questions. Now teaches one-to-one for people who want to start investing with understanding. Focuses on how to think about and read fund information, never tells you which fund to buy, and takes no payment from fund managers.",
+      bio: 'A Thai SEC-licensed investment consultant who spent eight years at an asset management company and has answered tens of thousands of beginner questions. Now teaches one-to-one for people who want to start investing with understanding. Focuses on how to think about and read fund information, never tells you which fund to buy, and takes no payment from fund managers.',
     },
     services: [
       {
@@ -2391,14 +2993,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'พื้นฐานกองทุน',
             description: 'ประเภทกองทุน ความเสี่ยง และวิธีเปิดบัญชี',
-            en: { name: 'Fund Basics', description: 'Fund types, risk, and how to open an account.' },
+            en: {
+              name: 'Fund Basics',
+              description: 'Fund types, risk, and how to open an account.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'วางแผนลงทุนรายเดือน',
-            description: 'ประเมินความเสี่ยงที่รับได้และวางสัดส่วนลงทุนรายเดือนของคุณ',
-            en: { name: 'Monthly Investing Plan', description: 'Assess your risk tolerance and set your monthly allocation.' },
+            description:
+              'ประเมินความเสี่ยงที่รับได้และวางสัดส่วนลงทุนรายเดือนของคุณ',
+            en: {
+              name: 'Monthly Investing Plan',
+              description:
+                'Assess your risk tolerance and set your monthly allocation.',
+            },
             durationMinutes: 60,
             priceBaht: 950,
           },
@@ -2421,14 +3031,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณภาษีที่ประหยัดได้',
             description: 'ภาษีที่ประหยัดได้จากกองทุนลดหย่อนแต่ละแบบ',
-            en: { name: 'Tax Saving Calculation', description: 'How much tax each type of fund would save you.' },
+            en: {
+              name: 'Tax Saving Calculation',
+              description: 'How much tax each type of fund would save you.',
+            },
             durationMinutes: 30,
             priceBaht: 700,
           },
           {
             name: 'แผนกองทุนลดหย่อนระยะยาว',
-            description: 'วางแผนลงทุนกองทุนลดหย่อนหลายปีให้สอดคล้องกับเป้าเกษียณ',
-            en: { name: 'Multi-Year Tax Fund Plan', description: 'A multi-year tax fund plan that lines up with your retirement goals.' },
+            description:
+              'วางแผนลงทุนกองทุนลดหย่อนหลายปีให้สอดคล้องกับเป้าเกษียณ',
+            en: {
+              name: 'Multi-Year Tax Fund Plan',
+              description:
+                'A multi-year tax fund plan that lines up with your retirement goals.',
+            },
             durationMinutes: 60,
             priceBaht: 1300,
           },
@@ -2451,14 +3069,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'อ่านกองทุนเดียว',
             description: 'อ่านหนังสือชี้ชวนของกองทุนหนึ่งกองด้วยกัน',
-            en: { name: 'One Fund', description: "Read one fund's prospectus together." },
+            en: {
+              name: 'One Fund',
+              description: "Read one fund's prospectus together.",
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'เทียบสามกองทุน',
             description: 'เทียบนโยบาย ค่าธรรมเนียม และความเสี่ยงของสามกองทุน',
-            en: { name: 'Compare Three Funds', description: 'Policy, fees, and risk compared across three funds.' },
+            en: {
+              name: 'Compare Three Funds',
+              description:
+                'Policy, fees, and risk compared across three funds.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -2471,7 +3096,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Set Up Index Fund DCA and Let It Run',
           description:
-            "Want to invest for the long term without timing the market? We cover how regular investing works, index funds versus actively managed ones, setting the amount and automatic debit date, and your rules for the days the market drops hard and you want to stop.",
+            'Want to invest for the long term without timing the market? We cover how regular investing works, index funds versus actively managed ones, setting the amount and automatic debit date, and your rules for the days the market drops hard and you want to stop.',
         },
         category: 'การลงทุนและการออม',
         priceBaht: 600,
@@ -2481,14 +3106,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตั้งระบบ',
             description: 'ตั้งยอด วันตัดเงิน และบัญชีที่ใช้ลงทุน',
-            en: { name: 'Set It Up', description: 'Amount, debit date, and the account to invest from.' },
+            en: {
+              name: 'Set It Up',
+              description:
+                'Amount, debit date, and the account to invest from.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'ระบบพร้อมกติกาตลาดผันผวน',
-            description: 'ตั้งระบบและเขียนกติกาการลงทุนของตัวเองไว้ใช้ตอนตลาดตก',
-            en: { name: 'System Plus Volatility Rules', description: 'The setup plus your own written rules for when markets fall.' },
+            description:
+              'ตั้งระบบและเขียนกติกาการลงทุนของตัวเองไว้ใช้ตอนตลาดตก',
+            en: {
+              name: 'System Plus Volatility Rules',
+              description:
+                'The setup plus your own written rules for when markets fall.',
+            },
             durationMinutes: 60,
             priceBaht: 1000,
           },
@@ -2526,21 +3160,33 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'วางสัดส่วนหนึ่งเป้าหมาย',
             description: 'จัดสัดส่วนสินทรัพย์สำหรับเป้าหมายเดียว',
-            en: { name: 'One Goal', description: 'An asset mix for a single goal.' },
+            en: {
+              name: 'One Goal',
+              description: 'An asset mix for a single goal.',
+            },
             durationMinutes: 60,
             priceBaht: 1800,
           },
           {
             name: 'พอร์ตครบทุกเป้าหมาย',
             description: 'วางพอร์ตแยกตามทุกเป้าหมายพร้อมแผนปรับตามช่วงอายุ',
-            en: { name: 'Every Goal', description: 'Separate portfolios for each goal, with a plan to adjust as you age.' },
+            en: {
+              name: 'Every Goal',
+              description:
+                'Separate portfolios for each goal, with a plan to adjust as you age.',
+            },
             durationMinutes: 120,
             priceBaht: 3500,
           },
           {
             name: 'พอร์ตพร้อมรายงานและติดตาม',
-            description: 'พอร์ตครบทุกเป้าหมายเป็นรายงาน พร้อมนัดทบทวนหลังหกเดือน',
-            en: { name: 'Portfolio With Report and Review', description: 'The full plan as a written report, plus a six-month review.' },
+            description:
+              'พอร์ตครบทุกเป้าหมายเป็นรายงาน พร้อมนัดทบทวนหลังหกเดือน',
+            en: {
+              name: 'Portfolio With Report and Review',
+              description:
+                'The full plan as a written report, plus a six-month review.',
+            },
             durationMinutes: 180,
             priceBaht: 5500,
           },
@@ -2563,14 +3209,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจภาพรวม',
             description: 'ดูการกระจุกตัวและความเสี่ยงหลักของพอร์ต',
-            en: { name: 'Overview', description: 'Concentration and the main risks in the portfolio.' },
+            en: {
+              name: 'Overview',
+              description: 'Concentration and the main risks in the portfolio.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'ตรวจละเอียดพร้อมแนวทางจัดใหม่',
             description: 'ตรวจทุกรายการพร้อมแนวทางปรับพอร์ตให้ตรงเป้าหมาย',
-            en: { name: 'Detailed Review and Restructure', description: 'Every holding reviewed, with a way to reshape the portfolio around your goals.' },
+            en: {
+              name: 'Detailed Review and Restructure',
+              description:
+                'Every holding reviewed, with a way to reshape the portfolio around your goals.',
+            },
             durationMinutes: 90,
             priceBaht: 2300,
           },
@@ -2593,14 +3246,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณการปรับ',
             description: 'เทียบสัดส่วนปัจจุบันกับเป้าและคำนวณยอดที่ต้องปรับ',
-            en: { name: 'Rebalancing Figures', description: 'Current mix versus targets, and the amounts to move.' },
+            en: {
+              name: 'Rebalancing Figures',
+              description:
+                'Current mix versus targets, and the amounts to move.',
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'ปรับพร้อมทบทวนเป้าหมาย',
-            description: 'คำนวณการปรับและทบทวนว่าเป้าหมายหรือความเสี่ยงที่รับได้เปลี่ยนไปหรือไม่',
-            en: { name: 'Rebalance and Revisit Goals', description: 'The rebalancing plus a check on whether your goals or risk tolerance have changed.' },
+            description:
+              'คำนวณการปรับและทบทวนว่าเป้าหมายหรือความเสี่ยงที่รับได้เปลี่ยนไปหรือไม่',
+            en: {
+              name: 'Rebalance and Revisit Goals',
+              description:
+                'The rebalancing plus a check on whether your goals or risk tolerance have changed.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -2624,14 +3286,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบช่องทาง',
             description: 'ข้อดีข้อเสียของแต่ละช่องทางสำหรับกรณีของคุณ',
-            en: { name: 'Compare the Routes', description: 'The pros and cons of each route for your situation.' },
+            en: {
+              name: 'Compare the Routes',
+              description:
+                'The pros and cons of each route for your situation.',
+            },
             durationMinutes: 45,
             priceBaht: 1100,
           },
           {
             name: 'เทียบพร้อมวางสัดส่วน',
             description: 'เลือกช่องทางและวางสัดส่วนเงินลงทุนต่างประเทศในพอร์ต',
-            en: { name: 'Compare and Allocate', description: 'Pick a route and decide how much of your portfolio to put abroad.' },
+            en: {
+              name: 'Compare and Allocate',
+              description:
+                'Pick a route and decide how much of your portfolio to put abroad.',
+            },
             durationMinutes: 90,
             priceBaht: 2100,
           },
@@ -2654,14 +3324,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'อ่านงบหนึ่งบริษัท',
             description: 'อ่านงบปีล่าสุดของบริษัทที่คุณเลือก',
-            en: { name: 'One Company', description: "The latest year's statements for the company you choose." },
+            en: {
+              name: 'One Company',
+              description:
+                "The latest year's statements for the company you choose.",
+            },
             durationMinutes: 60,
             priceBaht: 1500,
           },
           {
             name: 'เทียบกับคู่แข่ง',
             description: 'อ่านงบห้าปีและเทียบกับคู่แข่งในอุตสาหกรรมเดียวกัน',
-            en: { name: 'Compare With Peers', description: 'Five years of statements compared with competitors in the same industry.' },
+            en: {
+              name: 'Compare With Peers',
+              description:
+                'Five years of statements compared with competitors in the same industry.',
+            },
             durationMinutes: 120,
             priceBaht: 3000,
           },
@@ -2684,14 +3362,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'หลักคิดหุ้นปันผล',
             description: 'วิธีดูความยั่งยืนของปันผลและภาษีที่เกี่ยวข้อง',
-            en: { name: 'Dividend Investing Principles', description: 'How to judge dividend sustainability and the tax involved.' },
+            en: {
+              name: 'Dividend Investing Principles',
+              description:
+                'How to judge dividend sustainability and the tax involved.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'ฝึกวิเคราะห์สามบริษัท',
             description: 'ฝึกวิเคราะห์หุ้นปันผลสามบริษัทที่คุณเลือกเอง',
-            en: { name: 'Practise on Three Companies', description: 'Work through three dividend stocks of your choice.' },
+            en: {
+              name: 'Practise on Three Companies',
+              description: 'Work through three dividend stocks of your choice.',
+            },
             durationMinutes: 120,
             priceBaht: 2600,
           },
@@ -2715,14 +3400,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'พื้นฐานก่อนเปิดบัญชี',
             description: 'ประเภทบัญชี ค่าธรรมเนียม และขั้นตอนการซื้อขาย',
-            en: { name: 'Before You Open', description: 'Account types, fees, and how trading works.' },
+            en: {
+              name: 'Before You Open',
+              description: 'Account types, fees, and how trading works.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'ส่งคำสั่งแรกด้วยกัน',
             description: 'ตั้งกติกาการลงทุนและส่งคำสั่งซื้อครั้งแรกไปพร้อมกัน',
-            en: { name: 'First Order Together', description: 'Set your investing rules and place your first order together.' },
+            en: {
+              name: 'First Order Together',
+              description:
+                'Set your investing rules and place your first order together.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -2745,15 +3437,24 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'พื้นฐานหุ้นกู้',
-            description: 'อันดับความน่าเชื่อถือ ประเภทหุ้นกู้ และความเสี่ยงหลัก',
-            en: { name: 'Bond Basics', description: 'Ratings, types of bond, and the main risks.' },
+            description:
+              'อันดับความน่าเชื่อถือ ประเภทหุ้นกู้ และความเสี่ยงหลัก',
+            en: {
+              name: 'Bond Basics',
+              description: 'Ratings, types of bond, and the main risks.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'อ่านเอกสารหุ้นกู้ที่สนใจ',
-            description: 'อ่านเอกสารของหุ้นกู้ที่คุณกำลังจะจองและประเมินความเสี่ยงด้วยกัน',
-            en: { name: 'Review a Specific Bond', description: "Read the documents for a bond you're about to buy and assess the risk together." },
+            description:
+              'อ่านเอกสารของหุ้นกู้ที่คุณกำลังจะจองและประเมินความเสี่ยงด้วยกัน',
+            en: {
+              name: 'Review a Specific Bond',
+              description:
+                "Read the documents for a bond you're about to buy and assess the risk together.",
+            },
             durationMinutes: 90,
             priceBaht: 2300,
           },
@@ -2780,7 +3481,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Monthly Gold Savings: Bars or an App?',
           description:
-            "Want to save in gold but unsure whether to buy bars, jewellery, a gold shop savings plan, or an app? We compare making charges, buy-sell spreads, safe storage, and how much gold makes sense as a share of your total savings.",
+            'Want to save in gold but unsure whether to buy bars, jewellery, a gold shop savings plan, or an app? We compare making charges, buy-sell spreads, safe storage, and how much gold makes sense as a share of your total savings.',
         },
         category: 'การลงทุนและการออม',
         priceBaht: 500,
@@ -2790,14 +3491,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบวิธีออมทอง',
             description: 'ข้อดีข้อเสียและต้นทุนของการออมทองแต่ละแบบ',
-            en: { name: 'Compare Gold Options', description: 'The pros, cons, and costs of each way to save in gold.' },
+            en: {
+              name: 'Compare Gold Options',
+              description:
+                'The pros, cons, and costs of each way to save in gold.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'แผนออมทองรายเดือน',
             description: 'เลือกวิธีและวางยอดออมรายเดือนในสัดส่วนที่เหมาะ',
-            en: { name: 'Monthly Gold Plan', description: 'Pick a method and set a monthly amount in the right proportion.' },
+            en: {
+              name: 'Monthly Gold Plan',
+              description:
+                'Pick a method and set a monthly amount in the right proportion.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -2821,14 +3530,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบที่พักเงิน',
             description: 'เทียบผลตอบแทนและสภาพคล่องของแต่ละทางเลือก',
-            en: { name: 'Compare Where to Park It', description: 'Returns and liquidity of each option, side by side.' },
+            en: {
+              name: 'Compare Where to Park It',
+              description:
+                'Returns and liquidity of each option, side by side.',
+            },
             durationMinutes: 30,
             priceBaht: 450,
           },
           {
             name: 'จัดเงินทุกก้อน',
             description: 'แบ่งเงินออมทุกก้อนตามระยะเวลาที่ต้องใช้',
-            en: { name: 'Place Every Pot', description: 'Split all your savings by when you will need them.' },
+            en: {
+              name: 'Place Every Pot',
+              description: 'Split all your savings by when you will need them.',
+            },
             durationMinutes: 60,
             priceBaht: 850,
           },
@@ -2841,7 +3557,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Save a Home Deposit Within Three Years',
           description:
-            "We start from the price of the home you want, work out the deposit, transfer costs, and a cushion for after you move in, then turn that into a monthly savings figure. We pick low-risk places for a three-year goal and plan a backup for months when income falls short.",
+            'We start from the price of the home you want, work out the deposit, transfer costs, and a cushion for after you move in, then turn that into a monthly savings figure. We pick low-risk places for a three-year goal and plan a backup for months when income falls short.',
         },
         category: 'การลงทุนและการออม',
         priceBaht: 700,
@@ -2851,14 +3567,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณเป้า',
             description: 'ยอดเงินดาวน์และยอดเก็บต่อเดือน',
-            en: { name: 'Set the Target', description: 'The deposit you need and the monthly savings figure.' },
+            en: {
+              name: 'Set the Target',
+              description:
+                'The deposit you need and the monthly savings figure.',
+            },
             durationMinutes: 45,
             priceBaht: 700,
           },
           {
             name: 'แผนเก็บพร้อมแผนสำรอง',
-            description: 'แผนเก็บรายเดือน ที่พักเงิน และแผนสำรองสำหรับเดือนที่รายได้น้อย',
-            en: { name: 'Plan With a Backup', description: 'Monthly plan, where to keep it, and a fallback for lean months.' },
+            description:
+              'แผนเก็บรายเดือน ที่พักเงิน และแผนสำรองสำหรับเดือนที่รายได้น้อย',
+            en: {
+              name: 'Plan With a Backup',
+              description:
+                'Monthly plan, where to keep it, and a fallback for lean months.',
+            },
             durationMinutes: 75,
             priceBaht: 1200,
           },
@@ -2871,7 +3596,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'A Savings System for Freelancers With Uneven Income',
           description:
-            "Spend big in busy months, raid savings in quiet ones? We set up a salary for yourself based on average income, a buffer account for good months, money set aside for tax and voluntary social security, and automatic saving that keeps going through slow months.",
+            'Spend big in busy months, raid savings in quiet ones? We set up a salary for yourself based on average income, a buffer account for good months, money set aside for tax and voluntary social security, and automatic saving that keeps going through slow months.',
         },
         category: 'การลงทุนและการออม',
         priceBaht: 600,
@@ -2881,14 +3606,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณเงินเดือนตัวเอง',
             description: 'หาเงินเดือนที่จ่ายตัวเองได้จากรายได้ย้อนหลัง',
-            en: { name: 'Find Your Salary', description: 'The salary you can pay yourself, based on past income.' },
+            en: {
+              name: 'Find Your Salary',
+              description:
+                'The salary you can pay yourself, based on past income.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'ระบบออมครบชุด',
             description: 'ระบบบัญชีพักเงิน เงินภาษี และการออมอัตโนมัติ',
-            en: { name: 'Full Savings System', description: 'Buffer account, tax money, and automatic saving.' },
+            en: {
+              name: 'Full Savings System',
+              description: 'Buffer account, tax money, and automatic saving.',
+            },
             durationMinutes: 75,
             priceBaht: 1200,
           },
@@ -2912,21 +3644,34 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตั้งหลัก',
             description: 'ลำดับสิ่งที่ต้องทำก่อนและที่พักเงินระหว่างตัดสินใจ',
-            en: { name: 'Get Your Bearings', description: 'What to do first and where to hold the money while you decide.' },
+            en: {
+              name: 'Get Your Bearings',
+              description:
+                'What to do first and where to hold the money while you decide.',
+            },
             durationMinutes: 60,
             priceBaht: 3000,
           },
           {
             name: 'แผนหกเดือน',
             description: 'แผนทยอยลงทุนหกเดือนพร้อมสัดส่วนสินทรัพย์เป้าหมาย',
-            en: { name: 'Six-Month Plan', description: 'A six-month phased investment plan with a target asset mix.' },
+            en: {
+              name: 'Six-Month Plan',
+              description:
+                'A six-month phased investment plan with a target asset mix.',
+            },
             durationMinutes: 120,
             priceBaht: 5500,
           },
           {
             name: 'แผนพร้อมรายงานครอบครัว',
-            description: 'แผนหกเดือนเป็นรายงานสำหรับคุยกับครอบครัว พร้อมนัดติดตามสองครั้ง',
-            en: { name: 'Plan With Family Report', description: 'The six-month plan as a report to share with family, plus two follow-ups.' },
+            description:
+              'แผนหกเดือนเป็นรายงานสำหรับคุยกับครอบครัว พร้อมนัดติดตามสองครั้ง',
+            en: {
+              name: 'Plan With Family Report',
+              description:
+                'The six-month plan as a report to share with family, plus two follow-ups.',
+            },
             durationMinutes: 180,
             priceBaht: 8000,
           },
@@ -2949,14 +3694,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คุยเรื่องความเสี่ยง',
             description: 'ความเสี่ยงหลักและสัดส่วนสูงสุดที่เหมาะกับคุณ',
-            en: { name: 'Risk Conversation', description: 'The main risks and the maximum share that suits you.' },
+            en: {
+              name: 'Risk Conversation',
+              description:
+                'The main risks and the maximum share that suits you.',
+            },
             durationMinutes: 45,
             priceBaht: 1200,
           },
           {
             name: 'ตั้งกติกาการถือ',
             description: 'ตั้งสัดส่วน กติกาตัดขาดทุน และการเก็บรักษาให้ปลอดภัย',
-            en: { name: 'Set Your Holding Rules', description: 'Allocation, stop-loss rules, and safe storage.' },
+            en: {
+              name: 'Set Your Holding Rules',
+              description: 'Allocation, stop-loss rules, and safe storage.',
+            },
             durationMinutes: 75,
             priceBaht: 2000,
           },
@@ -2969,7 +3721,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Property Income Through REITs Instead of Buying a Unit',
           description:
-            "Want property income without becoming a landlord? We look at real estate investment trusts: the kinds of buildings they hold, remaining leasehold terms, debt levels, and the risks when interest rates rise, compared with buying a condo to rent out.",
+            'Want property income without becoming a landlord? We look at real estate investment trusts: the kinds of buildings they hold, remaining leasehold terms, debt levels, and the risks when interest rates rise, compared with buying a condo to rent out.',
         },
         category: 'การลงทุนและการออม',
         priceBaht: 1000,
@@ -2979,14 +3731,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'พื้นฐานกองรีท',
             description: 'โครงสร้าง รายได้ และความเสี่ยงหลักของกองรีท',
-            en: { name: 'REIT Basics', description: 'How REITs are structured, where income comes from, and the main risks.' },
+            en: {
+              name: 'REIT Basics',
+              description:
+                'How REITs are structured, where income comes from, and the main risks.',
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'เทียบกับซื้อห้องเช่า',
-            description: 'เทียบผลตอบแทนและภาระของกองรีทกับคอนโดปล่อยเช่าด้วยตัวเลขของคุณ',
-            en: { name: 'Versus Buying a Rental', description: 'REIT returns and effort versus a rental condo, using your numbers.' },
+            description:
+              'เทียบผลตอบแทนและภาระของกองรีทกับคอนโดปล่อยเช่าด้วยตัวเลขของคุณ',
+            en: {
+              name: 'Versus Buying a Rental',
+              description:
+                'REIT returns and effort versus a rental condo, using your numbers.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -3015,7 +3776,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Health Insurance for Retired Parents',
           description:
-            "Parents over 60 with no civil-servant benefits, and private hospital bills rising every year? We look at which plans they can still apply for at their age, how pre-existing conditions are treated, how premiums climb with age, and the alternatives if premiums are more than the family can help pay.",
+            'Parents over 60 with no civil-servant benefits, and private hospital bills rising every year? We look at which plans they can still apply for at their age, how pre-existing conditions are treated, how premiums climb with age, and the alternatives if premiums are more than the family can help pay.',
         },
         category: 'ประกันและวางแผนเกษียณ',
         priceBaht: 600,
@@ -3026,14 +3787,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ดูทางเลือก',
             description: 'แผนที่พ่อแม่ยังสมัครได้และเงื่อนไขสำคัญ',
-            en: { name: 'See the Options', description: 'Plans your parents can still join and the key conditions.' },
+            en: {
+              name: 'See the Options',
+              description:
+                'Plans your parents can still join and the key conditions.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'เทียบแผนพร้อมประมาณเบี้ยระยะยาว',
-            description: 'เทียบแผนจากหลายบริษัทพร้อมเบี้ยที่ต้องจ่ายสิบปีข้างหน้า',
-            en: { name: 'Compare Plans and Long-Term Premiums', description: 'Plans from several insurers compared, with premiums over the next ten years.' },
+            description:
+              'เทียบแผนจากหลายบริษัทพร้อมเบี้ยที่ต้องจ่ายสิบปีข้างหน้า',
+            en: {
+              name: 'Compare Plans and Long-Term Premiums',
+              description:
+                'Plans from several insurers compared, with premiums over the next ten years.',
+            },
             durationMinutes: 75,
             priceBaht: 1300,
           },
@@ -3044,7 +3814,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         description:
           'ซื้อประกันมาหลายฉบับจากคนรู้จักหลายคน จ่ายเบี้ยรวมปีละหลายหมื่นแต่ไม่แน่ใจว่าคุ้มครองอะไร ส่งกรมธรรม์มาก่อนนัด แล้วมาทำตารางสรุปความคุ้มครองทั้งหมด ดูส่วนที่ซ้ำ ส่วนที่ยังขาด และฉบับที่ควรเก็บไว้หรือพิจารณาใหม่',
         en: {
-          name: "Check Your Existing Policies for Overlaps and Gaps",
+          name: 'Check Your Existing Policies for Overlaps and Gaps',
           description:
             "Bought several policies from several acquaintances, paying tens of thousands a year without being sure what's covered? Send your policies ahead of time and we'll build a table of all your cover, spot overlaps and gaps, and decide which policies to keep or reconsider.",
         },
@@ -3056,14 +3826,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจไม่เกินสามฉบับ',
             description: 'สรุปความคุ้มครองของกรมธรรม์ไม่เกินสามฉบับ',
-            en: { name: 'Up to Three Policies', description: 'A cover summary for up to three policies.' },
+            en: {
+              name: 'Up to Three Policies',
+              description: 'A cover summary for up to three policies.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'ตรวจทั้งครอบครัว',
             description: 'ตรวจกรมธรรม์ของทุกคนในบ้านพร้อมตารางสรุปและข้อแนะนำ',
-            en: { name: 'Whole Family', description: "Every family member's policies, with a summary table and recommendations." },
+            en: {
+              name: 'Whole Family',
+              description:
+                "Every family member's policies, with a summary table and recommendations.",
+            },
             durationMinutes: 120,
             priceBaht: 2400,
           },
@@ -3085,15 +3862,25 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'ประเมินช่องว่าง',
-            description: 'เทียบสวัสดิการที่มีกับค่ารักษาจริงในโรงพยาบาลที่คุณใช้',
-            en: { name: 'Gap Check', description: 'Your benefits compared with real costs at the hospital you use.' },
+            description:
+              'เทียบสวัสดิการที่มีกับค่ารักษาจริงในโรงพยาบาลที่คุณใช้',
+            en: {
+              name: 'Gap Check',
+              description:
+                'Your benefits compared with real costs at the hospital you use.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'เทียบแผนที่เหมาะ',
-            description: 'เทียบแผนประกันสุขภาพสามแผนที่เหมาะกับงบและความต้องการ',
-            en: { name: 'Compare Suitable Plans', description: 'Three health plans compared against your budget and needs.' },
+            description:
+              'เทียบแผนประกันสุขภาพสามแผนที่เหมาะกับงบและความต้องการ',
+            en: {
+              name: 'Compare Suitable Plans',
+              description:
+                'Three health plans compared against your budget and needs.',
+            },
             durationMinutes: 60,
             priceBaht: 950,
           },
@@ -3117,14 +3904,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'อ่านหนังสือแจ้ง',
             description: 'อธิบายเงื่อนไขร่วมจ่ายในหนังสือแจ้งของคุณ',
-            en: { name: 'Read the Notice', description: 'The co-payment terms in your notice, explained.' },
+            en: {
+              name: 'Read the Notice',
+              description: 'The co-payment terms in your notice, explained.',
+            },
             durationMinutes: 30,
             priceBaht: 700,
           },
           {
             name: 'อ่านพร้อมเทียบทางเลือก',
-            description: 'อ่านเงื่อนไขและเทียบการเก็บแผนเดิมกับการเพิ่มแผนเสริม',
-            en: { name: 'Read and Compare Options', description: 'Understand the terms and compare keeping the plan with adding cover.' },
+            description:
+              'อ่านเงื่อนไขและเทียบการเก็บแผนเดิมกับการเพิ่มแผนเสริม',
+            en: {
+              name: 'Read and Compare Options',
+              description:
+                'Understand the terms and compare keeping the plan with adding cover.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
@@ -3137,7 +3932,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Critical Illness Cover for Working Adults',
           description:
-            "Health insurance pays the hospital, but a serious illness also means lost income and costs while you recover. We calculate a critical illness sum insured that fits your income and commitments, explain early-stage versus severe-stage definitions, and compare single-payout with multi-payout plans.",
+            'Health insurance pays the hospital, but a serious illness also means lost income and costs while you recover. We calculate a critical illness sum insured that fits your income and commitments, explain early-stage versus severe-stage definitions, and compare single-payout with multi-payout plans.',
         },
         category: 'ประกันและวางแผนเกษียณ',
         priceBaht: 500,
@@ -3147,14 +3942,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณทุนประกัน',
             description: 'ทุนประกันที่เหมาะกับรายได้และภาระของคุณ',
-            en: { name: 'Size the Cover', description: 'The sum insured that fits your income and commitments.' },
+            en: {
+              name: 'Size the Cover',
+              description:
+                'The sum insured that fits your income and commitments.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'เทียบแผนโรคร้ายแรง',
             description: 'เทียบนิยามความคุ้มครองและเบี้ยของแผนจากหลายบริษัท',
-            en: { name: 'Compare Critical Illness Plans', description: 'Cover definitions and premiums compared across insurers.' },
+            en: {
+              name: 'Compare Critical Illness Plans',
+              description:
+                'Cover definitions and premiums compared across insurers.',
+            },
             durationMinutes: 60,
             priceBaht: 950,
           },
@@ -3167,7 +3970,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Work Out How Much You Need to Retire',
           description:
-            "The retirement figures in ads rarely fit your life. We calculate from your expected spending after retirement, the age you want to stop work, inflation, and what you already have in provident funds, social security, and savings, then see the shortfall and how much more to save each month.",
+            'The retirement figures in ads rarely fit your life. We calculate from your expected spending after retirement, the age you want to stop work, inflation, and what you already have in provident funds, social security, and savings, then see the shortfall and how much more to save each month.',
         },
         category: 'ประกันและวางแผนเกษียณ',
         priceBaht: 1200,
@@ -3178,14 +3981,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณตัวเลขเกษียณ',
             description: 'เงินที่ต้องมีและเงินที่ยังขาดจากตัวเลขของคุณ',
-            en: { name: 'Your Retirement Number', description: 'What you need and the gap, from your own figures.' },
+            en: {
+              name: 'Your Retirement Number',
+              description: 'What you need and the gap, from your own figures.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'แผนเกษียณเต็ม',
             description: 'ตัวเลขเกษียณพร้อมแผนออมและลงทุนรายปีจนถึงวันเกษียณ',
-            en: { name: 'Full Retirement Plan', description: 'Your number plus a year-by-year saving and investing plan to retirement.' },
+            en: {
+              name: 'Full Retirement Plan',
+              description:
+                'Your number plus a year-by-year saving and investing plan to retirement.',
+            },
             durationMinutes: 120,
             priceBaht: 2800,
           },
@@ -3222,14 +4032,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจแผนปัจจุบัน',
             description: 'ดูว่าแผนที่อยู่ตอนนี้เหมาะกับคุณหรือไม่',
-            en: { name: 'Check Your Current Plan', description: 'Whether the plan you are in now suits you.' },
+            en: {
+              name: 'Check Your Current Plan',
+              description: 'Whether the plan you are in now suits you.',
+            },
             durationMinutes: 30,
             priceBaht: 700,
           },
           {
             name: 'เลือกแผนและสัดส่วนเงินสะสม',
             description: 'เลือกแผนลงทุนและอัตราเงินสะสมที่เหมาะกับเป้าเกษียณ',
-            en: { name: 'Pick a Plan and Contribution Rate', description: 'Choose the investment plan and contribution rate for your retirement goal.' },
+            en: {
+              name: 'Pick a Plan and Contribution Rate',
+              description:
+                'Choose the investment plan and contribution rate for your retirement goal.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
@@ -3252,14 +4069,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบทางเลือก',
             description: 'เทียบทางเลือกทั้งหมดพร้อมภาษีของแต่ละทาง',
-            en: { name: 'Compare the Options', description: 'Every option compared, with the tax on each.' },
+            en: {
+              name: 'Compare the Options',
+              description: 'Every option compared, with the tax on each.',
+            },
             durationMinutes: 30,
             priceBaht: 800,
           },
           {
             name: 'เทียบพร้อมแผนเงินก้อน',
             description: 'เลือกทางที่เหมาะและวางแผนใช้หรือลงทุนเงินก้อนนี้ต่อ',
-            en: { name: 'Compare and Plan the Lump Sum', description: 'Choose the best route and plan how to use or invest the money.' },
+            en: {
+              name: 'Compare and Plan the Lump Sum',
+              description:
+                'Choose the best route and plan how to use or invest the money.',
+            },
             durationMinutes: 60,
             priceBaht: 1400,
           },
@@ -3282,14 +4106,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เช็กสิทธิ์',
             description: 'สรุปสิทธิ์และประมาณยอดที่จะได้รับ',
-            en: { name: 'Check Your Entitlement', description: 'Your entitlement and a rough estimate of the payout.' },
+            en: {
+              name: 'Check Your Entitlement',
+              description:
+                'Your entitlement and a rough estimate of the payout.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'วางแผนก่อนอายุ 55',
-            description: 'วางแผนการส่งเงินสมทบที่เหลือเพื่อให้ได้สิทธิ์ที่ดีที่สุด',
-            en: { name: 'Plan Before 55', description: 'Plan your remaining contributions to get the best entitlement.' },
+            description:
+              'วางแผนการส่งเงินสมทบที่เหลือเพื่อให้ได้สิทธิ์ที่ดีที่สุด',
+            en: {
+              name: 'Plan Before 55',
+              description:
+                'Plan your remaining contributions to get the best entitlement.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -3302,7 +4135,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Annuity Insurance Versus RMF for Retirement',
           description:
-            "Both can cut your tax and build retirement income, but they work very differently. We compare guaranteed yearly payouts with market-linked returns, liquidity, what happens if you stop part-way, and the mix that fits your retirement plan.",
+            'Both can cut your tax and build retirement income, but they work very differently. We compare guaranteed yearly payouts with market-linked returns, liquidity, what happens if you stop part-way, and the mix that fits your retirement plan.',
         },
         category: 'ประกันและวางแผนเกษียณ',
         priceBaht: 900,
@@ -3312,14 +4145,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'เทียบหลักการ',
             description: 'ความต่างของสองทางเลือกและเงื่อนไขสำคัญ',
-            en: { name: 'Compare the Principles', description: 'How the two differ and the key conditions.' },
+            en: {
+              name: 'Compare the Principles',
+              description: 'How the two differ and the key conditions.',
+            },
             durationMinutes: 45,
             priceBaht: 900,
           },
           {
             name: 'เทียบด้วยตัวเลขของคุณ',
             description: 'คำนวณเงินที่ได้จริงของทั้งสองแบบตามอายุและงบของคุณ',
-            en: { name: 'Compare With Your Numbers', description: 'Real payouts from both, based on your age and budget.' },
+            en: {
+              name: 'Compare With Your Numbers',
+              description:
+                'Real payouts from both, based on your age and budget.',
+            },
             durationMinutes: 90,
             priceBaht: 1700,
           },
@@ -3343,14 +4183,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณเทียบ',
             description: 'คำนวณบำเหน็จกับบำนาญจากตัวเลขจริงของคุณ',
-            en: { name: 'Side-by-Side Figures', description: 'Gratuity and pension worked out from your actual figures.' },
+            en: {
+              name: 'Side-by-Side Figures',
+              description:
+                'Gratuity and pension worked out from your actual figures.',
+            },
             durationMinutes: 45,
             priceBaht: 1000,
           },
           {
             name: 'เทียบพร้อมแผนใช้เงิน',
             description: 'เทียบสองทางและวางแผนใช้เงินหลังเกษียณของทางที่เลือก',
-            en: { name: 'Compare and Plan Spending', description: 'Compare both and plan your post-retirement spending for the one you choose.' },
+            en: {
+              name: 'Compare and Plan Spending',
+              description:
+                'Compare both and plan your post-retirement spending for the one you choose.',
+            },
             durationMinutes: 90,
             priceBaht: 1900,
           },
@@ -3363,7 +4211,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Choose the Right GPF Investment Plan for Your Age',
           description:
-            "Most Government Pension Fund members have never changed their plan. We look at the equity and bond mix in your current plan, how the age-based plan works, and, with only a few years of service left, when and how much to reduce risk.",
+            'Most Government Pension Fund members have never changed their plan. We look at the equity and bond mix in your current plan, how the age-based plan works, and, with only a few years of service left, when and how much to reduce risk.',
         },
         category: 'ประกันและวางแผนเกษียณ',
         priceBaht: 600,
@@ -3374,14 +4222,22 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจแผนปัจจุบัน',
             description: 'ดูความเสี่ยงของแผนที่อยู่เทียบกับอายุราชการที่เหลือ',
-            en: { name: 'Check Your Current Plan', description: 'The risk in your plan compared with your remaining years of service.' },
+            en: {
+              name: 'Check Your Current Plan',
+              description:
+                'The risk in your plan compared with your remaining years of service.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'วางแผนสับเปลี่ยน',
             description: 'เลือกแผนและกำหนดช่วงเวลาลดความเสี่ยงก่อนเกษียณ',
-            en: { name: 'Plan Your Switches', description: 'Pick a plan and set when to reduce risk before retirement.' },
+            en: {
+              name: 'Plan Your Switches',
+              description:
+                'Pick a plan and set when to reduce risk before retirement.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -3404,14 +4260,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'งบรายปี',
             description: 'งบประมาณรายปีสำหรับสิบปีแรก',
-            en: { name: 'Yearly Budget', description: 'A year-by-year budget for the first ten years.' },
+            en: {
+              name: 'Yearly Budget',
+              description: 'A year-by-year budget for the first ten years.',
+            },
             durationMinutes: 60,
             priceBaht: 1000,
           },
           {
             name: 'งบพร้อมแผนแบ่งเงิน',
             description: 'งบรายปีพร้อมการแบ่งเงินเป็นก้อนใช้จ่ายและก้อนลงทุน',
-            en: { name: 'Budget and Money Buckets', description: 'The yearly budget plus splitting money into spending and invested pots.' },
+            en: {
+              name: 'Budget and Money Buckets',
+              description:
+                'The yearly budget plus splitting money into spending and invested pots.',
+            },
             durationMinutes: 120,
             priceBaht: 2000,
           },
@@ -3434,14 +4297,21 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'คำนวณสิทธิ์',
             description: 'สิทธิ์และเงินที่ได้หากลาออกตอนนี้',
-            en: { name: 'Calculate Entitlements', description: 'What you would receive if you left now.' },
+            en: {
+              name: 'Calculate Entitlements',
+              description: 'What you would receive if you left now.',
+            },
             durationMinutes: 60,
             priceBaht: 1200,
           },
           {
             name: 'คำนวณพร้อมแผนช่วงรอยต่อ',
             description: 'คำนวณสิทธิ์และวางแผนเงินช่วงรอยต่อจนถึงวัยเกษียณ',
-            en: { name: 'Entitlements and Bridge Plan', description: 'Entitlements plus a plan to bridge the gap to retirement age.' },
+            en: {
+              name: 'Entitlements and Bridge Plan',
+              description:
+                'Entitlements plus a plan to bridge the gap to retirement age.',
+            },
             durationMinutes: 120,
             priceBaht: 2300,
           },
@@ -3458,7 +4328,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
     bio: 'ทำงานฝ่ายสินไหมของบริษัทประกันวินาศภัย 5 ปี เห็นเคลมรถ เคลมบ้าน และเคลมร้านค้ามาหลายพันเรื่อง ปัจจุบันเป็นนายหน้าประกันวินาศภัยที่มีใบอนุญาตจาก คปภ. ช่วยเลือกความคุ้มครองที่ใช้ได้จริงตอนเกิดเหตุ และช่วยไล่เคลมที่ติดขัดให้เดินหน้าต่อได้',
     en: {
       headline: 'Car and Property Insurance Advisor',
-      bio: "Spent five years in the claims department of a non-life insurer, handling thousands of car, home, and shop claims. Now an OIC-licensed non-life insurance broker who helps people choose cover that actually pays out when something happens, and helps move stalled claims forward.",
+      bio: 'Spent five years in the claims department of a non-life insurer, handling thousands of car, home, and shop claims. Now an OIC-licensed non-life insurance broker who helps people choose cover that actually pays out when something happens, and helps move stalled claims forward.',
     },
     services: [
       {
@@ -3478,15 +4348,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         packages: [
           {
             name: 'เทียบชั้นประกัน',
-            description: 'เทียบความคุ้มครองและเบี้ยของประกันแต่ละชั้นสำหรับรถคุณ',
-            en: { name: 'Compare Classes', description: 'Cover and premiums for each class for your car.' },
+            description:
+              'เทียบความคุ้มครองและเบี้ยของประกันแต่ละชั้นสำหรับรถคุณ',
+            en: {
+              name: 'Compare Classes',
+              description: 'Cover and premiums for each class for your car.',
+            },
             durationMinutes: 30,
             priceBaht: 400,
           },
           {
             name: 'เทียบหลายบริษัท',
             description: 'เทียบเงื่อนไขและเบี้ยจากหลายบริษัทในชั้นที่เลือก',
-            en: { name: 'Compare Insurers', description: 'Terms and premiums from several insurers in the class you pick.' },
+            en: {
+              name: 'Compare Insurers',
+              description:
+                'Terms and premiums from several insurers in the class you pick.',
+            },
             durationMinutes: 60,
             priceBaht: 750,
           },
@@ -3509,14 +4387,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'หาจุดที่ติด',
             description: 'ไล่เอกสารและสถานะเคลมเพื่อหาจุดที่ติดอยู่',
-            en: { name: 'Find the Blockage', description: 'Check the documents and claim status to find what is holding it up.' },
+            en: {
+              name: 'Find the Blockage',
+              description:
+                'Check the documents and claim status to find what is holding it up.',
+            },
             durationMinutes: 30,
             priceBaht: 600,
           },
           {
             name: 'แผนติดตามเคลม',
-            description: 'ร่างข้อความติดตามเคลมและเตรียมเอกสารร้องเรียนหากจำเป็น',
-            en: { name: 'Claim Follow-Up Plan', description: 'Draft follow-up messages and prepare a complaint file if needed.' },
+            description:
+              'ร่างข้อความติดตามเคลมและเตรียมเอกสารร้องเรียนหากจำเป็น',
+            en: {
+              name: 'Claim Follow-Up Plan',
+              description:
+                'Draft follow-up messages and prepare a complaint file if needed.',
+            },
             durationMinutes: 60,
             priceBaht: 1100,
           },
@@ -3529,7 +4416,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Fire and Flood Insurance for Your Home',
           description:
-            "The fire policy your bank required with the mortgage often covers only the building. We check whether yours covers your belongings, floods, storms, and burglary, whether the sum insured matches real rebuilding costs, and what to add if your home is in a flood-prone area.",
+            'The fire policy your bank required with the mortgage often covers only the building. We check whether yours covers your belongings, floods, storms, and burglary, whether the sum insured matches real rebuilding costs, and what to add if your home is in a flood-prone area.',
         },
         category: 'ประกันและวางแผนเกษียณ',
         priceBaht: 500,
@@ -3539,14 +4426,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ตรวจกรมธรรม์บ้าน',
             description: 'ตรวจว่ากรมธรรม์ปัจจุบันคุ้มครองอะไรและขาดอะไร',
-            en: { name: 'Check Your Home Policy', description: 'What your current policy covers and what it misses.' },
+            en: {
+              name: 'Check Your Home Policy',
+              description:
+                'What your current policy covers and what it misses.',
+            },
             durationMinutes: 30,
             priceBaht: 500,
           },
           {
             name: 'ตรวจพร้อมเทียบแผนใหม่',
-            description: 'ตรวจกรมธรรม์เดิมและเทียบแผนที่คุ้มครองภัยธรรมชาติเพิ่ม',
-            en: { name: 'Check and Compare New Plans', description: 'Review your policy and compare plans with natural disaster cover.' },
+            description:
+              'ตรวจกรมธรรม์เดิมและเทียบแผนที่คุ้มครองภัยธรรมชาติเพิ่ม',
+            en: {
+              name: 'Check and Compare New Plans',
+              description:
+                'Review your policy and compare plans with natural disaster cover.',
+            },
             durationMinutes: 60,
             priceBaht: 900,
           },
@@ -3559,7 +4455,7 @@ export const PART_A: readonly CatalogueAdvisor[] = [
         en: {
           name: 'Insurance for Small Shops and Offices',
           description:
-            "Opened a café, shop, or small office and never insured anything? We look at the risks your business really faces, such as fire, stock, cash, liability if a customer is hurt, and business interruption, then choose a plan with premiums that suit the size of your business.",
+            'Opened a café, shop, or small office and never insured anything? We look at the risks your business really faces, such as fire, stock, cash, liability if a customer is hurt, and business interruption, then choose a plan with premiums that suit the size of your business.',
         },
         category: 'ประกันและวางแผนเกษียณ',
         priceBaht: 700,
@@ -3569,14 +4465,23 @@ export const PART_A: readonly CatalogueAdvisor[] = [
           {
             name: 'ประเมินความเสี่ยง',
             description: 'ความเสี่ยงหลักของธุรกิจคุณและความคุ้มครองที่ควรมี',
-            en: { name: 'Risk Review', description: 'Your main business risks and the cover you should have.' },
+            en: {
+              name: 'Risk Review',
+              description:
+                'Your main business risks and the cover you should have.',
+            },
             durationMinutes: 45,
             priceBaht: 700,
           },
           {
             name: 'ประเมินพร้อมเทียบแผน',
-            description: 'ประเมินความเสี่ยงและเทียบแผนประกันธุรกิจจากหลายบริษัท',
-            en: { name: 'Review and Compare Plans', description: 'The risk review plus business insurance plans from several insurers.' },
+            description:
+              'ประเมินความเสี่ยงและเทียบแผนประกันธุรกิจจากหลายบริษัท',
+            en: {
+              name: 'Review and Compare Plans',
+              description:
+                'The risk review plus business insurance plans from several insurers.',
+            },
             durationMinutes: 90,
             priceBaht: 1400,
           },
