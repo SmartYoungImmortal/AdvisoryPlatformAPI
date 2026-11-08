@@ -37,6 +37,7 @@ function queueRow(
     submittedAt: new Date('2026-01-01T00:00:00Z'),
     verifiedAt: null,
     verifiedByAdminId: null,
+    level: 1,
     ...overrides,
   };
 }
@@ -73,6 +74,7 @@ describe('IdentityVerificationService', () => {
       | 'findOwn'
       | 'decide'
       | 'approve'
+      | 'setLevel'
       | 'applicationExists'
       | 'submit'
     >
@@ -94,6 +96,7 @@ describe('IdentityVerificationService', () => {
       findOwn: jest.fn(),
       decide: jest.fn(),
       approve: jest.fn(),
+      setLevel: jest.fn(),
       applicationExists: jest.fn().mockResolvedValue(true),
       submit: jest.fn(),
     };
@@ -292,6 +295,7 @@ describe('IdentityVerificationService', () => {
         'submittedAt',
         'verifiedAt',
         'verifiedByAdminId',
+        'level',
       ]);
     });
 
@@ -343,6 +347,8 @@ describe('IdentityVerificationService', () => {
           verifiedByAdminId: admin.id,
           rejectionReason: null,
         }),
+        // No level given: the advisor keeps the one they have.
+        undefined,
       );
       expect(repository.approve.mock.calls[0][2].verifiedAt).toBeInstanceOf(
         Date,
@@ -359,6 +365,18 @@ describe('IdentityVerificationService', () => {
       });
       expect(result.verificationStatus).toBe('VERIFIED');
       expect(result.verifiedByAdminId).toBe(admin.id);
+    });
+
+    it('saves the level the admin picked with the approval', async () => {
+      repository.approve.mockResolvedValue(true);
+      repository.findOneForAdmin.mockResolvedValue(
+        queueRow({ verificationStatus: 'VERIFIED', level: 3 }),
+      );
+
+      const result = await service.approve(admin, advisor.id, { level: 3 });
+
+      expect(repository.approve.mock.calls[0][3]).toBe(3);
+      expect(result.level).toBe(3);
     });
 
     it('conflicts on a record that has already been decided', async () => {
@@ -482,6 +500,38 @@ describe('IdentityVerificationService', () => {
       repository.findOwn.mockResolvedValue(undefined);
 
       await expect(service.getOwn(advisor)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('setLevel', () => {
+    it("changes a verified advisor's level", async () => {
+      repository.setLevel.mockResolvedValue(true);
+      repository.findOneForAdmin.mockResolvedValue(
+        queueRow({ verificationStatus: 'VERIFIED', level: 2 }),
+      );
+
+      const result = await service.setLevel(advisor.id, { level: 2 });
+
+      expect(repository.setLevel).toHaveBeenCalledWith(advisor.id, 2);
+      expect(result.level).toBe(2);
+    });
+
+    it('is a 404 for an advisor with no identity record', async () => {
+      repository.setLevel.mockResolvedValue(false);
+      repository.findOneForAdmin.mockResolvedValue(undefined);
+
+      await expect(service.setLevel(advisor.id, { level: 2 })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('is a 409 before the identity is verified', async () => {
+      repository.setLevel.mockResolvedValue(false);
+      repository.findOneForAdmin.mockResolvedValue(queueRow());
+
+      await expect(service.setLevel(advisor.id, { level: 2 })).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 });

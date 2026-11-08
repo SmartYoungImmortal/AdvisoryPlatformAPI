@@ -1,0 +1,2 @@
+ALTER TABLE "advisor_profiles" ADD COLUMN "level" smallint DEFAULT 1 NOT NULL;--> statement-breakpoint
+ALTER TABLE "advisor_profiles" ADD CONSTRAINT "advisor_profiles_level_range" CHECK ("level" between 1 and 3);

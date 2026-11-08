@@ -88,6 +88,8 @@ export const IDENTITY_VERIFICATION_MESSAGES = {
   approved: 'Identity verification approved',
   rejected: 'Identity verification rejected',
   alreadyDecided: 'Identity verification has already been decided',
+  levelUpdated: 'Advisor level updated',
+  notVerified: 'Only a verified advisor has a level to change',
   notSubmitted: 'Identity verification has not been submitted yet',
   submitted: 'Identity submitted for review',
   applicationRequired:

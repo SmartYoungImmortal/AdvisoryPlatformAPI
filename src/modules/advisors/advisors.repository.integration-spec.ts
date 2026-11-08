@@ -185,8 +185,9 @@ describe('AdvisorsRepository (integration)', () => {
         bio: 'ทำภาษีมา 9 ปี',
       }),
     );
+    // The level a client sees before booking; a profile starts at 1.
     await expect(repository.findDiscoverableById(advisorId)).resolves.toEqual(
-      expect.objectContaining({ headline: 'ที่ปรึกษาภาษี' }),
+      expect.objectContaining({ headline: 'ที่ปรึกษาภาษี', level: 1 }),
     );
     await expect(
       runWithLocale('en', () => repository.countDiscoverable(search)),

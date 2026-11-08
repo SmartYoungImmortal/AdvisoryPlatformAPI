@@ -51,6 +51,7 @@ export interface PublicAdvisorRow {
   bio: string | null;
   avatarKey: string | null;
   image: string | null;
+  level: number;
   publishedServiceCount: number;
 }
 
@@ -296,6 +297,7 @@ export class AdvisorsRepository {
         bio: advisorBio(),
         avatarKey: userSchema.avatarKey,
         image: userSchema.image,
+        level: advisorProfiles.level,
         publishedServiceCount: sql<number>`(
           select count(*)::int from ${services}
           where ${services.advisorId} = ${advisorProfiles.userId}
