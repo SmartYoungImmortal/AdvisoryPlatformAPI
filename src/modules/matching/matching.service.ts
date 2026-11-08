@@ -10,9 +10,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ENV_KEYS } from '@/config/env.constants';
 import { AdvisorServicesService } from '@/modules/advisor-services/advisor-services.service';
-import type { PublicServiceQueryDto } from '@/modules/advisor-services/dtos/public-service-query.dto';
+import { PublicServiceQueryDto } from '@/modules/advisor-services/dtos/public-service-query.dto';
 import { ServiceCategoriesService } from '@/modules/service-categories/service-categories.service';
-import type { ServiceCategoryQueryDto } from '@/modules/service-categories/dtos/service-category-query.dto';
+import { ServiceCategoryQueryDto } from '@/modules/service-categories/dtos/service-category-query.dto';
 import {
   CHAT_SYSTEM_PROMPT,
   type ChatTurn,
@@ -268,19 +268,24 @@ export class MatchingService {
     readonly categoryId?: string;
     readonly maxPriceSatang?: number;
   }): Promise<ListedService[]> {
+    // Real DTO instances, not plain objects: the repository pages by the
+    // DTO's `offset` getter, which a plain object does not have, so every
+    // page came back as the first hundred and the rest of the catalogue was
+    // never seen.
     const pageOf = (page: number) =>
-      this.services.findPublished({
-        page,
-        limit: CATALOGUE_LIMIT,
-        categoryId: filter.categoryId,
-        maxPriceSatang: filter.maxPriceSatang,
-      } as PublicServiceQueryDto);
+      this.services.findPublished(
+        Object.assign(new PublicServiceQueryDto(), {
+          page,
+          limit: CATALOGUE_LIMIT,
+          categoryId: filter.categoryId,
+          maxPriceSatang: filter.maxPriceSatang,
+        }),
+      );
     const [first, categories] = await Promise.all([
       pageOf(1),
-      this.categories.findMany({
-        page: 1,
-        limit: 100,
-      } as ServiceCategoryQueryDto),
+      this.categories.findMany(
+        Object.assign(new ServiceCategoryQueryDto(), { page: 1, limit: 100 }),
+      ),
     ]);
     const rest = await Promise.all(
       Array.from(
@@ -288,7 +293,11 @@ export class MatchingService {
         (_, index) => pageOf(index + 2),
       ),
     );
-    const listed = [first, ...rest].flatMap((page) => page.items);
+    // Each service once, should two pages ever overlap.
+    const seen = new Set<string>();
+    const listed = [first, ...rest]
+      .flatMap((page) => page.items)
+      .filter((item) => !seen.has(item.id) && Boolean(seen.add(item.id)));
     const names = new Map(
       categories.items.map((category) => [category.id, category.name]),
     );

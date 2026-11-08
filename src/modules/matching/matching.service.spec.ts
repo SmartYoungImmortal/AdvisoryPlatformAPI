@@ -133,6 +133,28 @@ describe('MatchingService', () => {
     );
   });
 
+  it('reads every page of the catalogue at its own offset, each service once', async () => {
+    const { service, services } = makeService();
+    const [one, two] = published.items;
+    services.findPublished
+      .mockResolvedValueOnce({ ...published, items: [one], totalPages: 3 })
+      .mockResolvedValueOnce({ ...published, items: [two], totalPages: 3 })
+      .mockResolvedValueOnce({ ...published, items: [one], totalPages: 3 });
+    const result = await service.match(
+      { problem: 'ภาษี สัญญาจ้าง' },
+      '1.1.1.9',
+    );
+    const offsets = services.findPublished.mock.calls.map(
+      ([query]: [{ offset: number }]) => query.offset,
+    );
+    expect(offsets).toEqual([0, 100, 200]);
+    // The repeated service on page three is read once.
+    expect(result.matches.map((match) => match.serviceId)).toEqual(
+      expect.arrayContaining([one.id, two.id]),
+    );
+    expect(result.matches).toHaveLength(2);
+  });
+
   it('passes the chosen topic and budget to the catalogue read', async () => {
     const { service, services } = makeService();
     await service.match(
