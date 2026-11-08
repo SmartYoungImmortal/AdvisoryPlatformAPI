@@ -366,8 +366,21 @@ export class BookingsService {
    */
   private async notifyConfirmed(appointment: Appointment): Promise<void> {
     try {
-      const { th: content, en: contentEn } =
-        await this.sessionLabels(appointment);
+      const service = await this.repository.findPublishedService(
+        appointment.serviceId,
+      );
+      // The Service's name is its stored text in both languages: `findPublishedService` reads the
+      // row itself, not its translations. Only the date is written the way each language writes one.
+      const describe = (dateLocale: string) => {
+        const when = new Intl.DateTimeFormat(dateLocale, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+          timeZone: 'Asia/Bangkok',
+        }).format(appointment.startTime);
+        return service ? `${service.name} · ${when}` : when;
+      };
+      const content = describe('th-TH');
+      const contentEn = describe('en-GB');
       await Promise.all([
         this.notifications.notify({
           ownerId: appointment.adviseeId,

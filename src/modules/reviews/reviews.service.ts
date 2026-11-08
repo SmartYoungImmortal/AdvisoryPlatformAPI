@@ -8,7 +8,6 @@ import {
   type OffsetPaginationDto,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
-import { previewText } from '@/common/utils/preview-text';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
@@ -21,6 +20,7 @@ import { ReplyToReviewDto } from './dtos/reply-to-review.dto';
 import { ReviewResponseDto } from './dtos/review-response.dto';
 import {
   REVIEW_MESSAGES,
+  REPLY_PREVIEW_LENGTH,
   REVIEW_RECEIVED_NOTIFICATION,
   REVIEW_REPLIED_TITLES,
 } from './reviews.constants';
@@ -153,7 +153,10 @@ export class ReviewsService {
     appointmentId: string,
     reply: string,
   ): Promise<void> {
-    const content = previewText(reply);
+    const content =
+      reply.length > REPLY_PREVIEW_LENGTH
+        ? `${reply.slice(0, REPLY_PREVIEW_LENGTH)}…`
+        : reply;
     try {
       await this.notifications.notify({
         ownerId: adviseeId,

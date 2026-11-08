@@ -15,11 +15,14 @@ export const REVIEW_RECEIVED_NOTIFICATION = {
   },
 } as const;
 
-/** The content is the reply itself, as the Advisor wrote it, in either language. */
+/** The content is the start of the reply, as the Advisor wrote it, in either language. */
 export const REVIEW_REPLIED_TITLES = {
   th: 'ที่ปรึกษาตอบกลับรีวิวของคุณ',
   en: 'The advisor replied to your review',
 } as const;
+
+/** How much of a long reply the notification quotes, the same length chat previews use. */
+export const REPLY_PREVIEW_LENGTH = 140;
 
 export const REVIEW_MESSAGES = {
   ...crudMessages('Review'),

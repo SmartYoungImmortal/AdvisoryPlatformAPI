@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { previewText } from '@/common/utils/preview-text';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { ChatRepository } from './chat.repository';
 import type { ChatMessageResponseDto } from './dtos/chat-message-response.dto';
 
+const PREVIEW_LENGTH = 140;
 /** Who the title names when the sender has no name to show, in each language. */
 const FALLBACK_SENDER = { th: 'ผู้ใช้', en: 'a user' } as const;
 
@@ -31,7 +31,10 @@ export class ChatMessageNotifier {
           message.chatRoomId,
           message.senderUserId,
         );
-      const preview = previewText(message.message);
+      const preview =
+        message.message.length > PREVIEW_LENGTH
+          ? `${message.message.slice(0, PREVIEW_LENGTH)}…`
+          : message.message;
 
       await Promise.all(
         recipientUserIds
