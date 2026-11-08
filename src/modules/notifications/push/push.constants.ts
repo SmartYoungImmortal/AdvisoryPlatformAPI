@@ -35,6 +35,7 @@ const PUSH_URLS: Record<NotificationType, string> = {
   SCREENING_EXPIRED: '/bookings',
   REVIEW_REPLIED: '/bookings',
   REPORT_RESOLVED: '/notifications',
+  PAYMENT_FAILED: '/transactions',
 };
 
 export function pushUrlFor(type: NotificationType): string {

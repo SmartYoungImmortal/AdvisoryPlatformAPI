@@ -35,6 +35,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'SCREENING_EXPIRED',
   'REVIEW_REPLIED',
   'REPORT_RESOLVED',
+  'PAYMENT_FAILED',
 ]);
 
 /**
