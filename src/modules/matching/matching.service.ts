@@ -32,8 +32,14 @@ import { MATCHING_MODEL_CLIENT } from './matching.model-client';
 
 /** The most services a match returns. */
 const MAX_MATCHES = 4;
-/** The whole published catalogue a match reads, at most one page of the public list. */
+/** A page of the public list, the most `findPublished` is asked for at once. */
 const CATALOGUE_LIMIT = 100;
+/**
+ * The pages a match reads, so the whole published catalogue (a thousand
+ * services) and not just its first hundred: a service past the first page
+ * could never be matched.
+ */
+const CATALOGUE_PAGES = 10;
 /** How long the same question answers from memory, so a refresh does not ask the model again. */
 const CACHE_MS = 10 * 60_000;
 const CACHE_ENTRIES = 500;
@@ -218,38 +224,58 @@ export class MatchingService {
     readonly categoryId?: string;
     readonly maxPriceSatang?: number;
   }): Promise<ListedService[]> {
-    const [page, categories] = await Promise.all([
+    const pageOf = (page: number) =>
       this.services.findPublished({
-        page: 1,
+        page,
         limit: CATALOGUE_LIMIT,
         categoryId: filter.categoryId,
         maxPriceSatang: filter.maxPriceSatang,
-      } as PublicServiceQueryDto),
+      } as PublicServiceQueryDto);
+    const [first, categories] = await Promise.all([
+      pageOf(1),
       this.categories.findMany({
         page: 1,
         limit: 100,
       } as ServiceCategoryQueryDto),
     ]);
+    const rest = await Promise.all(
+      Array.from(
+        { length: Math.min(first.totalPages, CATALOGUE_PAGES) - 1 },
+        (_, index) => pageOf(index + 2),
+      ),
+    );
+    const listed = [first, ...rest].flatMap((page) => page.items);
     const names = new Map(
       categories.items.map((category) => [category.id, category.name]),
     );
-    return page.items.map((service) => ({
-      id: service.id,
-      name: service.name,
-      description: service.description ?? '',
-      category: names.get(service.categoryId) ?? '',
-      priceBaht: service.priceSatang / 100,
-      minutes: service.durationMinutes,
-      categories: [service.categoryId, ...(service.extraCategoryIds ?? [])]
-        .map((id) => names.get(id))
-        .filter((name): name is string => Boolean(name)),
-      advisor: service.advisor?.name ?? '',
-      rating: service.advisor?.rating ?? null,
-      reviews: service.advisor?.reviewCount ?? 0,
-      trialMinutes: service.trialEnabled
-        ? (service.trialDurationMinutes ?? null)
-        : null,
-    }));
+    return listed.map((listing) => {
+      // The advisor's name and rating ride on the listing where the API
+      // attaches them; read as absent, not assumed, where it does not yet.
+      const service = listing as typeof listing & {
+        readonly advisor?: {
+          readonly name?: string;
+          readonly rating?: number | null;
+          readonly reviewCount?: number;
+        } | null;
+      };
+      return {
+        id: service.id,
+        name: service.name,
+        description: service.description ?? '',
+        category: names.get(service.categoryId) ?? '',
+        priceBaht: service.priceSatang / 100,
+        minutes: service.durationMinutes,
+        categories: [service.categoryId, ...(service.extraCategoryIds ?? [])]
+          .map((id) => names.get(id))
+          .filter((name): name is string => Boolean(name)),
+        advisor: service.advisor?.name ?? '',
+        rating: service.advisor?.rating ?? null,
+        reviews: service.advisor?.reviewCount ?? 0,
+        trialMinutes: service.trialEnabled
+          ? (service.trialDurationMinutes ?? null)
+          : null,
+      };
+    });
   }
 
   /**
