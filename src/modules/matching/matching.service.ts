@@ -1,15 +1,37 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import Anthropic from '@anthropic-ai/sdk';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ENV_KEYS } from '@/config/env.constants';
 import { AdvisorServicesService } from '@/modules/advisor-services/advisor-services.service';
 import type { PublicServiceQueryDto } from '@/modules/advisor-services/dtos/public-service-query.dto';
 import { ServiceCategoriesService } from '@/modules/service-categories/service-categories.service';
 import type { ServiceCategoryQueryDto } from '@/modules/service-categories/dtos/service-category-query.dto';
-import type { MatchingRequestDto, MatchingResponseDto } from './matching.dto';
+import {
+  CHAT_SYSTEM_PROMPT,
+  type ChatTurn,
+  chatAnswerFormat,
+  compactCatalogue,
+  readChatAnswer,
+  recentTurns,
+} from './matching.chat';
+import type {
+  MatchingChatRequestDto,
+  MatchingChatResponseDto,
+  MatchingRequestDto,
+  MatchingResponseDto,
+} from './matching.dto';
 import { matchedIn, piecesOf } from './matching.keywords';
+import { MATCHING_MODEL_CLIENT } from './matching.model-client';
 
 /** The most services a match returns. */
-const MAX_MATCHES = 8;
+const MAX_MATCHES = 4;
 /** The whole published catalogue a match reads, at most one page of the public list. */
 const CATALOGUE_LIMIT = 100;
 /** How long the same question answers from memory, so a refresh does not ask the model again. */
@@ -19,6 +41,10 @@ const CACHE_ENTRIES = 500;
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 10;
 const MODEL_TIMEOUT_MS = 20_000;
+/** Matching's default model, kept cheap; `MATCHING_MODEL` raises it. */
+const DEFAULT_MODEL = 'claude-haiku-5-5';
+/** Room for a short think at low effort and an answer of four one-line reasons. */
+const CHAT_MAX_TOKENS = 2000;
 
 export const MATCHING_MESSAGES = {
   tooMany: 'Too many matching requests. Try again in a minute',
@@ -34,10 +60,19 @@ type CatalogueEntry = {
   readonly minutes: number;
 };
 
+/** A published service with the rest of its card's public facts, which the chat also reads. */
+type ListedService = CatalogueEntry & {
+  readonly categories: readonly string[];
+  readonly advisor: string;
+  readonly rating: number | null;
+  readonly reviews: number;
+  readonly trialMinutes: number | null;
+};
+
 const SYSTEM_PROMPT = [
   'You match a person to consultation services on a Thai advisory marketplace.',
   'You receive their problem and the catalogue of services as JSON.',
-  'Choose up to 8 services that would genuinely help with this problem, best first.',
+  'Choose up to 4 services that would genuinely help with this problem, best first.',
   'Use only ids from the catalogue; never invent a service. If nothing fits, return no matches.',
   'Reply with JSON only, no prose and no code fence, in exactly this shape:',
   '{"understanding": "<one sentence restating what the person needs>",',
@@ -54,6 +89,10 @@ const SYSTEM_PROMPT = [
  * fails, the problem's words are matched against each service's words instead,
  * so the route always answers.
  *
+ * `POST /matching/chat` is the same match held as a conversation: Claude either
+ * asks one clarifying question or searches, and offers replies to refine with.
+ * It falls back to the same word match, over everything the person has said.
+ *
  * The problem is sent to the model and nowhere else: it is not stored, and the
  * cache that saves repeat calls lives in memory for ten minutes.
  */
@@ -64,12 +103,18 @@ export class MatchingService {
     string,
     { at: number; result: MatchingResponseDto }
   >();
+  private readonly chatCache = new Map<
+    string,
+    { at: number; result: MatchingChatResponseDto }
+  >();
   private readonly calls = new Map<string, number[]>();
 
   constructor(
     private readonly services: AdvisorServicesService,
     private readonly categories: ServiceCategoriesService,
     private readonly config: ConfigService,
+    @Inject(MATCHING_MODEL_CLIENT)
+    private readonly model: Anthropic | null,
   ) {}
 
   /** Whether a model key is configured. */
@@ -110,6 +155,48 @@ export class MatchingService {
     return result;
   }
 
+  /**
+   * The next turn of a matching conversation. Always answers: without a key, or
+   * when Claude fails, declines or is cut off, the person's own words are matched
+   * instead. Rate-limited together with `match`, so a caller has ten model asks
+   * a minute across both routes.
+   */
+  async chat(
+    dto: MatchingChatRequestDto,
+    caller: string,
+  ): Promise<MatchingChatResponseDto> {
+    this.admit(caller);
+    const turns: ChatTurn[] = dto.messages.map(({ role, content }) => ({
+      role,
+      content: content.trim(),
+    }));
+    // Hashed: a conversation can run to twenty thousand characters.
+    const key = createHash('sha256')
+      .update(JSON.stringify(turns))
+      .digest('hex');
+    const cached = this.chatCache.get(key);
+    if (cached && Date.now() - cached.at < CACHE_MS) return cached.result;
+
+    const catalogue = await this.catalogue({});
+    let result: MatchingChatResponseDto | null = null;
+    if (this.model && catalogue.length > 0) {
+      try {
+        result = await this.askChatModel(this.model, turns, catalogue);
+      } catch (error) {
+        this.logger.warn(`Matching chat fell back to keywords: ${why(error)}`);
+      }
+    }
+    // A fallback after a failed call is not cached, so the next ask tries Claude again.
+    const remember = result !== null || !this.model;
+    result ??= chatByKeywords(turns, catalogue);
+
+    if (remember) {
+      if (this.chatCache.size >= CACHE_ENTRIES) this.chatCache.clear();
+      this.chatCache.set(key, { at: Date.now(), result });
+    }
+    return result;
+  }
+
   /** A caller's asks in the last minute, refused past the limit. */
   private admit(caller: string): void {
     const now = Date.now();
@@ -127,13 +214,16 @@ export class MatchingService {
     if (this.calls.size > 5000) this.calls.clear();
   }
 
-  private async catalogue(dto: MatchingRequestDto): Promise<CatalogueEntry[]> {
+  private async catalogue(filter: {
+    readonly categoryId?: string;
+    readonly maxPriceSatang?: number;
+  }): Promise<ListedService[]> {
     const [page, categories] = await Promise.all([
       this.services.findPublished({
         page: 1,
         limit: CATALOGUE_LIMIT,
-        categoryId: dto.categoryId,
-        maxPriceSatang: dto.maxPriceSatang,
+        categoryId: filter.categoryId,
+        maxPriceSatang: filter.maxPriceSatang,
       } as PublicServiceQueryDto),
       this.categories.findMany({
         page: 1,
@@ -150,7 +240,66 @@ export class MatchingService {
       category: names.get(service.categoryId) ?? '',
       priceBaht: service.priceSatang / 100,
       minutes: service.durationMinutes,
+      categories: [service.categoryId, ...(service.extraCategoryIds ?? [])]
+        .map((id) => names.get(id))
+        .filter((name): name is string => Boolean(name)),
+      advisor: service.advisor?.name ?? '',
+      rating: service.advisor?.rating ?? null,
+      reviews: service.advisor?.reviewCount ?? 0,
+      trialMinutes: service.trialEnabled
+        ? (service.trialDurationMinutes ?? null)
+        : null,
     }));
+  }
+
+  /**
+   * One chat turn from Claude. The instructions and the catalogue are the
+   * `system` prefix, cached at the catalogue, so a conversation's later turns
+   * (and other people's, within five minutes) read them from the cache; only
+   * the recent turns are new input. Throws on anything but a finished answer.
+   */
+  private async askChatModel(
+    model: Anthropic,
+    turns: readonly ChatTurn[],
+    catalogue: readonly ListedService[],
+  ): Promise<MatchingChatResponseDto> {
+    const { text, ids } = compactCatalogue(catalogue);
+    const response = await model.messages.create({
+      model: this.config.get<string>(ENV_KEYS.MATCHING_MODEL) ?? DEFAULT_MODEL,
+      max_tokens: CHAT_MAX_TOKENS,
+      system: [
+        { type: 'text', text: CHAT_SYSTEM_PROMPT },
+        {
+          type: 'text',
+          text: `Catalogue:\n${text}`,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      // The earlier assistant turns are this route's own replies, as text.
+      messages: recentTurns(turns).map(({ role, content }) => ({
+        role,
+        content,
+      })),
+      output_config: { effort: 'low', format: chatAnswerFormat },
+    });
+    const { usage } = response;
+    this.logger.debug(
+      `Matching chat used ${usage.input_tokens} new, ${usage.cache_read_input_tokens ?? 0} cached, ${usage.cache_creation_input_tokens ?? 0} cache-written input and ${usage.output_tokens} output tokens`,
+    );
+
+    if (response.stop_reason === 'refusal') {
+      throw new Error(
+        `model declined (${response.stop_details?.category ?? 'no category'})`,
+      );
+    }
+    if (response.stop_reason !== 'end_turn') {
+      throw new Error(`model stopped on ${response.stop_reason ?? 'nothing'}`);
+    }
+    const answer = response.content.find(
+      (block): block is Anthropic.TextBlock => block.type === 'text',
+    );
+    if (!answer) throw new Error('model answered without text');
+    return readChatAnswer(chatAnswerFormat.parse(answer.text), ids);
   }
 
   private async askModel(
@@ -167,14 +316,14 @@ export class MatchingService {
       },
       body: JSON.stringify({
         model:
-          this.config.get<string>(ENV_KEYS.MATCHING_MODEL) ??
-          'claude-haiku-5-5',
+          this.config.get<string>(ENV_KEYS.MATCHING_MODEL) ?? DEFAULT_MODEL,
         max_tokens: 1200,
         system: SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
-            content: `Problem:\n${problem}\n\nCatalogue:\n${JSON.stringify(catalogue)}`,
+            // Only the original six facts, so this route's prompt is unchanged.
+            content: `Problem:\n${problem}\n\nCatalogue:\n${JSON.stringify(catalogue.map(basicEntry))}`,
           },
         ],
       }),
@@ -189,7 +338,46 @@ export class MatchingService {
   }
 }
 
-/** The model's JSON, held to the catalogue: unknown ids dropped, each id once, at most eight. */
+function basicEntry(entry: CatalogueEntry): CatalogueEntry {
+  return {
+    id: entry.id,
+    name: entry.name,
+    description: entry.description,
+    category: entry.category,
+    priceBaht: entry.priceBaht,
+    minutes: entry.minutes,
+  };
+}
+
+function why(error: unknown): string {
+  if (error instanceof Anthropic.APIError) {
+    return `API ${error.status ?? 'unreachable'}: ${error.message}`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * The chat without a model: everything the person said, matched against each
+ * service's words. `reply` is left empty for the screen to word itself.
+ */
+function chatByKeywords(
+  turns: readonly ChatTurn[],
+  catalogue: readonly CatalogueEntry[],
+): MatchingChatResponseDto {
+  const said = turns
+    .filter((turn) => turn.role === 'user')
+    .map((turn) => turn.content)
+    .join('\n');
+  const { matches } = byKeywords(said, catalogue);
+  return {
+    mode: 'keyword',
+    reply: '',
+    search: matches.length > 0 ? { title: '', topics: [], matches } : null,
+    suggestions: [],
+  };
+}
+
+/** The model's JSON, held to the catalogue: unknown ids dropped, each id once, at most four. */
 export function readAnswer(
   text: string,
   ids: ReadonlySet<string>,

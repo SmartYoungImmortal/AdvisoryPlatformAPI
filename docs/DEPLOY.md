@@ -68,7 +68,7 @@ paste it into a file that could be committed. For the `qa` environment:
 ```sh
 for name in database-url better-auth-secret omise-public-key omise-secret-key \
             seaweedfs-access-key seaweedfs-secret-key smtp-user smtp-password \
-            google-client-id google-client-secret; do
+            google-client-id google-client-secret anthropic-api-key; do
   printf 'qa-%s: ' "$name"; read -rs value; echo
   printf '%s' "$value" | gcloud secrets create "qa-$name" --data-file=- --project "$PROJECT_ID"
 done
@@ -83,6 +83,11 @@ done
 `http://localhost:3000/api/auth/callback/google` for a local `next dev` (see below).
 Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` and `SMTP_FROM` as variables in each GitHub
 Environment. Production also requires the `smtp-user` and `smtp-password` secrets.
+
+`anthropic-api-key` is an Anthropic API key (console.anthropic.com → API Keys) for AI
+matching (`POST /matching` and `POST /matching/chat`). The deploy reads it in every
+environment, so each needs one before its first deploy; give the key a monthly spend limit in
+the Anthropic console. Matching itself still works without a key, by the problem's words.
 
 ### GitHub
 
