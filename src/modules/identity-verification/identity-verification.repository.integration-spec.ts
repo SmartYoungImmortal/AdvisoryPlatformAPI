@@ -212,6 +212,45 @@ describe('IdentityVerificationRepository (integration)', () => {
     });
   });
 
+  it('saves the level given with the approval, and changes it later only once verified', async () => {
+    const id = await applicant();
+    await repository.submit(
+      id,
+      'identity/level.jpg',
+      SUBMITTABLE_IDENTITY_STATUSES,
+    );
+    // Not verified yet: there is no level to change.
+    await expect(repository.setLevel(id, 2)).resolves.toBe(false);
+    await expect(repository.findOneForAdmin(id)).resolves.toMatchObject({
+      level: 1,
+    });
+
+    await repository.approve(id, DECIDABLE_IDENTITY_STATUSES, approval(), 3);
+    await expect(repository.findOneForAdmin(id)).resolves.toMatchObject({
+      level: 3,
+    });
+
+    await expect(repository.setLevel(id, 2)).resolves.toBe(true);
+    await expect(repository.findOneForAdmin(id)).resolves.toMatchObject({
+      level: 2,
+    });
+  });
+
+  it('keeps the level when the approval does not give one', async () => {
+    const id = await applicant();
+    await repository.submit(
+      id,
+      'identity/no-level.jpg',
+      SUBMITTABLE_IDENTITY_STATUSES,
+    );
+
+    await repository.approve(id, DECIDABLE_IDENTITY_STATUSES, approval());
+
+    await expect(repository.findOneForAdmin(id)).resolves.toMatchObject({
+      level: 1,
+    });
+  });
+
   it('grants nothing when the approval does not apply', async () => {
     const id = await applicant();
     // Never submitted: there is no `SUBMITTED` record for the ruling to match.

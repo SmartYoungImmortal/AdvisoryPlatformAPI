@@ -14,6 +14,10 @@ import {
 import { SeaweedFsStorageService } from '@/common/storage/seaweedfs-storage.service';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
+import {
+  ApproveIdentityVerificationDto,
+  SetAdvisorLevelDto,
+} from './dtos/advisor-level.dto';
 import { IdentitySubmissionResponseDto } from './dtos/identity-submission-response.dto';
 import { IdentityVerificationQueryDto } from './dtos/identity-verification-query.dto';
 import { IdentityVerificationResponseDto } from './dtos/identity-verification-response.dto';
@@ -181,16 +185,22 @@ export class IdentityVerificationService {
   async approve(
     admin: SessionUser,
     advisorId: string,
+    dto: ApproveIdentityVerificationDto = {},
   ): Promise<IdentityVerificationResponseDto> {
     const decided = await this.decide(advisorId, (accepted) =>
-      this.repository.approve(advisorId, accepted, {
-        verificationStatus: 'VERIFIED',
-        verifiedAt: new Date(),
-        verifiedByAdminId: admin.id,
-        // A verified record carrying the reason it was once rejected is a response no
-        // screen can render sensibly, so the ruling clears it.
-        rejectionReason: null,
-      }),
+      this.repository.approve(
+        advisorId,
+        accepted,
+        {
+          verificationStatus: 'VERIFIED',
+          verifiedAt: new Date(),
+          verifiedByAdminId: admin.id,
+          // A verified record carrying the reason it was once rejected is a response no
+          // screen can render sensibly, so the ruling clears it.
+          rejectionReason: null,
+        },
+        dto.level,
+      ),
     );
     const { approved } = VERIFICATION_DECIDED_NOTIFICATION;
     await this.notifyDecision(advisorId, approved.title, approved.content, {
@@ -198,6 +208,25 @@ export class IdentityVerificationService {
       content: approved.en.content,
     });
     return decided;
+  }
+
+  /**
+   * Changes a verified Advisor's level. 404 when there is no such Advisor, 409 when their
+   * identity is not verified yet (the level is given at approval).
+   */
+  async setLevel(
+    advisorId: string,
+    dto: SetAdvisorLevelDto,
+  ): Promise<IdentityVerificationResponseDto> {
+    const updated = await this.repository.setLevel(advisorId, dto.level);
+    if (!updated) {
+      const current = await this.repository.findOneForAdmin(advisorId);
+      if (!current) {
+        throw new NotFoundException(IDENTITY_VERIFICATION_MESSAGES.notFound);
+      }
+      throw new ConflictException(IDENTITY_VERIFICATION_MESSAGES.notVerified);
+    }
+    return this.findOneForAdmin(advisorId);
   }
 
   /**

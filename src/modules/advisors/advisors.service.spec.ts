@@ -27,6 +27,7 @@ function profile(): AdvisorProfile {
     headline: 'Operations advisor',
     bio: null,
     penaltyPoints: 0,
+    level: 1,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     modifiedAt: new Date('2026-01-01T00:00:00Z'),
   };

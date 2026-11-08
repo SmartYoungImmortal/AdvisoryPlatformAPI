@@ -27,6 +27,7 @@ export interface IdentityVerificationRow {
   submittedAt: Date | null;
   verifiedAt: Date | null;
   verifiedByAdminId: string | null;
+  level: number;
 }
 
 export class IdentityVerificationResponseDto {
@@ -43,6 +44,8 @@ export class IdentityVerificationResponseDto {
   verifiedAt: Date | null;
   @ApiProperty({ nullable: true, type: String, format: 'uuid' })
   verifiedByAdminId: string | null;
+  /** The Advisor's level (1–3); it only matters once the identity is verified. */
+  @ApiProperty({ minimum: 1, maximum: 3 }) level: number;
 
   constructor(row: IdentityVerificationRow) {
     this.advisorId = row.advisorId;
@@ -53,5 +56,6 @@ export class IdentityVerificationResponseDto {
     this.submittedAt = row.submittedAt;
     this.verifiedAt = row.verifiedAt;
     this.verifiedByAdminId = row.verifiedByAdminId;
+    this.level = row.level;
   }
 }

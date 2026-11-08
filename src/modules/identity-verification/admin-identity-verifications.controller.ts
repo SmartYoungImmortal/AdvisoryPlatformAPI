@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   ParseUUIDPipe,
   Post,
   Query,
@@ -21,6 +22,10 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import type { PaginatedResult } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import {
+  ApproveIdentityVerificationDto,
+  SetAdvisorLevelDto,
+} from './dtos/advisor-level.dto';
 import { IdentityVerificationQueryDto } from './dtos/identity-verification-query.dto';
 import { IdentityVerificationResponseDto } from './dtos/identity-verification-response.dto';
 import { RejectIdentityVerificationDto } from './dtos/reject-identity-verification.dto';
@@ -83,8 +88,23 @@ export class AdminIdentityVerificationsController {
   approve(
     @CurrentUser() admin: SessionUser,
     @Param('advisorId', ParseUUIDPipe) advisorId: string,
+    @Body() dto: ApproveIdentityVerificationDto,
   ): Promise<IdentityVerificationResponseDto> {
-    return this.identityVerifications.approve(admin, advisorId);
+    return this.identityVerifications.approve(admin, advisorId, dto);
+  }
+
+  @UserHasPermission({ permission: { identityVerification: ['decide'] } })
+  @Patch(':advisorId/level')
+  @ResponseMessage(IDENTITY_VERIFICATION_MESSAGES.levelUpdated)
+  @ApiUpdate(IdentityVerificationResponseDto, { name: 'Advisor level' })
+  @ApiConflictResponse({
+    description: IDENTITY_VERIFICATION_MESSAGES.notVerified,
+  })
+  setLevel(
+    @Param('advisorId', ParseUUIDPipe) advisorId: string,
+    @Body() dto: SetAdvisorLevelDto,
+  ): Promise<IdentityVerificationResponseDto> {
+    return this.identityVerifications.setLevel(advisorId, dto);
   }
 
   @UserHasPermission({ permission: { identityVerification: ['decide'] } })

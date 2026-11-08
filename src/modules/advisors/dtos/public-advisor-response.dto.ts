@@ -36,6 +36,10 @@ export class PublicAdvisorResponseDto {
   @ApiProperty({ type: [String] })
   skills: string[];
 
+  /** 1 ผู้ให้คำปรึกษา, 2 ผู้เชี่ยวชาญ, 3 ผู้เชี่ยวชาญอาวุโส; an admin sets it when approving. */
+  @ApiProperty({ minimum: 1, maximum: 3 })
+  level: number;
+
   @ApiProperty({
     description: 'Published services this Advisor currently offers.',
   })
@@ -49,6 +53,7 @@ export class PublicAdvisorResponseDto {
     avatarKey: string | null;
     image?: string | null;
     skills: string[];
+    level: number;
     publishedServiceCount: number;
   }) {
     this.id = row.id;
@@ -58,6 +63,7 @@ export class PublicAdvisorResponseDto {
     this.avatarKey = row.avatarKey;
     this.image = row.image ?? null;
     this.skills = row.skills;
+    this.level = row.level;
     this.publishedServiceCount = row.publishedServiceCount;
   }
 }

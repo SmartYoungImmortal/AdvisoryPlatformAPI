@@ -31,6 +31,8 @@ export class AdvisorOwnProfileResponseDto {
       '`NONE` means no identity document has been submitted yet.',
   })
   verificationStatus: IdentityVerificationStatus;
+  /** The level an admin gave this Advisor (1–3); 1 until an admin sets another. */
+  @ApiProperty({ minimum: 1, maximum: 3 }) level: number;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() modifiedAt!: Date;
 
@@ -47,6 +49,7 @@ export class AdvisorOwnProfileResponseDto {
     this.headline = advisor.headline;
     this.bio = advisor.bio;
     this.verificationStatus = verificationStatus;
+    this.level = advisor.level;
     this.createdAt = advisor.createdAt;
     this.modifiedAt = advisor.modifiedAt;
   }

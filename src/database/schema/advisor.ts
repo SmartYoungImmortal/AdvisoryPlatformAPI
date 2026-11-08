@@ -5,6 +5,7 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uuid,
@@ -35,6 +36,12 @@ export const advisorProfiles = pgTable(
     headline: varchar('headline').notNull(),
     bio: text('bio'),
     penaltyPoints: integer('penalty_points').notNull().default(0),
+    /**
+     * The level an admin gives an Advisor when approving their identity, shown to clients
+     * before they book: 1 ผู้ให้คำปรึกษา, 2 ผู้เชี่ยวชาญ, 3 ผู้เชี่ยวชาญอาวุโส. Every profile
+     * starts at 1, so an Advisor approved before levels existed shows level 1.
+     */
+    level: smallint('level').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -48,6 +55,7 @@ export const advisorProfiles = pgTable(
       'advisor_profiles_penalty_points_nonnegative',
       sql`${table.penaltyPoints} >= 0`,
     ),
+    check('advisor_profiles_level_range', sql`${table.level} between 1 and 3`),
   ],
 );
 

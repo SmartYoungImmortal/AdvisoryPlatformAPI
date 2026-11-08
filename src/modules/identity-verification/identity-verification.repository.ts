@@ -11,6 +11,7 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
+import type { AdvisorLevel } from '@/modules/advisors/advisors.constants';
 import { advisorIdentity, advisorProfiles, user } from '@/database/schema';
 import type { IdentityVerificationQueryDto } from './dtos/identity-verification-query.dto';
 import type { IdentityVerificationRow } from './dtos/identity-verification-response.dto';
@@ -213,6 +214,7 @@ export class IdentityVerificationRepository {
     advisorId: string,
     acceptedStatuses: readonly IdentityVerificationStatus[],
     decision: IdentityDecision,
+    level?: AdvisorLevel,
   ): Promise<boolean> {
     return this.db.transaction(async (tx) => {
       const decided = await this.applyDecision(
@@ -221,6 +223,12 @@ export class IdentityVerificationRepository {
         acceptedStatuses,
         decision,
       );
+      if (decided && level !== undefined) {
+        await tx
+          .update(advisorProfiles)
+          .set({ level })
+          .where(eq(advisorProfiles.userId, advisorId));
+      }
       if (decided) {
         await tx
           .update(user)
@@ -234,6 +242,30 @@ export class IdentityVerificationRepository {
       }
       return decided;
     });
+  }
+
+  /**
+   * Changes a verified Advisor's level. False when there is no verified identity for this
+   * Advisor, so a level is never given to someone who is not an Advisor yet.
+   */
+  async setLevel(advisorId: string, level: AdvisorLevel): Promise<boolean> {
+    const rows = await this.db
+      .update(advisorProfiles)
+      .set({ level })
+      .where(
+        and(
+          eq(advisorProfiles.userId, advisorId),
+          inArray(
+            advisorProfiles.userId,
+            this.db
+              .select({ advisorId: advisorIdentity.advisorId })
+              .from(advisorIdentity)
+              .where(eq(advisorIdentity.verificationStatus, 'VERIFIED')),
+          ),
+        ),
+      )
+      .returning({ userId: advisorProfiles.userId });
+    return rows.length > 0;
   }
 
   private async applyDecision(
@@ -268,9 +300,14 @@ export class IdentityVerificationRepository {
         submittedAt: advisorIdentity.submittedAt,
         verifiedAt: advisorIdentity.verifiedAt,
         verifiedByAdminId: advisorIdentity.verifiedByAdminId,
+        level: advisorProfiles.level,
       })
       .from(advisorIdentity)
       .innerJoin(user, eq(user.id, advisorIdentity.advisorId))
+      .innerJoin(
+        advisorProfiles,
+        eq(advisorProfiles.userId, advisorIdentity.advisorId),
+      )
       .where(where)
       .$dynamic();
   }
