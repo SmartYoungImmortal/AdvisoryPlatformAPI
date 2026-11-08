@@ -11,6 +11,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { ApiGetOne } from '@/common/decorators/api-docs.decorator';
 import { Public } from '@/common/decorators/public.decorator';
 import {
+  MatchingChatRequestDto,
+  MatchingChatResponseDto,
   MatchingRequestDto,
   MatchingResponseDto,
   MatchingStatusDto,
@@ -46,5 +48,25 @@ export class MatchingController {
     @Ip() ip: string,
   ): Promise<MatchingResponseDto> {
     return this.matching.match(dto, ip);
+  }
+
+  /**
+   * The next turn of a matching conversation: the whole conversation so far in,
+   * Claude's reply out, with either one clarifying question or the services that
+   * fit and a few replies to refine with. Public and limited like `POST /matching`,
+   * sharing its per-caller budget; it never stores the conversation.
+   */
+  @Public()
+  @Post('chat')
+  @HttpCode(HttpStatus.OK)
+  @ApiGetOne(MatchingChatResponseDto, {
+    name: 'Matching chat turn',
+    public: true,
+  })
+  chat(
+    @Body() dto: MatchingChatRequestDto,
+    @Ip() ip: string,
+  ): Promise<MatchingChatResponseDto> {
+    return this.matching.chat(dto, ip);
   }
 }

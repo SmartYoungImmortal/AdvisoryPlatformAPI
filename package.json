@@ -32,6 +32,7 @@
     "db:seed": "nest build && node dist/src/database/seed.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@aws-sdk/client-s3": "^3.1115.0",
     "@aws-sdk/s3-request-presigner": "^3.1115.0",
     "@better-auth/drizzle-adapter": "^1.7.1",
