@@ -17,6 +17,25 @@ export const PAYOUT_MESSAGES = {
  */
 export const PAYOUT_PENDING_STATUS = 'PENDING';
 
+/** The advisor's notification once a payout is marked paid; the content is the amount received. */
+export const PAYOUT_PAID_NOTIFICATION = {
+  title: 'เงินเข้าบัญชีแล้ว',
+  content: (amount: string) => `${amount} · หลังหักค่าโอน`,
+  en: {
+    title: 'Payout sent',
+    content: (amount: string) => `${amount} after the transfer fee`,
+  },
+} as const;
+
+export const PAYOUT_FAILED_NOTIFICATION = {
+  title: 'การโอนเงินไม่สำเร็จ',
+  content: (amount: string) => `${amount} · โปรดตรวจสอบบัญชีรับเงิน`,
+  en: {
+    title: "A payout didn't go through",
+    content: (amount: string) => `${amount} · please check your payout account`,
+  },
+} as const;
+
 export const PAYOUT_ACCOUNT_MESSAGES = {
   ...crudMessages('Payout account'),
   saved: 'Payout account saved',

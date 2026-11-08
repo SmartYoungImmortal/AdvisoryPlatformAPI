@@ -9,6 +9,7 @@ import {
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdvisorScreeningRequestDetailResponseDto } from './dtos/advisor-screening-request-detail-response.dto';
 import { AdvisorScreeningRequestResponseDto } from './dtos/advisor-screening-request-response.dto';
 import { DeclineScreeningRequestDto } from './dtos/decline-screening-request.dto';
@@ -31,7 +32,10 @@ import type {
 
 @Injectable()
 export class ScreeningService {
-  constructor(private readonly repository: ScreeningRepository) {}
+  constructor(
+    private readonly repository: ScreeningRepository,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /* ----------------------------------------------------------------- advisor */
 
@@ -51,14 +55,35 @@ export class ScreeningService {
     serviceId: string,
     dto: ReplaceScreeningQuestionsDto,
   ): Promise<ScreeningQuestionResponseDto[]> {
-    await this.getOwnedService(user.id, serviceId);
-    const questions = await this.repository.replaceQuestions(
-      serviceId,
-      dto.questions.map((question) => ({
-        question: question.question,
-        isRequired: question.isRequired,
-      })),
-    );
+    const service = await this.getOwnedService(user.id, serviceId);
+    const names = await this.repository.findServiceNames(serviceId);
+    const expiredNotice = {
+      type: 'SCREENING_EXPIRED' as const,
+      title: SCREENING_NOTIFICATIONS.expiredTitle,
+      content: SCREENING_NOTIFICATIONS.expiredContent(
+        names?.th ?? service.name,
+      ),
+      en: {
+        title: SCREENING_NOTIFICATIONS.en.expiredTitle,
+        content: SCREENING_NOTIFICATIONS.en.expiredContent(
+          names?.en ?? service.name,
+        ),
+      },
+      resourceId: serviceId,
+    };
+    const { questions, expiredAdviseeIds } =
+      await this.repository.replaceQuestions(
+        serviceId,
+        dto.questions.map((question) => ({
+          question: question.question,
+          isRequired: question.isRequired,
+        })),
+        expiredNotice,
+      );
+    // The notifications are saved with the questions, so the push goes out only once both are.
+    for (const ownerId of expiredAdviseeIds) {
+      this.notifications.deliver({ ...expiredNotice, ownerId });
+    }
     return questions.map(
       (question) => new ScreeningQuestionResponseDto(question),
     );
@@ -174,27 +199,31 @@ export class ScreeningService {
     const adviseeName =
       (await this.repository.findDisplayName(user.id)) ?? user.name;
 
+    const notification = {
+      ownerId: service.advisorId,
+      type: 'SCREENING_REQUESTED' as const,
+      title: SCREENING_NOTIFICATIONS.requestedTitle,
+      content: SCREENING_NOTIFICATIONS.requestedContent(
+        adviseeName,
+        answers.length,
+      ),
+      en: {
+        title: SCREENING_NOTIFICATIONS.en.requestedTitle,
+        content: SCREENING_NOTIFICATIONS.en.requestedContent(
+          adviseeName,
+          answers.length,
+        ),
+      },
+    };
+
     try {
       const request = await this.repository.createWithAnswers(
         { serviceId, adviseeId: user.id },
         answers,
-        {
-          ownerId: service.advisorId,
-          type: 'SCREENING_REQUESTED',
-          title: SCREENING_NOTIFICATIONS.requestedTitle,
-          content: SCREENING_NOTIFICATIONS.requestedContent(
-            adviseeName,
-            answers.length,
-          ),
-          en: {
-            title: SCREENING_NOTIFICATIONS.en.requestedTitle,
-            content: SCREENING_NOTIFICATIONS.en.requestedContent(
-              adviseeName,
-              answers.length,
-            ),
-          },
-        },
+        notification,
       );
+      // The notification is saved with the request, so the push goes out only once both are.
+      this.notifications.deliver({ ...notification, resourceId: request.id });
       return new ScreeningRequestResponseDto(request);
     } catch (error: unknown) {
       // Another request for the same Service was saved at the same moment and the unique index
@@ -258,19 +287,21 @@ export class ScreeningService {
             },
           }
         : await this.declinedMessage(current);
+    const notification = {
+      ownerId: current.adviseeId,
+      type: 'SCREENING_DECIDED' as const,
+      resourceId: current.serviceId,
+      ...message,
+    };
     const decided = await this.repository.decidePending(
       requestId,
       { status, decisionReason, decidedAt: new Date() },
-      {
-        ownerId: current.adviseeId,
-        type: 'SCREENING_DECIDED',
-        resourceId: current.serviceId,
-        ...message,
-      },
+      notification,
     );
     if (!decided) {
       throw new ConflictException(SCREENING_MESSAGES.alreadyDecided);
     }
+    this.notifications.deliver(notification);
 
     return new AdvisorScreeningRequestResponseDto({
       ...current,

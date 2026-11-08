@@ -456,6 +456,47 @@ describe('BookingsService', () => {
       expect(booking.cancelledByUserId).toBe(advisor.id);
     });
 
+    it('tells the other person, not the one who cancelled', async () => {
+      repository.findForAdvisor.mockResolvedValue(makeAppointment());
+      repository.transition.mockResolvedValue(
+        makeAppointment({ state: 'CANCELLED' }),
+      );
+      repository.findPublishedService.mockResolvedValue({
+        id: serviceId,
+        name: 'ปรึกษาการเงิน',
+      } as AdvisorService);
+
+      await service.cancelAsAdvisor(advisor, bookingId);
+
+      expect(notifications.notify).toHaveBeenCalledTimes(1);
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisee.id,
+          type: 'BOOKING_CANCELLED',
+          title: 'นัดหมายถูกยกเลิก',
+          resourceId: bookingId,
+        }),
+      );
+      expect(notifications.notify.mock.calls[0][0].content).toContain(
+        'ปรึกษาการเงิน',
+      );
+    });
+
+    it('still cancels when the notification cannot be created', async () => {
+      repository.findForAdvisee.mockResolvedValue(makeAppointment());
+      repository.transition.mockResolvedValue(
+        makeAppointment({ state: 'CANCELLED' }),
+      );
+      notifications.notify.mockRejectedValue(new Error('push down'));
+
+      await expect(
+        service.cancelAsAdvisee(advisee, bookingId),
+      ).resolves.toEqual(expect.objectContaining({ state: 'CANCELLED' }));
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ ownerId: advisor.id }),
+      );
+    });
+
     it('hides a booking the caller does not own', async () => {
       repository.findForAdvisee.mockResolvedValue(undefined);
 
@@ -474,6 +515,7 @@ describe('BookingsService', () => {
       await expect(
         service.cancelAsAdvisee(advisee, bookingId),
       ).rejects.toBeInstanceOf(ConflictException);
+      expect(notifications.notify).not.toHaveBeenCalled();
     });
   });
 
@@ -593,6 +635,14 @@ describe('BookingsService', () => {
 
       expect(booking.state).toBe('BOOKED');
       expect(booking.startTime).toEqual(newStart);
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisor.id,
+          type: 'BOOKING_RESCHEDULED',
+          title: 'นัดหมายถูกเลื่อน',
+          resourceId: booking.id,
+        }),
+      );
     });
 
     it('leaves an unpaid appointment pending payment', async () => {

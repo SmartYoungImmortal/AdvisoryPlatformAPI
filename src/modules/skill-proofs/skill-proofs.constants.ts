@@ -78,3 +78,15 @@ export function decodeUploadedFileName(name: string): string {
  * a chat message and a review comment.
  */
 export const SKILL_PROOF_REJECTION_REASON_MAX_LENGTH = 4_000;
+
+/** What the Advisor is told when an Admin reviews one of their documents. */
+export const SKILL_PROOF_DECIDED_TITLES = {
+  APPROVED: {
+    th: 'หลักฐานความเชี่ยวชาญผ่านการตรวจสอบ',
+    en: 'Your skill document was approved',
+  },
+  REJECTED: {
+    th: 'หลักฐานความเชี่ยวชาญไม่ผ่านการตรวจสอบ',
+    en: 'Your skill document was not approved',
+  },
+} as const;

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { AdminCaseContextController } from './admin-case-context.controller';
 import { AdminOffPlatformFlagsController } from './admin-off-platform-flags.controller';
 import { AdminProfilesRepository } from './admin-profiles.repository';
@@ -20,6 +21,7 @@ import { UserReportsRepository } from './user-reports.repository';
  * load-bearing the way it is for `ReviewsModule` in app.module.ts.
  */
 @Module({
+  imports: [NotificationsModule],
   controllers: [
     ReportsController,
     AdminReportsController,

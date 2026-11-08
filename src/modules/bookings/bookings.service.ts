@@ -330,6 +330,13 @@ export class BookingsService {
       ),
     );
     if (!replacement) throw this.invalidTransition('CANCELLED');
+    // Only the Advisee reschedules, so the Advisor is the one to tell.
+    await this.notifyChange(
+      replacement,
+      replacement.advisorId,
+      'BOOKING_RESCHEDULED',
+      BOOKING_NOTIFICATION_TITLES.rescheduled,
+    );
     return new BookingResponseDto(replacement);
   }
 
@@ -413,11 +420,69 @@ export class BookingsService {
   ): Promise<BookingResponseDto> {
     const appointment = await lookup;
     if (!appointment) throw new NotFoundException(BOOKING_MESSAGES.notFound);
-    return this.applyTransition(
+    const cancelled = await this.applyTransition(
       appointment.id,
       'CANCELLED',
       await this.cancellationValues(appointment, cancelledByUserId),
     );
+    // Whoever cancelled knows; the other person is told.
+    await this.notifyChange(
+      appointment,
+      cancelledByUserId === appointment.adviseeId
+        ? appointment.advisorId
+        : appointment.adviseeId,
+      'BOOKING_CANCELLED',
+      BOOKING_NOTIFICATION_TITLES.cancelled,
+    );
+    return cancelled;
+  }
+
+  /**
+   * "Service · date and time" in Thai and English. The Service's name is its stored text in both
+   * languages: `findPublishedService` reads the row itself, not its translations. Only the date is
+   * written the way each language writes one.
+   */
+  private async sessionLabels(
+    appointment: Appointment,
+  ): Promise<{ th: string; en: string }> {
+    const service = await this.repository.findPublishedService(
+      appointment.serviceId,
+    );
+    const describe = (dateLocale: string) => {
+      const when = new Intl.DateTimeFormat(dateLocale, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Bangkok',
+      }).format(appointment.startTime);
+      return service ? `${service.name} · ${when}` : when;
+    };
+    return { th: describe('th-TH'), en: describe('en-GB') };
+  }
+
+  /** Tells one person a session was cancelled or moved. A failure must not undo the change. */
+  private async notifyChange(
+    appointment: Appointment,
+    ownerId: string,
+    type: 'BOOKING_CANCELLED' | 'BOOKING_RESCHEDULED',
+    title: { th: string; en: string },
+  ): Promise<void> {
+    try {
+      const labels = await this.sessionLabels(appointment);
+      await this.notifications.notify({
+        ownerId,
+        type,
+        title: title.th,
+        content: labels.th,
+        en: { title: title.en, content: labels.en },
+        resourceId: appointment.id,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not notify booking ${appointment.id}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   /**

@@ -194,6 +194,23 @@ export class PaymentServiceInvoicesRepository extends EntityRepository<
     return link ? this.findOneForAdvisee(link.invoiceId, adviseeId) : undefined;
   }
 
+  /** The advisee an invoice belongs to: whoever booked the appointments it pays for. */
+  async findAdviseeId(invoiceId: string): Promise<string | undefined> {
+    const [row] = await this.db
+      .select({ adviseeId: serviceAppointments.adviseeId })
+      .from(serviceAppointmentsOnInvoice)
+      .innerJoin(
+        serviceAppointments,
+        eq(
+          serviceAppointments.id,
+          serviceAppointmentsOnInvoice.serviceAppointmentId,
+        ),
+      )
+      .where(eq(serviceAppointmentsOnInvoice.serviceInvoiceId, invoiceId))
+      .limit(1);
+    return row?.adviseeId;
+  }
+
   /** The appointments an invoice pays for: the bookings its payment confirms. */
   async findAppointmentIds(invoiceId: string): Promise<string[]> {
     const rows = await this.db

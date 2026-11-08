@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Omise from 'omise';
 import { ENV_KEYS } from '@/config/env.constants';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { AdminPayoutsController } from './admin-payouts.controller';
 import { AdvisorPayoutAccountController } from './advisor-payout-account.controller';
 import { AdvisorPayoutsController } from './advisor-payouts.controller';
@@ -14,6 +15,7 @@ import { PayoutsRepository } from './payouts.repository';
 import { PayoutsService } from './payouts.service';
 
 @Module({
+  imports: [NotificationsModule],
   controllers: [
     AdvisorPayoutsController,
     AdvisorPayoutAccountController,

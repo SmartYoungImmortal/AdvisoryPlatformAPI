@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import { ScreeningRequestQueryDto } from './dtos/screening-request-query.dto';
 import { SCREENING_NOTIFICATIONS } from './screening.constants';
 import type { ScreeningRepository } from './screening.repository';
@@ -88,6 +89,7 @@ function makeRow(
 
 describe('ScreeningService', () => {
   let service_: ScreeningService;
+  let notifications: jest.Mocked<Pick<NotificationsService, 'deliver'>>;
   let repository: jest.Mocked<
     Pick<
       ScreeningRepository,
@@ -125,8 +127,10 @@ describe('ScreeningService', () => {
       markViewed: jest.fn(),
       decidePending: jest.fn(),
     };
+    notifications = { deliver: jest.fn() };
     service_ = new ScreeningService(
       repository as unknown as ScreeningRepository,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -157,10 +161,14 @@ describe('ScreeningService', () => {
 
     it('replaces the list in the order given', async () => {
       repository.findOwnedService.mockResolvedValue(service);
-      repository.replaceQuestions.mockResolvedValue([
-        makeQuestion(q1),
-        makeQuestion(q2, { isRequired: false }),
-      ]);
+      repository.findServiceNames.mockResolvedValue({
+        th: 'วางแผนภาษี',
+        en: 'Tax planning',
+      });
+      repository.replaceQuestions.mockResolvedValue({
+        questions: [makeQuestion(q1), makeQuestion(q2, { isRequired: false })],
+        expiredAdviseeIds: [],
+      });
 
       const result = await service_.replaceQuestions(advisor, serviceId, {
         questions: [
@@ -169,11 +177,44 @@ describe('ScreeningService', () => {
         ],
       });
 
-      expect(repository.replaceQuestions).toHaveBeenCalledWith(serviceId, [
-        { question: 'First', isRequired: true },
-        { question: 'Second', isRequired: false },
-      ]);
+      expect(repository.replaceQuestions).toHaveBeenCalledWith(
+        serviceId,
+        [
+          { question: 'First', isRequired: true },
+          { question: 'Second', isRequired: false },
+        ],
+        expect.objectContaining({ type: 'SCREENING_EXPIRED' }),
+      );
       expect(result).toHaveLength(2);
+      expect(notifications.deliver).not.toHaveBeenCalled();
+    });
+
+    it('tells each advisee whose acceptance expired, after the questions are saved', async () => {
+      repository.findOwnedService.mockResolvedValue(service);
+      repository.findServiceNames.mockResolvedValue({
+        th: 'วางแผนภาษี',
+        en: 'Tax planning',
+      });
+      repository.replaceQuestions.mockResolvedValue({
+        questions: [makeQuestion(q1)],
+        expiredAdviseeIds: [advisee.id],
+      });
+
+      await service_.replaceQuestions(advisor, serviceId, {
+        questions: [{ question: 'First', isRequired: true }],
+      });
+
+      expect(notifications.deliver).toHaveBeenCalledWith({
+        ownerId: advisee.id,
+        type: 'SCREENING_EXPIRED',
+        title: 'คำถามคัดกรองมีการเปลี่ยนแปลง',
+        content: 'วางแผนภาษี · ตอบคำถามใหม่ก่อนจอง',
+        en: {
+          title: 'The screening questions changed',
+          content: 'Tax planning · answer the new questions before booking',
+        },
+        resourceId: serviceId,
+      });
     });
   });
 
@@ -258,6 +299,14 @@ describe('ScreeningService', () => {
             content: 'ณัฐพงษ์ ส. sent 1 screening answer',
           },
         },
+      );
+      expect(notifications.deliver).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisor.id,
+          type: 'SCREENING_REQUESTED',
+          title: SCREENING_NOTIFICATIONS.requestedTitle,
+          resourceId: requestId,
+        }),
       );
     });
 
@@ -358,6 +407,7 @@ describe('ScreeningService', () => {
           answers: [{ questionId: q1, answer: 'x' }],
         }),
       ).rejects.toThrow(ConflictException);
+      expect(notifications.deliver).not.toHaveBeenCalled();
     });
 
     it('rethrows any other database error', async () => {
@@ -451,6 +501,14 @@ describe('ScreeningService', () => {
         },
       );
       expect(repository.findServiceNames).not.toHaveBeenCalled();
+      expect(notifications.deliver).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisee.id,
+          type: 'SCREENING_DECIDED',
+          title: SCREENING_NOTIFICATIONS.acceptedTitle,
+          resourceId: serviceId,
+        }),
+      );
     });
 
     it('names the service in each language when declining, not in the advisor’s', async () => {
@@ -535,6 +593,7 @@ describe('ScreeningService', () => {
       await expect(service_.accept(advisor, requestId)).rejects.toThrow(
         ConflictException,
       );
+      expect(notifications.deliver).not.toHaveBeenCalled();
     });
   });
 });

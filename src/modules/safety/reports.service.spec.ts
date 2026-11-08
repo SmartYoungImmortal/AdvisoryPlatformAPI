@@ -8,6 +8,7 @@ import type { InferSelectModel } from 'drizzle-orm';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
 import type { userReports } from '@/database/schema';
 import type { SessionUser } from '@/modules/auth/auth.config';
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import type { AdminProfilesRepository } from './admin-profiles.repository';
 import { ReportsService } from './reports.service';
 import type { AdminReportRow } from './safety.types';
@@ -72,6 +73,7 @@ describe('ReportsService', () => {
     >
   >;
   let admins: jest.Mocked<Pick<AdminProfilesRepository, 'exists'>>;
+  let notifications: { notify: jest.Mock };
 
   beforeEach(() => {
     reports = {
@@ -87,9 +89,11 @@ describe('ReportsService', () => {
       resolveIfOpen: jest.fn(),
     };
     admins = { exists: jest.fn() };
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
     service = new ReportsService(
       reports as unknown as UserReportsRepository,
       admins as unknown as AdminProfilesRepository,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -291,6 +295,29 @@ describe('ReportsService', () => {
         reviewedByAdminId: admin.id,
       }),
     );
+    expect(notifications.notify).toHaveBeenCalledWith({
+      ownerId: reporter.id,
+      type: 'REPORT_RESOLVED',
+      title: 'รายงานของคุณได้รับการตรวจสอบแล้ว',
+      content: 'ทีมงานดำเนินการกับบัญชีที่ถูกรายงานแล้ว',
+      en: {
+        title: 'Your report has been reviewed',
+        content: 'The team took action on the reported account',
+      },
+      resourceId: reportId,
+    });
+  });
+
+  it('keeps the ruling when the notification fails', async () => {
+    admins.exists.mockResolvedValue(true);
+    reports.resolveIfOpen.mockResolvedValue(
+      makeAdminRow({ status: 'DISMISSED' }),
+    );
+    notifications.notify.mockRejectedValue(new Error('push down'));
+
+    await expect(
+      service.resolve(admin, reportId, { outcome: 'DISMISSED' }),
+    ).resolves.toEqual(expect.objectContaining({ status: 'DISMISSED' }));
   });
 
   it('refuses to rule when the admin has no admin profile row', async () => {
@@ -312,6 +339,7 @@ describe('ReportsService', () => {
     await expect(
       service.resolve(admin, reportId, { outcome: 'ACTIONED' }),
     ).rejects.toThrow(ConflictException);
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('rules on a report that is not there with a 404, not a 409', async () => {

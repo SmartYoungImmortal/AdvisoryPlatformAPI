@@ -31,6 +31,11 @@ export const PaymentConfig = {
       pending: '/checkout/unconfirmed',
     },
   },
+  /** The advisee's notification once a charge succeeds; the content is the amount. */
+  paidNotification: {
+    title: 'ชำระเงินสำเร็จ',
+    en: { title: 'Payment successful' },
+  },
   /** How long a PromptPay QR code can be paid before it expires and a new one is needed. */
   promptPay: {
     expiresMinutes: 15,

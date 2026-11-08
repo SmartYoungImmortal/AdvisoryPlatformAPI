@@ -1,3 +1,4 @@
+import type { NotificationsService } from '@/modules/notifications/notifications.service';
 import {
   BadRequestException,
   ConflictException,
@@ -83,6 +84,7 @@ describe('IdentityVerificationService', () => {
     >
   >;
   let service: IdentityVerificationService;
+  let notifications: jest.Mocked<Pick<NotificationsService, 'notify'>>;
 
   beforeEach(() => {
     repository = {
@@ -102,9 +104,11 @@ describe('IdentityVerificationService', () => {
         .fn()
         .mockResolvedValue('https://storage.example.test/signed'),
     };
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
     service = new IdentityVerificationService(
       repository as unknown as IdentityVerificationRepository,
       storage as unknown as SeaweedFsStorageService,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -343,6 +347,16 @@ describe('IdentityVerificationService', () => {
       expect(repository.approve.mock.calls[0][2].verifiedAt).toBeInstanceOf(
         Date,
       );
+      expect(notifications.notify).toHaveBeenCalledWith({
+        ownerId: advisor.id,
+        type: 'VERIFICATION_DECIDED',
+        title: 'ยืนยันตัวตนสำเร็จ',
+        content: 'โปรไฟล์ที่ปรึกษาของคุณเผยแพร่แล้ว',
+        en: {
+          title: 'Identity verified',
+          content: 'Your advisor profile is now published',
+        },
+      });
       expect(result.verificationStatus).toBe('VERIFIED');
       expect(result.verifiedByAdminId).toBe(admin.id);
     });
@@ -408,6 +422,14 @@ describe('IdentityVerificationService', () => {
           verifiedByAdminId: admin.id,
           verifiedAt: null,
         },
+      );
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisor.id,
+          type: 'VERIFICATION_DECIDED',
+          title: 'ยืนยันตัวตนไม่ผ่าน',
+          content: 'The scan is unreadable',
+        }),
       );
       expect(result.rejectionReason).toBe('The scan is unreadable');
       expect(result.verifiedAt).toBeNull();

@@ -6,6 +6,7 @@ import {
 import type { NotificationsRepository } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
 import type { PushService } from './push/push.service';
+import type { NotificationsRealtime } from './notifications-realtime';
 import type { Notification } from './notifications.types';
 
 const ownerId = '11111111-1111-1111-1111-111111111111';
@@ -35,6 +36,8 @@ describe('NotificationsService', () => {
       | 'findPageForOwner'
       | 'countUnread'
       | 'markRead'
+      | 'findOneForOwner'
+      | 'findUpcomingSession'
       | 'markAllRead'
       | 'createWithTranslations'
       | 'createWelcome'
@@ -42,14 +45,18 @@ describe('NotificationsService', () => {
     >
   >;
   let push: jest.Mocked<Pick<PushService, 'sendToUser'>>;
+  let realtime: jest.Mocked<Pick<NotificationsRealtime, 'announce'>>;
   let service: NotificationsService;
 
   beforeEach(() => {
     push = { sendToUser: jest.fn().mockResolvedValue(undefined) };
+    realtime = { announce: jest.fn() };
     repository = {
       findPageForOwner: jest.fn(),
       countUnread: jest.fn(),
       markRead: jest.fn(),
+      findOneForOwner: jest.fn(),
+      findUpcomingSession: jest.fn(),
       markAllRead: jest.fn(),
       createWithTranslations: jest.fn(),
       createWelcome: jest.fn(),
@@ -58,6 +65,7 @@ describe('NotificationsService', () => {
     service = new NotificationsService(
       repository as unknown as NotificationsRepository,
       push as unknown as PushService,
+      realtime as unknown as NotificationsRealtime,
     );
   });
 
@@ -118,6 +126,74 @@ describe('NotificationsService', () => {
   it('counts unread notifications', async () => {
     repository.countUnread.mockResolvedValue(4);
     await expect(service.countUnread(ownerId)).resolves.toEqual({ count: 4 });
+  });
+
+  describe('findUpcomingSession', () => {
+    const row = {
+      bookingId: '44444444-4444-4444-4444-444444444444',
+      startTime: new Date('2026-11-07T07:00:00Z'),
+      endTime: new Date('2026-11-07T07:30:00Z'),
+      state: 'BOOKED' as const,
+      advisorId: '55555555-5555-5555-5555-555555555555',
+      adviseeId: ownerId,
+      serviceName: 'วางแผนภาษี',
+      advisorName: 'อารยา ส.',
+      adviseeName: 'ณัฐพงศ์ ด.',
+    };
+
+    it('answers null when no session is about to start', async () => {
+      repository.findUpcomingSession.mockResolvedValue(undefined);
+      await expect(service.findUpcomingSession(ownerId)).resolves.toBeNull();
+    });
+
+    it('looks as far ahead as the video call opens', async () => {
+      repository.findUpcomingSession.mockResolvedValue(undefined);
+      await service.findUpcomingSession(ownerId);
+
+      const [, now, startsBy] = repository.findUpcomingSession.mock.calls[0];
+      expect(startsBy.getTime() - now.getTime()).toBe(10 * 60_000);
+    });
+
+    it('names the other person, from either side', async () => {
+      repository.findUpcomingSession.mockResolvedValue(row);
+
+      await expect(service.findUpcomingSession(ownerId)).resolves.toEqual(
+        expect.objectContaining({
+          role: 'advisee',
+          counterpartName: 'อารยา ส.',
+          serviceName: 'วางแผนภาษี',
+        }),
+      );
+      await expect(service.findUpcomingSession(row.advisorId)).resolves.toEqual(
+        expect.objectContaining({
+          role: 'advisor',
+          counterpartName: 'ณัฐพงศ์ ด.',
+        }),
+      );
+    });
+  });
+
+  describe('findOne', () => {
+    it("returns one of the owner's notifications", async () => {
+      repository.findOneForOwner.mockResolvedValue(makeNotification());
+
+      await expect(
+        service.findOne(ownerId, '33333333-3333-3333-3333-333333333333'),
+      ).resolves.toEqual(
+        expect.objectContaining({ id: '33333333-3333-3333-3333-333333333333' }),
+      );
+      expect(repository.findOneForOwner).toHaveBeenCalledWith(
+        '33333333-3333-3333-3333-333333333333',
+        ownerId,
+      );
+    });
+
+    it("is a 404 for someone else's or a missing notification", async () => {
+      repository.findOneForOwner.mockResolvedValue(undefined);
+      await expect(
+        service.findOne(ownerId, '33333333-3333-3333-3333-333333333333'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   describe('markRead', () => {
@@ -204,6 +280,8 @@ describe('NotificationsService', () => {
         en: { title: 'Booking confirmed', content: 'Tomorrow 10:00' },
         resourceId: '44444444-4444-4444-4444-444444444444',
       });
+
+      expect(realtime.announce).toHaveBeenCalledWith(ownerId);
 
       expect(push.sendToUser).toHaveBeenCalledWith(ownerId, {
         title: 'จองสำเร็จ',

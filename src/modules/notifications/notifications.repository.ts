@@ -1,15 +1,45 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, getColumns, lt, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getColumns,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { saveNotificationTranslations } from '@/common/i18n/content-translations';
 import {
   notificationContent,
   notificationTitle,
+  serviceName,
 } from '@/common/i18n/localized-columns';
 import type { KeysetCursor } from '@/common/pagination/cursor-pagination.dto';
 import { EntityRepository } from '@/common/repositories/entity.repository';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
-import { notifications } from '@/database/schema';
-import type { Notification, NotifyInput } from './notifications.types';
+import {
+  notifications,
+  serviceAppointments,
+  services,
+  user,
+} from '@/database/schema';
+import type {
+  Notification,
+  ClaimedReminder,
+  NotifyInput,
+  UpcomingSessionRow,
+} from './notifications.types';
+
+/** The two people of an appointment, read from the same `user` table. */
+const advisor = alias(user, 'advisor');
+const advisee = alias(user, 'advisee');
 
 /** The transaction a notification and its translations are written in. */
 type Transaction = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0];
@@ -73,6 +103,98 @@ export class NotificationsRepository extends EntityRepository<
       )
       .orderBy(desc(notifications.createdAt), desc(notifications.id))
       .limit(limit);
+  }
+
+  /** One notification in the request's language. `undefined` if it does not belong to the owner. */
+  async findOneForOwner(
+    id: string,
+    ownerId: string,
+  ): Promise<Notification | undefined> {
+    const [row] = await this.db
+      .select(localizedNotification())
+      .from(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.ownerId, ownerId)))
+      .limit(1);
+    return row;
+  }
+
+  /**
+   * The user's earliest session, as advisee or advisor, that is booked or in progress, starts by
+   * `startsBy`, and has not ended at `now`. The service name is in the request's language.
+   */
+  async findUpcomingSession(
+    userId: string,
+    now: Date,
+    startsBy: Date,
+  ): Promise<UpcomingSessionRow | undefined> {
+    const [row] = await this.db
+      .select({
+        bookingId: serviceAppointments.id,
+        startTime: serviceAppointments.startTime,
+        endTime: serviceAppointments.endTime,
+        state: serviceAppointments.state,
+        advisorId: serviceAppointments.advisorId,
+        adviseeId: serviceAppointments.adviseeId,
+        serviceName: serviceName(),
+        advisorName: advisor.displayName,
+        adviseeName: advisee.displayName,
+      })
+      .from(serviceAppointments)
+      .innerJoin(services, eq(services.id, serviceAppointments.serviceId))
+      .innerJoin(advisor, eq(advisor.id, serviceAppointments.advisorId))
+      .innerJoin(advisee, eq(advisee.id, serviceAppointments.adviseeId))
+      .where(
+        and(
+          or(
+            eq(serviceAppointments.adviseeId, userId),
+            eq(serviceAppointments.advisorId, userId),
+          ),
+          inArray(serviceAppointments.state, ['BOOKED', 'IN_PROGRESS']),
+          lte(serviceAppointments.startTime, startsBy),
+          gt(serviceAppointments.endTime, now),
+        ),
+      )
+      .orderBy(asc(serviceAppointments.startTime))
+      .limit(1);
+    return row;
+  }
+
+  /**
+   * Marks every booked session that starts between `now` and `startsBy` and has not been reminded
+   * yet as reminded, and returns them. The mark and the read are one statement, so two API instances
+   * running at once never claim, and so never remind, the same session twice.
+   */
+  claimDueReminders(now: Date, startsBy: Date): Promise<ClaimedReminder[]> {
+    return this.db
+      .update(serviceAppointments)
+      .set({ sessionReminderSentAt: now })
+      .where(
+        and(
+          eq(serviceAppointments.state, 'BOOKED'),
+          isNull(serviceAppointments.sessionReminderSentAt),
+          gt(serviceAppointments.startTime, now),
+          lte(serviceAppointments.startTime, startsBy),
+        ),
+      )
+      .returning({
+        bookingId: serviceAppointments.id,
+        serviceId: serviceAppointments.serviceId,
+        advisorId: serviceAppointments.advisorId,
+        adviseeId: serviceAppointments.adviseeId,
+        startTime: serviceAppointments.startTime,
+      });
+  }
+
+  /** Service names as stored, by id. */
+  async findServiceNames(
+    serviceIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (serviceIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({ id: services.id, name: services.name })
+      .from(services)
+      .where(inArray(services.id, [...serviceIds]));
+    return new Map(rows.map((row) => [row.id, row.name]));
   }
 
   countUnread(ownerId: string): Promise<number> {

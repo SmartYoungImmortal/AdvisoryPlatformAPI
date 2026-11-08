@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PaymentService, couponDiscount } from './payment.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 describe('couponDiscount', () => {
   it('takes a share of the price, rounded to the satang', () => {
@@ -70,7 +71,10 @@ const mockInvoicesRepository = {
   findForBooking: jest.fn(),
   countForAdvisee: jest.fn(),
   findAppointmentIds: jest.fn().mockResolvedValue([]),
+  findAdviseeId: jest.fn(),
 };
+
+const mockNotificationsService = { notify: jest.fn() };
 
 /** A receipt row as the repository returns it; each test overrides what it is about. */
 function receiptRow(
@@ -165,6 +169,7 @@ describe('PaymentService', () => {
         },
         { provide: DRIZZLE, useValue: mockDrizzleDB },
         { provide: BookingsService, useValue: mockBookingsService },
+        { provide: NotificationsService, useValue: mockNotificationsService },
         { provide: 'PaymentConfig', useValue: mockPaymentConfig },
       ],
     }).compile();
@@ -954,6 +959,66 @@ describe('PaymentService', () => {
 
   describe('paymentCallback', () => {
     const invoiceId = 'uuid-invoice-1';
+
+    describe('the payment notification', () => {
+      beforeEach(() => {
+        mockNotificationsService.notify.mockReset();
+        mockInvoicesRepository.findAppointmentIds.mockResolvedValue([]);
+        mockInvoicesRepository.findAdviseeId.mockResolvedValue('advisee-1');
+        mockPaymentProvider.getChargeStatus.mockResolvedValue({
+          status: 'success',
+        });
+      });
+
+      it('tells the advisee the first time a success is recorded', async () => {
+        mockInvoicesRepository.findById.mockResolvedValue({
+          id: invoiceId,
+          providerChargeId: 'ch_123',
+          paidAt: null,
+          amountSatang: 126_000,
+        });
+
+        await service.paymentCallback(mockUser, invoiceId);
+
+        expect(mockNotificationsService.notify).toHaveBeenCalledWith({
+          ownerId: 'advisee-1',
+          type: 'PAYMENT_SUCCEEDED',
+          title: 'ชำระเงินสำเร็จ',
+          content: '฿1,260',
+          en: { title: 'Payment successful', content: '฿1,260' },
+          resourceId: invoiceId,
+        });
+      });
+
+      it('says nothing when the outcome was already recorded', async () => {
+        mockInvoicesRepository.findById.mockResolvedValue({
+          id: invoiceId,
+          providerChargeId: 'ch_123',
+          paidAt: new Date(),
+          amountSatang: 126_000,
+        });
+
+        await service.paymentCallback(mockUser, invoiceId);
+
+        expect(mockNotificationsService.notify).not.toHaveBeenCalled();
+      });
+
+      it('keeps the payment when the notification fails', async () => {
+        mockInvoicesRepository.findById.mockResolvedValue({
+          id: invoiceId,
+          providerChargeId: 'ch_123',
+          paidAt: null,
+          amountSatang: 126_000,
+        });
+        mockNotificationsService.notify.mockRejectedValue(new Error('down'));
+
+        await expect(
+          service.paymentCallback(mockUser, invoiceId),
+        ).resolves.toEqual(
+          expect.objectContaining({ url: expect.any(String) as string }),
+        );
+      });
+    });
 
     it('should return correct frontend redirect URL on success (Happy Path)', async () => {
       mockInvoicesRepository.findById.mockResolvedValue({
