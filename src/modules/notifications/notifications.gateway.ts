@@ -56,7 +56,7 @@ export class NotificationsGateway
       const session = await this.auth.api.getSession({
         headers: fromNodeHeaders(client.handshake.headers),
       });
-      if (!session || session.user.status !== 'ACTIVE') {
+      if (session?.user.status !== 'ACTIVE') {
         next(new Error(NOTIFICATION_MESSAGES.socketUnauthorized));
         return;
       }

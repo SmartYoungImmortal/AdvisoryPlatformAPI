@@ -34,6 +34,12 @@ export type OffPlatformFlagOutcome = (typeof FLAG_OUTCOMES)[number];
 export const FLAG_CONFIRMED_STATUS =
   'CONFIRMED' satisfies OffPlatformFlagOutcome;
 
+/** "1 penalty point was" / "2 penalty points were" in the English warning. */
+const penaltyPoints = (points: number) =>
+  points === 1
+    ? `${points} penalty point was`
+    : `${points} penalty points were`;
+
 /**
  * The warning a user gets when an admin confirms one of their messages asked to continue outside
  * the platform; it names the penalty points when there are any.
@@ -48,7 +54,7 @@ export const POLICY_WARNING_NOTIFICATION = {
     title: 'A warning from the Advisory team',
     content: (points: number) =>
       points > 0
-        ? `Your message asked to continue outside Advisory, so ${points} penalty ${points === 1 ? 'point was' : 'points were'} added.`
+        ? `Your message asked to continue outside Advisory, so ${penaltyPoints(points)} added.`
         : 'Your message asked to continue outside Advisory. Please keep chats and payments on Advisory.',
   },
 } as const;

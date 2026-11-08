@@ -170,12 +170,11 @@ export class ScreeningRepository extends EntityRepository<
           ),
         )
         .returning({ adviseeId: screeningRequests.adviseeId });
-      for (const { adviseeId } of expired) {
-        await this.insertNotification(tx, {
-          ...expiredNotice,
-          ownerId: adviseeId,
-        });
-      }
+      await Promise.all(
+        expired.map(({ adviseeId }) =>
+          this.insertNotification(tx, { ...expiredNotice, ownerId: adviseeId }),
+        ),
+      );
 
       return {
         questions: created,
