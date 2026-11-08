@@ -57,6 +57,8 @@ const MODEL_DAILY_MAX = 1000;
 const MODEL_TIMEOUT_MS = 20_000;
 /** Matching's default model, kept cheap; `MATCHING_MODEL` raises it. */
 const DEFAULT_MODEL = 'claude-haiku-5-5';
+/** The word-matched services named to the model as a hint, most shared words first. */
+const HINT_SERVICES = 12;
 /** Room for a short think at low effort and an answer of four one-line reasons. */
 const CHAT_MAX_TOKENS = 2000;
 
@@ -332,6 +334,18 @@ export class MatchingService {
     catalogue: readonly ListedService[],
   ): Promise<MatchingChatResponseDto> {
     const { text, ids } = compactCatalogue(catalogue);
+    // The services that share the person's own words, as a hint after the
+    // cached catalogue (so the cache holds): in a catalogue of hundreds the
+    // model at low effort passed over a service named word for word after
+    // the question.
+    const refOf = new Map([...ids].map(([ref, id]) => [id, ref]));
+    const said = recentTurns(turns)
+      .filter((turn) => turn.role === 'user')
+      .map((turn) => turn.content)
+      .join('\n');
+    const hinted = keywordScores(said, catalogue)
+      .slice(0, HINT_SERVICES)
+      .flatMap(({ entry }) => refOf.get(entry.id) ?? []);
     const response = await model.messages.create({
       model: this.config.get<string>(ENV_KEYS.MATCHING_MODEL) ?? DEFAULT_MODEL,
       max_tokens: CHAT_MAX_TOKENS,
@@ -342,6 +356,14 @@ export class MatchingService {
           text: `Catalogue:\n${text}`,
           cache_control: { type: 'ephemeral' },
         },
+        ...(hinted.length > 0
+          ? [
+              {
+                type: 'text' as const,
+                text: `Services that share words with what the person said, most first: ${hinted.join(', ')}. Weigh these first, but choose from the whole catalogue.`,
+              },
+            ]
+          : []),
       ],
       // The earlier assistant turns are this route's own replies, as text.
       messages: recentTurns(turns).map(({ role, content }) => ({
@@ -498,12 +520,17 @@ export function readAnswer(
 }
 
 /** The problem's words against each service's words, the most found first. */
-export function byKeywords(
+/** Every service that shares a word with the problem, the most shared first. */
+function keywordScores<T extends CatalogueEntry>(
   problem: string,
-  catalogue: readonly CatalogueEntry[],
-): MatchingResponseDto {
+  catalogue: readonly T[],
+): {
+  readonly entry: T;
+  readonly matched: string[];
+  readonly weight: number;
+}[] {
   const pieces = piecesOf(problem);
-  const scored = catalogue
+  return catalogue
     .map((entry) => {
       const haystack =
         `${entry.name} ${entry.description} ${entry.category}`.toLowerCase();
@@ -516,6 +543,13 @@ export function byKeywords(
     })
     .filter((candidate) => candidate.weight > 0)
     .sort((a, b) => b.weight - a.weight);
+}
+
+export function byKeywords(
+  problem: string,
+  catalogue: readonly CatalogueEntry[],
+): MatchingResponseDto {
+  const scored = keywordScores(problem, catalogue);
   return {
     mode: 'keyword',
     understanding: null,

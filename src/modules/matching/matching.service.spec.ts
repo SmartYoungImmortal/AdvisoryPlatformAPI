@@ -315,6 +315,11 @@ describe('MatchingService.chat', () => {
       '"id":"s1","n":"วางแผนภาษีสำหรับฟรีแลนซ์","c":"การเงินและภาษี, กฎหมายและสัญญา","p":1200,"m":60,"r":4.8,"t":15',
     );
     expect(system[1]?.text).not.toContain(TAX);
+    // The person's words name the tax service (s1), so it is hinted after the
+    // cached catalogue, uncached itself.
+    expect(system[2]?.text).toContain('s1');
+    expect(system[2]?.text).not.toContain('s2');
+    expect(system[2]).not.toHaveProperty('cache_control');
   });
 
   it('returns a clarifying question with no search', async () => {
