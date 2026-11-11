@@ -1,7 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -11,6 +13,10 @@ import {
   Min,
 } from 'class-validator';
 import { OffsetPaginationDto } from '@/common/pagination/offset-pagination.dto';
+import {
+  PUBLIC_SERVICE_SORTS,
+  type PublicServiceSort,
+} from '@/modules/advisor-services/advisor-services.constants';
 
 export class PublicServiceQueryDto extends OffsetPaginationDto {
   @IsOptional()
@@ -49,4 +55,23 @@ export class PublicServiceQueryDto extends OffsetPaginationDto {
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   availableOn?: string;
+
+  /**
+   * Only services whose advisor's average review score, rounded to one decimal as the rating
+   * summary shows it, is at least this. An advisor with no reviews has no average, so their
+   * services are left out once this is set above 0.
+   */
+  @ApiPropertyOptional({ minimum: 0, maximum: 5, example: 4.5 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 1 })
+  @Min(0)
+  @Max(5)
+  minRating?: number;
+
+  /** The order of the list. Left out, the list is oldest first. */
+  @ApiPropertyOptional({ enum: PUBLIC_SERVICE_SORTS })
+  @IsOptional()
+  @IsIn(PUBLIC_SERVICE_SORTS)
+  sort?: PublicServiceSort;
 }
