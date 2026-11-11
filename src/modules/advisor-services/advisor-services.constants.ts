@@ -22,6 +22,18 @@ export const ADVISOR_SERVICE_MESSAGES = {
     'This service has consultation or screening history. Unpublish it instead.',
 } as const;
 
+/**
+ * The orders the public service list can be read in. Leaving `sort` out keeps the list's own
+ * order, oldest first.
+ */
+export const PUBLIC_SERVICE_SORTS = [
+  'newest',
+  'rating',
+  'price_asc',
+  'price_desc',
+] as const;
+export type PublicServiceSort = (typeof PUBLIC_SERVICE_SORTS)[number];
+
 /** How many of the advisor's other services a service's page may be set to show. */
 export const MAX_RELATED_SERVICES = 3;
 

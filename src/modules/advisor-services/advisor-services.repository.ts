@@ -42,9 +42,11 @@ import { escapeLike } from '@/common/utils/escape-like';
 import { DRIZZLE, type DrizzleDB } from '@/database/database.module';
 import {
   availabilityProfiles,
+  serviceAppointments,
   serviceCategories,
   serviceImages,
   servicePackages,
+  serviceReviews,
   serviceScreeningQuestions,
   services,
   user,
@@ -52,6 +54,7 @@ import {
 import {
   ADVISOR_SERVICE_MESSAGES,
   MAX_SERVICE_IMAGES,
+  type PublicServiceSort,
 } from './advisor-services.constants';
 import type { PublicServiceDocument } from './advisor-services.types';
 import type {
@@ -284,7 +287,7 @@ export class AdvisorServicesRepository extends EntityRepository<
     options: { limit: number; offset: number },
   ): Promise<PublicServiceDocument[]> {
     return await this.selectPublished(query)
-      .orderBy(asc(services.createdAt), asc(services.id))
+      .orderBy(...publishedOrder(query.sort))
       .limit(options.limit)
       .offset(options.offset);
   }
@@ -604,7 +607,42 @@ export class AdvisorServicesRepository extends EntityRepository<
       query?.maxPriceSatang !== undefined
         ? lte(services.priceSatang, query.maxPriceSatang)
         : undefined,
+      query?.minRating
+        ? sql`${advisorAverageRating()} >= ${query.minRating}`
+        : undefined,
       textPredicate,
     ) as SQL;
+  }
+}
+
+/**
+ * The service's advisor's average review score, rounded to one decimal the way the rating
+ * summary rounds it, so a filter at 4.5 keeps exactly the advisors shown as 4.5 or more.
+ * Null when the advisor has no reviews yet.
+ */
+function advisorAverageRating(): SQL<string | null> {
+  return sql<string | null>`(
+    select round(avg(${serviceReviews.stars}), 1)
+    from ${serviceReviews}
+    inner join ${serviceAppointments}
+      on ${serviceAppointments.id} = ${serviceReviews.appointmentId}
+    where ${serviceAppointments.advisorId} = ${services.advisorId}
+  )`;
+}
+
+/** The list's order. Every order ends on the creation time and then the id, so pages never overlap. */
+function publishedOrder(sort?: PublicServiceSort): SQL[] {
+  const oldestFirst = [asc(services.createdAt), asc(services.id)];
+  switch (sort) {
+    case 'newest':
+      return [desc(services.createdAt), desc(services.id)];
+    case 'price_asc':
+      return [asc(services.priceSatang), ...oldestFirst];
+    case 'price_desc':
+      return [desc(services.priceSatang), ...oldestFirst];
+    case 'rating':
+      return [sql`${advisorAverageRating()} desc nulls last`, ...oldestFirst];
+    default:
+      return oldestFirst;
   }
 }
