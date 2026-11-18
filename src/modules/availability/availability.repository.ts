@@ -6,6 +6,7 @@ import {
   inArray,
   isNull,
   lt,
+  notExists,
   type InferSelectModel,
 } from 'drizzle-orm';
 import { isVerifiedAdvisor } from '@/common/authorization/verified-advisor.predicate';
@@ -21,8 +22,10 @@ import {
   servicePackages,
   serviceScreeningQuestions,
   services,
+  trialRequests,
   user,
 } from '@/database/schema';
+import { liveTrialBooking } from '@/modules/trials/trial-bookings';
 import type {
   BlockedPeriodDto,
   SpecificWindowDto,
@@ -432,6 +435,28 @@ export class AvailabilityRepository {
           eq(screeningRequests.serviceId, serviceId),
           eq(screeningRequests.adviseeId, adviseeId),
           eq(screeningRequests.status, 'ACCEPTED'),
+        ),
+      )
+      .limit(1);
+    return request !== undefined;
+  }
+
+  /** Whether the Advisee's free trial of the Service was granted and is not booked yet. */
+  async hasUsableTrial(serviceId: string, adviseeId: string): Promise<boolean> {
+    const [request] = await this.db
+      .select({ id: trialRequests.id })
+      .from(trialRequests)
+      .where(
+        and(
+          eq(trialRequests.serviceId, serviceId),
+          eq(trialRequests.adviseeId, adviseeId),
+          eq(trialRequests.status, 'GRANTED'),
+          notExists(
+            this.db
+              .select({ id: serviceAppointments.id })
+              .from(serviceAppointments)
+              .where(liveTrialBooking(serviceId, adviseeId)),
+          ),
         ),
       )
       .limit(1);

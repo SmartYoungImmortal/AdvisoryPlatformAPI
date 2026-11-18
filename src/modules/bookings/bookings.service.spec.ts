@@ -167,6 +167,66 @@ describe('BookingsService', () => {
       );
     });
 
+    it('books a granted free trial at once, with no package, and tells both people', async () => {
+      repository.createWithSchedulingLock.mockImplementation(
+        async (_advisorId, values) => makeAppointment(await values()),
+      );
+
+      const booking = await service.create(advisee, {
+        serviceId,
+        startTime: startTime.toISOString(),
+        trial: true,
+      });
+
+      expect(availability.findSlotAt).toHaveBeenCalledWith(
+        serviceId,
+        startTime,
+        advisee.id,
+        undefined,
+        true,
+      );
+      expect(booking).toEqual(
+        expect.objectContaining({
+          type: 'TRIAL',
+          state: 'BOOKED',
+          packageId: null,
+        }),
+      );
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisee.id,
+          type: 'BOOKING_CONFIRMED',
+        }),
+      );
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: advisor.id,
+          type: 'BOOKING_RECEIVED',
+        }),
+      );
+    });
+
+    it('leaves a paid booking to the payment to confirm', async () => {
+      repository.createWithSchedulingLock.mockImplementation(
+        async (_advisorId, values) => makeAppointment(await values()),
+      );
+
+      const booking = await service.create(advisee, {
+        serviceId,
+        startTime: startTime.toISOString(),
+      });
+
+      expect(booking.type).toBe('CONSULTATION');
+      expect(availability.findSlotAt).toHaveBeenCalledWith(
+        serviceId,
+        startTime,
+        advisee.id,
+        undefined,
+        false,
+      );
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
     it('reports an unpublished or missing service as not found', async () => {
       repository.findPublishedService.mockResolvedValue(undefined);
 
@@ -658,6 +718,23 @@ describe('BookingsService', () => {
       });
 
       expect(booking.state).toBe('PENDING_PAYMENT');
+    });
+
+    it('keeps a moved free trial a free trial', async () => {
+      const original = makeAppointment({ type: 'TRIAL', state: 'BOOKED' });
+      repository.findForAdvisee.mockResolvedValue(original);
+      repository.rescheduleWithSchedulingLock.mockImplementation(
+        async (_advisorId, _bookingId, _states, _cancellation, values) =>
+          makeAppointment(await values(original)),
+      );
+
+      const booking = await service.reschedule(advisee, bookingId, {
+        startTime: newStart.toISOString(),
+      });
+
+      expect(booking).toEqual(
+        expect.objectContaining({ type: 'TRIAL', state: 'BOOKED' }),
+      );
     });
 
     it('hands the original chat room on to the replacement', async () => {

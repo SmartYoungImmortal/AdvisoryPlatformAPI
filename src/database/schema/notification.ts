@@ -36,6 +36,10 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'REVIEW_REPLIED',
   'REPORT_RESOLVED',
   'PAYMENT_FAILED',
+  // Free trial: the Advisor's when an Advisee asks, the Advisee's when it is granted or declined.
+  // `resourceId` is the chat room the request card is in.
+  'TRIAL_REQUESTED',
+  'TRIAL_DECIDED',
 ]);
 
 /**

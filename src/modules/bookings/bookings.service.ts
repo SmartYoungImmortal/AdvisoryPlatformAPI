@@ -63,6 +63,7 @@ type SchedulingRequest =
       readonly adviseeId: string;
       readonly startTime: Date;
       readonly packageId?: string | null;
+      readonly trial: boolean;
     }
   | {
       readonly kind: 'replacement';
@@ -100,9 +101,12 @@ export class BookingsService {
           adviseeId: user.id,
           startTime,
           packageId: dto.packageId,
+          trial: dto.trial === true,
         }),
       ),
     );
+    // A free trial has nothing to pay, so it is confirmed now rather than by the payment.
+    if (appointment.type === 'TRIAL') await this.notifyConfirmed(appointment);
     return new BookingResponseDto(appointment);
   }
 
@@ -550,14 +554,26 @@ export class BookingsService {
             request.startTime,
             adviseeId,
             packageId,
+            request.trial,
           );
     if (!slot) throw new BadRequestException(BOOKING_MESSAGES.unavailable);
     const global = await this.availability.getGlobal(advisorId);
+    // A replacement stays what the original was; a new free trial is booked without payment.
+    const type =
+      request.kind === 'replacement'
+        ? request.original.type
+        : request.trial
+          ? 'TRIAL'
+          : 'CONSULTATION';
     return {
       serviceId,
       packageId: packageId ?? null,
       advisorId,
       adviseeId,
+      type,
+      ...(request.kind === 'new' && type === 'TRIAL'
+        ? { state: 'BOOKED' as const }
+        : {}),
       startTime: slot.startTime,
       endTime: slot.endTime,
       unavailableUntil: new Date(

@@ -12,4 +12,7 @@ export const AVAILABILITY_MESSAGES = {
   unavailable: 'Timeslot is not available',
   screeningRequired: 'Accepted screening is required before viewing slots',
   packageNotFound: 'Package not found on this service',
+  trialNotOffered: 'This service does not offer a free trial',
+  trialNotGranted: 'This needs a granted free trial that is not booked yet',
+  trialWithPackage: 'A free trial is booked without a package',
 } as const;

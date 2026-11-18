@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsInt,
   IsNotEmpty,
@@ -138,6 +139,18 @@ export class SlotQueryDto extends SlotRangeQueryDto {
   @IsOptional()
   @IsUUID()
   packageId?: string;
+
+  /**
+   * The caller's granted free trial: slots at the service's trial length, open whether or not the
+   * service screens. Only for an Advisee whose trial was granted and is not booked yet.
+   */
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Transform(
+    ({ value }: { value: unknown }) => value === true || value === 'true',
+  )
+  @IsBoolean()
+  trial?: boolean;
 }
 
 export class AvailabilitySlotResponseDto {

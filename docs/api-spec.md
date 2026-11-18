@@ -693,7 +693,9 @@ Client-to-server events:
 
 `message` is trimmed, must not be blank, and is limited to 4,000 characters. The server persists it
 before emitting `chat:message` to clients currently joined to `chatRoomId`. A read update emits
-`chat:read` to the same joined clients. Socket errors use the standard Socket.IO `exception` event
+`chat:read` to the same joined clients. A free-trial request sent, granted or declined in the room
+emits `chat:trial` with the request (as `GET /chat/rooms/:chatRoomId/trial-requests` returns it).
+Socket errors use the standard Socket.IO `exception` event
 with `{ statusCode, message }`; handshake failures use `connect_error` with that object in `data`.
 
 Room subscriptions are connection-local. After reconnecting, a client lists its rooms, emits
@@ -720,9 +722,14 @@ The implemented scheduling contract uses these routes, all under the standard re
   For a screened Service, the Advisee must have an `ACCEPTED` screening request before this route
   exposes slots. The inclusive date range is bounded to 90 days. Blocked periods, existing
   availability-blocking appointments, global notice/horizon, service duration, and both global
-  and per-Service daily consultation limits are applied.
+  and per-Service daily consultation limits are applied. With `trial=true` the slots are cut to
+  the Service's trial length and the screening gate does not apply; instead the Advisee needs a
+  `GRANTED` free-trial request whose trial is not booked yet (a cancelled trial booking gives it
+  back). A trial is never combined with `packageId`.
 - `POST /api/v1/bookings` accepts `{ serviceId, startTime }` from an authenticated Advisee and
-  creates a `PENDING_PAYMENT` consultation appointment. It rejects self-booking and any time that
+  creates a `PENDING_PAYMENT` consultation appointment. With `trial: true` it books the Advisee's
+  granted free trial instead: a `TRIAL` appointment at the trial length, `BOOKED` at once with no
+  invoice, and both people are notified as for a paid booking. A rescheduled trial stays a trial. It rejects self-booking and any time that
   is not currently a derived slot. The Advisor-wide PostgreSQL exclusion constraint is the final
   atomic overlap guard and its violation is returned as `409 Timeslot already booked`.
   A client must not treat `409` as the usual outcome of losing a race: because booking creation

@@ -191,10 +191,17 @@ erDiagram
         datetimetz createdAt
     }
 
-    TRIAL_GRANTS {
-        uuid serviceId fk,pk
-        uuid adviseeId fk,pk
-        datetimetz grantedAt
+    TRIAL_REQUESTS {
+        uuid trialRequestId pk
+        uuid serviceId fk
+        uuid adviseeId fk
+        %% the chat room the request opened or joined; its card is there
+        uuid chatRoomId fk
+        %% enum: PENDING, GRANTED, DECLINED
+        enum status
+        text decisionReason
+        datetimetz createdAt
+        datetimetz decidedAt
     }
 
 
@@ -407,13 +414,14 @@ erDiagram
     USERS ||--o{ SCREENING_REQUESTS : "requests"
     SCREENING_REQUESTS ||--o{ SCREENING_ANSWERS : "contains"
     SERVICE_SCREENING_QUESTIONS ||--o{ SCREENING_ANSWERS : "answered by"
-    SERVICES ||--o{ TRIAL_GRANTS : "grants trial for"
-    USERS ||--o{ TRIAL_GRANTS : "receives"
+    SERVICES ||--o{ TRIAL_REQUESTS : "offers trial for"
+    USERS ||--o{ TRIAL_REQUESTS : "asks"
 
     SERVICES ||--o{ SERVICE_APPOINTMENTS : "booked as"
     ADVISOR_PROFILES ||--o{ SERVICE_APPOINTMENTS : "provides"
     USERS ||--o{ SERVICE_APPOINTMENTS : "books"
     CHAT_ROOMS ||--o| SERVICE_APPOINTMENTS : "hosts"
+    CHAT_ROOMS ||--o{ TRIAL_REQUESTS : "shows"
     SERVICE_APPOINTMENTS ||--o| SERVICE_REVIEWS : "reviewed by"
 
     SERVICE_APPOINTMENTS_ON_SERVICE_INVOICES }|--|| SERVICE_INVOICES : "paid by"

@@ -8,6 +8,7 @@ import {
   paginateQuery,
   type PaginatedResult,
 } from '@/common/pagination/offset-pagination.dto';
+import { isUniqueViolation } from '@/common/utils/unique-violation';
 import type { SessionUser } from '@/modules/auth/auth.config';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { AdvisorScreeningRequestDetailResponseDto } from './dtos/advisor-screening-request-detail-response.dto';
@@ -361,19 +362,4 @@ export class ScreeningService {
     }
     return answers;
   }
-}
-
-/**
- * True if the error is a Postgres unique violation (code 23505), either directly or in its `cause`.
- */
-function isUniqueViolation(error: unknown): boolean {
-  const code = (value: unknown): unknown =>
-    typeof value === 'object' && value !== null && 'code' in value
-      ? value.code
-      : undefined;
-  const cause =
-    typeof error === 'object' && error !== null && 'cause' in error
-      ? error.cause
-      : undefined;
-  return code(error) === '23505' || code(cause) === '23505';
 }

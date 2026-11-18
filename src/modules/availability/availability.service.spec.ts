@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { AVAILABILITY_MESSAGES } from './availability.constants';
 import type { AvailabilityRepository } from './availability.repository';
 import { AvailabilityService } from './availability.service';
 import type { AvailabilityProfileDetails } from './availability.types';
@@ -26,6 +27,7 @@ const otherServiceId = '77777777-7777-7777-7777-777777777777';
 function context(
   overrides: {
     screeningRequired?: boolean;
+    trialMinutes?: number;
     globalLimit?: number | null;
     serviceLimit?: number | null;
     timezone?: string;
@@ -51,8 +53,8 @@ function context(
       dailyConsultationLimitMinutes: overrides.serviceLimit ?? null,
       isPublished: true,
       screeningRequired: overrides.screeningRequired ?? false,
-      trialEnabled: false,
-      trialDurationMinutes: null,
+      trialEnabled: overrides.trialMinutes !== undefined,
+      trialDurationMinutes: overrides.trialMinutes ?? null,
       createdAt: timestamp,
       modifiedAt: timestamp,
     },
@@ -166,6 +168,7 @@ type AvailabilityRepositoryMock = jest.Mocked<
     | 'findBlockingAppointmentsForAdvisors'
     | 'hasAcceptedScreening'
     | 'hasScreeningQuestions'
+    | 'hasUsableTrial'
     | 'findGlobal'
     | 'upsertGlobal'
     | 'findProfiles'
@@ -188,6 +191,7 @@ function makeService(): {
     findBlockingAppointmentsForAdvisors: jest.fn().mockResolvedValue([]),
     hasAcceptedScreening: jest.fn().mockResolvedValue(true),
     hasScreeningQuestions: jest.fn().mockResolvedValue(true),
+    hasUsableTrial: jest.fn().mockResolvedValue(true),
     findGlobal: jest.fn(),
     upsertGlobal: jest.fn(),
     findProfiles: jest.fn(),
@@ -911,6 +915,109 @@ describe('AvailabilityService.findSlotAt', () => {
         serviceId,
         new Date('2026-09-07T02:00:00.000Z'),
         adviseeId,
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('AvailabilityService free trial', () => {
+  let service: AvailabilityService;
+  let repository: AvailabilityRepositoryMock;
+  const range = { from: '2026-09-07', to: '2026-09-07', trial: true };
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00.000Z'));
+    ({ service, repository } = makeService());
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('cuts a granted trial’s slots to the trial length, past the screening gate', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ screeningRequired: true, trialMinutes: 15 }),
+    );
+    repository.hasAcceptedScreening.mockResolvedValue(false);
+
+    const slots = await service.findSlots(serviceId, range, adviseeId);
+
+    expect(repository.hasUsableTrial).toHaveBeenCalledWith(
+      serviceId,
+      adviseeId,
+    );
+    expect(repository.hasAcceptedScreening).not.toHaveBeenCalled();
+    expect(slots.length).toBeGreaterThan(0);
+    expect(
+      slots.every(
+        (slot) =>
+          slot.endTime.getTime() - slot.startTime.getTime() === 15 * 60000,
+      ),
+    ).toBe(true);
+    await expect(
+      service.findSlotAt(serviceId, slots[0].startTime, adviseeId, null, true),
+    ).resolves.toEqual(slots[0]);
+  });
+
+  it('refuses a service with no trial', async () => {
+    repository.schedulingContext.mockResolvedValue(context());
+
+    await expect(
+      service.findSlots(serviceId, range, adviseeId),
+    ).rejects.toThrow(AVAILABILITY_MESSAGES.trialNotOffered);
+  });
+
+  it('refuses a trial asked for with a package', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ trialMinutes: 15 }),
+    );
+
+    await expect(
+      service.findSlots(
+        serviceId,
+        { ...range, packageId: '99999999-9999-4999-8999-999999999999' },
+        adviseeId,
+      ),
+    ).rejects.toThrow(AVAILABILITY_MESSAGES.trialWithPackage);
+  });
+
+  it('opens trial slots only to an advisee whose trial is granted and not booked', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ trialMinutes: 15 }),
+    );
+    repository.hasUsableTrial.mockResolvedValue(false);
+
+    await expect(
+      service.findSlots(serviceId, range, adviseeId),
+    ).rejects.toThrow(AVAILABILITY_MESSAGES.trialNotGranted);
+    await expect(service.findSlots(serviceId, range, null)).rejects.toThrow(
+      AVAILABILITY_MESSAGES.trialNotGranted,
+    );
+    expect(repository.findBlockingAppointments).not.toHaveBeenCalled();
+  });
+
+  it('moves a booked trial without the screening gate', async () => {
+    repository.schedulingContext.mockResolvedValue(
+      context({ screeningRequired: true, trialMinutes: 15 }),
+    );
+    repository.hasAcceptedScreening.mockResolvedValue(false);
+    const trial = {
+      ...appointment('2026-09-07T02:00:00Z', '2026-09-07T02:15:00Z'),
+      type: 'TRIAL' as const,
+    };
+
+    const slots = await service.findRescheduleSlots(
+      trial,
+      { from: '2026-09-07', to: '2026-09-07' },
+      true,
+    );
+
+    expect(slots.length).toBeGreaterThan(0);
+    expect(repository.hasAcceptedScreening).not.toHaveBeenCalled();
+    // A paid booking of the same screened service is still gated.
+    await expect(
+      service.findRescheduleSlots(
+        { ...trial, type: 'CONSULTATION' },
+        { from: '2026-09-07', to: '2026-09-07' },
+        true,
       ),
     ).rejects.toThrow(BadRequestException);
   });

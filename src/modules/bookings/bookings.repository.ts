@@ -352,7 +352,11 @@ function transitionWhere(
   ) as SQL;
 }
 
-function lockAdvisorSchedule(
+/**
+ * The per-Advisor lock every booking write takes. A free-trial request takes it
+ * too, so the chat room it opens cannot race a booking's (`openServiceChatRoom`).
+ */
+export function lockAdvisorSchedule(
   tx: Transaction,
   advisorId: string,
 ): Promise<unknown> {

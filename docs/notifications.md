@@ -67,13 +67,15 @@ notification only informs.
 A card declined **during checkout** does not send `PAYMENT_FAILED`: the advisee sees the error on
 the checkout page at that moment, and the invoice can still be paid.
 
-### Screening
+### Screening and free trial
 
 | Type | Who gets it | When | Thai title | Content | `resourceId` | Button |
 |---|---|---|---|---|---|---|
 | `SCREENING_REQUESTED` | Advisor | An advisee sends screening answers | มีคำขอคัดกรองใหม่ | Name ส่งคำตอบคัดกรอง N ข้อ | Screening request | The request |
 | `SCREENING_DECIDED` | Advisee | The advisor accepts or declines | อนุมัติคำขอปรึกษาแล้ว / ที่ปรึกษาคนนี้ยังไม่ว่าง | Accepted: advisor's name, "book a time now". Declined: the service name | Service | The service |
 | `SCREENING_EXPIRED` | Each advisee whose acceptance expired | The advisor replaces the service's questions | คำถามคัดกรองมีการเปลี่ยนแปลง | Service · ตอบคำถามใหม่ก่อนจอง | Service | The service |
+| `TRIAL_REQUESTED` | Advisor | An advisee asks for a service's free trial | มีคำขอทดลองฟรี | Name ขอทดลองฟรี N นาที · Service | Chat room | The chat room (the request's card) |
+| `TRIAL_DECIDED` | Advisee | The advisor grants or declines the trial | อนุมัติการทดลองฟรีแล้ว / คำขอทดลองฟรีไม่ได้รับอนุมัติ | Granted: advisor's name, "pick a time". Declined: the service name | Chat room | The chat room (the request's card) |
 
 ### Reviews, chat and safety
 

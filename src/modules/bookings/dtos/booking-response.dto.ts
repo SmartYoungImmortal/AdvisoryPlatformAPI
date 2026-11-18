@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { InferSelectModel } from 'drizzle-orm';
-import { appointmentStateEnum, serviceAppointments } from '@/database/schema';
+import {
+  appointmentStateEnum,
+  appointmentTypeEnum,
+  serviceAppointments,
+} from '@/database/schema';
 
 type Appointment = InferSelectModel<typeof serviceAppointments>;
 
@@ -12,6 +16,9 @@ export class BookingResponseDto {
   packageId: string | null;
   @ApiProperty() advisorId: string;
   @ApiProperty() adviseeId: string;
+  /** `TRIAL` for a free trial: no package, no invoice, booked without payment. */
+  @ApiProperty({ enum: appointmentTypeEnum.enumValues })
+  type: Appointment['type'];
   @ApiProperty({ format: 'date-time' }) startTime: Date;
   @ApiProperty({ format: 'date-time' }) endTime: Date;
   @ApiProperty({ format: 'date-time' }) unavailableUntil: Date;
@@ -31,6 +38,7 @@ export class BookingResponseDto {
     this.packageId = appointment.packageId;
     this.advisorId = appointment.advisorId;
     this.adviseeId = appointment.adviseeId;
+    this.type = appointment.type;
     this.startTime = appointment.startTime;
     this.endTime = appointment.endTime;
     this.unavailableUntil = appointment.unavailableUntil;

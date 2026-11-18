@@ -6,6 +6,7 @@ import type { ChatSocketSessionService } from './chat-socket-session.service';
 import type { ChatMessageNotifier } from './chat-message-notifier';
 import { ChatGateway } from './chat.gateway';
 import type { ChatService } from './chat.service';
+import type { TrialRequestResponseDto } from '@/modules/trials/dtos/trial-request-response.dto';
 
 jest.mock('better-auth/node', () => ({
   fromNodeHeaders: jest.fn(() => new Headers()),
@@ -108,6 +109,20 @@ describe('ChatGateway', () => {
 
     expect(emit).toHaveBeenCalledWith('chat:message', message);
     expect(emit).toHaveBeenCalledWith('chat:read', read);
+  });
+
+  it('sends a free-trial card’s new state to its room', () => {
+    const card = {
+      id: messageId,
+      chatRoomId: roomId,
+      status: 'GRANTED',
+    } as TrialRequestResponseDto;
+
+    gateway.announceTrial(card);
+
+    const server = (gateway as unknown as { server: { to: jest.Mock } }).server;
+    expect(server.to).toHaveBeenCalledWith(`chat:${roomId}`);
+    expect(emit).toHaveBeenCalledWith('chat:trial', card);
   });
 
   it('notifies only the members who are not in the room after a send', async () => {
