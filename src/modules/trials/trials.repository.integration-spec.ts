@@ -159,8 +159,9 @@ describe('TrialsRepository (integration)', () => {
       .select({ memberUserId: chatMembers.memberUserId })
       .from(chatMembers)
       .where(eq(chatMembers.chatRoomId, request.chatRoomId));
-    expect(members.map((row) => row.memberUserId).sort()).toEqual(
-      [adviseeId, advisorId].sort(),
+    expect(members.map((row) => row.memberUserId)).toHaveLength(2);
+    expect(members.map((row) => row.memberUserId)).toEqual(
+      expect.arrayContaining([adviseeId, advisorId]),
     );
     await expect(
       repository.isRoomMember(request.chatRoomId, adviseeId),

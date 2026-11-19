@@ -562,9 +562,7 @@ export class BookingsService {
     const type =
       request.kind === 'replacement'
         ? request.original.type
-        : request.trial
-          ? 'TRIAL'
-          : 'CONSULTATION';
+        : newType(request.trial);
     return {
       serviceId,
       packageId: packageId ?? null,
@@ -605,6 +603,11 @@ export class BookingsService {
       invalidTransitionMessage(target, ALLOWED_SOURCE_STATES[target]),
     );
   }
+}
+
+/** What a new booking is: the advisee's free trial, or a paid consultation. */
+function newType(trial: boolean): Appointment['type'] {
+  return trial ? 'TRIAL' : 'CONSULTATION';
 }
 
 function isExclusionViolation(error: unknown): boolean {
