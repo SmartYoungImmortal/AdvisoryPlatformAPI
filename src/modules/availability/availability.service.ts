@@ -206,11 +206,7 @@ export class AvailabilityService {
     viewerId: string | null,
   ): Promise<AvailabilitySlotResponseDto[]> {
     this.assertDateRange(query);
-    const context = await this.withPackage(
-      await this.getSchedulingContext(serviceId),
-      query.packageId,
-    );
-    await this.assertCanViewSlots(context, viewerId);
+    const context = await this.bookableContext(serviceId, query, viewerId);
     return this.deriveSlots(context, query.from, query.to);
   }
 
@@ -261,7 +257,10 @@ export class AvailabilityService {
     booking: ReschedulingBooking,
   ): Promise<SchedulingContext> {
     const context = await this.getSchedulingContext(booking.serviceId);
-    await this.assertCanViewSlots(context, booking.adviseeId);
+    // A free trial is not screened, so moving one is not either.
+    if (booking.type !== 'TRIAL') {
+      await this.assertCanViewSlots(context, booking.adviseeId);
+    }
     return {
       ...context,
       service: {
@@ -277,12 +276,13 @@ export class AvailabilityService {
     startTime: Date,
     adviseeId: string,
     packageId?: string | null,
+    trial = false,
   ): Promise<AvailabilitySlotResponseDto | undefined> {
-    const context = await this.withPackage(
-      await this.getSchedulingContext(serviceId),
-      packageId,
+    const context = await this.bookableContext(
+      serviceId,
+      { packageId, trial },
+      adviseeId,
     );
-    await this.assertCanViewSlots(context, adviseeId);
     const date = dateInTimeZone(startTime, context.timezone);
     const slots = await this.deriveSlots(context, date, date);
     return slots.find(
@@ -379,6 +379,54 @@ export class AvailabilityService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * The service's context cut to what the viewer is booking: their granted free
+   * trial, or a package (or the service itself) behind the screening gate.
+   */
+  private async bookableContext(
+    serviceId: string,
+    choice: { packageId?: string | null; trial?: boolean },
+    viewerId: string | null,
+  ): Promise<SchedulingContext> {
+    const context = await this.getSchedulingContext(serviceId);
+    if (choice.trial)
+      return this.withTrial(context, choice.packageId, viewerId);
+    const priced = await this.withPackage(context, choice.packageId);
+    await this.assertCanViewSlots(priced, viewerId);
+    return priced;
+  }
+
+  /**
+   * The context at the service's trial length, free. Screening does not gate a
+   * trial; the Advisor's grant does, and only until the trial is booked.
+   */
+  private async withTrial(
+    context: SchedulingContext,
+    packageId: string | null | undefined,
+    viewerId: string | null,
+  ): Promise<SchedulingContext> {
+    if (packageId)
+      throw new BadRequestException(AVAILABILITY_MESSAGES.trialWithPackage);
+    const trialMinutes = context.service.trialEnabled
+      ? context.service.trialDurationMinutes
+      : null;
+    if (!trialMinutes)
+      throw new BadRequestException(AVAILABILITY_MESSAGES.trialNotOffered);
+    if (
+      viewerId === null ||
+      !(await this.repository.hasUsableTrial(context.service.id, viewerId))
+    )
+      throw new BadRequestException(AVAILABILITY_MESSAGES.trialNotGranted);
+    return {
+      ...context,
+      service: {
+        ...context.service,
+        durationMinutes: trialMinutes,
+        priceSatang: 0,
+      },
+    };
   }
 
   /**

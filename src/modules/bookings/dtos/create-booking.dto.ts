@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional, IsUUID } from 'class-validator';
+import { IsBoolean, IsDateString, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateBookingDto {
   @ApiProperty({ format: 'uuid' })
@@ -15,4 +15,13 @@ export class CreateBookingDto {
   @IsOptional()
   @IsUUID()
   packageId?: string;
+
+  /**
+   * Book the Advisee's granted free trial: the service's trial length, no package and no
+   * payment, so the booking is confirmed at once.
+   */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  trial?: boolean;
 }

@@ -36,7 +36,7 @@ here — duplicating it would be a normalization error and would misrepresent th
 ### Booking is created before payment
 
 `SERVICE_APPOINTMENTS` is created in state `PENDING_PAYMENT`, and `SERVICE_INVOICES`
-carries the FK to it. This resolves the circular mandatory 1:1 the previous diagram had
+carries the FK to it. (A free `TRIAL` appointment has no invoice and is created `BOOKED`.) This resolves the circular mandatory 1:1 the previous diagram had
 (each table requiring the other to exist first), and it matches the concurrency
 requirement: the slot is claimed by the appointment row, so the exclusion constraint —
 not the payment gateway — is what guarantees no double-booking.
@@ -89,17 +89,20 @@ Two switches rather than one because Tan asked for screening so it *"ช่ว�
 filter. Coupling it to a free trial would force every advisor who wants to filter to also give away
 unpaid time.
 
-**One trial per advisee per service** is enforced by the composite primary key
-`(serviceId, adviseeId)` on `TRIAL_GRANTS`. A grant is created directly by the Advisor; it has no
-request/approval status. A granted trial uses the Service's Availability Profile and configured
-trial duration.
+**One trial ask per advisee per service** is enforced by the unique index on
+`(serviceId, adviseeId)` of `TRIAL_REQUESTS`. The Advisee asks from the Service's page; the ask opens
+the chat room of the Advisee, the Advisor and the Service (or joins the one an earlier booking
+opened), and the Advisor grants or declines it from its card there. A declined ask is final for
+that Service; a paid booking is still open. A granted trial uses the Service's Availability Profile
+and configured trial duration.
 
 There is no separate `TRIAL_SESSIONS` table. A trial is represented by a `TRIAL`
 `SERVICE_APPOINTMENTS` row, which keeps the same scheduling, chat-room, and audit path as a paid
 consultation without creating an invoice.
 
-`SCREENING_REQUESTS` keeps a uuid PK because it has its own state, decision, reason, answers, and
-lifecycle. `TRIAL_GRANTS` is an entitlement junction, so it correctly uses the composite key.
+`SCREENING_REQUESTS` and `TRIAL_REQUESTS` keep a uuid PK because each has its own state,
+decision, reason, and lifecycle. (`TRIAL_GRANTS`, a plain entitlement junction with no request
+step, was replaced by `TRIAL_REQUESTS` in `20261118015931_drop-trial-grants`.)
 `SCREENING_ANSWERS` also uses a composite key for its junction relationship.
 
 ### เลขบัตรประชาชน: stored, encrypted, deliberately not a primary key

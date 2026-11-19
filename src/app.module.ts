@@ -21,6 +21,7 @@ import { PayoutsModule } from './modules/payouts/payouts.module';
 import { SafetyModule } from './modules/safety/safety.module';
 import { AdminAccountsModule } from './modules/admin-accounts/admin-accounts.module';
 import { ScreeningModule } from './modules/screening/screening.module';
+import { TrialsModule } from './modules/trials/trials.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MatchingModule } from './modules/matching/matching.module';
 
@@ -51,6 +52,7 @@ import { MatchingModule } from './modules/matching/matching.module';
     SafetyModule,
     AdminAccountsModule,
     ScreeningModule,
+    TrialsModule,
     NotificationsModule,
     MatchingModule,
     // Last, so the literal `advisors/me/...` controllers register before this module's

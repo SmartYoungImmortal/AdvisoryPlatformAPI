@@ -31,6 +31,7 @@ import { ChatRoomEventDto } from './dtos/chat-room-event.dto';
 import type { ChatReadResponseDto } from './dtos/chat-read-response.dto';
 import { MarkChatReadEventDto } from './dtos/mark-chat-read.dto';
 import { SendChatMessageDto } from './dtos/send-chat-message.dto';
+import type { TrialRequestResponseDto } from '@/modules/trials/dtos/trial-request-response.dto';
 
 type ChatServer = Server<
   ChatClientToServerEvents,
@@ -172,6 +173,16 @@ export class ChatGateway implements OnGatewayInit<ChatServer> {
         .emit(CHAT_EVENTS.read, readState);
       return readState;
     });
+  }
+
+  /**
+   * Sends a free-trial card's new state to the members watching its room, so an
+   * open conversation shows the ask, the grant or the decline at once.
+   */
+  announceTrial(request: TrialRequestResponseDto): void {
+    this.server
+      .to(chatSocketRoom(request.chatRoomId))
+      .emit(CHAT_EVENTS.trial, request);
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

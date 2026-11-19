@@ -16,5 +16,5 @@ export interface AvailabilityProfileDetails {
 
 export type ReschedulingBooking = Pick<
   InferSelectModel<typeof serviceAppointments>,
-  'id' | 'serviceId' | 'adviseeId' | 'startTime' | 'endTime'
+  'id' | 'serviceId' | 'adviseeId' | 'type' | 'startTime' | 'endTime'
 >;

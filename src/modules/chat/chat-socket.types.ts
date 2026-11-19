@@ -4,6 +4,7 @@ import type { ChatReadResponseDto } from './dtos/chat-read-response.dto';
 import type { ChatRoomEventDto } from './dtos/chat-room-event.dto';
 import type { MarkChatReadEventDto } from './dtos/mark-chat-read.dto';
 import type { SendChatMessageDto } from './dtos/send-chat-message.dto';
+import type { TrialRequestResponseDto } from '@/modules/trials/dtos/trial-request-response.dto';
 
 export interface ChatSocketData {
   user?: SessionUser;
@@ -39,6 +40,8 @@ export interface ChatClientToServerEvents {
 export interface ChatServerToClientEvents {
   'chat:message': (payload: ChatMessageResponseDto) => void;
   'chat:read': (payload: ChatReadResponseDto) => void;
+  /** A free-trial request card in the room was sent, granted or declined. */
+  'chat:trial': (payload: TrialRequestResponseDto) => void;
   exception: (payload: ChatSocketError) => void;
 }
 

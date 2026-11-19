@@ -36,6 +36,8 @@ const PUSH_URLS: Record<NotificationType, string> = {
   REVIEW_REPLIED: '/bookings',
   REPORT_RESOLVED: '/notifications',
   PAYMENT_FAILED: '/transactions',
+  TRIAL_REQUESTED: '/chat',
+  TRIAL_DECIDED: '/chat',
 };
 
 export function pushUrlFor(type: NotificationType): string {

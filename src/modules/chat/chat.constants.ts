@@ -5,6 +5,7 @@ export const CHAT_EVENTS = {
   message: 'chat:message',
   markRead: 'chat:read',
   read: 'chat:read',
+  trial: 'chat:trial',
 } as const;
 
 export const CHAT_MESSAGES = {

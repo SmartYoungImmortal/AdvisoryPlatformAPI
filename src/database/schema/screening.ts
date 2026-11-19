@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -11,7 +12,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { user, services } from '@/database/schema';
+import { chatRooms, user, services } from '@/database/schema';
 
 export const screeningStatusEnum = pgEnum('screening_status', [
   'PENDING',
@@ -93,19 +94,43 @@ export const screeningAnswers = pgTable(
   ],
 );
 
-/** One free-trial entitlement per advisee and service, independent from screening. */
-export const trialGrants = pgTable(
-  'trial_grants',
+export const trialRequestStatusEnum = pgEnum('trial_request_status', [
+  'PENDING',
+  'GRANTED',
+  'DECLINED',
+]);
+
+/**
+ * An Advisee's ask for a Service's free trial, independent from screening. Sending it opens the
+ * chat room of the Advisee, the Advisor and the Service (or joins the one they already have), and
+ * the Advisor grants or declines it there. One ask per Advisee and Service, whatever the answer.
+ */
+export const trialRequests = pgTable(
+  'trial_requests',
   {
+    id: uuid('id').primaryKey().defaultRandom(),
     serviceId: uuid('service_id')
       .notNull()
       .references(() => services.id),
     adviseeId: uuid('advisee_id')
       .notNull()
       .references(() => user.id),
-    grantedAt: timestamp('granted_at', { withTimezone: true })
+    chatRoomId: uuid('chat_room_id')
+      .notNull()
+      .references(() => chatRooms.id),
+    status: trialRequestStatusEnum('status').notNull().default('PENDING'),
+    // The Advisor's optional message with a decline.
+    decisionReason: text('decision_reason'),
+    createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
   },
-  (table) => [primaryKey({ columns: [table.serviceId, table.adviseeId] })],
+  (table) => [
+    uniqueIndex('trial_requests_service_advisee_key').on(
+      table.serviceId,
+      table.adviseeId,
+    ),
+    index('trial_requests_chat_room_id_idx').on(table.chatRoomId),
+  ],
 );

@@ -21,6 +21,6 @@ import { ChatSocketSessionService } from './chat-socket-session.service';
     ChatService,
     ChatSocketSessionService,
   ],
-  exports: [ChatService],
+  exports: [ChatService, ChatGateway],
 })
 export class ChatModule {}
